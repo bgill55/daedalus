@@ -13,6 +13,6 @@ node "%~dp0dist/index.js" %*
 if errorlevel 1 (
     echo.
     echo  [ERROR] Daedalus exited with code %errorlevel%
-    echo  Make sure it's installed globally: npm link
+    echo  Make sure it's installed globally: npm install -g daedalus-cli
     pause
 )

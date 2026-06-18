@@ -46,7 +46,7 @@ Daedalus is a standalone terminal-based AI coding assistant that runs entirely o
 ### Install
 
 ```bash
-npm install -g daedalus
+npm install -g daedalus-cli
 ```
 
 Or run directly from source:
