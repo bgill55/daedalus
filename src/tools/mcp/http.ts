@@ -2,6 +2,9 @@
 // Uses native Node.js fetch + ReadableStream for SSE — no EventSource polyfill needed.
 
 import { MCPTransport, MCPServerConfig } from './types.js';
+import { createRequire } from 'module';
+const _req = createRequire(import.meta.url);
+const { version: CLI_VERSION } = _req('../../../package.json');
 
 class SSEClient {
   private url: string;
@@ -119,7 +122,7 @@ export class HttpTransport implements MCPTransport {
       params: {
         protocolVersion: '2024-11-05',
         capabilities: {},
-        clientInfo: { name: 'daedalus-cli', version: '0.1.0' },
+        clientInfo: { name: 'daedalus-cli', version: CLI_VERSION },
       },
     });
 

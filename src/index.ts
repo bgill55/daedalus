@@ -3,6 +3,7 @@ import { OpenAI } from 'openai';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { createRequire } from 'module';
 import readline from 'readline';
 import os from 'os';
 import pc from 'picocolors';
@@ -24,6 +25,9 @@ import { DaedalusSpinner } from './tools/daedalus-spinner.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+const _require = createRequire(import.meta.url);
+const { version: APP_VERSION } = _require('../package.json');
 
 // Load configuration
 const config = loadConfig();
@@ -260,7 +264,7 @@ function printBanner(): void {
   console.log(hRule('╚', '╝', '═', W, cyan));
 
   // Version / author badge — pill style
-  const badge    = `  v0.2.0-beta`;
+  const badge    = `  v${APP_VERSION}`;
   const author   = `bgill55_dev  `;
   const divider  = ` · `;
   console.log('');

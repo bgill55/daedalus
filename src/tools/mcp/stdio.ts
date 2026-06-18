@@ -2,6 +2,9 @@
 
 import { spawn, ChildProcess } from 'child_process';
 import { MCPTransport, MCPServerConfig } from './types.js';
+import { createRequire } from 'module';
+const _req = createRequire(import.meta.url);
+const { version: CLI_VERSION } = _req('../../../package.json');
 
 export class StdioTransport implements MCPTransport {
   private process: ChildProcess | null = null;
@@ -52,7 +55,7 @@ export class StdioTransport implements MCPTransport {
       params: {
         protocolVersion: '2024-11-05',
         capabilities: {},
-        clientInfo: { name: 'daedalus-cli', version: '0.1.0' },
+        clientInfo: { name: 'daedalus-cli', version: CLI_VERSION },
       },
     });
 
