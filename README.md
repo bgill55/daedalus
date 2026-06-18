@@ -52,7 +52,7 @@ npm install -g daedalus-cli
 Or run directly from source:
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/bgill55/daedalus.git
 cd daedalus
 npm install
 npm run build
