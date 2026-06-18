@@ -4,7 +4,7 @@
   "description": "Local-first AI coding CLI with embedded model router, multi-agent orchestration, and codebase indexing",
   "type": "module",
   "bin": {
-    "daedalus": "./dist/index.js"
+    "daedalus": "dist/index.js"
   },
   "files": [
     "dist/",
