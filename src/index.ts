@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
+import { execSync } from 'child_process';
 import readline from 'readline';
 import os from 'os';
 import pc from 'picocolors';
@@ -182,7 +183,7 @@ const COMMANDS = [
   '/spawn', '/delegate', '/orchestrate',
   '/memory', '/fact', '/convention',
   '/index', '/find', '/refs', '/def',
-  '/commit', '/undo', '/test',
+  '/commit', '/undo', '/test', '/paste',
   '/models', '/tools', '/config', '/project', '/doctor', '/session', '/onboard',
   '/help', 'exit', 'quit', '?',
 ];
@@ -884,6 +885,22 @@ function askLine(prompt: string): Promise<string> {
   return new Promise((resolve) => rl.question(prompt, resolve));
 }
 
+// ── Clipboard helper ───────────────────────────────────────────────────────────
+
+function getClipboardText(): string {
+  try {
+    if (process.platform === 'win32') {
+      return execSync('powershell -noprofile -command "Get-Clipboard"', { timeout: 5000, encoding: 'utf8' }).trim();
+    } else if (process.platform === 'darwin') {
+      return execSync('pbpaste', { timeout: 5000, encoding: 'utf8' }).trim();
+    } else {
+      return execSync('xclip -o -selection clipboard', { timeout: 5000, encoding: 'utf8' }).trim();
+    }
+  } catch {
+    return '';
+  }
+}
+
 // ── Visual formatting helpers ──────────────────────────────────────────────────
 
 function printUserTurn(userMessage: string): void {
@@ -969,6 +986,7 @@ async function chatLoop(): Promise<void> {
       console.log(`  ${pc.cyan('/context')}  Show active file context`);
       console.log(`  ${pc.cyan('/commit')}   Stage and commit changes`);
       console.log(`  ${pc.cyan('/undo')}     Undo last file patch`);
+      console.log(`  ${pc.cyan('/paste')}   Paste clipboard as message`);
       console.log(`  ${pc.cyan('/test')}     Run tests and auto-fix failures`);
       console.log(`  ${pc.cyan('/index')}    Index codebase for symbol search`);
       console.log(`  ${pc.cyan('/find')}     Search indexed symbols`);
@@ -1009,6 +1027,28 @@ async function chatLoop(): Promise<void> {
           console.log(pc.yellow(`⚠ File was not in context: ${fileArg}`));
         }
       }
+      continue;
+    }
+
+    // Command: /paste — paste clipboard content as message
+    if (lowerInput === '/paste' || lowerInput.startsWith('/paste ')) {
+      const clipboard = getClipboardText();
+      if (!clipboard) {
+        console.log(pc.red('⚠ Clipboard is empty or inaccessible.'));
+        continue;
+      }
+      const extra = trimmedInput.startsWith('/paste ') ? trimmedInput.substring(7).trim() : '';
+      const fullMessage = extra ? `${clipboard}\n\n${extra}` : clipboard;
+      printUserTurn(fullMessage);
+      try {
+        const filesContext = buildFileContext();
+        const indexCtx = await buildIndexContext(fullMessage);
+        const userContent = `${indexCtx}${filesContext}User Prompt: ${fullMessage}`;
+        await callModelWithTools(userContent);
+      } catch (error: any) {
+        console.error(pc.red(`\n❌ Error: ${error.message}`));
+      }
+      turnSeparator();
       continue;
     }
 
