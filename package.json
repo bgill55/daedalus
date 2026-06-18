@@ -24,11 +24,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/<your-username>/daedalus.git"
+    "url": "git+https://github.com/bgill55/daedalus.git"
   },
-  "homepage": "https://github.com/<your-username>/daedalus#readme",
+  "homepage": "https://github.com/bgill55/daedalus#readme",
   "bugs": {
-    "url": "https://github.com/<your-username>/daedalus/issues"
+    "url": "https://github.com/bgill55/daedalus/issues"
   },
   "keywords": [
     "cli",
