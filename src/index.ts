@@ -546,7 +546,7 @@ async function handleDoctor(): Promise<void> {
         process.stdout.write(`\r  ${pc.cyan(bar)} ${pc.white(`${current}/${total}`)} ${pc.gray(file.slice(-40))}`);
       };
 
-      const result = indexCodebase(db, process.cwd(), projectHash, { ...opts, onProgress });
+      const result = await indexCodebase(db, process.cwd(), projectHash, { ...opts, onProgress });
       process.stdout.write('\n');
       const elapsed = Date.now() - start;
     
@@ -1462,41 +1462,42 @@ async function main() {
     console.error(pc.yellow(`\n⚠ MCP initialization failed: ${err.message}`));
   }
   
-  // Auto-index at startup (non-blocking, background)
+  // Auto-index at startup — defer so the prompt appears immediately
   if (config.indexing.enabled) {
-    (async () => {
-      try {
-        const indexDbPath = path.join(os.homedir(), '.daedalus', 'sessions', projectHash, 'index.sqlite');
-        if (!fs.existsSync(indexDbPath)) {
-          console.log(pc.cyan('\n  ⚡ Auto-indexing codebase (background)...'));
-          const { initIndexDb } = await import('./indexing/fts.js');
-          const { indexCodebase } = await import('./indexing/indexer.js');
-          const db = initIndexDb(indexDbPath);
-          const result = indexCodebase(db, process.cwd(), projectHash, {
-            exclude: config.indexing.exclude,
-          });
-          console.log(pc.green(`  ✔ Indexed ${result.indexedFiles} files (${result.skippedFiles} unchanged)`));
-          if (result.errors.length > 0) {
-            console.log(pc.yellow(`  ⚠ ${result.errors.length} file(s) had errors`));
+    setTimeout(() => {
+      (async () => {
+        try {
+          const indexDbPath = path.join(os.homedir(), '.daedalus', 'sessions', projectHash, 'index.sqlite');
+          if (!fs.existsSync(indexDbPath)) {
+            console.log(pc.cyan('\n  ⚡ Auto-indexing codebase (background)...'));
+            const { initIndexDb } = await import('./indexing/fts.js');
+            const { indexCodebase } = await import('./indexing/indexer.js');
+            const db = initIndexDb(indexDbPath);
+            const result = await indexCodebase(db, process.cwd(), projectHash, {
+              exclude: config.indexing.exclude,
+            });
+            console.log(pc.green(`  ✔ Indexed ${result.indexedFiles} files (${result.skippedFiles} unchanged)`));
+            if (result.errors.length > 0) {
+              console.log(pc.yellow(`  ⚠ ${result.errors.length} file(s) had errors`));
+            }
+            toolContext.indexDb = db;
+          } else {
+            const { initIndexDb } = await import('./indexing/fts.js');
+            const { indexCodebase } = await import('./indexing/indexer.js');
+            const db = initIndexDb(indexDbPath);
+            const result = await indexCodebase(db, process.cwd(), projectHash, {
+              exclude: config.indexing.exclude,
+            });
+            if (result.indexedFiles > 0) {
+              console.log(pc.gray(`  📚 Re-indexed ${result.indexedFiles} changed file(s)`));
+            }
+            toolContext.indexDb = db;
           }
-          toolContext.indexDb = db;
-        } else {
-          // Re-index incrementally (fast — checks SHA hashes)
-          const { initIndexDb } = await import('./indexing/fts.js');
-          const { indexCodebase } = await import('./indexing/indexer.js');
-          const db = initIndexDb(indexDbPath);
-          const result = indexCodebase(db, process.cwd(), projectHash, {
-            exclude: config.indexing.exclude,
-          });
-          if (result.indexedFiles > 0) {
-            console.log(pc.gray(`  📚 Re-indexed ${result.indexedFiles} changed file(s)`));
-          }
-          toolContext.indexDb = db;
+        } catch (err: any) {
+          console.error(pc.yellow(`  ⚠ Auto-index failed: ${err.message}`));
         }
-      } catch (err: any) {
-        console.error(pc.yellow(`  ⚠ Auto-index failed: ${err.message}`));
-      }
-    })();
+      })();
+    }, 100);
   }
 
   await chatLoop();

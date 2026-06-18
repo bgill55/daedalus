@@ -42,7 +42,7 @@ export async function index_codebase(
 
     const projectHash = context.projectHash || getProjectHash(context.projectRoot);
 
-    const result = indexCodebase(db, context.projectRoot, projectHash, {
+    const result = await indexCodebase(db, context.projectRoot, projectHash, {
       exclude: args.exclude,
       extensions: args.extensions,
     });

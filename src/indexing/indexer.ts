@@ -544,13 +544,18 @@ export interface IndexResult {
   errors: string[];
 }
 
+/** Yield to the event loop so pending I/O (e.g. user input) can be processed */
+function yieldToEventLoop(): Promise<void> {
+  return new Promise(resolve => setImmediate(resolve));
+}
+
 /** Main indexing function - crawls codebase and indexes symbols/references */
-export function indexCodebase(
+export async function indexCodebase(
   db: Database.Database,
   root: string,
   projectHash: string,
   options: IndexerOptions = {}
-): IndexResult {
+): Promise<IndexResult> {
   const exclude = new Set([...DEFAULT_EXCLUDE, ...(options.exclude || [])]);
   const extensions = new Set([...DEFAULT_EXTENSIONS, ...(options.extensions || [])]);
 
@@ -593,6 +598,8 @@ export function indexCodebase(
     } catch (err: any) {
       errors.push(`${path.relative(root, file) || file}: ${err.message}`);
     }
+    // Yield periodically so the event loop stays responsive
+    if (i % 10 === 0) await yieldToEventLoop();
   }
 
   return {
