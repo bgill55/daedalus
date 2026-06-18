@@ -686,12 +686,25 @@ function truncateToolResult(content: string): string {
 // Streaming response handler with tool call support — iterative, not recursive
 const MAX_TOOL_TURNS = 40;
 
-async function callModelWithTools(userContent: string): Promise<{ content: string; toolCalls: ToolCall[] }> {
+async function callModelWithTools(
+  userContent: string,
+  imageBase64?: string,
+): Promise<{ content: string; toolCalls: ToolCall[] }> {
   // Auto-inject index context on first user turn (not on tool-result rounds)
   if (userContent) {
     const indexCtx = await buildIndexContext(userContent);
     const augmentedContent = indexCtx ? indexCtx + userContent : userContent;
-    messages.push({ role: 'user', content: augmentedContent });
+    if (imageBase64) {
+      messages.push({
+        role: 'user',
+        content: [
+          { type: 'text', text: augmentedContent },
+          { type: 'image_url', image_url: { url: `data:image/png;base64,${imageBase64}` } },
+        ],
+      } as any);
+    } else {
+      messages.push({ role: 'user', content: augmentedContent });
+    }
   }
 
   // Combine built-in tools with MCP tools (stable across turns)
@@ -854,8 +867,18 @@ async function callModelWithTools(userContent: string): Promise<{ content: strin
 }
 
 // Fallback: Structured output for models without tool support
-async function callModelWithFallback(userContent: string): Promise<string> {
-  messages.push({ role: 'user', content: userContent });
+async function callModelWithFallback(userContent: string, imageBase64?: string): Promise<string> {
+  if (imageBase64) {
+    messages.push({
+      role: 'user',
+      content: [
+        { type: 'text', text: userContent },
+        { type: 'image_url', image_url: { url: `data:image/png;base64,${imageBase64}` } },
+      ],
+    } as any);
+  } else {
+    messages.push({ role: 'user', content: userContent });
+  }
 
   console.log(pc.gray('🤖 Thinking (fallback mode)...'));
 
@@ -885,7 +908,7 @@ function askLine(prompt: string): Promise<string> {
   return new Promise((resolve) => rl.question(prompt, resolve));
 }
 
-// ── Clipboard helper ───────────────────────────────────────────────────────────
+// ── Clipboard helpers ──────────────────────────────────────────────────────────
 
 function getClipboardText(): string {
   try {
@@ -899,6 +922,38 @@ function getClipboardText(): string {
   } catch {
     return '';
   }
+}
+
+function getClipboardImage(): string | null {
+  const outPath = path.join(cliTempDir, `paste-${Date.now()}.png`);
+  try {
+    if (process.platform === 'win32') {
+      const psScript = `
+Add-Type -AssemblyName System.Windows.Forms
+$img = [System.Windows.Forms.Clipboard]::GetImage()
+if ($img) {
+  $img.Save('${outPath.replace(/\\/g, '\\\\')}', [System.Drawing.Imaging.ImageFormat]::Png)
+  Write-Output 'ok'
+}`;
+      const scriptPath = path.join(cliTempDir, `clip-img-${Date.now()}.ps1`);
+      fs.writeFileSync(scriptPath, psScript, 'utf8');
+      const result = execSync(`powershell -noprofile -ExecutionPolicy Bypass -File "${scriptPath}"`, { timeout: 8000, encoding: 'utf8' }).trim();
+      try { fs.unlinkSync(scriptPath); } catch {}
+      if (result === 'ok' && fs.existsSync(outPath)) return outPath;
+    } else if (process.platform === 'darwin') {
+      execSync(`pngpaste "${outPath}"`, { timeout: 5000 });
+      if (fs.existsSync(outPath)) return outPath;
+    } else {
+      const imgData = execSync(`xclip -selection clipboard -t image/png -o`, { timeout: 5000, encoding: 'buffer' }) as Buffer;
+      if (imgData && imgData.length > 0) {
+        fs.writeFileSync(outPath, imgData);
+        return outPath;
+      }
+    }
+  } catch {
+    // No image in clipboard
+  }
+  return null;
 }
 
 // ── Visual formatting helpers ──────────────────────────────────────────────────
@@ -986,7 +1041,7 @@ async function chatLoop(): Promise<void> {
       console.log(`  ${pc.cyan('/context')}  Show active file context`);
       console.log(`  ${pc.cyan('/commit')}   Stage and commit changes`);
       console.log(`  ${pc.cyan('/undo')}     Undo last file patch`);
-      console.log(`  ${pc.cyan('/paste')}   Paste clipboard as message`);
+      console.log(`  ${pc.cyan('/paste')}   Paste clipboard text/image as message`);
       console.log(`  ${pc.cyan('/test')}     Run tests and auto-fix failures`);
       console.log(`  ${pc.cyan('/index')}    Index codebase for symbol search`);
       console.log(`  ${pc.cyan('/find')}     Search indexed symbols`);
@@ -1030,14 +1085,44 @@ async function chatLoop(): Promise<void> {
       continue;
     }
 
-    // Command: /paste — paste clipboard content as message
+    // Command: /paste — paste clipboard content (text or image)
     if (lowerInput === '/paste' || lowerInput.startsWith('/paste ')) {
+      const extra = trimmedInput.startsWith('/paste ') ? trimmedInput.substring(7).trim() : '';
+
+      // Try image first
+      const imgPath = getClipboardImage();
+      if (imgPath) {
+        const imgBuffer = fs.readFileSync(imgPath);
+        fs.unlinkSync(imgPath); // Clean up temp file
+        const base64 = imgBuffer.toString('base64');
+        const message = extra || 'What do you see in this image?';
+        printUserTurn(`${message} (image)`);
+        try {
+          const filesContext = buildFileContext();
+          const indexCtx = await buildIndexContext(message);
+          const userContent = `${indexCtx}${filesContext}User Prompt: ${message}`;
+          await callModelWithTools(userContent, base64);
+        } catch (error: any) {
+          console.error(pc.red(`\n❌ Error: ${error.message}`));
+          try {
+            const filesContext = buildFileContext();
+            const userContent = `${filesContext}User Prompt: ${message}`;
+            console.log(pc.yellow('\n🔄 Trying fallback mode...'));
+            await callModelWithFallback(userContent, base64);
+          } catch (fallbackErr: any) {
+            console.error(pc.red(`\n❌ Fallback also failed: ${fallbackErr.message}`));
+          }
+        }
+        turnSeparator();
+        continue;
+      }
+
+      // Fall back to text
       const clipboard = getClipboardText();
       if (!clipboard) {
         console.log(pc.red('⚠ Clipboard is empty or inaccessible.'));
         continue;
       }
-      const extra = trimmedInput.startsWith('/paste ') ? trimmedInput.substring(7).trim() : '';
       const fullMessage = extra ? `${clipboard}\n\n${extra}` : clipboard;
       printUserTurn(fullMessage);
       try {
