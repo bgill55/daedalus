@@ -1,0 +1,301 @@
+// Built-in tool definitions for OpenAI function calling
+// These match the tool implementations in tools/builtin/
+
+import type { ToolDefinition } from '../types.js';
+
+export type { ToolDefinition };
+
+export const BUILTIN_TOOLS: ToolDefinition[] = [
+  {
+    type: 'function',
+    function: {
+      name: 'read_file',
+      description: 'Read a file with optional line range. Returns content with line numbers.',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'Absolute or relative file path' },
+          offset: { type: 'integer', description: 'Starting line number (1-indexed)', minimum: 1, default: 1 },
+          limit: { type: 'integer', description: 'Maximum lines to read', minimum: 1, maximum: 2000, default: 1000 },
+        },
+        required: ['path'],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'write_file',
+      description: 'Create or completely overwrite a file. Creates parent directories automatically.',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'Absolute or relative file path' },
+          content: { type: 'string', description: 'Complete file content to write' },
+        },
+        required: ['path', 'content'],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'patch',
+      description: 'Apply a targeted edit by replacing old_string with new_string. Use for precise changes.',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'File path to edit' },
+          old_string: { type: 'string', description: 'Exact text to find and replace (include context for uniqueness)' },
+          new_string: { type: 'string', description: 'Replacement text (empty string to delete)' },
+          replace_all: { type: 'boolean', description: 'Replace all occurrences', default: false },
+        },
+        required: ['path', 'old_string', 'new_string'],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'search_files',
+      description: 'Search file contents (ripgrep) or find files by name. Fast, regex-supported.',
+      parameters: {
+        type: 'object',
+        properties: {
+          pattern: { type: 'string', description: 'Regex pattern for content search, or glob for file search' },
+          target: { type: 'string', enum: ['content', 'files'], description: 'Search inside files or find files by name', default: 'content' },
+          path: { type: 'string', description: 'Directory to search in', default: '.' },
+          file_glob: { type: 'string', description: 'Filter files by glob pattern (e.g. "*.ts")' },
+          limit: { type: 'integer', description: 'Max results', minimum: 1, maximum: 200, default: 50 },
+        },
+        required: ['pattern'],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'list_files',
+      description: 'List directory tree with optional depth and glob filter.',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'Directory path', default: '.' },
+          depth: { type: 'integer', description: 'Max recursion depth', minimum: 1, maximum: 10, default: 3 },
+          glob: { type: 'string', description: 'Glob pattern to filter (e.g. "**/*.ts")' },
+        },
+        required: [],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'terminal',
+      description: 'Execute a shell command. Use for builds, tests, git, package managers, etc.',
+      parameters: {
+        type: 'object',
+        properties: {
+          command: { type: 'string', description: 'Command to execute (bash syntax)' },
+          timeout: { type: 'integer', description: 'Max seconds to wait', minimum: 1, maximum: 600, default: 180 },
+          workdir: { type: 'string', description: 'Working directory (absolute path)' },
+        },
+        required: ['command'],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'git_diff',
+      description: 'Show git diff of working tree or staged changes.',
+      parameters: {
+        type: 'object',
+        properties: {
+          staged: { type: 'boolean', description: 'Show staged changes instead of working tree', default: false },
+          path: { type: 'string', description: 'Limit to specific file/directory' },
+        },
+        required: [],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'git_status',
+      description: 'Show git repository status (staged, unstaged, untracked files).',
+      parameters: {
+        type: 'object',
+        properties: {},
+        required: [],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'todo',
+      description: 'Manage task list for the current session. Use for planning and tracking.',
+      parameters: {
+        type: 'object',
+        properties: {
+          todos: {
+            type: 'array',
+            description: 'Task items to write',
+            items: {
+              type: 'object',
+              properties: {
+                id: { type: 'string', description: 'Unique item identifier' },
+                content: { type: 'string', description: 'Task description' },
+                status: { type: 'string', enum: ['pending', 'in_progress', 'completed', 'cancelled'], description: 'Current status' },
+              },
+              required: ['id', 'content', 'status'],
+            },
+          },
+          merge: { type: 'boolean', description: 'Update existing items by id, add new ones', default: false },
+        },
+        required: ['todos'],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'web_search',
+      description: 'Search the web for information. Returns top results with snippets.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: 'Search query' },
+          limit: { type: 'integer', description: 'Max results', minimum: 1, maximum: 20, default: 10 },
+        },
+        required: ['query'],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'fetch_url',
+      description: 'Fetch content from a URL. Returns text content and MIME type.',
+      parameters: {
+        type: 'object',
+        properties: {
+          url: { type: 'string', description: 'URL to fetch' },
+          timeout: { type: 'integer', description: 'Timeout in seconds', minimum: 1, maximum: 60, default: 30 },
+        },
+        required: ['url'],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'delegate_task',
+      description: 'Spawn a sub-agent to work on a subtask. Use for parallel workstreams.',
+      parameters: {
+        type: 'object',
+        properties: {
+          goal: { type: 'string', description: 'What the sub-agent should accomplish' },
+          context: { type: 'string', description: 'Background information the sub-agent needs' },
+          role: { type: 'string', description: 'Agent role: coder, reviewer, debugger, researcher, planner', enum: ['coder', 'reviewer', 'debugger', 'researcher', 'planner'] },
+          toolsets: { type: 'array', items: { type: 'string' }, description: 'Toolsets to enable for this sub-agent' },
+        },
+        required: ['goal'],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'index_codebase',
+      description: 'Analyze and index codebase symbols and references.',
+      parameters: {
+        type: 'object',
+        properties: {
+          exclude: { type: 'array', items: { type: 'string' }, description: 'Directories to exclude' },
+          extensions: { type: 'array', items: { type: 'string' }, description: 'File extensions to index' },
+        },
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'find_symbol',
+      description: 'Fuzzy search code symbols (classes, functions, etc.) in the codebase using FTS5.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: 'Fuzzy search query term' },
+          limit: { type: 'integer', description: 'Max search results', minimum: 1, maximum: 100, default: 30 },
+        },
+        required: ['query'],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_definition',
+      description: 'Retrieve the file path, line range, and signature for a symbol declaration by exact name.',
+      parameters: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'Exact symbol name' },
+        },
+        required: ['name'],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_references',
+      description: 'Retrieve all caller locations referencing a symbol name.',
+      parameters: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'Symbol name to find calls to' },
+        },
+        required: ['name'],
+        additionalProperties: false,
+      },
+    },
+  },
+];
+
+// Tool name to implementation function mapping
+export const TOOL_IMPLEMENTATIONS: Record<string, string> = {
+  read_file: 'tools/builtin/files.readFile',
+  write_file: 'tools/builtin/files.writeFile',
+  patch: 'tools/builtin/files.patchFile',
+  search_files: 'tools/builtin/files.searchFiles',
+  list_files: 'tools/builtin/files.listFiles',
+  terminal: 'tools/builtin/terminal.execute',
+  git_diff: 'tools/builtin/git.diff',
+  git_status: 'tools/builtin/git.status',
+  todo: 'tools/builtin/todo.manage',
+  web_search: 'tools/builtin/web.search',
+  fetch_url: 'tools/builtin/web.fetchUrl',
+  delegate_task: 'tools/builtin/delegation.manage',
+  index_codebase: 'tools/builtin/indexing.index_codebase',
+  find_symbol: 'tools/builtin/indexing.find_symbol',
+  get_definition: 'tools/builtin/indexing.get_definition',
+  get_references: 'tools/builtin/indexing.get_references',
+};

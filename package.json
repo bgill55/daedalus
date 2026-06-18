@@ -1,0 +1,63 @@
+{
+  "name": "daedalus",
+  "version": "0.3.0",
+  "description": "Local-first AI coding CLI with embedded model router, multi-agent orchestration, and codebase indexing",
+  "type": "module",
+  "bin": {
+    "daedalus": "./dist/index.js"
+  },
+  "files": [
+    "dist/",
+    "Daedalus.bat",
+    "README.md"
+  ],
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "prepublishOnly": "npm run build",
+    "test": "vitest run",
+    "lint": "eslint src --ext .ts"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/<your-username>/daedalus.git"
+  },
+  "homepage": "https://github.com/<your-username>/daedalus#readme",
+  "bugs": {
+    "url": "https://github.com/<your-username>/daedalus/issues"
+  },
+  "keywords": [
+    "cli",
+    "ai",
+    "coding",
+    "assistant",
+    "local",
+    "llm",
+    "lm-studio",
+    "ollama",
+    "mcp",
+    "developer-tools"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "better-sqlite3": "^12.10.0",
+    "cli-highlight": "^2.1.11",
+    "diff": "^7.0.0",
+    "openai": "^4.85.4",
+    "picocolors": "^1.1.1",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/diff": "^6.0.0",
+    "@types/node": "^22.15.3",
+    "esbuild": "^0.24.0",
+    "tsx": "^4.19.4",
+    "typescript": "^5.8.3",
+    "vitest": "^2.1.8"
+  }
+}
