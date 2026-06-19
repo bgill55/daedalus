@@ -104,6 +104,11 @@ Once inside the REPL, type `?` or `help` for the full command reference.
 | `/onboard` | Re-run setup wizard |
 | `/spawn <role> <task>` | Spawn a sub-agent |
 | `/orchestrate <goal>` | Run multi-agent orchestration |
+| `/branch [name]` | View active branch or switch/create branches |
+| `/pr [base-branch]` | Generate Pull Request description |
+| `/debug <command>` | Run command and autonomously fix errors |
+| `/ensemble <goal>` | Run multi-model ensemble drafting pipeline |
+| `/prune [budget]` | View context breakdown and prune message history |
 | `?` / `help` | Show command reference |
 | `exit` / `quit` | Save and quit |
 
