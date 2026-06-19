@@ -885,13 +885,21 @@ async function callModelWithTools(
         return { content: '', toolCalls: [] };
       }
       spinner.stop();
-      console.error(pc.red(`\n[ERROR] Error calling model: ${error.message}`));
+      const firstLine = (error.message || '').split('\n')[0];
+      console.log(pc.yellow(`\n  ${pc.bold('[WARN]')} Error calling model: ${firstLine}`));
+      console.log(pc.dim(`         (Tip: Run /doctor to diagnose connection or loading issues)`));
       throw error;
     }
 
     currentAbortController = null;
 
-    const toolCallArray = Array.from(toolCallMap.values()).filter(tc => tc.function.name);
+    let toolCallArray = Array.from(toolCallMap.values()).filter(tc => tc.function.name);
+    if (toolCallArray.length === 0) {
+      const parsedCalls = parseTextToolCalls(fullContent);
+      if (parsedCalls.length > 0) {
+        toolCallArray = parsedCalls;
+      }
+    }
     lastContent = fullContent;
 
     // Close assistant block after streaming, before tool results
@@ -989,7 +997,7 @@ async function callModelWithFallback(userContent: string, imageBase64?: string):
     messages.push({ role: 'user', content: userContent });
   }
 
-  console.log(pc.gray('[THINK] Thinking (fallback mode)...'));
+  console.log(pc.gray('  [THINK] Thinking (fallback mode)...'));
 
   try {
     const response = await router.chat.completions.create({
@@ -1007,7 +1015,9 @@ async function callModelWithFallback(userContent: string, imageBase64?: string):
     closeAssistantBlock(reply.length, elapsed);
     return reply;
   } catch (error: any) {
-    console.error(pc.red(`\n[ERROR] Fallback error: ${error.message}`));
+    const firstLine = (error.message || '').split('\n')[0];
+    console.log(pc.yellow(`\n  ${pc.bold('[WARN]')} Fallback error: ${firstLine}`));
+    console.log(pc.dim(`         (Tip: Run /doctor to diagnose connection or loading issues)`));
     throw error;
   }
 }
@@ -1161,6 +1171,55 @@ function writeAssistantChunk(chunk: string): void {
   }
 }
 
+export function parseTextToolCalls(text: string): ToolCall[] {
+  const toolCalls: ToolCall[] = [];
+  const regex = /<(longcat_)?tool_call>([\s\S]*?)<\/(longcat_)?tool_call>/g;
+  let match;
+  while ((match = regex.exec(text)) !== null) {
+    const blockContent = match[2].trim();
+    const lines = blockContent.split('\n').map(l => l.trim()).filter(Boolean);
+    if (lines.length === 0) continue;
+    const toolName = lines[0].replace(/<[^>]+>/g, '').trim();
+    
+    const args: Record<string, any> = {};
+    const keyRegex = /<(longcat_)?arg_key>([\s\S]*?)<\/(longcat_)?arg_key>/g;
+    const valRegex = /<(longcat_)?arg_value>([\s\S]*?)<\/(longcat_)?arg_value>/g;
+    
+    const keys: string[] = [];
+    const values: string[] = [];
+    
+    let keyMatch;
+    while ((keyMatch = keyRegex.exec(blockContent)) !== null) {
+      keys.push(keyMatch[2].trim());
+    }
+    
+    let valMatch;
+    while ((valMatch = valRegex.exec(blockContent)) !== null) {
+      values.push(valMatch[2].trim());
+    }
+    
+    for (let i = 0; i < Math.min(keys.length, values.length); i++) {
+      const k = keys[i];
+      const v = values[i];
+      try {
+        args[k] = JSON.parse(v);
+      } catch {
+        args[k] = v;
+      }
+    }
+    
+    toolCalls.push({
+      id: `call_parsed_${Date.now()}_${toolCalls.length}`,
+      type: 'function',
+      function: {
+        name: toolName,
+        arguments: JSON.stringify(args),
+      }
+    });
+  }
+  return toolCalls;
+}
+
 function closeAssistantBlock(tokens: number, elapsedMs: number, toolCount?: number): void {
   if (_assistantLineBuf) {
     for (const part of wrapLine(_assistantLineBuf, termW)) {
@@ -1168,9 +1227,10 @@ function closeAssistantBlock(tokens: number, elapsedMs: number, toolCount?: numb
     }
     _assistantLineBuf = '';
   }
+  const modelStr = router.lastRoutedModel ? `${router.lastRoutedModel}  ·  ` : '';
   const meta = toolCount !== undefined
-    ? `${toolCount} tool(s)  ·  ~${Math.round(tokens / 4)}t out  ·  ${elapsedMs}ms`
-    : `~${Math.round(tokens / 4)}t out  ·  ${elapsedMs}ms`;
+    ? `${modelStr}${toolCount} tool(s)  ·  ~${Math.round(tokens / 4)}t out  ·  ${elapsedMs}ms`
+    : `${modelStr}~${Math.round(tokens / 4)}t out  ·  ${elapsedMs}ms`;
   console.log(`  ${pc.dim(meta)}\n`);
 }
 
@@ -1307,15 +1367,15 @@ async function chatLoop(): Promise<void> {
               await callModelWithTools(userContent, base64);
               sessionManager.saveSessionState(messages, activeFiles, getSessionTodos(sessionId));
             } catch (error: any) {
-              console.error(pc.red(`\n[ERROR] Error: ${error.message}`));
               try {
                 const filesContext = buildFileContext();
                 const userContent = `${filesContext}User Prompt: ${message}`;
-                console.log(pc.yellow('\n[RETRY] Trying fallback mode...'));
+                console.log(pc.yellow('\n  [RETRY] Trying fallback mode...'));
                 await callModelWithFallback(userContent, base64);
                 sessionManager.saveSessionState(messages, activeFiles, getSessionTodos(sessionId));
               } catch (fallbackErr: any) {
-                console.error(pc.red(`\n[ERROR] Fallback also failed: ${fallbackErr.message}`));
+                const firstLine = (fallbackErr.message || '').split('\n')[0];
+                console.log(pc.red(`\n  ${pc.bold('[ERROR]')} Fallback also failed: ${firstLine}`));
               }
             }
             turnSeparator();
@@ -1339,15 +1399,15 @@ async function chatLoop(): Promise<void> {
           await callModelWithTools(userContent, base64);
           sessionManager.saveSessionState(messages, activeFiles, getSessionTodos(sessionId));
         } catch (error: any) {
-          console.error(pc.red(`\n[ERROR] Error: ${error.message}`));
           try {
             const filesContext = buildFileContext();
             const userContent = `${filesContext}User Prompt: ${message}`;
-            console.log(pc.yellow('\n[RETRY] Trying fallback mode...'));
+            console.log(pc.yellow('\n  [RETRY] Trying fallback mode...'));
             await callModelWithFallback(userContent, base64);
             sessionManager.saveSessionState(messages, activeFiles, getSessionTodos(sessionId));
           } catch (fallbackErr: any) {
-            console.error(pc.red(`\n[ERROR] Fallback also failed: ${fallbackErr.message}`));
+            const firstLine = (fallbackErr.message || '').split('\n')[0];
+            console.log(pc.red(`\n  ${pc.bold('[ERROR]')} Fallback also failed: ${firstLine}`));
           }
         }
         turnSeparator();
@@ -1369,7 +1429,6 @@ async function chatLoop(): Promise<void> {
         await callModelWithTools(userContent);
         sessionManager.saveSessionState(messages, activeFiles, getSessionTodos(sessionId));
       } catch (error: any) {
-        console.error(pc.red(`\n[ERROR] Error: ${error.message}`));
       }
       turnSeparator();
       continue;
@@ -2111,11 +2170,10 @@ Once you have finished making changes, I will automatically re-run the command t
       // Fact extraction — learns from tool results and reasoning
       await extractAndSave(router as any, sessionManager, messages);
     } catch (error: any) {
-      console.error(pc.red(`\n[ERROR] Error: ${error.message}`));
       try {
         const filesContext = buildFileContext();
         const userContent = `${filesContext}User Prompt: ${trimmedInput}`;
-        console.log(pc.yellow('\n[RETRY] Trying fallback mode...'));
+        console.log(pc.yellow('\n  [RETRY] Trying fallback mode...'));
         const fallbackResult = await callModelWithFallback(userContent);
         if (fallbackResult) {
           // Persist session after fallback too
@@ -2123,8 +2181,9 @@ Once you have finished making changes, I will automatically re-run the command t
           await extractAndSave(router as any, sessionManager, messages);
         }
       } catch (fallbackErr: any) {
-        console.error(pc.red(`\n[ERROR] Fallback also failed: ${fallbackErr.message}`));
-        console.error(pc.gray('Check that at least one local server is running.'));
+        const firstLine = (fallbackErr.message || '').split('\n')[0];
+        console.log(pc.red(`\n  ${pc.bold('[ERROR]')} Fallback also failed: ${firstLine}`));
+        console.log(pc.dim('         Check that at least one local server is running or run /doctor to debug.'));
       }
     }
     turnSeparator();

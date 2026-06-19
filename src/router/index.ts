@@ -22,6 +22,7 @@ export class LocalRouter {
   private rateLimiters: Map<string, ReturnType<typeof createTokenBucket>> = new Map();
   private roundRobinIndex = 0;
   private discoveredModels: Map<string, string> = new Map(); // endpoint key -> model id
+  public lastRoutedModel?: string;
 
   constructor(config: RouterConfig) {
     this.config = config;
@@ -171,6 +172,8 @@ export class LocalRouter {
       ? await this.discoverModel(client, key)
       : model.model;
     
+    this.lastRoutedModel = model.name === actualModel ? model.name : `${model.name} (${actualModel})`;
+    
     try {
       const start = Date.now();
       const response = await client.chat.completions.create({
@@ -194,6 +197,8 @@ export class LocalRouter {
     const actualModel = model.model === 'auto'
       ? await this.discoverModel(client, key)
       : model.model;
+    
+    this.lastRoutedModel = model.name === actualModel ? model.name : `${model.name} (${actualModel})`;
     
     try {
       const start = Date.now();
