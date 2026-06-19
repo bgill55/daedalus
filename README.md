@@ -277,7 +277,7 @@ See [CHANGELOG.md](CHANGELOG.md) for the project history.
 
 ## Security
 
-Report security vulnerabilities privately to bgill55_art@outlook.com — see [SECURITY.md](SECURITY.md) for details.
+Report security vulnerabilities privately to bgill55_dev@voxvivid.com — see [SECURITY.md](SECURITY.md) for details.
 
 ## License
 
