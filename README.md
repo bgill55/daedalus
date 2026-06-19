@@ -1,5 +1,8 @@
 # Daedalus
 
+<img width="1024" height="1024" alt="daedalus_emblem_1781855172596" src="https://github.com/user-attachments/assets/a5d4b394-3c2c-427e-b877-6e49f77467fc" />
+
+
 **Local-first coding CLI with an embedded model router, multi-agent orchestration, and codebase indexing.**
 
 Daedalus is a standalone terminal-based AI coding assistant that runs entirely on your machine. It connects to local LLM servers (LM Studio, Ollama, llama.cpp, vLLM) or remote providers (OpenAI, Groq, OpenRouter, Anthropic), routes requests intelligently, and gives your AI agent access to your file system, terminal, git, web search, and codebase indexing — all from your command line.
