@@ -7,9 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Indexer yields after every file instead of every 10 — eliminates keyboard lag during background indexing (v0.5.9)
+
 ### Added
 
 - **Auto-fact extraction** — after each turn with learning signals (file edits, commits), Daedalus silently extracts key-value facts and saves them to project memory. The CLI that grows with you.
+
 - `/extract` command — manually trigger fact extraction from the current session
 - Session-end extraction — facts extracted automatically when you exit
 - `src/extraction.ts` — extraction engine: signal detection, lightweight LLM call, dedup, save
