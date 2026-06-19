@@ -6,7 +6,7 @@ import pc from 'picocolors';
 import * as diff from 'diff';
 import { ToolContext } from '../../types.js';
 
-export type DiffDecision = 'yes' | 'no' | 'all' | 'skip' | 'diff' | 'edit';
+export type DiffDecision = 'yes' | 'no' | 'all' | 'skip' | 'diff' | 'edit' | 'chunks';
 
 export interface DiffOptions {
   filePath: string;
@@ -115,7 +115,7 @@ export async function promptDiffDecision(
   // Show the diff
   const diffOutput = generateUnifiedDiff(options.oldContent, options.newContent, options.filePath);
   process.stdout.write(diffOutput);
-  process.stdout.write(pc.bold(`\nApply this masterpiece? [y]es / [n]o / [a]ll / [s]kip / [d]iff / [e]dit: `));
+  process.stdout.write(pc.bold(`\nApply this masterpiece? [y]es / [n]o / [c]hunks / [a]ll / [s]kip / [d]iff / [e]dit: `));
 
   return new Promise((resolve) => {
     // Raw mode for single keypress
@@ -130,6 +130,7 @@ export async function promptDiffDecision(
       switch (char) {
         case 'y': decision = 'yes'; break;
         case 'n': decision = 'no'; break;
+        case 'c': decision = 'chunks'; break;
         case 'a': decision = 'all'; break;
         case 's': decision = 'skip'; break;
         case 'd': decision = 'diff'; break;
@@ -202,6 +203,173 @@ export async function openEditor(content: string): Promise<string> {
   });
 }
 
+export function formatHunk(
+  hunk: diff.Hunk,
+  index: number,
+  total: number,
+  filePath: string
+): string {
+  let output = '';
+  const titleText = ` Hunk ${index + 1} of ${total} for ${filePath} `;
+  const borderW = Math.max(78, titleText.length);
+  const paddedTitle = titleText.padEnd(borderW);
+  output += pc.bold(pc.cyan(`\n\u250c${'\u2500'.repeat(borderW)}\u2510\n`));
+  output += pc.bold(pc.cyan(`\u2502${paddedTitle}\u2502\n`));
+  output += pc.bold(pc.cyan(`\u251c${'\u2500'.repeat(borderW)}\u2524\n`));
+
+  let lineNumOld = hunk.oldStart;
+  let lineNumNew = hunk.newStart;
+
+  for (const line of hunk.lines) {
+    if (line.startsWith('\\')) {
+      output += pc.bold(pc.yellow(`\u2502   ${line}\n`));
+      continue;
+    }
+    if (line.startsWith('+')) {
+      output += pc.green(`\u2502 + ${String(lineNumNew).padStart(4)} | ${line.substring(1)}\n`);
+      lineNumNew++;
+    } else if (line.startsWith('-')) {
+      output += pc.red(`\u2502 - ${String(lineNumOld).padStart(4)} | ${line.substring(1)}\n`);
+      lineNumOld++;
+    } else {
+      output += pc.gray(`\u2502   ${String(lineNumOld).padStart(4)} | ${line.substring(1)}\n`);
+      lineNumOld++;
+      lineNumNew++;
+    }
+  }
+
+  output += pc.bold(pc.cyan(`\u2514${'\u2500'.repeat(borderW)}\u2518\n`));
+  return output;
+}
+
+export async function promptHunkDecision(
+  hunk: diff.Hunk,
+  index: number,
+  total: number,
+  filePath: string
+): Promise<'yes' | 'no' | 'all' | 'quit'> {
+  if (!process.stdin.isTTY) {
+    return 'no';
+  }
+
+  const hunkOutput = formatHunk(hunk, index, total, filePath);
+  process.stdout.write(hunkOutput);
+  process.stdout.write(pc.bold(`Stage this hunk? [y]es / [n]o / [a]ll remaining / [q]uit: `));
+
+  return new Promise((resolve) => {
+    if (process.stdin.isTTY) {
+      process.stdin.setRawMode?.(true);
+    }
+
+    const onKey = (key: Buffer) => {
+      const char = key.toString().toLowerCase();
+      let choice: 'yes' | 'no' | 'all' | 'quit' | null = null;
+
+      switch (char) {
+        case 'y': choice = 'yes'; break;
+        case 'n': choice = 'no'; break;
+        case 'a': choice = 'all'; break;
+        case 'q': choice = 'quit'; break;
+        case '\u0003': // Ctrl+C
+          process.stdout.write('\n');
+          cleanup();
+          resolve('quit');
+          return;
+      }
+
+      if (choice) {
+        process.stdout.write(`${choice.toUpperCase()}\n`);
+        cleanup();
+        resolve(choice);
+      }
+    };
+
+    process.stdin.on('data', onKey);
+
+    function cleanup() {
+      process.stdin.off('data', onKey);
+      if (process.stdin.isTTY) {
+        process.stdin.setRawMode?.(false);
+      }
+    }
+  });
+}
+
+export async function reviewChunksWorkflow(
+  oldContent: string,
+  newContent: string,
+  filePath: string,
+  prompter: typeof promptHunkDecision = promptHunkDecision
+): Promise<string> {
+  const patch = diff.structuredPatch(filePath, filePath, oldContent, newContent);
+  const hunks = patch.hunks;
+
+  if (hunks.length === 0) {
+    process.stdout.write(pc.yellow('No hunks found to review.\n'));
+    return oldContent;
+  }
+
+  const oldLines = oldContent.split('\n');
+  const outputLines: string[] = [];
+  let currentLine = 1;
+  let autoApplyRemaining = false;
+  let quitRemaining = false;
+
+  for (let i = 0; i < hunks.length; i++) {
+    const hunk = hunks[i];
+
+    while (currentLine < hunk.oldStart) {
+      outputLines.push(oldLines[currentLine - 1]);
+      currentLine++;
+    }
+
+    let accept = false;
+    if (autoApplyRemaining) {
+      accept = true;
+    } else if (quitRemaining) {
+      accept = false;
+    } else {
+      const choice = await prompter(hunk, i, hunks.length, filePath);
+      if (choice === 'yes') {
+        accept = true;
+      } else if (choice === 'all') {
+        accept = true;
+        autoApplyRemaining = true;
+      } else if (choice === 'quit') {
+        accept = false;
+        quitRemaining = true;
+      } else {
+        accept = false;
+      }
+    }
+
+    if (accept) {
+      for (const line of hunk.lines) {
+        if (line.startsWith('\\')) continue;
+        if (!line.startsWith('-')) {
+          outputLines.push(line.substring(1));
+        }
+      }
+    } else {
+      for (const line of hunk.lines) {
+        if (line.startsWith('\\')) continue;
+        if (!line.startsWith('+')) {
+          outputLines.push(line.substring(1));
+        }
+      }
+    }
+
+    currentLine += hunk.oldLines;
+  }
+
+  while (currentLine <= oldLines.length) {
+    outputLines.push(oldLines[currentLine - 1]);
+    currentLine++;
+  }
+
+  return outputLines.join('\n');
+}
+
 export async function runDiffWorkflow(
   options: DiffOptions,
   globalAutoApply: 'prompt' | 'all' | 'skip' = 'prompt',
@@ -218,6 +386,16 @@ export async function runDiffWorkflow(
         globalAutoApply,
         context
       );
+
+      if (result.decision === 'chunks') {
+        currentContent = await reviewChunksWorkflow(
+          options.oldContent,
+          currentContent,
+          options.filePath
+        );
+        process.stdout.write(pc.green('\n\u2713 Chunk review complete. Showing updated diff...\n'));
+        continue;
+      }
 
       if (result.decision === 'edit') {
         try {
