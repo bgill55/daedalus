@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Automatic update checker — pings npm registry on startup (cached 24h), shows upgrade notice
+- `updateCheck` config option (default: true) — set to false in config.json to disable
 - CONTRIBUTING.md, CODE_OF_CONDUCT.md, SECURITY.md — open-source governance docs
 - AGENTS.md — AI assistant conventions for tool-aided development
 - GitHub issue templates (bug report, feature request) and PR template

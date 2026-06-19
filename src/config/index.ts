@@ -95,6 +95,7 @@ export const ConfigSchema = z.object({
     languages: ['typescript', 'python', 'go', 'rust'],
     exclude: ['node_modules', 'dist', 'build', '.git', 'target'],
   }),
+  updateCheck: z.boolean().default(true),
   session: z.object({
     autoSave: z.boolean().default(true),
     exportJsonl: z.boolean().default(true),
@@ -161,6 +162,7 @@ const DEFAULT_CONFIG: DaedalusConfig = {
     languages: ['typescript', 'python', 'go', 'rust'],
     exclude: ['node_modules', 'dist', 'build', '.git', 'target'],
   },
+  updateCheck: true,
   session: {
     autoSave: true,
     exportJsonl: true,

@@ -682,6 +682,58 @@ function truncateToolResult(content: string): string {
   return `${kept}\n... [truncated ${dropped} chars — use read_file with offset/limit to see more]`;
 }
 
+// ── Version update check ──────────────────────────────────────────────────────
+
+const UPDATE_CACHE_PATH = path.join(os.homedir(), '.daedalus', 'temp', 'version-check.json');
+
+function parseVersion(v: string): number[] {
+  return v.replace(/^v/, '').split('.').map(Number);
+}
+
+function isNewerVersion(latest: string, current: string): boolean {
+  const l = parseVersion(latest);
+  const c = parseVersion(current);
+  for (let i = 0; i < Math.max(l.length, c.length); i++) {
+    const lv = l[i] || 0;
+    const cv = c[i] || 0;
+    if (lv > cv) return true;
+    if (lv < cv) return false;
+  }
+  return false;
+}
+
+async function checkForUpdates(): Promise<void> {
+  try {
+    // Check cache — only re-fetch every 24 hours
+    if (fs.existsSync(UPDATE_CACHE_PATH)) {
+      const cached = JSON.parse(fs.readFileSync(UPDATE_CACHE_PATH, 'utf8'));
+      if (Date.now() - cached.timestamp < 86_400_000) {
+        if (cached.latest && isNewerVersion(cached.latest, APP_VERSION)) {
+          console.log(pc.cyan(`\n  ⬆ Update available: ${pc.bold(cached.latest)} (you have ${APP_VERSION})`));
+          console.log(pc.dim(`  Run ${pc.cyan('npm update -g daedalus-cli')} to upgrade`));
+        }
+        return;
+      }
+    }
+
+    const res = await fetch('https://registry.npmjs.org/daedalus-cli/latest');
+    if (!res.ok) return;
+    const data: any = await res.json();
+    const latest = data.version;
+
+    // Cache result
+    fs.mkdirSync(path.dirname(UPDATE_CACHE_PATH), { recursive: true });
+    fs.writeFileSync(UPDATE_CACHE_PATH, JSON.stringify({ latest, timestamp: Date.now() }), 'utf8');
+
+    if (isNewerVersion(latest, APP_VERSION)) {
+      console.log(pc.cyan(`\n  ⬆ Update available: ${pc.bold(latest)} (you have ${APP_VERSION})`));
+      console.log(pc.dim(`  Run ${pc.cyan('npm update -g daedalus-cli')} to upgrade`));
+    }
+  } catch {
+    // Network failure, stale cache, etc. — silently ignore
+  }
+}
+
 // Streaming response handler with tool call support — iterative, not recursive
 const MAX_TOOL_TURNS = 40;
 
@@ -1643,6 +1695,11 @@ async function main() {
     }
   } catch (err: any) {
     console.error(pc.yellow(`\n⚠ MCP initialization failed: ${err.message}`));
+  }
+
+  // Check for updates — non-blocking
+  if (config.updateCheck !== false) {
+    setTimeout(() => checkForUpdates(), 2000);
   }
   
   // Auto-index at startup — defer so the prompt appears immediately
