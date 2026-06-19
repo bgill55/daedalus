@@ -202,7 +202,7 @@ export function loadConfig(): DaedalusConfig {
     const parsed = JSON.parse(content);
     return ConfigSchema.parse(parsed);
   } catch (err: any) {
-    console.error('\n⚠ Failed to load config file:');
+    console.error('\n[WARN] Failed to load config file:');
     console.error(`  ${err.message}`);
     console.error('  Falling back to defaults. Edit ~/.daedalus/config.json or run /onboard');
     return DEFAULT_CONFIG;

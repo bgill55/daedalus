@@ -136,7 +136,21 @@ export class LocalRouter {
   private estimateTokens(request: ChatRequest): number {
     let totalChars = 0;
     for (const msg of request.messages) {
-      totalChars += JSON.stringify(msg).length;
+      if (typeof msg.content === 'string') {
+        totalChars += msg.content.length;
+      } else if (Array.isArray(msg.content)) {
+        for (const part of msg.content) {
+          if (part.type === 'text') {
+            totalChars += (part.text || '').length;
+          } else if (part.type === 'image_url') {
+            // Images cost ~85-2000 tokens depending on resolution.
+            // Overestimate at 2000 tokens to stay safe on rate limits.
+            totalChars += 8000;
+          }
+        }
+      } else {
+        totalChars += JSON.stringify(msg).length;
+      }
     }
     // Rough estimate: 4 chars per token
     return Math.ceil(totalChars / 4) + (request.max_tokens ?? 4096);
@@ -241,6 +255,15 @@ export class LocalRouter {
         create: (request: ChatRequest) => this.chatCompletion(request),
       },
     };
+  }
+}
+
+function isLocalEndpoint(endpoint: string): boolean {
+  try {
+    const hostname = new URL(endpoint).hostname;
+    return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1' || hostname === '0.0.0.0';
+  } catch {
+    return false;
   }
 }
 

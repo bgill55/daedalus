@@ -51,7 +51,7 @@ function addRemoteProvider(
 
   if (apiKey) {
     const keyVar = name.toUpperCase().replace(/[^A-Z0-9]/g, '_') + '_API_KEY';
-    console.log(pc.gray(`\n  💡 API key saved in config. You can also set ${pc.bold(keyVar)} as an environment variable.`));
+    console.log(pc.gray(`\n  [TIP] API key saved in config. You can also set ${pc.bold(keyVar)} as an environment variable.`));
   }
 }
 
@@ -103,7 +103,7 @@ export async function runOnboarding(force = false): Promise<void> {
   console.log();
 
   // ── Step 1: Auto-discover ──
-  console.log(pc.bold('📡 Scanning for local LLM servers...'));
+  console.log(pc.bold('[SCAN] Scanning for local LLM servers...'));
   const discovered = await discoverLocalServers();
 
   if (discovered.length > 0) {
@@ -140,12 +140,12 @@ export async function runOnboarding(force = false): Promise<void> {
   }
 
   // ── Step 4: Test ──
-  console.log(pc.bold('\n🔍 Testing connection...'));
+  console.log(pc.bold('\n[TEST] Testing connection...'));
   const healthy = await hasAnyHealthyModel(config);
   if (healthy) {
-    console.log(pc.green('  ✅ Connection successful! Ready to chat.'));
+    console.log(pc.green('  [OK] Connection successful! Ready to chat.'));
   } else {
-    console.log(pc.yellow('  ⚠ Still no healthy model. Run /doctor anytime to diagnose.'));
+    console.log(pc.yellow('  [WARN] Still no healthy model. Run /doctor anytime to diagnose.'));
     console.log(pc.gray('  You can also type /config to see current settings.'));
   }
 
@@ -164,7 +164,7 @@ export async function runOnboarding(force = false): Promise<void> {
 async function showOptionsMenu(rl: readline.Interface, config: DaedalusConfig): Promise<void> {
   // eslint-disable-next-line no-constant-condition
   while (true) {
-    console.log(pc.bold('\n  ⚙  What would you like to do?'));
+    console.log(pc.bold('\n  [CFG] What would you like to do?'));
     console.log();
     console.log('    1)  Start a local server and scan again');
     console.log('    2)  Connect to a remote API (OpenAI, Groq, OpenRouter, etc.)');
@@ -182,7 +182,7 @@ async function showOptionsMenu(rl: readline.Interface, config: DaedalusConfig): 
       console.log(pc.gray('    • vLLM — run "vllm serve" (default :8000)'));
       console.log();
       await question(rl, pc.bold('  Press Enter after starting your server...'));
-      console.log(pc.bold('\n📡 Re-scanning...'));
+      console.log(pc.bold('\n[SCAN] Re-scanning...'));
       const discovered = await discoverLocalServers();
       if (discovered.length > 0) {
         console.log(pc.green(`  Found ${discovered.length} server(s)!`));
@@ -213,7 +213,7 @@ async function showOptionsMenu(rl: readline.Interface, config: DaedalusConfig): 
 // ── Remote provider configuration ──
 
 async function configureRemoteProvider(rl: readline.Interface, config: DaedalusConfig): Promise<void> {
-  console.log(pc.bold('\n  🌐 Remote API Configuration'));
+  console.log(pc.bold('\n  [REMOTE] Remote API Configuration'));
   console.log();
   console.log('  Popular providers:');
   console.log('    1)  OpenAI         — https://api.openai.com/v1');
@@ -259,12 +259,12 @@ async function configureRemoteProvider(rl: readline.Interface, config: DaedalusC
       signal: AbortSignal.timeout(10000),
     });
     if (res.ok) {
-      console.log(pc.green('  ✅ Connection successful!'));
+      console.log(pc.green('  [OK] Connection successful!'));
     } else {
-      console.log(pc.yellow(`  ⚠ Server responded with status ${res.status} — but I'll save it anyway.`));
+      console.log(pc.yellow(`  [WARN] Server responded with status ${res.status} — but I'll save it anyway.`));
     }
   } catch {
-    console.log(pc.yellow('  ⚠ Could not reach the server — but I\'ll save it anyway.'));
+    console.log(pc.yellow('  [WARN] Could not reach the server — but I\'ll save it anyway.'));
   }
 
   addRemoteProvider(config, providerName, baseUrl, apiKey || undefined);

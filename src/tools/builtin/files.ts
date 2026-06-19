@@ -30,7 +30,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 function resolvePath(p: string, projectRoot: string): string {
-  const resolved = path.isAbsolute(p) ? p : path.resolve(projectRoot, p);
+  if (path.isAbsolute(p)) return p;
+  const resolved = path.resolve(projectRoot, p);
   const relative = path.relative(projectRoot, resolved);
   if (relative.startsWith('..') || path.isAbsolute(relative)) {
     throw new Error(`Path traversal blocked: ${p} is outside the project directory`);

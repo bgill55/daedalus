@@ -1,6 +1,5 @@
 import pc from 'picocolors';
 import type { LocalRouter } from './router/index.js';
-import type { Fact } from './session/memory.js';
 import type { ChatMessage } from './types.js';
 import { SessionManager } from './session/manager.js';
 
@@ -8,6 +7,9 @@ const LEARNING_TOOLS = new Set([
   'write_file', 'patch', 'edit_file',
   'commit', 'git_commit',
 ]);
+
+let extractionTurnCount = 0;
+const EXTRACTION_INTERVAL = 5;
 
 function recentTurnHasLearningSignal(messages: ChatMessage[]): boolean {
   const lastMsgs = messages.slice(-10);
@@ -27,12 +29,15 @@ export async function extractAndSave(
   sessionManager: SessionManager,
   messages: ChatMessage[],
 ): Promise<void> {
+  extractionTurnCount++;
+
   const hasSignal = recentTurnHasLearningSignal(messages);
   const lastFew = messages.slice(-4);
   const anyToolResults = lastFew.some(m => m.role === 'tool');
   const assistantHadContent = lastFew.some(m => m.role === 'assistant' && m.content && String(m.content).length > 20);
 
   if (!hasSignal && !anyToolResults && !assistantHadContent) return;
+  if (!hasSignal && extractionTurnCount % EXTRACTION_INTERVAL !== 0) return;
 
   const existingFacts = sessionManager.loadMemory().facts;
 
@@ -91,9 +96,9 @@ export async function extractAndSave(
       sessionManager.addFact(f.key, f.value, 'agent');
     }
 
-    console.log(`  ${pc.dim('🧠')} ${pc.dim(`learned ${newFacts.length} fact${newFacts.length > 1 ? 's' : ''}`)}`);
+    console.log(`  ${pc.dim('[')} ${pc.dim(`learned ${newFacts.length} fact${newFacts.length > 1 ? 's' : ''}`)} ${pc.dim(']')}`);
     for (const f of newFacts) {
-      console.log(`  ${pc.dim('  ┃')} ${pc.cyan(f.key)}${pc.dim(':')} ${pc.gray(f.value)}`);
+      console.log(`  ${pc.dim('  |')} ${pc.cyan(f.key)}${pc.dim(':')} ${pc.gray(f.value)}`);
     }
   } catch {
     // Extraction is best-effort

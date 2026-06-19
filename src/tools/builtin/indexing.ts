@@ -18,7 +18,7 @@ export function getProjectHash(projectRoot: string): string {
 export function getIndexDbPath(projectRoot: string): string {
   const homedir = os.homedir();
   const projectHash = getProjectHash(projectRoot);
-  return path.join(homedir, '.daedalus', 'sessions', projectHash, 'index.sqlite');
+  return path.join(homedir, '.daedalus', 'indexing', `${projectHash}.sqlite`);
 }
 
 /** Get or create the index DB — uses the shared context.indexDb when available. */
@@ -48,7 +48,7 @@ export async function index_codebase(
     });
 
     const errNote = result.errors.length > 0
-      ? `\n⚠ ${result.errors.length} file(s) had errors:\n${result.errors.slice(0, 5).map(e => `  • ${e}`).join('\n')}`
+      ? `\n[WARN] ${result.errors.length} file(s) had errors:\n${result.errors.slice(0, 5).map(e => `  • ${e}`).join('\n')}`
       : '';
 
     return {
@@ -56,7 +56,7 @@ export async function index_codebase(
       name: 'index_codebase',
       success: true,
       content:
-        `✔ Indexed ${result.indexedFiles} file(s), skipped ${result.skippedFiles} unchanged ` +
+        `[OK] Indexed ${result.indexedFiles} file(s), skipped ${result.skippedFiles} unchanged ` +
         `(${result.totalFiles} total scanned).${errNote}`,
     };
   } catch (err: any) {

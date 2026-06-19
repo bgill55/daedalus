@@ -52,6 +52,15 @@ let currentAbortController: AbortController | null = null;
 // Compute stable projectHash once
 const projectHash = crypto.createHash('sha256').update(path.resolve(process.cwd())).digest('hex').slice(0, 12);
 
+// Max chars of tool output stored in message history (prevents context-window overflow)
+const TOOL_RESULT_MAX_CHARS = 32_000;
+
+// Single source of truth for the codebase index DB path — used by all REPL
+// handlers AND the indexing tools so they always share the same database.
+function getIndexDbPath(): string {
+  return path.join(os.homedir(), '.daedalus', 'indexing', `${projectHash}.sqlite`);
+}
+
 // Initialize session manager
 const sessionManager = new SessionManager();
 sessionManager.init();
@@ -162,11 +171,11 @@ A FTS5 symbol index is built automatically on startup. Use \`find_symbol\` to se
 
 | Result | Meaning | What YOU must do |
 |--------|---------|-----------------|
-| \`Patched <file>\` | ✅ Success — change written to disk | Continue to next step |
-| error contains \`PATCH_DECLINED\` | 🚫 User reviewed the diff and said No or Skip | STOP retrying. Tell the user what you tried to change and ask how they'd like to proceed |
-| error contains \`not found\` | ❌ old_string didn't match the file | Immediately call \`read_file\` on that file, find the exact text, then retry \`patch\` with the corrected old_string |
-| error contains \`multiple locations\` | ❌ old_string is too generic | Add more surrounding lines to old_string to make it unique, then retry |
-| error contains \`File not found\` | ❌ Wrong path | Use \`search_files\` or \`list_files\` to find the correct path |
+| \`Patched <file>\` | [OK] Success — change written to disk | Continue to next step |
+| \`PATCH_DECLINED\` | [SKIP] User reviewed the diff and said No or Skip | STOP retrying. Tell the user what you tried to change and ask how they'd like to proceed |
+| error contains \`not found\` | [ERROR] old_string didn't match the file | Immediately call \`read_file\` on that file, find the exact text, then retry \`patch\` with the corrected old_string |
+| error contains \`multiple locations\` | [ERROR] old_string is too generic | Add more surrounding lines to old_string to make it unique, then retry |
+| error contains \`File not found\` | [ERROR] Wrong path | Use \`search_files\` or \`list_files\` to find the correct path |
 
 **Never freeze or loop silently.** If a patch fails, take one corrective action and tell the user what happened.`;
 
@@ -248,7 +257,6 @@ function printBanner(): void {
   const white = pc.white.bind(pc);
   const bold  = pc.bold.bind(pc);
   const dim   = pc.dim.bind(pc);
-  const mag   = pc.magenta.bind(pc);
 
   // Top border
   console.log(hRule('╔', '╗', '═', W, cyan));
@@ -347,8 +355,8 @@ async function buildIndexContext(userMessage: string): Promise<string> {
   if (!config.indexing.enabled || !toolContext.indexDb) return '';
   const indexDb = toolContext.indexDb;
 
-  // Extract likely symbol names from the user message (camelCase, snake_case, class names)
-  const symbolCandidates = userMessage.match(/\b[A-Z][a-zA-Z0-9_]*\b/g) || [];
+  // Extract likely symbol names from the user message (camelCase, PascalCase, snake_case, class names)
+  const symbolCandidates = userMessage.match(/\b(?:[a-z]+[A-Z]|[A-Z][a-z])[a-zA-Z0-9_]*\b/g) || [];
   const words = userMessage.split(/\s+/).filter(w => w.length > 2);
   const allTerms = [...symbolCandidates, ...words];
 
@@ -416,11 +424,11 @@ function initializeSessionState(loaded: {
 async function handleSpawn(role: string, task: string): Promise<void> {
   const validRoles = ['coder', 'reviewer', 'debugger', 'researcher', 'planner'];
   if (!validRoles.includes(role)) {
-    console.log(pc.red(`⚠ Unknown role: ${role}. Valid: ${validRoles.join(', ')}`));
+    console.log(pc.red(`[WARN] Unknown role: ${role}. Valid: ${validRoles.join(', ')}`));
     return;
   }
 
-  console.log(pc.cyan(`\n🤝 Spawning ${role} agent for: ${task.slice(0, 80)}...`));
+  console.log(pc.cyan(`\n[SPAWN] Spawning ${role} agent for: ${task.slice(0, 80)}...`));
 
   const context = `Active files: ${Array.from(activeFiles.values()).join(', ') || 'none'}`;
 
@@ -447,7 +455,7 @@ async function handleSpawn(role: string, task: string): Promise<void> {
 
 // Handle /orchestrate command
 async function handleOrchestrate(goal: string): Promise<void> {
-  console.log(pc.cyan(`\n🎭 Starting orchestration for: ${goal}`));
+  console.log(pc.cyan(`\n[ORCHESTRATE] Starting orchestration for: ${goal}`));
   
   const { Orchestrator } = await import('./agents/orchestrator.js');
   const orchestrator = new Orchestrator(router, messages, toolContext);
@@ -482,8 +490,6 @@ async function handleModels(): Promise<void> {
 
 // Handle /config command
 function handleConfig(): void {
-  // Max chars of tool output stored in message history (prevents context-window overflow)
-  const TOOL_RESULT_MAX_CHARS = 32_000;
   console.log(pc.bold('\n--- Current Configuration ---'));
   console.log(JSON.stringify(config, null, 2));
   console.log(pc.bold('-----------------------------'));
@@ -536,162 +542,155 @@ async function handleDoctor(): Promise<void> {
   console.log(pc.bold('----------------------\n'));
 } // end handleDoctor
 
-  // Handle /index command
-  async function handleIndex(opts: { exclude?: string[]; extensions?: string[] }): Promise<void> {
-    console.log(pc.bold('\n--- Indexing Codebase ---'));
-    console.log(pc.gray(`Project: ${process.cwd()}`));
-  
-    const indexDbPath = path.join(os.homedir(), '.daedalus', 'sessions', projectHash, 'index.sqlite');
-  
-    if (!fs.existsSync(path.dirname(indexDbPath))) {
-      fs.mkdirSync(path.dirname(indexDbPath), { recursive: true });
-    }
-  
-    const { initIndexDb } = await import('./indexing/fts.js');
-    const { indexCodebase } = await import('./indexing/indexer.js');
-  
-    const db = initIndexDb(indexDbPath);
+async function handleIndex(opts: { exclude?: string[]; extensions?: string[] }): Promise<void> {
+  console.log(pc.bold('\n--- Indexing Codebase ---'));
+  console.log(pc.gray(`Project: ${process.cwd()}`));
 
-    console.log(pc.gray('\nScanning files...'));
-    const start = Date.now();
+  const indexDbPath = getIndexDbPath();
 
-    try {
-      const barWidth = 20;
-      let lastPct = -1;
-      const onProgress = ({ current, total, file }: { current: number; total: number; file: string }) => {
-        const pct = Math.round((current / total) * 100);
-        if (pct === lastPct) return;
-        lastPct = pct;
-        const filled = Math.round((current / total) * barWidth);
-        const bar = '█'.repeat(filled) + '░'.repeat(barWidth - filled);
-        process.stdout.write(`\r  ${pc.cyan(bar)} ${pc.white(`${current}/${total}`)} ${pc.gray(file.slice(-40))}`);
-      };
-
-      const result = await indexCodebase(db, process.cwd(), projectHash, { ...opts, onProgress });
-      process.stdout.write('\n');
-      const elapsed = Date.now() - start;
-    
-      console.log(pc.green(`\n✔ Indexing complete in ${elapsed}ms`));
-      console.log(pc.white(`  Total files:     ${result.totalFiles}`));
-      console.log(pc.white(`  Indexed files:   ${result.indexedFiles}`));
-      console.log(pc.white(`  Skipped (unchanged): ${result.skippedFiles}`));
-      if (result.errors.length > 0) {
-        console.log(pc.yellow(`\nErrors (${result.errors.length}):`));
-        result.errors.slice(0, 10).forEach(e => console.log(pc.red(`  - ${e}`)));
-        if (result.errors.length > 10) {
-          console.log(pc.gray(`  ... and ${result.errors.length - 10} more`));
-        }
-      }
-    } catch (err: any) {
-      console.error(pc.red(`\n❌ Indexing failed: ${err.message}`));
-    }
+  if (!fs.existsSync(path.dirname(indexDbPath))) {
+    fs.mkdirSync(path.dirname(indexDbPath), { recursive: true });
   }
 
-  // Handle /find <query> [limit]
-  async function handleFindSymbol(query: string, limit: number): Promise<void> {
-    const indexDbPath = path.join(os.homedir(), '.daedalus', 'sessions', projectHash, 'index.sqlite');
-  
-    if (!fs.existsSync(indexDbPath)) {
-      console.log(pc.yellow('⚠ No index found. Run /index first.'));
-      return;
-    }
-  
-    const { initIndexDb, searchSymbols } = await import('./indexing/fts.js');
-    const db = initIndexDb(indexDbPath);
-  
-    console.log(pc.bold(`\n--- Symbol Search: "${query}" ---`));
-    const symbols = searchSymbols(db, query, projectHash, limit);
-  
-    if (symbols.length === 0) {
-      console.log(pc.gray('  No symbols found.'));
-      return;
-    }
-  
-    console.log(pc.white(`\nFound ${symbols.length} symbol(s):`));
-    for (const s of symbols) {
-      const kindColor = s.kind === 'function' ? pc.cyan : s.kind === 'class' ? pc.green : s.kind === 'interface' ? pc.blue : pc.white;
-      const loc = `${s.file_path}:${s.line_start}${s.line_end !== s.line_start ? '-' + s.line_end : ''}`;
-      console.log(`  ${kindColor(`[${s.kind}]`)} ${pc.bold(s.name)} ${pc.dim(`(${loc})`)}`);
-      if (s.signature) {
-        console.log(pc.dim(`    ${s.signature.slice(0, 100)}${s.signature.length > 100 ? '...' : ''}`));
+  const { initIndexDb } = await import('./indexing/fts.js');
+  const { indexCodebase } = await import('./indexing/indexer.js');
+
+  const db = initIndexDb(indexDbPath);
+
+  console.log(pc.gray('\nScanning files...'));
+  const start = Date.now();
+
+  try {
+    const barWidth = 20;
+    let lastPct = -1;
+    const onProgress = ({ current, total, file }: { current: number; total: number; file: string }) => {
+      const pct = Math.round((current / total) * 100);
+      if (pct === lastPct) return;
+      lastPct = pct;
+      const filled = Math.round((current / total) * barWidth);
+      const bar = '\u2588'.repeat(filled) + '\u2591'.repeat(barWidth - filled);
+      process.stdout.write(`\r  ${pc.cyan(bar)} ${pc.white(`${current}/${total}`)} ${pc.gray(file.slice(-40))}`);
+    };
+
+    const result = await indexCodebase(db, process.cwd(), projectHash, { ...opts, onProgress });
+    process.stdout.write('\n');
+    const elapsed = Date.now() - start;
+
+    toolContext.indexDb = db;
+
+    console.log(pc.green(`\n✔ Indexing complete in ${elapsed}ms`));
+    console.log(pc.white(`  Total files:     ${result.totalFiles}`));
+    console.log(pc.white(`  Indexed files:   ${result.indexedFiles}`));
+    console.log(pc.white(`  Skipped (unchanged): ${result.skippedFiles}`));
+    if (result.errors.length > 0) {
+      console.log(pc.yellow(`\nErrors (${result.errors.length}):`));
+      result.errors.slice(0, 10).forEach(e => console.log(pc.red(`  - ${e}`)));
+      if (result.errors.length > 10) {
+        console.log(pc.gray(`  ... and ${result.errors.length - 10} more`));
       }
     }
+  } catch (err: any) {
+    console.error(pc.red(`\n[ERROR] Indexing failed: ${err.message}`));
+  }
+}
+
+async function handleFindSymbol(query: string, limit: number): Promise<void> {
+  const indexDbPath = getIndexDbPath();
+
+  if (!fs.existsSync(indexDbPath)) {
+    console.log(pc.yellow('[WARN] No index found. Run /index first.'));
+    return;
+  }
+  
+  const { initIndexDb, searchSymbols } = await import('./indexing/fts.js');
+  const db = initIndexDb(indexDbPath);
+
+  console.log(pc.bold(`\n--- Symbol Search: "${query}" ---`));
+  const symbols = searchSymbols(db, query, projectHash, limit);
+
+  if (symbols.length === 0) {
+    console.log(pc.gray('  No symbols found.'));
+    return;
   }
 
-  // Handle /refs <symbol>
-  async function handleGetReferences(symbol: string): Promise<void> {
-    const indexDbPath = path.join(os.homedir(), '.daedalus', 'sessions', projectHash, 'index.sqlite');
-  
-    if (!fs.existsSync(indexDbPath)) {
-      console.log(pc.yellow('⚠ No index found. Run /index first.'));
-      return;
-    }
-  
-    const { initIndexDb, findReferences } = await import('./indexing/fts.js');
-    const db = initIndexDb(indexDbPath);
-  
-    console.log(pc.bold(`\n--- References to: ${symbol} ---`));
-    const refs = findReferences(db, symbol, projectHash);
-  
-    if (refs.length === 0) {
-      console.log(pc.gray('  No references found.'));
-      return;
-    }
-  
-    // Group by caller
-    const byCaller = new Map<string, typeof refs>();
-    for (const r of refs) {
-      const key = `${r.caller_name} (${r.caller_file}:${r.caller_line})`;
-      if (!byCaller.has(key)) byCaller.set(key, []);
-      byCaller.get(key)!.push(r);
-    }
-  
-    console.log(pc.white(`\nFound ${refs.length} reference(s) from ${byCaller.size} caller(s):`));
-    for (const [caller, refs] of byCaller) {
-      console.log(pc.cyan(`\n  ${caller}:`));
-      for (const r of refs.slice(0, 5)) {
-        console.log(pc.dim(`    ${r.callee_name} at ${r.callee_file}:${r.callee_line}`));
-      }
-      if (refs.length > 5) {
-        console.log(pc.dim(`    ... and ${refs.length - 5} more`));
-      }
+  console.log(pc.white(`\nFound ${symbols.length} symbol(s):`));
+  for (const s of symbols) {
+    const kindColor = s.kind === 'function' ? pc.cyan : s.kind === 'class' ? pc.green : s.kind === 'interface' ? pc.blue : pc.white;
+    const loc = `${s.file_path}:${s.line_start}${s.line_end !== s.line_start ? '-' + s.line_end : ''}`;
+    console.log(`  ${kindColor(`[${s.kind}]`)} ${pc.bold(s.name)} ${pc.dim(`(${loc})`)}`);
+    if (s.signature) {
+      console.log(pc.dim(`    ${s.signature.slice(0, 100)}${s.signature.length > 100 ? '...' : ''}`));
     }
   }
+}
 
-  // Handle /def <symbol>
-  async function handleGetDefinition(symbol: string): Promise<void> {
-    const indexDbPath = path.join(os.homedir(), '.daedalus', 'sessions', projectHash, 'index.sqlite');
-  
-    if (!fs.existsSync(indexDbPath)) {
-      console.log(pc.yellow('⚠ No index found. Run /index first.'));
-      return;
-    }
-  
-    const { initIndexDb, findDefinitions } = await import('./indexing/fts.js');
-    const db = initIndexDb(indexDbPath);
-  
-    console.log(pc.bold(`\n--- Definition: ${symbol} ---`));
-    const defs = findDefinitions(db, symbol, projectHash);
-  
-    if (defs.length === 0) {
-      console.log(pc.gray('  No definitions found.'));
-      return;
-    }
-  
-    console.log(pc.white(`\nFound ${defs.length} definition(s):`));
-    for (const d of defs) {
-      const kindColor = d.kind === 'function' ? pc.cyan : d.kind === 'class' ? pc.green : d.kind === 'interface' ? pc.blue : pc.white;
-      const loc = `${d.file_path}:${d.line_start}${d.line_end !== d.line_start ? '-' + d.line_end : ''}`;
-      console.log(`  ${kindColor(`[${d.kind}]`)} ${pc.bold(d.name)} ${pc.dim(`(${loc})`)}`);
-      if (d.signature) {
-        console.log(pc.dim(`    ${d.signature.slice(0, 120)}${d.signature.length > 120 ? '...' : ''}`));
-      }
-    }
+async function handleGetReferences(symbol: string): Promise<void> {
+  const indexDbPath = getIndexDbPath();
+
+  if (!fs.existsSync(indexDbPath)) {
+    console.log(pc.yellow('[WARN] No index found. Run /index first.'));
+    return;
   }
 
-  // Max chars of tool output stored in message history (prevents context-window overflow)
-  const TOOL_RESULT_MAX_CHARS = 32_000;
+  const { initIndexDb, findReferences } = await import('./indexing/fts.js');
+  const db = initIndexDb(indexDbPath);
 
+  console.log(pc.bold(`\n--- References to: ${symbol} ---`));
+  const refs = findReferences(db, symbol, projectHash);
+
+  if (refs.length === 0) {
+    console.log(pc.gray('  No references found.'));
+    return;
+  }
+
+  const byCaller = new Map<string, typeof refs>();
+  for (const r of refs) {
+    const key = `${r.caller_name} (${r.caller_file}:${r.caller_line})`;
+    if (!byCaller.has(key)) byCaller.set(key, []);
+    byCaller.get(key)!.push(r);
+  }
+
+  console.log(pc.white(`\nFound ${refs.length} reference(s) from ${byCaller.size} caller(s):`));
+  for (const [caller, refs] of byCaller) {
+    console.log(pc.cyan(`\n  ${caller}:`));
+    for (const r of refs.slice(0, 5)) {
+      console.log(pc.dim(`    ${r.callee_name} at ${r.callee_file}:${r.callee_line}`));
+    }
+    if (refs.length > 5) {
+      console.log(pc.dim(`    ... and ${refs.length - 5} more`));
+    }
+  }
+}
+
+async function handleGetDefinition(symbol: string): Promise<void> {
+  const indexDbPath = getIndexDbPath();
+
+  if (!fs.existsSync(indexDbPath)) {
+    console.log(pc.yellow('[WARN] No index found. Run /index first.'));
+    return;
+  }
+
+  const { initIndexDb, findDefinitions } = await import('./indexing/fts.js');
+  const db = initIndexDb(indexDbPath);
+
+  console.log(pc.bold(`\n--- Definition: ${symbol} ---`));
+  const defs = findDefinitions(db, symbol, projectHash);
+
+  if (defs.length === 0) {
+    console.log(pc.gray('  No definitions found.'));
+    return;
+  }
+
+  console.log(pc.white(`\nFound ${defs.length} definition(s):`));
+  for (const d of defs) {
+    const kindColor = d.kind === 'function' ? pc.cyan : d.kind === 'class' ? pc.green : d.kind === 'interface' ? pc.blue : pc.white;
+    const loc = `${d.file_path}:${d.line_start}${d.line_end !== d.line_start ? '-' + d.line_end : ''}`;
+    console.log(`  ${kindColor(`[${d.kind}]`)} ${pc.bold(d.name)} ${pc.dim(`(${loc})`)}`);
+    if (d.signature) {
+      console.log(pc.dim(`    ${d.signature.slice(0, 120)}${d.signature.length > 120 ? '...' : ''}`));
+    }
+  }
+}
 function truncateToolResult(content: string): string {
   if (content.length <= TOOL_RESULT_MAX_CHARS) return content;
   const kept = content.slice(0, TOOL_RESULT_MAX_CHARS);
@@ -758,20 +757,19 @@ async function callModelWithTools(
   userContent: string,
   imageBase64?: string,
 ): Promise<{ content: string; toolCalls: ToolCall[] }> {
-  // Auto-inject index context on first user turn (not on tool-result rounds)
+  // Push the user message as-is — callers in chatLoop are responsible for
+  // pre-augmenting userContent with file context and index context.
   if (userContent) {
-    const indexCtx = await buildIndexContext(userContent);
-    const augmentedContent = indexCtx ? indexCtx + userContent : userContent;
     if (imageBase64) {
       messages.push({
         role: 'user',
         content: [
-          { type: 'text', text: augmentedContent },
+          { type: 'text', text: userContent },
           { type: 'image_url', image_url: { url: `data:image/png;base64,${imageBase64}` } },
         ],
       } as any);
     } else {
-      messages.push({ role: 'user', content: augmentedContent });
+      messages.push({ role: 'user', content: userContent });
     }
   }
 
@@ -855,7 +853,7 @@ async function callModelWithTools(
       // Check for user cancellation
       if (signal.aborted) {
         if (blockOpened) closeAssistantBlock(fullContent.length, Date.now() - turnStart);
-        console.log(pc.dim('\n  ⏹ Stopped'));
+        console.log(pc.dim('\n  [STOP] Stopped'));
         currentAbortController = null;
         return { content: fullContent, toolCalls: [] };
       }
@@ -863,12 +861,12 @@ async function callModelWithTools(
     } catch (error: any) {
       if (signal.aborted) {
         spinner.stop();
-        console.log(pc.dim('\n  ⏹ Stopped'));
+        console.log(pc.dim('\n  [STOP] Stopped'));
         currentAbortController = null;
         return { content: '', toolCalls: [] };
       }
       spinner.stop();
-      console.error(pc.red(`\n❌ Error calling model: ${error.message}`));
+      console.error(pc.red(`\n[ERROR] Error calling model: ${error.message}`));
       throw error;
     }
 
@@ -905,12 +903,12 @@ async function callModelWithTools(
       if (dangerousTools.includes(tc.function.name) && !turnApproved) {
         const args = tc.function.arguments;
         const preview = args.length > 120 ? args.slice(0, 120) + '...' : args;
-        process.stdout.write(`\n  ${pc.yellow('⚠')} ${pc.bold(tc.function.name)} ${pc.dim(preview)}\n`);
+        process.stdout.write(`\n  ${pc.yellow('[WARN]')} ${pc.bold(tc.function.name)} ${pc.dim(preview)}\n`);
         const line = await askLine(`  ${pc.dim('Allow? [y]es / [n]o / [a]ll for this turn: ')}`);
         const char = line.trim().toLowerCase().slice(0, 1);
         if (char === 'a') turnApproved = true;
         if (char === 'n') {
-          console.log(`  ${pc.red('✗')} ${tc.function.name} ${pc.red('— rejected')}`);
+          console.log(`  ${pc.red('[FAIL]')} ${tc.function.name} ${pc.red(' — rejected')}`);
           continue;
         }
       }
@@ -919,7 +917,7 @@ async function callModelWithTools(
 
     const approvedCalls = toolCallArray.filter((_, i) => approvedCallIndices.has(i));
 
-    console.log(`\n  ${pc.dim('🔧')} ${pc.dim(`Executing ${approvedCalls.length} tool call(s)...`)}`);
+    console.log(`\n  ${pc.dim('[TOOL]')} ${pc.dim(`Executing ${approvedCalls.length} tool call(s)...`)}`);
     const results = await executeToolCalls(approvedCalls, toolContext);
 
     for (const result of results) {
@@ -953,7 +951,7 @@ async function callModelWithTools(
   }
 
   // Reached max turns without a clean stop
-  console.log(`\n  ${pc.yellow('⚠')} ${pc.yellow(`Reached max tool turns (${MAX_TOOL_TURNS}). Stopping.`)}`);
+  console.log(`\n  ${pc.yellow('[WARN]')} ${pc.yellow(`Reached max tool turns (${MAX_TOOL_TURNS}). Stopping.`)}`);
   messages.push({ role: 'assistant', content: lastContent });
   return { content: lastContent, toolCalls: [] };
 }
@@ -972,7 +970,7 @@ async function callModelWithFallback(userContent: string, imageBase64?: string):
     messages.push({ role: 'user', content: userContent });
   }
 
-  console.log(pc.gray('🤖 Thinking (fallback mode)...'));
+  console.log(pc.gray('[THINK] Thinking (fallback mode)...'));
 
   try {
     const response = await router.chat.completions.create({
@@ -990,14 +988,39 @@ async function callModelWithFallback(userContent: string, imageBase64?: string):
     closeAssistantBlock(reply.length, elapsed);
     return reply;
   } catch (error: any) {
-    console.error(pc.red(`\n❌ Fallback error: ${error.message}`));
+    console.error(pc.red(`\n[ERROR] Fallback error: ${error.message}`));
     throw error;
   }
 }
 
-// Promisify a single readline question
+// Single-line prompt (approval gate, commit message)
 function askLine(prompt: string): Promise<string> {
   return new Promise((resolve) => rl.question(prompt, resolve));
+}
+
+// Multi-line input for main chat prompt — captures pasted text beyond the first newline.
+// Uses a timing heuristic: lines arriving within 80ms are treated as part of a single paste.
+function readMultiLineInput(prompt: string): Promise<string> {
+  return new Promise((resolve) => {
+    const lines: string[] = [];
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let resolved = false;
+
+    const onLine = (line: string) => {
+      if (resolved) return;
+      lines.push(line);
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        resolved = true;
+        rl.off('line', onLine);
+        resolve(lines.join('\n'));
+      }, 80);
+    };
+
+    rl.on('line', onLine);
+    process.stdout.write(prompt);
+    rl.resume();
+  });
 }
 
 // ── Clipboard helpers ──────────────────────────────────────────────────────────
@@ -1137,7 +1160,7 @@ async function chatLoop(): Promise<void> {
     const prompt = activeFiles.size > 0
       ? `\n${pc.cyan('  ⬡')} ${pc.dim(`[${activeFiles.size} file${activeFiles.size > 1 ? 's' : ''}]`)} ${pc.bold(pc.white('›'))} `
       : `\n${pc.cyan('  ⬡')} ${pc.bold(pc.white('›'))} `;
-    const input = await askLine(prompt);
+    const input = await readMultiLineInput(prompt);
     const trimmedInput = input.trim();
     if (!trimmedInput) continue;
 
@@ -1147,10 +1170,10 @@ async function chatLoop(): Promise<void> {
     if (lowerInput === 'exit' || lowerInput === 'quit') {
       const todos = getSessionTodos(sessionId);
       sessionManager.saveSessionState(messages, activeFiles, todos);
-      console.log(pc.dim('  🧠 Extracting facts from session...'));
+      console.log(pc.dim('  [EXTRACT] Extracting facts from session...'));
       await extractAndSave(router as any, sessionManager, messages);
       console.log(pc.gray(`Session saved: ${sessionManager.sessionId}`));
-      console.log(pc.yellow('\nEnding session. Goodbye! 👋\n'));
+      console.log(pc.yellow('\nEnding session. Goodbye!\n'));
       rl.close();
       process.exit(0);
     }
@@ -1184,12 +1207,12 @@ async function chatLoop(): Promise<void> {
     if (trimmedInput.startsWith('/add ')) {
       const fileArg = trimmedInput.substring(5).trim();
       if (!fileArg) {
-        console.log(pc.red('⚠ Please specify a file path. Example: /add src/App.tsx'));
+        console.log(pc.red('[WARN] Please specify a file path. Example: /add src/App.tsx'));
       } else {
         const absPath = path.resolve(fileArg);
         activeFiles.set(absPath, fileArg);
         toolContext.activeFiles = new Map(activeFiles);
-        console.log(pc.green(`✔ Added file to context: ${pc.bold(fileArg)}`));
+        console.log(pc.green(`[OK] Added file to context: ${pc.bold(fileArg)}`));
       }
       continue;
     }
@@ -1198,14 +1221,14 @@ async function chatLoop(): Promise<void> {
     if (trimmedInput.startsWith('/remove ')) {
       const fileArg = trimmedInput.substring(8).trim();
       if (!fileArg) {
-        console.log(pc.red('⚠ Please specify a file path. Example: /remove src/App.tsx'));
+        console.log(pc.red('[WARN] Please specify a file path. Example: /remove src/App.tsx'));
       } else {
         const absPath = path.resolve(fileArg);
         if (activeFiles.delete(absPath)) {
           toolContext.activeFiles = new Map(activeFiles);
-          console.log(pc.green(`✔ Removed file from context: ${pc.bold(fileArg)}`));
+          console.log(pc.green(`[OK] Removed file from context: ${pc.bold(fileArg)}`));
         } else {
-          console.log(pc.yellow(`⚠ File was not in context: ${fileArg}`));
+          console.log(pc.yellow(`[WARN] File was not in context: ${fileArg}`));
         }
       }
       continue;
@@ -1214,6 +1237,40 @@ async function chatLoop(): Promise<void> {
     // Command: /paste — paste clipboard content (text or image)
     if (lowerInput === '/paste' || lowerInput.startsWith('/paste ')) {
       const extra = trimmedInput.startsWith('/paste ') ? trimmedInput.substring(7).trim() : '';
+
+      // If extra looks like a file path, try reading it as an image
+      if (extra && !extra.startsWith('http')) {
+        const filePath = path.resolve(extra);
+        if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+          const ext = path.extname(filePath).toLowerCase();
+          if (['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp'].includes(ext)) {
+            const imgBuffer = fs.readFileSync(filePath);
+            const base64 = imgBuffer.toString('base64');
+            const message = 'What do you see in this image?';
+            printUserTurn(`${path.basename(filePath)} (image)`);
+            try {
+              const filesContext = buildFileContext();
+              const indexCtx = await buildIndexContext(message);
+              const userContent = `${indexCtx}${filesContext}User Prompt: ${message}`;
+              await callModelWithTools(userContent, base64);
+              sessionManager.saveSessionState(messages, activeFiles, getSessionTodos(sessionId));
+            } catch (error: any) {
+              console.error(pc.red(`\n[ERROR] Error: ${error.message}`));
+              try {
+                const filesContext = buildFileContext();
+                const userContent = `${filesContext}User Prompt: ${message}`;
+                console.log(pc.yellow('\n[RETRY] Trying fallback mode...'));
+                await callModelWithFallback(userContent, base64);
+                sessionManager.saveSessionState(messages, activeFiles, getSessionTodos(sessionId));
+              } catch (fallbackErr: any) {
+                console.error(pc.red(`\n[ERROR] Fallback also failed: ${fallbackErr.message}`));
+              }
+            }
+            turnSeparator();
+            continue;
+          }
+        }
+      }
 
       // Try image first
       const imgPath = getClipboardImage();
@@ -1228,15 +1285,17 @@ async function chatLoop(): Promise<void> {
           const indexCtx = await buildIndexContext(message);
           const userContent = `${indexCtx}${filesContext}User Prompt: ${message}`;
           await callModelWithTools(userContent, base64);
+          sessionManager.saveSessionState(messages, activeFiles, getSessionTodos(sessionId));
         } catch (error: any) {
-          console.error(pc.red(`\n❌ Error: ${error.message}`));
+          console.error(pc.red(`\n[ERROR] Error: ${error.message}`));
           try {
             const filesContext = buildFileContext();
             const userContent = `${filesContext}User Prompt: ${message}`;
-            console.log(pc.yellow('\n🔄 Trying fallback mode...'));
+            console.log(pc.yellow('\n[RETRY] Trying fallback mode...'));
             await callModelWithFallback(userContent, base64);
+            sessionManager.saveSessionState(messages, activeFiles, getSessionTodos(sessionId));
           } catch (fallbackErr: any) {
-            console.error(pc.red(`\n❌ Fallback also failed: ${fallbackErr.message}`));
+            console.error(pc.red(`\n[ERROR] Fallback also failed: ${fallbackErr.message}`));
           }
         }
         turnSeparator();
@@ -1246,7 +1305,7 @@ async function chatLoop(): Promise<void> {
       // Fall back to text
       const clipboard = getClipboardText();
       if (!clipboard) {
-        console.log(pc.red('⚠ Clipboard is empty or inaccessible.'));
+        console.log(pc.red('[WARN] Clipboard is empty or inaccessible.'));
         continue;
       }
       const fullMessage = extra ? `${clipboard}\n\n${extra}` : clipboard;
@@ -1256,8 +1315,9 @@ async function chatLoop(): Promise<void> {
         const indexCtx = await buildIndexContext(fullMessage);
         const userContent = `${indexCtx}${filesContext}User Prompt: ${fullMessage}`;
         await callModelWithTools(userContent);
+        sessionManager.saveSessionState(messages, activeFiles, getSessionTodos(sessionId));
       } catch (error: any) {
-        console.error(pc.red(`\n❌ Error: ${error.message}`));
+        console.error(pc.red(`\n[ERROR] Error: ${error.message}`));
       }
       turnSeparator();
       continue;
@@ -1298,16 +1358,16 @@ async function chatLoop(): Promise<void> {
       } else if (subCmd === 'load') {
         const targetId = parts[1]?.trim();
         if (!targetId) {
-          console.log(pc.red('⚠ Usage: /session load <id>'));
+          console.log(pc.red('[WARN] Usage: /session load <id>'));
         } else {
           try {
             const todos = getSessionTodos(sessionId);
             sessionManager.saveSessionState(messages, activeFiles, todos);
             const loaded = sessionManager.startSession(targetId);
             initializeSessionState(loaded);
-            console.log(pc.green(`✔ Loaded session: ${sessionManager.sessionTitle} (${sessionManager.sessionId})`));
+            console.log(pc.green(`[OK] Loaded session: ${sessionManager.sessionTitle} (${sessionManager.sessionId})`));
           } catch (err: any) {
-            console.log(pc.red(`⚠ Failed to load session: ${err.message}`));
+            console.log(pc.red(`[WARN] Failed to load session: ${err.message}`));
           }
         }
       } else if (subCmd === 'new') {
@@ -1316,17 +1376,17 @@ async function chatLoop(): Promise<void> {
         sessionManager.saveSessionState(messages, activeFiles, todos);
         const loaded = sessionManager.startSession(undefined, title || undefined);
         initializeSessionState(loaded);
-        console.log(pc.green(`✔ Started new session: ${sessionManager.sessionTitle} (${sessionManager.sessionId})`));
+        console.log(pc.green(`[OK] Started new session: ${sessionManager.sessionTitle} (${sessionManager.sessionId})`));
       } else if (subCmd === 'delete') {
         const targetId = parts[1]?.trim();
         if (!targetId) {
-          console.log(pc.red('⚠ Usage: /session delete <id>'));
+          console.log(pc.red('[WARN] Usage: /session delete <id>'));
         } else {
           sessionManager.deleteSession(targetId);
-          console.log(pc.green(`✔ Deleted session: ${targetId}`));
+          console.log(pc.green(`[OK] Deleted session: ${targetId}`));
         }
       } else {
-        console.log(pc.red('⚠ Usage: /session list | load <id> | new [title] | delete <id>'));
+        console.log(pc.red('[WARN] Usage: /session list | load <id> | new [title] | delete <id>'));
       }
       continue;
     }
@@ -1360,12 +1420,12 @@ async function chatLoop(): Promise<void> {
       const argStr = trimmedInput.substring(6).trim();
       const eqIdx = argStr.indexOf('=');
       if (eqIdx < 0) {
-        console.log(pc.red('⚠ Usage: /fact <key> = <value>'));
+        console.log(pc.red('[WARN] Usage: /fact <key> = <value>'));
       } else {
         const key = argStr.slice(0, eqIdx).trim();
         const value = argStr.slice(eqIdx + 1).trim();
         sessionManager.addFact(key, value, 'user');
-        console.log(pc.green(`✔ Saved fact: ${key} = ${value}`));
+        console.log(pc.green(`[OK] Saved fact: ${key} = ${value}`));
       }
       continue;
     }
@@ -1375,19 +1435,19 @@ async function chatLoop(): Promise<void> {
       const argStr = trimmedInput.substring(12).trim();
       const eqIdx = argStr.indexOf('=');
       if (eqIdx < 0) {
-        console.log(pc.red('⚠ Usage: /convention <key> = <value>'));
+        console.log(pc.red('[WARN] Usage: /convention <key> = <value>'));
       } else {
         const key = argStr.slice(0, eqIdx).trim();
         const value = argStr.slice(eqIdx + 1).trim();
         sessionManager.setConvention(key, value);
-        console.log(pc.green(`✔ Saved convention: ${key} = ${value}`));
+        console.log(pc.green(`[OK] Saved convention: ${key} = ${value}`));
       }
       continue;
     }
 
     // Command: /extract — manually trigger fact extraction
     if (lowerInput === '/extract') {
-      console.log(pc.dim('  🧠 Extracting facts from conversation...'));
+      console.log(pc.dim('  [EXTRACT] Extracting facts from conversation...'));
       await extractAndSave(router as any, sessionManager, messages);
       continue;
     }
@@ -1409,16 +1469,16 @@ async function chatLoop(): Promise<void> {
       if (rest.startsWith('name ')) {
         userProfile.name = rest.substring(5).trim();
         saveProfile(userProfile);
-        console.log(pc.green(`✔ Profile name set: ${userProfile.name}`));
+        console.log(pc.green(`[OK] Profile name set: ${userProfile.name}`));
         continue;
       }
       if (rest.startsWith('bio ')) {
         userProfile.bio = rest.substring(4).trim();
         saveProfile(userProfile);
-        console.log(pc.green(`✔ Profile bio set.`));
+        console.log(pc.green('[OK] Profile bio set.'));
         continue;
       }
-      console.log(pc.red('⚠ Usage: /profile view | /profile name = <name> | /profile bio = <bio>'));
+      console.log(pc.red('[WARN] Usage: /profile view | /profile name = <name> | /profile bio = <bio>'));
       continue;
     }
 
@@ -1434,7 +1494,7 @@ async function chatLoop(): Promise<void> {
       }
       userProfile.style = rest;
       saveProfile(userProfile);
-      console.log(pc.green('✔ Coding style saved. It will be injected into every session.'));
+      console.log(pc.green('[OK] Coding style saved. It will be injected into every session.'));
       continue;
     }
 
@@ -1442,7 +1502,7 @@ async function chatLoop(): Promise<void> {
     if (lowerInput === '/clear') {
       messages.length = 0;
       messages.push({ role: 'system', content: getSystemPromptWithMemory() });
-      console.log(pc.green('✔ Conversation history cleared!'));
+      console.log(pc.green('[OK] Conversation history cleared!'));
       continue;
     }
 
@@ -1467,7 +1527,7 @@ async function chatLoop(): Promise<void> {
     if (lowerInput.startsWith('/spawn ')) {
       const parts = trimmedInput.substring(7).trim().split(' ');
       if (parts.length < 2) {
-        console.log(pc.red('⚠ Usage: /spawn <role> <task>'));
+        console.log(pc.red('[WARN] Usage: /spawn <role> <task>'));
         console.log(pc.gray('  Roles: coder, reviewer, debugger, researcher, planner'));
       } else {
         const role = parts[0].toLowerCase();
@@ -1481,7 +1541,7 @@ async function chatLoop(): Promise<void> {
     if (lowerInput.startsWith('/delegate ')) {
       const match = trimmedInput.substring(10).match(/^(.+)\s+to\s+(\w+)$/i);
       if (!match) {
-        console.log(pc.red('⚠ Usage: /delegate <task> to <role>'));
+        console.log(pc.red('[WARN] Usage: /delegate <task> to <role>'));
       } else {
         const task = match[1].trim();
         const role = match[2].toLowerCase();
@@ -1494,7 +1554,7 @@ async function chatLoop(): Promise<void> {
     if (lowerInput.startsWith('/orchestrate ')) {
       const goal = trimmedInput.substring(13).trim();
       if (!goal) {
-        console.log(pc.red('⚠ Usage: /orchestrate <goal>'));
+        console.log(pc.red('[WARN] Usage: /orchestrate <goal>'));
       } else {
         await handleOrchestrate(goal);
       }
@@ -1521,7 +1581,7 @@ async function chatLoop(): Promise<void> {
 
     // Command: /onboard
     if (lowerInput === '/onboard') {
-      console.log(pc.cyan('\n🔄 Re-running onboarding wizard...\n'));
+      console.log(pc.cyan('\n[RESTART] Re-running onboarding wizard...\n'));
       await runOnboarding(true);
       continue;
     }
@@ -1530,20 +1590,20 @@ async function chatLoop(): Promise<void> {
     if (lowerInput === '/undo') {
       const history = toolContext.patchHistory;
       if (!history || history.length === 0) {
-        console.log(pc.yellow('⚠ No patches to undo.'));
+        console.log(pc.yellow('[WARN] No patches to undo.'));
       } else {
         const last = history[history.length - 1];
         try {
           const currentContent = fs.readFileSync(last.filePath, 'utf8');
           if (currentContent === last.newContent) {
             fs.writeFileSync(last.filePath, last.oldContent, 'utf8');
-            console.log(pc.green(`✔ Undid patch to ${last.filePath} (${last.description})`));
+            console.log(pc.green(`[OK] Undid patch to ${last.filePath} (${last.description})`));
           } else {
-            console.log(pc.yellow(`⚠ File ${last.filePath} has been modified since last patch. Cannot auto-undo.`));
+            console.log(pc.yellow(`[WARN] File ${last.filePath} has been modified since last patch. Cannot auto-undo.`));
           }
           history.pop();
         } catch (err: any) {
-          console.log(pc.red(`⚠ Failed to undo: ${err.message}`));
+          console.log(pc.red(`[WARN] Failed to undo: ${err.message}`));
         }
       }
       continue;
@@ -1551,7 +1611,7 @@ async function chatLoop(): Promise<void> {
 
     // Command: /commit — stage and commit changes
     if (lowerInput === '/commit' || lowerInput.startsWith('/commit ')) {
-      const msg = trimmedInput.startsWith('/commit ') ? trimmedInput.substring(8).trim() : '';
+      const forcedMsg = trimmedInput.startsWith('/commit ') ? trimmedInput.substring(8).trim() : '';
       try {
         const { execute: termExec } = await import('./tools/builtin/terminal.js');
         const statusResult = await termExec({ command: 'git status --short', timeout: 10, workdir: process.cwd() }, toolContext);
@@ -1566,25 +1626,61 @@ async function chatLoop(): Promise<void> {
           console.log(pc.red(`Stage failed: ${addResult.error}`));
           continue;
         }
-        let commitMsg = msg;
+        let commitMsg = forcedMsg;
         if (!commitMsg) {
           const diffResult = await termExec({ command: 'git diff --cached --stat', timeout: 10, workdir: process.cwd() }, toolContext);
+          const diffFull = await termExec({ command: 'git diff --cached', timeout: 10, workdir: process.cwd() }, toolContext);
+          const diffContent = diffFull.content?.slice(0, 6000) || '';
           if (diffResult.content) console.log(pc.gray(diffResult.content));
-          commitMsg = await askLine(pc.cyan('  Commit message: '));
+
+          if (diffContent) {
+            console.log(pc.dim('  Generating commit message...'));
+            try {
+              const aiResponse = await router.chat.completions.create({
+                model: 'auto',
+                messages: [
+                  { role: 'system', content: 'You write concise git commit messages following the Conventional Commits spec (type(scope): description). Output only the commit message — no explanation, no quotes, no extra text.' },
+                  { role: 'user', content: `Write a commit message for this diff:\n\n${diffContent}` }
+                ],
+                temperature: 0.2,
+                max_tokens: 80,
+              });
+              const suggested = ((aiResponse.choices[0] as any)?.message?.content || '').trim().split('\n')[0].trim();
+              if (suggested) {
+                console.log(`\n  ${pc.dim('Suggested:')} ${pc.cyan(suggested)}`);
+                const choice = await askLine(pc.dim('  [Enter] accept  [e] edit  [n] cancel: '));
+                if (choice.trim().toLowerCase() === 'n') {
+                  console.log(pc.yellow('Commit cancelled.'));
+                  await termExec({ command: 'git restore --staged .', timeout: 10, workdir: process.cwd() }, toolContext);
+                  continue;
+                } else if (choice.trim().toLowerCase() === 'e') {
+                  commitMsg = await askLine(pc.cyan('  Commit message: '));
+                } else {
+                  commitMsg = suggested;
+                }
+              }
+            } catch {
+              // Model unavailable — fall back to manual
+            }
+          }
+
+          if (!commitMsg) {
+            commitMsg = await askLine(pc.cyan('  Commit message: '));
+          }
           if (!commitMsg.trim()) {
             console.log(pc.yellow('Commit cancelled — empty message.'));
-            await termExec({ command: 'git reset', timeout: 10, workdir: process.cwd() }, toolContext);
+            await termExec({ command: 'git restore --staged .', timeout: 10, workdir: process.cwd() }, toolContext);
             continue;
           }
         }
         const commitResult = await termExec({ command: `git commit -m ${JSON.stringify(commitMsg)}`, timeout: 10, workdir: process.cwd() }, toolContext);
         if (commitResult.success) {
-          console.log(pc.green(`\n✔ Commit: ${commitMsg.slice(0, 60)}`));
+          console.log(pc.green(`\n[OK] Commit: ${commitMsg.slice(0, 60)}`));
         } else {
           console.log(pc.red(`Commit failed: ${commitResult.error}`));
         }
       } catch (err: any) {
-        console.log(pc.red(`⚠ Commit error: ${err.message}`));
+        console.log(pc.red(`[WARN] Commit error: ${err.message}`));
       }
       continue;
     }
@@ -1612,13 +1708,13 @@ async function chatLoop(): Promise<void> {
         value = parts.slice(1).join(' ');
       }
       if (!key || !value) {
-        console.log(pc.red('⚠ Usage: /project set <key> = <value>'));
+        console.log(pc.red('[WARN] Usage: /project set <key> = <value>'));
       } else {
         const { loadProjectConfig, saveProjectConfig } = await import('./tools/builtin/project-config.js');
         const cfg = loadProjectConfig(process.cwd());
         (cfg as any)[key] = value;
         saveProjectConfig(cfg);
-        console.log(pc.green(`✔ Set ${key} = ${value}`));
+        console.log(pc.green(`[OK] Set ${key} = ${value}`));
       }
       continue;
     }
@@ -1630,24 +1726,23 @@ async function chatLoop(): Promise<void> {
       const { execute: termExec } = await import('./tools/builtin/terminal.js');
       const cfg = loadProjectConfig(process.cwd());
       const testCmd = cfg.testCommand || 'npm test';
-      console.log(pc.bold(`\n🧪 Test-Run-Fix Loop (max ${maxLoops} iterations)`));
+      console.log(pc.bold(`\nTest-Run-Fix Loop (max ${maxLoops} iterations)`));
       console.log(pc.gray(`Test command: ${testCmd}\n`));
       for (let i = 0; i < maxLoops; i++) {
-        console.log(pc.cyan(`\n─── Run ${i + 1}/${maxLoops} ───`));
+        console.log(pc.cyan(`\n--- Run ${i + 1}/${maxLoops} ---`));
         const result = await termExec({ command: testCmd, timeout: 120, workdir: process.cwd() }, toolContext);
         console.log(result.content?.slice(0, 2000) || pc.gray('(no output)'));
         if (result.success) {
-          console.log(pc.green('\n✔ All tests passed!'));
+          console.log(pc.green('\n[OK] All tests passed!'));
           break;
         }
         if (i === maxLoops - 1) {
-          console.log(pc.yellow(`\n⚠ Max loops (${maxLoops}) reached. Tests still failing.`));
+          console.log(pc.yellow(`\n[WARN] Max loops (${maxLoops}) reached. Tests still failing.`));
           break;
         }
-        const failureCtx = `Tests failed (run ${i + 1}/${maxLoops}). Here's the output:\n\n${result.content?.slice(0, 8000) || 'Unknown failure'}\n\nAnalyze the failures and fix the code.`;
-        const filesContext = buildFileContext();
-        const userContent = `${filesContext}User Prompt: ${failureCtx}`;
-        await callModelWithTools(userContent);
+        const failureCtx = `Tests failed (run ${i + 1}/${maxLoops}). Output:\n\n${result.content?.slice(0, 8000) || 'Unknown failure'}\n\nAnalyze the failures and fix the code. Do not re-read files you already have in context.`;
+        await callModelWithTools(`User Prompt: ${failureCtx}`);
+        sessionManager.saveSessionState(messages, activeFiles, getSessionTodos(sessionId));
       }
       continue;
     }
@@ -1671,12 +1766,12 @@ async function chatLoop(): Promise<void> {
     if (lowerInput.startsWith('/find ')) {
       const parts = trimmedInput.substring(6).trim().split(/\s+/);
       if (parts.length === 0) {
-        console.log(pc.red('⚠ Usage: /find <query> [limit]'));
+        console.log(pc.red('[WARN] Usage: /find <query> [limit]'));
       } else {
         const query = parts[0];
         const limit = parts[1] ? parseInt(parts[1], 10) : 30;
         if (isNaN(limit)) {
-          console.log(pc.red('⚠ Invalid limit'));
+          console.log(pc.red('[WARN] Invalid limit'));
         } else {
           await handleFindSymbol(query, limit);
         }
@@ -1688,7 +1783,7 @@ async function chatLoop(): Promise<void> {
     if (lowerInput.startsWith('/refs ')) {
       const symbol = trimmedInput.substring(6).trim();
       if (!symbol) {
-        console.log(pc.red('⚠ Usage: /refs <symbol>'));
+        console.log(pc.red('[WARN] Usage: /refs <symbol>'));
       } else {
         await handleGetReferences(symbol);
       }
@@ -1699,7 +1794,7 @@ async function chatLoop(): Promise<void> {
     if (lowerInput.startsWith('/def ')) {
       const symbol = trimmedInput.substring(5).trim();
       if (!symbol) {
-        console.log(pc.red('⚠ Usage: /def <symbol>'));
+        console.log(pc.red('[WARN] Usage: /def <symbol>'));
       } else {
         await handleGetDefinition(symbol);
       }
@@ -1714,20 +1809,25 @@ async function chatLoop(): Promise<void> {
       printUserTurn(trimmedInput);
       await callModelWithTools(userContent);
 
+      // Persist session incrementally after every turn
+      sessionManager.saveSessionState(messages, activeFiles, getSessionTodos(sessionId));
+
       // Fact extraction — learns from tool results and reasoning
       await extractAndSave(router as any, sessionManager, messages);
     } catch (error: any) {
-      console.error(pc.red(`\n❌ Error: ${error.message}`));
+      console.error(pc.red(`\n[ERROR] Error: ${error.message}`));
       try {
         const filesContext = buildFileContext();
         const userContent = `${filesContext}User Prompt: ${trimmedInput}`;
-        console.log(pc.yellow('\n🔄 Trying fallback mode...'));
+        console.log(pc.yellow('\n[RETRY] Trying fallback mode...'));
         const fallbackResult = await callModelWithFallback(userContent);
         if (fallbackResult) {
+          // Persist session after fallback too
+          sessionManager.saveSessionState(messages, activeFiles, getSessionTodos(sessionId));
           await extractAndSave(router as any, sessionManager, messages);
         }
       } catch (fallbackErr: any) {
-        console.error(pc.red(`\n❌ Fallback also failed: ${fallbackErr.message}`));
+        console.error(pc.red(`\n[ERROR] Fallback also failed: ${fallbackErr.message}`));
         console.error(pc.gray('Check that at least one local server is running.'));
       }
     }
@@ -1737,7 +1837,6 @@ async function chatLoop(): Promise<void> {
 
 // Start health checks and REPL
 async function main() {
-  // SIGINT handler — cancel generation if streaming, otherwise exit
   process.on('SIGINT', () => {
     if (currentAbortController) {
       currentAbortController.abort();
@@ -1760,9 +1859,9 @@ async function main() {
   
   try {
     await router.startHealthChecks();
-    console.log(pc.green('\n✔ Router started. Health checks running every 30s.'));
+    console.log(pc.green('\n[OK] Router started. Health checks running every 30s.'));
   } catch (err: any) {
-    console.error(pc.yellow(`\n⚠ Router health checks failed: ${err.message}`));
+    console.error(pc.yellow(`\n[WARN] Router health checks failed: ${err.message}`));
   }
 
   // Initialize MCP registry
@@ -1771,54 +1870,44 @@ async function main() {
     const servers = mcpRegistry.getConnectedServers();
     if (servers.length > 0) {
       const mcpToolCount = mcpRegistry.getToolDefinitions().length;
-      console.log(pc.green(`\n✔ MCP connected: ${servers.join(', ')}`));
+      console.log(pc.green(`\n[OK] MCP connected: ${servers.join(', ')}`));
       console.log(pc.dim(`  ${mcpToolCount} MCP tool(s) registered — I'll ask before using them on your behalf.`));
     }
   } catch (err: any) {
-    console.error(pc.yellow(`\n⚠ MCP initialization failed: ${err.message}`));
+    console.error(pc.yellow(`\n[WARN] MCP initialization failed: ${err.message}`));
   }
 
   // Check for updates — non-blocking
   if (config.updateCheck !== false) {
     setTimeout(() => checkForUpdates(), 2000);
   }
-  
-  // Auto-index at startup — deferred so the REPL appears immediately
+
   if (config.indexing.enabled) {
     setTimeout(() => {
       (async () => {
         try {
-          const indexDbPath = path.join(os.homedir(), '.daedalus', 'sessions', projectHash, 'index.sqlite');
-          if (!fs.existsSync(indexDbPath)) {
-            console.log(pc.cyan('\n  ⚡ Auto-indexing codebase (background, throttled)...'));
-            const { initIndexDb } = await import('./indexing/fts.js');
-            const { indexCodebase } = await import('./indexing/indexer.js');
-            const db = initIndexDb(indexDbPath);
-            const result = await indexCodebase(db, process.cwd(), projectHash, {
-              exclude: config.indexing.exclude,
-            });
-            console.log(pc.green(`  ✔ Indexed ${result.indexedFiles} files (${result.skippedFiles} unchanged)`));
-            if (result.errors.length > 0) {
-              console.log(pc.yellow(`  ⚠ ${result.errors.length} file(s) had errors`));
-            }
-            toolContext.indexDb = db;
-          } else {
-            const { initIndexDb } = await import('./indexing/fts.js');
-            const { indexCodebase } = await import('./indexing/indexer.js');
-            const db = initIndexDb(indexDbPath);
-            const result = await indexCodebase(db, process.cwd(), projectHash, {
-              exclude: config.indexing.exclude,
-            });
-            if (result.indexedFiles > 0) {
-              console.log(pc.gray(`  📚 Re-indexed ${result.indexedFiles} changed file(s)`));
-            }
-            toolContext.indexDb = db;
+          const indexDbPath = getIndexDbPath();
+          if (!fs.existsSync(path.dirname(indexDbPath))) {
+            fs.mkdirSync(path.dirname(indexDbPath), { recursive: true });
           }
+          const { initIndexDb } = await import('./indexing/fts.js');
+          const { indexCodebase } = await import('./indexing/indexer.js');
+          const db = initIndexDb(indexDbPath);
+          const result = await indexCodebase(db, process.cwd(), projectHash, {
+            exclude: config.indexing.exclude,
+          });
+          if (result.indexedFiles > 0) {
+            console.log(pc.cyan(`  [INDEX] Indexed ${result.indexedFiles} file(s) (${result.skippedFiles} unchanged)`));
+          }
+          if (result.errors.length > 0) {
+            console.log(pc.yellow(`  [WARN] ${result.errors.length} file(s) had index errors`));
+          }
+          toolContext.indexDb = db;
         } catch (err: any) {
-          console.error(pc.yellow(`  ⚠ Auto-index failed: ${err.message}`));
+          console.error(pc.yellow(`  [WARN] Auto-index failed: ${err.message}`));
         }
       })();
-    }, 3000);
+    }, 100);
   }
 
   await chatLoop();

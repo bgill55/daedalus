@@ -140,7 +140,7 @@ export class Orchestrator {
 
   private async delegateTask(task: DelegationTask): Promise<void> {
     const role = getAgentRole(task.role);
-    console.log(`\n🤝 Delegating to ${role.name}: ${task.goal.slice(0, 80)}...`);
+    console.log(`\n[SPAWN] Delegating to ${role.name}: ${task.goal.slice(0, 80)}...`);
     
     const tools = filterToolsForRole(BUILTIN_TOOLS, task.role);
     const result = await this.runAgent(role, task.goal, task.context, tools);
@@ -152,7 +152,7 @@ export class Orchestrator {
       success: !result.includes('Error') && !result.includes('Failed'),
     });
     
-    console.log(`✅ ${role.name} completed`);
+    console.log(`[OK] ${role.name} completed`);
   }
 
   private async runAgent(
@@ -222,7 +222,7 @@ export class Orchestrator {
     let output = `## Orchestration Complete: ${goal}\n\n`;
     
     for (const result of this.results) {
-      const status = result.success ? '✅' : '❌';
+      const status = result.success ? '[OK]' : '[ERROR]';
       output += `${status} **${result.role}**: ${result.goal.slice(0, 100)}\n`;
       output += `   ${result.summary.slice(0, 200)}\n\n`;
     }

@@ -1,10 +1,14 @@
 import { highlight } from 'cli-highlight';
 import pc from 'picocolors';
 
-const CODE_BLOCK_RE = /```(\w*)\n([\s\S]*?)```/g;
+const CODE_BLOCK_PATTERN = '```(\\w*)\\n([\\s\\S]*?)```';
+
+function codeBlockRe(): RegExp {
+  return new RegExp(CODE_BLOCK_PATTERN, 'g');
+}
 
 export function hasCodeBlocks(text: string): boolean {
-  return CODE_BLOCK_RE.test(text);
+  return codeBlockRe().test(text);
 }
 
 export function countLines(text: string): number {
@@ -16,7 +20,7 @@ export function highlightCodeBlocks(text: string): string {
   let result = '';
   let lastIndex = 0;
 
-  for (const match of text.matchAll(CODE_BLOCK_RE)) {
+  for (const match of text.matchAll(codeBlockRe())) {
     const lang = match[1] || 'text';
     const code = match[2];
     const fullMatch = match[0];
