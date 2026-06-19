@@ -23,17 +23,18 @@ Daedalus is a standalone terminal-based AI coding assistant that runs entirely o
 ## Features
 
 - **Local-first** — Works with local LLMs (LM Studio, Ollama, llama.cpp, vLLM) or remote APIs
-- **Embedded model router** — Priority, round-robin, or fastest-response routing across multiple models
+- **Embedded model router** — Priority, round-robin, or fastest-response routing across multiple models; displays active model in response metadata
 - **Multi-agent orchestration** — Spawns sub-agents (planner, coder, reviewer, debugger, researcher) for complex tasks
 - **Codebase indexing** — FTS5-powered symbol search, definitions, and call-graph references (TS/JS, Python, Go, Rust)
-- **File system tools** — Read, write, patch with interactive diff UI, search (ripgrep + native fallback)
+- **Resilient file tools** — Read, write, patch with interactive diff UI; fuzzy whitespace matching, syntax validation with auto-revert, and context-aware patch hints
+- **Trust layer** — Write-without-read guardrail, circuit breaker, import/export validation, auto-test loop, and large-rewrite annotation prevent hallucinated edits from reaching disk
 - **Terminal access** — Cross-platform shell execution (bash/cmd) with timeout and abort
 - **Git integration** — Status, diff, stage-all-and-commit, undo last patch
 - **Session management** — SQLite-backed conversation history with save/load/export
 - **Persistent memory** — Facts and conventions auto-inject into every turn. User profile (`/profile`) and coding style (`/style`) persist across sessions. Auto-fact extraction learns from your edits and commits.
 - **MCP support** — Connect Model Context Protocol servers (stdio and HTTP/SSE)
 - **Web tools** — DuckDuckGo search and URL fetching (no API key needed)
-- **Visual chat UI** — Bordered message blocks, tab completion, syntax-highlighted code blocks
+- **Visual chat UI** — Bordered message blocks, tab completion, syntax-highlighted code blocks, inline markdown rendering
 - **Configurable** — Per-project settings (test commands, auto-run), full daedalus config
 - **Windows + Unix** — Full cross-platform support
 
