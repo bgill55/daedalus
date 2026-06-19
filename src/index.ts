@@ -25,6 +25,7 @@ import { runOnboarding } from './onboarding/wizard.js';
 import { DaedalusSpinner } from './tools/daedalus-spinner.js';
 import { loadProfile, saveProfile, getProfilePrompt, UserProfile } from './profile.js';
 import { extractAndSave } from './extraction.js';
+import { calculateSessionTokens, pruneMessages } from './session/tokens.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -205,7 +206,7 @@ const COMMANDS = [
   '/index', '/find', '/refs', '/def',
   '/commit', '/undo', '/test', '/paste',
   '/models', '/tools', '/config', '/project', '/doctor', '/session', '/onboard',
-  '/help', 'exit', 'quit', '?',
+  '/help', 'exit', 'quit', '?', '/prune',
 ];
 
 const rl = readline.createInterface({
@@ -773,6 +774,24 @@ async function callModelWithTools(
     }
   }
 
+  // Auto-pruning check based on config context limit
+  if (config.ui.showTokens) {
+    const maxT = config.context.maxTokens ?? 128000;
+    const summarizeAt = config.context.summarizeAt ?? 0.8;
+    const threshold = Math.floor(maxT * summarizeAt);
+
+    const fileCtx = buildFileContext();
+    const tokens = calculateSessionTokens(messages, fileCtx);
+    if (tokens.total > threshold) {
+      console.log(pc.yellow(`\n  ${pc.bold('[WARN]')} Context budget threshold exceeded (${Math.round(summarizeAt * 100)}%). Auto-pruning older turns...`));
+      const target = Math.floor(maxT * 0.6); // Prune down to 60%
+      const pruneResult = pruneMessages(messages, fileCtx, target);
+      if (pruneResult.prunedTurns > 0 || pruneResult.truncatedTools > 0) {
+        console.log(`  ${pc.green('✔')} Pruned ${pruneResult.prunedTurns} older cycles and truncated ${pruneResult.truncatedTools} tool outputs (saved ~${Math.round(pruneResult.savedTokens / 1000)}kt).`);
+      }
+    }
+  }
+
   // Combine built-in tools with MCP tools (stable across turns)
   const allTools = [...BUILTIN_TOOLS, ...mcpRegistry.getToolDefinitions()];
 
@@ -1163,9 +1182,19 @@ function turnSeparator(): void {
 // Main chat loop — iterative, no recursive Promise chains
 async function chatLoop(): Promise<void> {
   while (true) {
-    const prompt = activeFiles.size > 0
-      ? `\n${pc.cyan('  ⬡')} ${pc.dim(`[${activeFiles.size} file${activeFiles.size > 1 ? 's' : ''}]`)} ${pc.bold(pc.white('›'))} `
-      : `\n${pc.cyan('  ⬡')} ${pc.bold(pc.white('›'))} `;
+    let prompt = `\n${pc.cyan('  ⬡')} `;
+    if (activeFiles.size > 0 || (config.ui.showTokens && messages.length > 1)) {
+      const fileStr = activeFiles.size > 0 ? `${activeFiles.size} file${activeFiles.size > 1 ? 's' : ''}` : '';
+      let tokenStr = '';
+      if (config.ui.showTokens) {
+        const tokens = calculateSessionTokens(messages, buildFileContext());
+        const total = tokens.total;
+        tokenStr = total >= 1000 ? `${(total / 1000).toFixed(1)}kt` : `${total}t`;
+      }
+      const separator = fileStr && tokenStr ? ' · ' : '';
+      prompt += pc.dim(`[${fileStr}${separator}${tokenStr}] `);
+    }
+    prompt += `${pc.bold(pc.white('›'))} `;
     const input = await readMultiLineInput(prompt);
     const trimmedInput = input.trim();
     if (!trimmedInput) continue;
@@ -1185,12 +1214,13 @@ async function chatLoop(): Promise<void> {
     }
 
     // Command quickref
-    if (lowerInput === '?' || lowerInput === 'help') {
+    if (lowerInput === '?' || lowerInput === 'help' || lowerInput === '/help') {
       console.log(`\n  ${pc.bold('Commands')}`);
       console.log(`  ${pc.dim('────────────────────────────────────')}`);
       console.log(`  ${pc.cyan('/add')}      Add file to context`);
       console.log(`  ${pc.cyan('/remove')}   Remove file from context`);
       console.log(`  ${pc.cyan('/context')}  Show active file context`);
+      console.log(`  ${pc.cyan('/prune')}    Prune old conversation history & save budget`);
       console.log(`  ${pc.cyan('/commit')}   Stage and commit changes`);
       console.log(`  ${pc.cyan('/undo')}     Undo last file patch`);
       console.log(`  ${pc.cyan('/paste')}   Paste clipboard text/image as message`);
@@ -1340,6 +1370,48 @@ async function chatLoop(): Promise<void> {
         });
       }
       console.log(pc.bold('----------------------------------'));
+      continue;
+    }
+
+    // Command: /prune
+    if (lowerInput.startsWith('/prune')) {
+      const parts = trimmedInput.substring(6).trim().split(/\s+/);
+      const arg = parts[0]?.trim();
+      const maxT = config.context.maxTokens ?? 128000;
+      let target = Math.floor(maxT * 0.5); // Default to 50%
+
+      if (arg) {
+        if (arg.endsWith('%')) {
+          const pct = parseFloat(arg.slice(0, -1)) / 100;
+          if (!isNaN(pct) && pct > 0 && pct <= 1) {
+            target = Math.floor(maxT * pct);
+          }
+        } else {
+          const num = parseInt(arg, 10);
+          if (!isNaN(num) && num > 0) {
+            target = num;
+          }
+        }
+      }
+
+      const fileCtx = buildFileContext();
+      const beforeTokens = calculateSessionTokens(messages, fileCtx);
+
+      console.log(pc.bold('\n--- Context Budget Status ---'));
+      console.log(`  System Prompt:       ${(beforeTokens.system / 1000).toFixed(1)}kt`);
+      console.log(`  Message History:     ${(beforeTokens.history / 1000).toFixed(1)}kt`);
+      console.log(`  Active Files:        ${(beforeTokens.activeFiles / 1000).toFixed(1)}kt`);
+      console.log(`  Total Active:        ${(beforeTokens.total / 1000).toFixed(1)}kt / ${(maxT / 1000).toFixed(0)}kt (${Math.round((beforeTokens.total / maxT) * 100)}%)`);
+      console.log(`  Target Limit:        ${(target / 1000).toFixed(1)}kt`);
+      console.log(pc.bold('-----------------------------'));
+
+      const pruneResult = pruneMessages(messages, fileCtx, target);
+      if (pruneResult.prunedTurns > 0 || pruneResult.truncatedTools > 0) {
+        console.log(pc.green(`\n[OK] Pruned ${pruneResult.prunedTurns} older turns and truncated ${pruneResult.truncatedTools} large tool outputs.`));
+        console.log(pc.green(`Reclaimed ~${Math.round(pruneResult.savedTokens / 1000)}kt.`));
+      } else {
+        console.log(pc.gray('\nContext is already within target budget. No pruning needed.'));
+      }
       continue;
     }
 

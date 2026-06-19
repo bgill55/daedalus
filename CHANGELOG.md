@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.14] - 2026-06-19
+
+### Added
+- Context budget and token usage meter directly visible in the REPL prompt (`[<files> · <tokens>] ›`)
+- `/prune` command to view a detailed breakdown of context usage (system, files, history) and manually prune conversation turns
+- Auto-pruning engine that runs before model calls to automatically truncate massive tool outputs or prune oldest turns if context exceeds configured thresholds
+- Co-located unit tests for token calculation and pruning algorithm under `src/session/tokens.test.ts`
+
 ## [0.5.13] - 2026-06-19
 
 ### Changed
