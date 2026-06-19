@@ -13,7 +13,7 @@ We release patches for security vulnerabilities. This table shows which versions
 
 We take security seriously. If you discover a security vulnerability in Daedalus, please **do not** open a public issue.
 
-Instead, send a private report to **bgill55_art@outlook.com** with:
+Instead, send a private report to **bgill55_dev@voxvivid.com** with:
 
 - A description of the vulnerability
 - Steps to reproduce it
