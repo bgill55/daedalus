@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.17] - 2026-06-19
+
+### Added
+- Interactive TUI project file finder and fuzzy explorer: running `/add` without a filepath opens an interactive list view to search, navigate, and toggle files in and out of the active context with real-time fuzzy matching and scoring
+- Flicker-free terminal re-rendering and raw keyboard state restoration
+
 ## [0.5.16] - 2026-06-19
 
 ### Added

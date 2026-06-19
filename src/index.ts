@@ -1242,11 +1242,23 @@ async function chatLoop(): Promise<void> {
       continue;
     }
 
-    // Command: /add <file>
-    if (trimmedInput.startsWith('/add ')) {
-      const fileArg = trimmedInput.substring(5).trim();
+    // Command: /add [file]
+    if (lowerInput === '/add' || lowerInput.startsWith('/add ')) {
+      const fileArg = trimmedInput.substring(4).trim();
       if (!fileArg) {
-        console.log(pc.red('[WARN] Please specify a file path. Example: /add src/App.tsx'));
+        const { runInteractiveFileSelector } = await import('./session/selector.js');
+        rl.pause();
+        const result = await runInteractiveFileSelector(process.cwd(), config.indexing.exclude, new Set(activeFiles.keys()));
+        rl.resume();
+        if (result !== null) {
+          activeFiles.clear();
+          for (const absPath of result) {
+            const rel = path.relative(process.cwd(), absPath);
+            activeFiles.set(absPath, rel);
+          }
+          toolContext.activeFiles = new Map(activeFiles);
+          console.log(pc.green(`\n[OK] Active context files updated: ${activeFiles.size} file(s)`));
+        }
       } else {
         const absPath = path.resolve(fileArg);
         activeFiles.set(absPath, fileArg);
