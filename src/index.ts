@@ -23,6 +23,8 @@ import { SessionManager } from './session/manager.js';
 import { SqliteTodo } from './session/sqlite.js';
 import { runOnboarding } from './onboarding/wizard.js';
 import { DaedalusSpinner } from './tools/daedalus-spinner.js';
+import { loadProfile, saveProfile, getProfilePrompt, UserProfile } from './profile.js';
+import { extractAndSave } from './extraction.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -33,6 +35,9 @@ const { version: APP_VERSION } = _require('../package.json');
 // Load configuration
 const config = loadConfig();
 const configDir = getConfigDirPath();
+
+// Load user profile
+const userProfile: UserProfile = loadProfile();
 
 // Session state
 const activeFiles = new Map<string, string>(); // Absolute path -> filename key
@@ -165,9 +170,13 @@ A FTS5 symbol index is built automatically on startup. Use \`find_symbol\` to se
 
 **Never freeze or loop silently.** If a patch fails, take one corrective action and tell the user what happened.`;
 
-// Build system prompt with project memory
+// Build system prompt with project memory and user profile
 function getSystemPromptWithMemory(): string {
   let prompt = systemPrompt;
+  const profilePrompt = getProfilePrompt(userProfile);
+  if (profilePrompt) {
+    prompt += '\n' + profilePrompt;
+  }
   const memPrompt = sessionManager.getMemoryPrompt();
   if (memPrompt) {
     prompt += '\n' + memPrompt;
@@ -182,6 +191,8 @@ const COMMANDS = [
   '/add', '/remove', '/context', '/clear',
   '/spawn', '/delegate', '/orchestrate',
   '/memory', '/fact', '/convention',
+  '/extract',
+  '/profile', '/style',
   '/index', '/find', '/refs', '/def',
   '/commit', '/undo', '/test', '/paste',
   '/models', '/tools', '/config', '/project', '/doctor', '/session', '/onboard',
@@ -258,7 +269,7 @@ function printBanner(): void {
   console.log(box(' '.repeat(W), cyan));
 
   // Tagline strip
-  const tagline = '⬡  local-first  ·  embedded router  ·  multi-agent  ·  probably not sentient yet  ⬡';
+  const tagline = '⬡  local-first  ·  embedded router  ·  multi-agent  ·  not sentient  ⬡';
   console.log(box(centred(tagline, W, dim), cyan));
 
   // Bottom border
@@ -508,16 +519,22 @@ async function handleDoctor(): Promise<void> {
   }
   
   console.log(pc.bold('\n--- Router Health ---'));
-  const healthyModels = router.getHealthyModels();
-  for (const model of healthyModels) {
-    const { checkModelHealth } = await import('./router/health.js');
-    const health = await checkModelHealth(model, 5000);
-    const status = health.healthy ? pc.green('●') : pc.red('●');
-    const latency = health.latencyMs ? ` (${health.latencyMs}ms)` : '';
-    console.log(`  ${status} ${model.name}: ${model.model}${latency}`);
+  const enabledModels = router.getEnabledModels();
+  if (enabledModels.length === 0) {
+    console.log(pc.yellow('  No models configured. Run /onboard to set one up.'));
+  } else {
+    for (const model of enabledModels) {
+      const { checkModelHealth } = await import('./router/health.js');
+      const health = await checkModelHealth(model, 5000);
+      const status = health.healthy ? pc.green('●') : pc.red('●');
+      const latency = health.latencyMs ? ` (${health.latencyMs}ms)` : '';
+      const err = health.error ? ` ${pc.red(health.error)}` : '';
+      console.log(`  ${status} ${model.name}: ${model.endpoint}${latency}${err}`);
+    }
   }
-    console.log(pc.bold('----------------------\n'));
-  }
+  console.log(pc.bold('  Config:') + pc.gray(` ${configDir}\\config.json`));
+  console.log(pc.bold('----------------------\n'));
+} // end handleDoctor
 
   // Handle /index command
   async function handleIndex(opts: { exclude?: string[]; extensions?: string[] }): Promise<void> {
@@ -1130,6 +1147,8 @@ async function chatLoop(): Promise<void> {
     if (lowerInput === 'exit' || lowerInput === 'quit') {
       const todos = getSessionTodos(sessionId);
       sessionManager.saveSessionState(messages, activeFiles, todos);
+      console.log(pc.dim('  🧠 Extracting facts from session...'));
+      await extractAndSave(router as any, sessionManager, messages);
       console.log(pc.gray(`Session saved: ${sessionManager.sessionId}`));
       console.log(pc.yellow('\nEnding session. Goodbye! 👋\n'));
       rl.close();
@@ -1152,6 +1171,9 @@ async function chatLoop(): Promise<void> {
       console.log(`  ${pc.cyan('/refs')}    Find symbol references`);
       console.log(`  ${pc.cyan('/def')}     Get symbol definition`);
       console.log(`  ${pc.cyan('/project')} View or set project config`);
+      console.log(`  ${pc.cyan('/extract')}  Manually extract facts from session`);
+      console.log(`  ${pc.cyan('/profile')} View or set your user profile`);
+      console.log(`  ${pc.cyan('/style')}   Set your coding style/preferences`);
       console.log(`  ${pc.cyan('/session')} Manage chat sessions`);
       console.log(`  ${pc.cyan('?')}         Show this help menu`);
       console.log(`  ${pc.cyan('exit')}     Save and quit\n`);
@@ -1360,6 +1382,59 @@ async function chatLoop(): Promise<void> {
         sessionManager.setConvention(key, value);
         console.log(pc.green(`✔ Saved convention: ${key} = ${value}`));
       }
+      continue;
+    }
+
+    // Command: /extract — manually trigger fact extraction
+    if (lowerInput === '/extract') {
+      console.log(pc.dim('  🧠 Extracting facts from conversation...'));
+      await extractAndSave(router as any, sessionManager, messages);
+      continue;
+    }
+
+    // Command: /profile
+    if (lowerInput.startsWith('/profile')) {
+      const rest = trimmedInput.substring(8).trim();
+      if (!rest || rest === 'view') {
+        console.log(pc.bold('\n--- Your Profile ---'));
+        console.log(`  ${pc.cyan('Name')}: ${userProfile.name || '(not set)'}`);
+        console.log(`  ${pc.cyan('Bio')}:  ${userProfile.bio || '(not set)'}`);
+        if (userProfile.updatedAt) {
+          console.log(pc.gray(`  Last updated: ${new Date(userProfile.updatedAt).toLocaleString()}`));
+        }
+        console.log(pc.dim('  Set name: /profile name = Your Name'));
+        console.log(pc.dim('  Set bio:  /profile bio = Tell me about yourself'));
+        continue;
+      }
+      if (rest.startsWith('name ')) {
+        userProfile.name = rest.substring(5).trim();
+        saveProfile(userProfile);
+        console.log(pc.green(`✔ Profile name set: ${userProfile.name}`));
+        continue;
+      }
+      if (rest.startsWith('bio ')) {
+        userProfile.bio = rest.substring(4).trim();
+        saveProfile(userProfile);
+        console.log(pc.green(`✔ Profile bio set.`));
+        continue;
+      }
+      console.log(pc.red('⚠ Usage: /profile view | /profile name = <name> | /profile bio = <bio>'));
+      continue;
+    }
+
+    // Command: /style
+    if (lowerInput.startsWith('/style')) {
+      const rest = trimmedInput.substring(6).trim();
+      if (!rest || rest === 'view') {
+        console.log(pc.bold('\n--- Coding Style ---'));
+        console.log(`  ${userProfile.style || '(not set)'}`);
+        console.log(pc.dim('  Set: /style <your coding preferences>'));
+        console.log(pc.dim('  Example: /style I prefer tabs, functional style, descriptive variable names'));
+        continue;
+      }
+      userProfile.style = rest;
+      saveProfile(userProfile);
+      console.log(pc.green('✔ Coding style saved. It will be injected into every session.'));
       continue;
     }
 
@@ -1638,13 +1713,19 @@ async function chatLoop(): Promise<void> {
       const userContent = `${indexCtx}${filesContext}User Prompt: ${trimmedInput}`;
       printUserTurn(trimmedInput);
       await callModelWithTools(userContent);
+
+      // Fact extraction — learns from tool results and reasoning
+      await extractAndSave(router as any, sessionManager, messages);
     } catch (error: any) {
       console.error(pc.red(`\n❌ Error: ${error.message}`));
       try {
         const filesContext = buildFileContext();
         const userContent = `${filesContext}User Prompt: ${trimmedInput}`;
         console.log(pc.yellow('\n🔄 Trying fallback mode...'));
-        await callModelWithFallback(userContent);
+        const fallbackResult = await callModelWithFallback(userContent);
+        if (fallbackResult) {
+          await extractAndSave(router as any, sessionManager, messages);
+        }
       } catch (fallbackErr: any) {
         console.error(pc.red(`\n❌ Fallback also failed: ${fallbackErr.message}`));
         console.error(pc.gray('Check that at least one local server is running.'));
@@ -1702,14 +1783,14 @@ async function main() {
     setTimeout(() => checkForUpdates(), 2000);
   }
   
-  // Auto-index at startup — defer so the prompt appears immediately
+  // Auto-index at startup — deferred so the REPL appears immediately
   if (config.indexing.enabled) {
     setTimeout(() => {
       (async () => {
         try {
           const indexDbPath = path.join(os.homedir(), '.daedalus', 'sessions', projectHash, 'index.sqlite');
           if (!fs.existsSync(indexDbPath)) {
-            console.log(pc.cyan('\n  ⚡ Auto-indexing codebase (background)...'));
+            console.log(pc.cyan('\n  ⚡ Auto-indexing codebase (background, throttled)...'));
             const { initIndexDb } = await import('./indexing/fts.js');
             const { indexCodebase } = await import('./indexing/indexer.js');
             const db = initIndexDb(indexDbPath);
@@ -1737,7 +1818,7 @@ async function main() {
           console.error(pc.yellow(`  ⚠ Auto-index failed: ${err.message}`));
         }
       })();
-    }, 100);
+    }, 3000);
   }
 
   await chatLoop();

@@ -27,17 +27,27 @@ function hashContent(content: string): string {
   return crypto.createHash('sha256').update(content).digest('hex');
 }
 
+function yieldToEventLoop(): Promise<void> {
+  return new Promise(resolve => setImmediate(resolve));
+}
+
 /** Crawl directory recursively and collect code files */
-export function collectFiles(
+export async function collectFiles(
   dir: string,
   root: string,
   exclude: Set<string>,
   extensions: Set<string>,
   fileList: string[] = []
-): string[] {
-  const files = fs.readdirSync(dir);
+): Promise<string[]> {
+  let entries: string[];
+  try {
+    entries = await fs.promises.readdir(dir);
+  } catch {
+    return fileList;
+  }
   
-  for (const file of files) {
+  for (let i = 0; i < entries.length; i++) {
+    const file = entries[i];
     const fullPath = path.join(dir, file);
     const relPath = path.relative(root, fullPath);
     
@@ -47,9 +57,9 @@ export function collectFiles(
     }
 
     try {
-      const stat = fs.statSync(fullPath);
+      const stat = await fs.promises.stat(fullPath);
       if (stat.isDirectory()) {
-        collectFiles(fullPath, root, exclude, extensions, fileList);
+        await collectFiles(fullPath, root, exclude, extensions, fileList);
       } else if (stat.isFile()) {
         const ext = path.extname(file).toLowerCase();
         if (extensions.has(ext)) {
@@ -59,6 +69,9 @@ export function collectFiles(
     } catch {
       // Ignored (unreadable files/dirs)
     }
+
+    // Yield every 50 entries to keep event loop responsive
+    if (i % 50 === 0) await yieldToEventLoop();
   }
 
   return fileList;
@@ -544,11 +557,6 @@ export interface IndexResult {
   errors: string[];
 }
 
-/** Yield to the event loop so pending I/O (e.g. user input) can be processed */
-function yieldToEventLoop(): Promise<void> {
-  return new Promise(resolve => setImmediate(resolve));
-}
-
 /** Main indexing function - crawls codebase and indexes symbols/references */
 export async function indexCodebase(
   db: Database.Database,
@@ -559,7 +567,7 @@ export async function indexCodebase(
   const exclude = new Set([...DEFAULT_EXCLUDE, ...(options.exclude || [])]);
   const extensions = new Set([...DEFAULT_EXTENSIONS, ...(options.extensions || [])]);
 
-  const files = collectFiles(root, root, exclude, extensions, []);
+  const files = await collectFiles(root, root, exclude, extensions, []);
   
   let indexedFiles = 0;
   let skippedFiles = 0;
@@ -598,8 +606,8 @@ export async function indexCodebase(
     } catch (err: any) {
       errors.push(`${path.relative(root, file) || file}: ${err.message}`);
     }
-    // Yield periodically so the event loop stays responsive
-    if (i % 10 === 0) await yieldToEventLoop();
+    // Yield every file so the event loop stays responsive
+    await yieldToEventLoop();
   }
 
   return {

@@ -9,7 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Automatic update checker — pings npm registry on startup (cached 24h), shows upgrade notice
+- **Auto-fact extraction** — after each turn with learning signals (file edits, commits), Daedalus silently extracts key-value facts and saves them to project memory. The CLI that grows with you.
+- `/extract` command — manually trigger fact extraction from the current session
+- Session-end extraction — facts extracted automatically when you exit
+- `src/extraction.ts` — extraction engine: signal detection, lightweight LLM call, dedup, save
+- User profile system (`/profile`) — name and bio stored in `~/.daedalus/profile.json`, auto-injected into every session
+- Coding style memory (`/style`) — persistent coding preferences injected into system prompt, no more repeating yourself
+- `src/profile.ts` — profile module with load/save/prompt generation
 - `updateCheck` config option (default: true) — set to false in config.json to disable
 - CONTRIBUTING.md, CODE_OF_CONDUCT.md, SECURITY.md — open-source governance docs
 - AGENTS.md — AI assistant conventions for tool-aided development

@@ -18,8 +18,13 @@ export async function checkModelHealth(model: ModelEntry, timeout: number): Prom
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
     
+    // Normalize endpoint — prepend https:// if missing
+    let baseUrl = model.endpoint;
+    if (!/^https?:\/\//i.test(baseUrl)) {
+      baseUrl = 'https://' + baseUrl;
+    }
     // Use /models endpoint to check health
-    const response = await fetch(`${model.endpoint}/models`, {
+    const response = await fetch(`${baseUrl}/models`, {
       signal: controller.signal,
       headers: { 'Content-Type': 'application/json' },
     });

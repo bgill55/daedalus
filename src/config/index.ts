@@ -11,7 +11,9 @@ const __dirname = path.dirname(__filename);
 
 export const ModelEntrySchema = z.object({
   name: z.string(),
-  endpoint: z.string().url(),
+  endpoint: z.string().refine(v => /^https?:\/\//i.test(v) || /^[a-zA-Z0-9.-]+:\d+/.test(v), {
+    message: 'endpoint must be a URL (http://...) or host:port',
+  }),
   model: z.string(),
   priority: z.number().int().min(0),
   enabled: z.boolean(),
@@ -200,8 +202,9 @@ export function loadConfig(): DaedalusConfig {
     const parsed = JSON.parse(content);
     return ConfigSchema.parse(parsed);
   } catch (err: any) {
-    console.error(`Failed to load config: ${err.message}`);
-    console.error('Using defaults...');
+    console.error('\n⚠ Failed to load config file:');
+    console.error(`  ${err.message}`);
+    console.error('  Falling back to defaults. Edit ~/.daedalus/config.json or run /onboard');
     return DEFAULT_CONFIG;
   }
 }
