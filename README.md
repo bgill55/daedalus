@@ -27,7 +27,7 @@ Daedalus is a standalone terminal-based AI coding assistant that runs entirely o
 - **Terminal access** — Cross-platform shell execution (bash/cmd) with timeout and abort
 - **Git integration** — Status, diff, stage-all-and-commit, undo last patch
 - **Session management** — SQLite-backed conversation history with save/load/export
-- **Project memory** — Persist facts and conventions that auto-inject into every turn
+- **Persistent memory** — Facts and conventions auto-inject into every turn. User profile (`/profile`) and coding style (`/style`) persist across sessions. Auto-fact extraction learns from your edits and commits.
 - **MCP support** — Connect Model Context Protocol servers (stdio and HTTP/SSE)
 - **Web tools** — DuckDuckGo search and URL fetching (no API key needed)
 - **Visual chat UI** — Bordered message blocks, tab completion, syntax-highlighted code blocks
@@ -83,6 +83,12 @@ Once inside the REPL, type `?` or `help` for the full command reference.
 | `/commit [message]` | Stage all and commit changes |
 | `/undo` | Revert last file patch |
 | `/test [iterations]` | Run tests and auto-fix failures |
+| `/memory` | View saved project facts and conventions |
+| `/fact <key> = <value>` | Save a project fact |
+| `/convention <key> = <value>` | Save a coding convention |
+| `/extract` | Manually extract facts from current session |
+| `/profile view\|name\|bio` | View or set your user profile |
+| `/style <preferences>` | Set persistent coding style preferences |
 | `/index` | Index codebase for symbol search |
 | `/find <query>` | Fuzzy-search indexed symbols |
 | `/refs <symbol>` | Find symbol references (callers) |
@@ -168,6 +174,8 @@ src/
 ├── index.ts                # CLI entry point, REPL, command dispatch
 ├── types.ts                # Shared type definitions
 ├── highlight.ts            # Syntax highlighting for code blocks
+├── profile.ts              # User profile (name, bio, style) persistence
+├── extraction.ts           # Auto-fact extraction engine
 ├── config/                 # Configuration loading, schema, discovery
 │   └── index.ts
 ├── router/                 # Model routing engine
@@ -245,7 +253,7 @@ Daedalus is built for developers who want AI assistance without:
 - Losing their conversation history between sessions
 - Having limited tool access
 
-It's for local-first, private, customizable AI coding — with the power to grow with you.
+It's for local-first, private, customizable AI coding — with memory that grows with you.
 
 ---
 
