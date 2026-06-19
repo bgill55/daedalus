@@ -9,7 +9,12 @@
   "files": [
     "dist/",
     "Daedalus.bat",
-    "README.md"
+    "README.md",
+    "CHANGELOG.md",
+    "CONTRIBUTING.md",
+    "CODE_OF_CONDUCT.md",
+    "SECURITY.md",
+    "AGENTS.md"
   ],
   "scripts": {
     "start": "tsx src/index.ts",

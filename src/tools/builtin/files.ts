@@ -233,7 +233,7 @@ export async function searchFiles(args: { pattern: string; target?: 'content' | 
 
     if (target === 'files') {
       // File name search — use walkDir (native)
-      const files = walkDir(searchPath, 8, args.pattern);
+      const files = walkDir(searchPath, searchPath, 8, args.pattern);
       const content = files.slice(0, limit).sort().join('\n');
       return { toolCallId: '', name: 'search_files', success: true, content: content || '(no matches)' };
     }
@@ -258,7 +258,53 @@ export async function searchFiles(args: { pattern: string; target?: 'content' | 
   }
 }
 
-function walkDir(dir: string, maxDepth: number, pattern?: string, _currentDepth = 0): string[] {
+function globToRegex(pattern: string): string {
+  let regex = '';
+  let i = 0;
+  while (i < pattern.length) {
+    const ch = pattern[i];
+    if (ch === '*' && pattern[i + 1] === '*') {
+      regex += '.*';
+      i += 2;
+      if (pattern[i] === '/' || pattern[i] === '\\') {
+        regex += '[/\\\\]';
+        i++;
+      }
+    } else if (ch === '*' ) {
+      regex += '[^/\\\\]*';
+      i++;
+    } else if (ch === '?') {
+      regex += '[^/\\\\]';
+      i++;
+    } else if (ch === '.') {
+      regex += '\\.';
+      i++;
+    } else if (ch === '{') {
+      const end = pattern.indexOf('}', i);
+      if (end === -1) {
+        regex += '\\{';
+        i++;
+      } else {
+        const inner = pattern.slice(i + 1, end);
+        const parts = inner.split(',');
+        regex += '(' + parts.map(p => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')';
+        i = end + 1;
+      }
+    } else {
+      regex += ch.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
+      i++;
+    }
+  }
+  return regex;
+}
+
+function matchesGlob(filePath: string, pattern: string): boolean {
+  const normalized = filePath.replace(/\\/g, '/');
+  const regexStr = globToRegex(pattern);
+  return new RegExp(`^${regexStr}$`).test(normalized);
+}
+
+function walkDir(dir: string, baseDir: string, maxDepth: number, pattern?: string, _currentDepth = 0): string[] {
   if (_currentDepth > maxDepth) return [];
   const results: string[] = [];
   try {
@@ -267,9 +313,9 @@ function walkDir(dir: string, maxDepth: number, pattern?: string, _currentDepth 
       const fullPath = path.join(dir, entry.name);
       if (entry.isDirectory()) {
         if (entry.name === '.' || entry.name === '..') continue;
-        results.push(...walkDir(fullPath, maxDepth, pattern, _currentDepth + 1));
+        results.push(...walkDir(fullPath, baseDir, maxDepth, pattern, _currentDepth + 1));
       } else if (entry.isFile()) {
-        if (!pattern || entry.name.endsWith(pattern.replace('*', ''))) {
+        if (!pattern || matchesGlob(path.relative(baseDir, fullPath), pattern)) {
           results.push(fullPath);
         }
       }
@@ -286,7 +332,7 @@ export async function listFiles(args: { path?: string; depth?: number; glob?: st
     const depth = args.depth ?? 3;
     const glob = args.glob;
 
-    const files = walkDir(targetPath, depth, glob);
+    const files = walkDir(targetPath, targetPath, depth, glob);
     const content = files.length > 0
       ? files.sort().join('\n')
       : '(empty)';

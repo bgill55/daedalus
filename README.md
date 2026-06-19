@@ -249,6 +249,20 @@ It's for local-first, private, customizable AI coding — with the power to grow
 
 ---
 
+## Contributing
+
+Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for our contribution guidelines, coding standards, and pull request process.
+
+This project is governed by a [Code of Conduct](CODE_OF_CONDUCT.md). Please report any unacceptable behavior.
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for the project history.
+
+## Security
+
+Report security vulnerabilities privately to bgill55_art@outlook.com — see [SECURITY.md](SECURITY.md) for details.
+
 ## License
 
 MIT
