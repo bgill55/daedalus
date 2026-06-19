@@ -30,13 +30,21 @@ export function generateUnifiedDiff(
   const newLines = newContent.split('\n');
 
   const patches = diff.diffLines(oldContent, newContent);
+  const changedLines = patches.reduce((n, p) => n + (p.added || p.removed ? (p.value.split('\n').length - 1) : 0), 0);
+  const totalLines = Math.max(oldLines.length, 1);
+  const changePct = changedLines / totalLines;
 
   let output = '';
   const titleText = ` Proposed change to ${filePath.padEnd(55)} `;
   const borderW = titleText.length;
-  output += pc.bold(pc.cyan(`\n\u250c${'\u2500'.repeat(borderW)}\u2510\n`));
+  output += pc.bold(pc.cyan(`\n\u250c${'─'.repeat(borderW)}\u2510\n`));
   output += pc.bold(pc.cyan(`\u2502${titleText}\u2502\n`));
-  output += pc.bold(pc.cyan(`\u251c${'\u2500'.repeat(borderW)}\u2524\n`));
+  if (changePct >= 0.4) {
+    const pctStr = `${Math.round(changePct * 100)}% of file replaced`;
+    const warnText = ` ⚠  LARGE REWRITE: ${pctStr} — review carefully for dropped logic `.padEnd(borderW);
+    output += pc.bold(pc.yellow(`\u2502${warnText}\u2502\n`));
+  }
+  output += pc.bold(pc.cyan(`\u251c${'─'.repeat(borderW)}\u2524\n`));
 
   let lineNumOld = 1;
   let lineNumNew = 1;

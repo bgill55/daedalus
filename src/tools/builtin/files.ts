@@ -161,6 +161,122 @@ async function syntaxCheck(filePath: string, projectRoot: string): Promise<strin
   return null;
 }
 
+function checkWriteWithoutRead(targetPath: string, context: ToolContext): string | null {
+  if (!context.sessionReadCache) return null;
+  if (!fs.existsSync(targetPath)) return null;
+  const readMtime = context.sessionReadCache.get(targetPath);
+  if (readMtime === undefined) {
+    return `[READ REQUIRED] ${path.basename(targetPath)} has not been read this session. Use read_file first to verify the current content before modifying it.`;
+  }
+  const currentMtime = fs.statSync(targetPath).mtimeMs;
+  if (currentMtime > readMtime + 500) {
+    return `[STALE READ] ${path.basename(targetPath)} was modified after you last read it. Use read_file to get the current content before patching.`;
+  }
+  return null;
+}
+
+function checkCircuitBreaker(targetPath: string, context: ToolContext): string | null {
+  if (!context.patchFailureStreak) return null;
+  const streak = context.patchFailureStreak.get(targetPath) ?? 0;
+  if (streak >= 2) {
+    return `[CIRCUIT BREAKER] patch failed ${streak} consecutive times on ${path.basename(targetPath)}. Use read_file to inspect the current state and reconstruct your patch from the actual content.`;
+  }
+  return null;
+}
+
+function recordPatchSuccess(targetPath: string, context: ToolContext): void {
+  context.patchFailureStreak?.set(targetPath, 0);
+}
+
+function recordPatchFailure(targetPath: string, context: ToolContext): void {
+  const streak = context.patchFailureStreak?.get(targetPath) ?? 0;
+  context.patchFailureStreak?.set(targetPath, streak + 1);
+}
+
+function validateImports(filePath: string, projectRoot: string): string[] {
+  const ext = path.extname(filePath).toLowerCase();
+  if (!['.ts', '.tsx', '.js', '.mjs', '.cjs'].includes(ext)) return [];
+  const content = fs.readFileSync(filePath, 'utf8');
+  const warnings: string[] = [];
+
+  const importRe = /^import\s+(?:[\s\S]*?from\s+)?['"]([^'"]+)['"]/gm;
+  let match;
+  while ((match = importRe.exec(content)) !== null) {
+    const spec = match[1];
+    if (spec.startsWith('.') || spec.startsWith('/')) {
+      const candidates = [spec, `${spec}.ts`, `${spec}.js`, `${spec}/index.ts`, `${spec}/index.js`];
+      const resolved = candidates.map(c => path.resolve(path.dirname(filePath), c));
+      if (!resolved.some(r => fs.existsSync(r))) {
+        warnings.push(`Local import not found: '${spec}'`);
+      }
+    } else {
+      const pkg = spec.startsWith('@') ? spec.split('/').slice(0, 2).join('/') : spec.split('/')[0];
+      const pkgJson = path.join(projectRoot, 'package.json');
+      if (fs.existsSync(pkgJson)) {
+        try {
+          const { dependencies = {}, devDependencies = {} } = JSON.parse(fs.readFileSync(pkgJson, 'utf8'));
+          if (!dependencies[pkg] && !devDependencies[pkg]) {
+            const nmPath = path.join(projectRoot, 'node_modules', pkg);
+            if (!fs.existsSync(nmPath)) {
+              warnings.push(`npm package not in package.json: '${pkg}'`);
+            }
+          }
+        } catch {}
+      }
+    }
+  }
+  return warnings;
+}
+
+function validateExports(filePath: string): string[] {
+  const ext = path.extname(filePath).toLowerCase();
+  if (!['.ts', '.tsx', '.js', '.mjs', '.cjs'].includes(ext)) return [];
+  const content = fs.readFileSync(filePath, 'utf8');
+  const warnings: string[] = [];
+
+  const namedExportRe = /^export\s+\{([^}]+)\}/gm;
+  let match;
+  while ((match = namedExportRe.exec(content)) !== null) {
+    const names = match[1].split(',').map(s => s.trim().split(/\s+as\s+/)[0].trim()).filter(Boolean);
+    for (const name of names) {
+      const definedRe = new RegExp(`(?:function|class|const|let|var|type|interface|enum)\\s+${name}\\b`);
+      if (!definedRe.test(content)) {
+        warnings.push(`Exported name '${name}' is not defined in this file`);
+      }
+    }
+  }
+  return warnings;
+}
+
+async function runColocatedTests(filePath: string, projectRoot: string): Promise<string | null> {
+  const ext = path.extname(filePath);
+  const base = filePath.slice(0, -ext.length);
+  const testCandidates = [`${base}.test${ext}`, `${base}.spec${ext}`];
+  const testFile = testCandidates.find(t => fs.existsSync(t));
+  if (!testFile) return null;
+
+  const result = spawnSync('npx', ['vitest', 'run', testFile, '--reporter=verbose'], {
+    cwd: projectRoot,
+    timeout: 30000,
+    encoding: 'utf8',
+    shell: true,
+  });
+  if (result.status !== 0) {
+    const output = ((result.stdout ?? '') + (result.stderr ?? '')).split('\n')
+      .filter(l => l.match(/FAIL|×|Error|AssertionError/))
+      .slice(0, 8)
+      .join('\n');
+    return `[TEST FAILURE] ${path.basename(testFile)} failed after this change:\n${output || result.stdout?.slice(0, 400) || 'unknown error'}\nFix the code to make the tests pass.`;
+  }
+  return null;
+}
+
+function buildPostWriteWarnings(filePath: string, projectRoot: string): string[] {
+  const importWarnings = validateImports(filePath, projectRoot);
+  const exportWarnings = validateExports(filePath);
+  return [...importWarnings, ...exportWarnings];
+}
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -194,6 +310,10 @@ export async function readFile(args: { path: string; offset?: number; limit?: nu
     const start = Math.max(0, offset - 1);
     const end = Math.min(totalLines, start + limit);
     const selected = lines.slice(start, end);
+
+    if (context.sessionReadCache) {
+      context.sessionReadCache.set(targetPath, fs.statSync(targetPath).mtimeMs);
+    }
 
     let output = '';
     for (let i = 0; i < selected.length; i++) {
@@ -236,6 +356,10 @@ export async function writeFile(args: { path: string; content: string }, context
       return formatError(`Code placeholders like '// ...' or '/* ... */' detected. You must write the complete, non-abbreviated code.`);
     }
     const targetPath = resolvePath(args.path, context.projectRoot);
+
+    const readGuard = checkWriteWithoutRead(targetPath, context);
+    if (readGuard) return formatError(readGuard);
+
     const dir = path.dirname(targetPath);
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
@@ -253,7 +377,14 @@ export async function writeFile(args: { path: string; content: string }, context
       return formatError(`Syntax error in ${args.path} — file reverted.\n${syntaxError}\nFix the error and retry.`);
     }
 
-    return { toolCallId: '', name: 'write_file', success: true, content: `Written ${args.content.length} chars to ${args.path}` };
+    const postWarnings = buildPostWriteWarnings(targetPath, context.projectRoot);
+    const testFailure = await runColocatedTests(targetPath, context.projectRoot);
+    const notices: string[] = [];
+    if (postWarnings.length > 0) notices.push(`Warnings:\n${postWarnings.map(w => `  • ${w}`).join('\n')}`);
+    if (testFailure) notices.push(testFailure);
+
+    const suffix = notices.length > 0 ? `\n\n${notices.join('\n\n')}` : '';
+    return { toolCallId: '', name: 'write_file', success: true, content: `Written ${args.content.length} chars to ${args.path}${suffix}` };
   } catch (err: any) {
     return formatError(`Failed to write file: ${err.message}`);
   }
@@ -269,6 +400,12 @@ export async function patchFile(args: { path: string; old_string: string; new_st
       return formatError(`File not found: ${args.path}`);
     }
 
+    const circuitBreaker = checkCircuitBreaker(targetPath, context);
+    if (circuitBreaker) return formatError(circuitBreaker);
+
+    const readGuard = checkWriteWithoutRead(targetPath, context);
+    if (readGuard) return formatError(readGuard);
+
     const rawContent = fs.readFileSync(targetPath, 'utf8');
     const hasCRLF = rawContent.includes('\r\n');
     const content = hasCRLF ? rawContent.replace(/\r\n/g, '\n') : rawContent;
@@ -281,8 +418,8 @@ export async function patchFile(args: { path: string; old_string: string; new_st
     if (replaceAll) {
       if (!content.includes(oldStr)) {
         const fuzzy = fuzzyWhitespacePatch(content, oldStr, newStr, true);
-        if (fuzzy.error && fuzzy.error !== 'no_fuzzy_match') return formatError(fuzzy.error);
-        if (!fuzzy.patched) return formatError(`Old string not found in file (checked with CRLF normalization and fuzzy whitespace matching).`);
+        if (fuzzy.error && fuzzy.error !== 'no_fuzzy_match') { recordPatchFailure(targetPath, context); return formatError(fuzzy.error); }
+        if (!fuzzy.patched) { recordPatchFailure(targetPath, context); return formatError(`Old string not found in file (checked with CRLF normalization and fuzzy whitespace matching).`); }
         patched = fuzzy.patched;
       } else {
         patched = content.split(oldStr).join(newStr);
@@ -295,6 +432,7 @@ export async function patchFile(args: { path: string; old_string: string; new_st
         if (fuzzy.patched) {
           patched = fuzzy.patched;
         } else {
+          recordPatchFailure(targetPath, context);
           const hint = findClosestBlock(content, oldStr);
           const hintMsg = hint
             ? `\n\nClosest match found at line ${hint.lineNo}:\n${'─'.repeat(40)}\n${hint.snippet}\n${'─'.repeat(40)}\nRe-read the file and retry the patch with the exact content above.`
@@ -339,7 +477,14 @@ export async function patchFile(args: { path: string; old_string: string; new_st
           description: args.old_string.split('\n')[0].slice(0, 60),
         });
       }
-      return { toolCallId: '', name: 'patch', success: true, content: `Patched ${args.path}${hasCRLF ? ' (CRLF preserved)' : ''}` };
+      const postWarningsA = buildPostWriteWarnings(targetPath, context.projectRoot);
+      const testFailureA = await runColocatedTests(targetPath, context.projectRoot);
+      recordPatchSuccess(targetPath, context);
+      const noticesA: string[] = [];
+      if (postWarningsA.length > 0) noticesA.push(`Warnings:\n${postWarningsA.map(w => `  • ${w}`).join('\n')}`);
+      if (testFailureA) noticesA.push(testFailureA);
+      const suffixA = noticesA.length > 0 ? `\n\n${noticesA.join('\n\n')}` : '';
+      return { toolCallId: '', name: 'patch', success: true, content: `Patched ${args.path}${hasCRLF ? ' (CRLF preserved)' : ''}${suffixA}` };
     }
 
     // Show interactive diff via diff-ui
@@ -388,7 +533,14 @@ export async function patchFile(args: { path: string; old_string: string; new_st
       });
     }
 
-    return { toolCallId: '', name: 'patch', success: true, content: `Patched ${args.path}${hasCRLF ? ' (CRLF preserved)' : ''}` };
+    const postWarningsB = buildPostWriteWarnings(targetPath, context.projectRoot);
+    const testFailureB = await runColocatedTests(targetPath, context.projectRoot);
+    recordPatchSuccess(targetPath, context);
+    const noticesB: string[] = [];
+    if (postWarningsB.length > 0) noticesB.push(`Warnings:\n${postWarningsB.map(w => `  • ${w}`).join('\n')}`);
+    if (testFailureB) noticesB.push(testFailureB);
+    const suffixB = noticesB.length > 0 ? `\n\n${noticesB.join('\n\n')}` : '';
+    return { toolCallId: '', name: 'patch', success: true, content: `Patched ${args.path}${hasCRLF ? ' (CRLF preserved)' : ''}${suffixB}` };
   } catch (err: any) {
     return formatError(`Failed to patch file: ${err.message}`);
   }

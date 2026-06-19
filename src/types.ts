@@ -53,6 +53,8 @@ export interface ToolContext {
   pauseSpinner?: () => void;
   resumeSpinner?: () => void;
   patchHistory?: PatchEntry[];    // for /undo support
+  sessionReadCache?: Map<string, number>;  // absPath -> mtime when last read
+  patchFailureStreak?: Map<string, number>; // absPath -> consecutive failure count
 }
 
 export interface PatchEntry {

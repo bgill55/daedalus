@@ -105,6 +105,8 @@ const toolContext: ToolContext = {
   patchHistory: [],
   pauseSpinner: () => {},
   resumeSpinner: () => {},
+  sessionReadCache: new Map(),
+  patchFailureStreak: new Map(),
 };
 
 // Enable delegation tool
