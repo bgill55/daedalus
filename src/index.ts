@@ -1155,6 +1155,62 @@ function printUserTurn(userMessage: string): void {
 }
 
 let _assistantLineBuf = '';
+let _inCodeBlock = false;
+
+function stripAnsi(str: string): string {
+  return str.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
+}
+
+function wrapAnsiLine(line: string, maxW: number): string[] {
+  if (stripAnsi(line).length <= maxW) return [line];
+  const words = line.split(' ');
+  const result: string[] = [];
+  let cur = '';
+  for (const word of words) {
+    const curVisible = stripAnsi(cur).length;
+    const wordVisible = stripAnsi(word).length;
+    if (cur && curVisible + 1 + wordVisible <= maxW) {
+      cur += ' ' + word;
+    } else {
+      if (cur) result.push(cur);
+      cur = word;
+      while (stripAnsi(cur).length > maxW) {
+        result.push(cur);
+        cur = '';
+      }
+    }
+  }
+  if (cur) result.push(cur);
+  return result;
+}
+
+export function formatMarkdownLine(line: string): string {
+  if (line.startsWith('# ')) {
+    return pc.bold(pc.cyan(line.substring(2)));
+  }
+  if (line.startsWith('## ')) {
+    return pc.bold(pc.cyan(line.substring(3)));
+  }
+  if (line.startsWith('### ')) {
+    return pc.bold(pc.cyan(line.substring(4)));
+  }
+  if (line.startsWith('> ')) {
+    return `${pc.gray('│')} ${pc.italic(line.substring(2))}`;
+  }
+  let prefix = '';
+  let content = line;
+  const listMatch = line.match(/^(\s*)([\*\-\+•])\s+(.*)$/);
+  if (listMatch) {
+    const indent = listMatch[1];
+    content = listMatch[3];
+    prefix = `${indent}${pc.gray('•')} `;
+  }
+  content = content.replace(/\`(.*?)\`/g, (_, p1) => pc.yellow(p1));
+  content = content.replace(/\*\*(.*?)\*\*/g, (_, p1) => pc.bold(p1));
+  content = content.replace(/\*(.*?)\*/g, (_, p1) => pc.italic(p1));
+  content = content.replace(/_(.*?)_/g, (_, p1) => pc.italic(p1));
+  return prefix + content;
+}
 
 function openAssistantBlock(): void {
   console.log(`\n  ${pc.cyan(pc.bold('◇ Daedalus'))}`);
@@ -1165,8 +1221,19 @@ function writeAssistantChunk(chunk: string): void {
   const lines = _assistantLineBuf.split('\n');
   _assistantLineBuf = lines.pop() || '';
   for (const line of lines) {
-    for (const part of wrapLine(line, termW)) {
-      console.log(`  ${pc.white(part)}`);
+    const isCodeBlockDelimiter = line.trim().startsWith('```');
+    if (isCodeBlockDelimiter) {
+      _inCodeBlock = !_inCodeBlock;
+    }
+    if (_inCodeBlock || isCodeBlockDelimiter) {
+      for (const part of wrapLine(line, termW)) {
+        console.log(`  ${pc.gray(part)}`);
+      }
+    } else {
+      const formatted = formatMarkdownLine(line);
+      for (const part of wrapAnsiLine(formatted, termW)) {
+        console.log(`  ${part}`);
+      }
     }
   }
 }
@@ -1222,11 +1289,23 @@ export function parseTextToolCalls(text: string): ToolCall[] {
 
 function closeAssistantBlock(tokens: number, elapsedMs: number, toolCount?: number): void {
   if (_assistantLineBuf) {
-    for (const part of wrapLine(_assistantLineBuf, termW)) {
-      console.log(`  ${pc.white(part)}`);
+    const isCodeBlockDelimiter = _assistantLineBuf.trim().startsWith('```');
+    if (isCodeBlockDelimiter) {
+      _inCodeBlock = !_inCodeBlock;
+    }
+    if (_inCodeBlock || isCodeBlockDelimiter) {
+      for (const part of wrapLine(_assistantLineBuf, termW)) {
+        console.log(`  ${pc.gray(part)}`);
+      }
+    } else {
+      const formatted = formatMarkdownLine(_assistantLineBuf);
+      for (const part of wrapAnsiLine(formatted, termW)) {
+        console.log(`  ${part}`);
+      }
     }
     _assistantLineBuf = '';
   }
+  _inCodeBlock = false;
   const modelStr = router.lastRoutedModel ? `${router.lastRoutedModel}  ·  ` : '';
   const meta = toolCount !== undefined
     ? `${modelStr}${toolCount} tool(s)  ·  ~${Math.round(tokens / 4)}t out  ·  ${elapsedMs}ms`

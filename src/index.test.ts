@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseTextToolCalls } from './index.js';
+import { parseTextToolCalls, formatMarkdownLine } from './index.js';
 
 describe('parseTextToolCalls', () => {
   it('should parse longcat_tool_call with keys and values', () => {
@@ -58,5 +58,26 @@ Let me find and read the README first.
     const text = 'Just some normal conversation text with no tags.';
     const calls = parseTextToolCalls(text);
     expect(calls).toHaveLength(0);
+  });
+});
+
+describe('formatMarkdownLine', () => {
+  it('should format headers', () => {
+    expect(formatMarkdownLine('# Header 1')).toContain('Header 1');
+    expect(formatMarkdownLine('## Header 2')).toContain('Header 2');
+    expect(formatMarkdownLine('### Header 3')).toContain('Header 3');
+  });
+
+  it('should format lists', () => {
+    expect(formatMarkdownLine('* Bullet')).toContain('Bullet');
+    expect(formatMarkdownLine('  - Indented Bullet')).toContain('  ');
+  });
+
+  it('should format bold, italic, and inline code', () => {
+    const formatted = formatMarkdownLine('This is **bold**, *italic*, and `code` text.');
+    expect(formatted).toContain('bold');
+    expect(formatted).toContain('italic');
+    expect(formatted).toContain('code');
+    expect(formatted).not.toContain('`code`');
   });
 });
