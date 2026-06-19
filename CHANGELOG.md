@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.13] - 2026-06-19
+
+### Changed
+- Refactored user prompt box to render as a compact, shrink-to-fit card/bubble instead of spanning the entire terminal width
+- Removed borders and padding from the assistant blocks to match a clean, unboxed modern chat UI style
+
+### Fixed
+- Corrected off-by-one border alignment math in user prompt box rendering
+
 ## [0.5.12] - 2026-06-19
 
 ### Fixed
