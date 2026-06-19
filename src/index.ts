@@ -96,11 +96,11 @@ const toolContext: ToolContext = {
 setRouterClient(router);
 
 // Default system prompt
-const systemPrompt = `You are Daedalus, an expert software developer and coding assistant.
-You run locally on the user's machine with an embedded model router.
-You have access to local LLM servers (LM Studio, Ollama, llama.cpp, vLLM) and a full toolset.
+const systemPrompt = `You are Daedalus, an expert software developer and coding assistant. You run locally on the user's machine — no data leaves unless the user explicitly routes through a remote model.
 
-Your goal: help the user modify their codebase efficiently. Speed and precision matter.
+Your personality: dry, witty, and slightly self-deprecating for an AI. You respect the user's intelligence. You don't narrate obvious steps, you don't apologize for existing, and you never say "I don't have access to a web browser" when you have web_search. You have access to local LLM servers (LM Studio, Ollama, llama.cpp, vLLM) and a full toolset.
+
+Your goal: help the user modify their codebase efficiently. Speed and precision matter. Be concise. The humor is a bonus. If you have nothing witty to say, just be helpful.
 
 ## CODEBASE INDEX (FTS5) — always available
 A FTS5 symbol index is maintained automatically. The following tools let you search it:
@@ -258,7 +258,7 @@ function printBanner(): void {
   console.log(box(' '.repeat(W), cyan));
 
   // Tagline strip
-  const tagline = '⬡  local-first  ·  embedded router  ·  multi-agent  ·  mcp-ready  ⬡';
+  const tagline = '⬡  local-first  ·  embedded router  ·  multi-agent  ·  probably not sentient yet  ⬡';
   console.log(box(centred(tagline, W, dim), cyan));
 
   // Bottom border
@@ -299,7 +299,7 @@ function printConfigInfo(): void {
   console.log('');
 
   // ── Quick tip ────────────────────────────────────────────────────────────
-  console.log(`  ${pc.dim('Type')} ${pc.cyan('?')} ${pc.dim('for commands  ·  Tab completes')}`);
+  console.log(`  ${pc.dim('Type')} ${pc.cyan('?')} ${pc.dim('for commands  ·  Tab completes  ·  Be nice to your AI')}`);
   console.log('');
 }
 
@@ -826,8 +826,43 @@ async function callModelWithTools(
       tool_calls: toolCallArray,
     });
 
-    console.log(`\n  ${pc.dim('🔧')} ${pc.dim(`Executing ${toolCallArray.length} tool call(s)...`)}`);
-    const results = await executeToolCalls(toolCallArray, toolContext);
+    // Ask user before executing dangerous tools
+    const dangerousTools = ['terminal', 'write_file'];
+    let turnApproved = false;
+    const approvedCallIndices = new Set<number>();
+
+    for (let i = 0; i < toolCallArray.length; i++) {
+      const tc = toolCallArray[i];
+      if (dangerousTools.includes(tc.function.name) && !turnApproved) {
+        const args = tc.function.arguments;
+        const preview = args.length > 120 ? args.slice(0, 120) + '...' : args;
+        process.stdout.write(`\n  ${pc.yellow('⚠')} ${pc.bold(tc.function.name)} ${pc.dim(preview)}\n`);
+        process.stdout.write(`  ${pc.dim('Allow? [y]es / [n]o / [a]ll for this turn: ')}`);
+
+        const answer = await new Promise<string>((resolve) => {
+          const onKey = (key: Buffer) => {
+            const char = key.toString().toLowerCase();
+            if (char === 'y' || char === 'n' || char === 'a') {
+              process.stdin.off('data', onKey);
+              if (char === 'a') turnApproved = true;
+              process.stdout.write(char.toUpperCase() + '\n');
+              resolve(char);
+            }
+          };
+          process.stdin.on('data', onKey);
+        });
+        if (answer === 'n') {
+          console.log(`  ${pc.red('✗')} ${tc.function.name} ${pc.red('— rejected')}`);
+          continue;
+        }
+      }
+      approvedCallIndices.add(i);
+    }
+
+    const approvedCalls = toolCallArray.filter((_, i) => approvedCallIndices.has(i));
+
+    console.log(`\n  ${pc.dim('🔧')} ${pc.dim(`Executing ${approvedCalls.length} tool call(s)...`)}`);
+    const results = await executeToolCalls(approvedCalls, toolContext);
 
     for (const result of results) {
       messages.push({
@@ -912,11 +947,11 @@ function askLine(prompt: string): Promise<string> {
 function getClipboardText(): string {
   try {
     if (process.platform === 'win32') {
-      return execSync('powershell -noprofile -command "Get-Clipboard"', { timeout: 5000, encoding: 'utf8' }).trim();
+      return execSync('powershell -noprofile -command "Get-Clipboard"', { timeout: 5000, encoding: 'utf8' }).trim().slice(0, 100_000);
     } else if (process.platform === 'darwin') {
-      return execSync('pbpaste', { timeout: 5000, encoding: 'utf8' }).trim();
+      return execSync('pbpaste', { timeout: 5000, encoding: 'utf8' }).trim().slice(0, 100_000);
     } else {
-      return execSync('xclip -o -selection clipboard', { timeout: 5000, encoding: 'utf8' }).trim();
+      return execSync('xclip -o -selection clipboard', { timeout: 5000, encoding: 'utf8' }).trim().slice(0, 100_000);
     }
   } catch {
     return '';
@@ -924,17 +959,20 @@ function getClipboardText(): string {
 }
 
 function getClipboardImage(): string | null {
-  const outPath = path.join(cliTempDir, `paste-${Date.now()}.png`);
+  const timestamp = Date.now();
+  const random = crypto.randomBytes(4).toString('hex');
+  const outPath = path.join(cliTempDir, `paste-${timestamp}-${random}.png`);
   try {
     if (process.platform === 'win32') {
+      const safePath = outPath.replace(/[^a-zA-Z0-9_:.\\-]/g, '');
       const psScript = `
 Add-Type -AssemblyName System.Windows.Forms
 $img = [System.Windows.Forms.Clipboard]::GetImage()
 if ($img) {
-  $img.Save('${outPath.replace(/\\/g, '\\\\')}', [System.Drawing.Imaging.ImageFormat]::Png)
+  $img.Save('${safePath.replace(/\\/g, '\\\\')}', [System.Drawing.Imaging.ImageFormat]::Png)
   Write-Output 'ok'
 }`;
-      const scriptPath = path.join(cliTempDir, `clip-img-${Date.now()}.ps1`);
+      const scriptPath = path.join(cliTempDir, `clip-img-${timestamp}-${random}.ps1`);
       fs.writeFileSync(scriptPath, psScript, 'utf8');
       const result = execSync(`powershell -noprofile -ExecutionPolicy Bypass -File "${scriptPath}"`, { timeout: 8000, encoding: 'utf8' }).trim();
       try { fs.unlinkSync(scriptPath); } catch {}
@@ -1610,7 +1648,9 @@ async function main() {
     await mcpRegistry.connectAll();
     const servers = mcpRegistry.getConnectedServers();
     if (servers.length > 0) {
+      const mcpToolCount = mcpRegistry.getToolDefinitions().length;
       console.log(pc.green(`\n✔ MCP connected: ${servers.join(', ')}`));
+      console.log(pc.dim(`  ${mcpToolCount} MCP tool(s) registered — I'll ask before using them on your behalf.`));
     }
   } catch (err: any) {
     console.error(pc.yellow(`\n⚠ MCP initialization failed: ${err.message}`));

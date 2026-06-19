@@ -13,6 +13,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - AGENTS.md — AI assistant conventions for tool-aided development
 - GitHub issue templates (bug report, feature request) and PR template
 - CHANGELOG.md — project changelog
+- User approval gate before dangerous tool execution (terminal, write_file)
+- MCP tool registration warning on startup
+- Personality: dry humor injected into system prompts, tool descriptions, agent roles, banner, and diff UI
+
+### Fixed
+
+- CRITICAL: Path traversal in resolvePath — now enforces project directory boundary
+- CRITICAL: Sub-agent auto-approval in diff UI — removed isSubAgent bypass
+- HIGH: Environment variables leaked to child processes — sanitized env in terminal and MCP stdio
+- HIGH: Shell injection in search_files — replaced shell command construction with direct spawn
+- HIGH: Config file world-readable permissions — chmod 0600 on non-Windows
+- HIGH: openEditor shell:true — changed to shell:false
+- HIGH: MCP stdio command injection — validates command for shell metacharacters
+- HIGH: Clipboard script security — added random suffix to temp files, size limit on text paste
 
 ## [0.4.2] - 2026-06-18
 

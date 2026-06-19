@@ -213,6 +213,13 @@ export function saveConfig(config: DaedalusConfig): void {
   }
   
   fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf8');
+
+  // Restrict permissions on non-Windows — only owner can read
+  if (process.platform !== 'win32') {
+    try {
+      fs.chmodSync(configPath, 0o600);
+    } catch { /* best-effort */ }
+  }
 }
 
 export function getConfigDirPath(): string {

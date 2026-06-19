@@ -10,7 +10,7 @@ export const BUILTIN_TOOLS: ToolDefinition[] = [
     type: 'function',
     function: {
       name: 'read_file',
-      description: 'Read a file with optional line range. Returns content with line numbers.',
+      description: 'Read a file with optional line range. Returns content with line numbers. Shocking, I know.',
       parameters: {
         type: 'object',
         properties: {
@@ -27,7 +27,7 @@ export const BUILTIN_TOOLS: ToolDefinition[] = [
     type: 'function',
     function: {
       name: 'write_file',
-      description: 'Create or completely overwrite a file. Creates parent directories automatically.',
+      description: 'Create or completely overwrite a file. Creates parent directories automatically. With great power comes great responsibility.',
       parameters: {
         type: 'object',
         properties: {
@@ -43,7 +43,7 @@ export const BUILTIN_TOOLS: ToolDefinition[] = [
     type: 'function',
     function: {
       name: 'patch',
-      description: 'Apply a targeted edit by replacing old_string with new_string. Use for precise changes.',
+      description: 'Apply a targeted edit by replacing old_string with new_string. Like find-and-replace, but it judges you if you get it wrong.',
       parameters: {
         type: 'object',
         properties: {
@@ -61,7 +61,7 @@ export const BUILTIN_TOOLS: ToolDefinition[] = [
     type: 'function',
     function: {
       name: 'search_files',
-      description: 'Search file contents (ripgrep) or find files by name. Fast, regex-supported.',
+      description: 'Search file contents (ripgrep) or find files by name. Regex-supported. Use your words — I\'ll find it.',
       parameters: {
         type: 'object',
         properties: {
@@ -97,7 +97,7 @@ export const BUILTIN_TOOLS: ToolDefinition[] = [
     type: 'function',
     function: {
       name: 'terminal',
-      description: 'Execute a shell command. Use for builds, tests, git, package managers, etc.',
+      description: 'Execute a shell command. Use for builds, tests, git, package managers, questionable life choices.',
       parameters: {
         type: 'object',
         properties: {
@@ -171,7 +171,7 @@ export const BUILTIN_TOOLS: ToolDefinition[] = [
     type: 'function',
     function: {
       name: 'web_search',
-      description: 'Search the web for information. Returns top results with snippets.',
+      description: 'Search the web for information. I\'ll read it so you don\'t have to.',
       parameters: {
         type: 'object',
         properties: {
@@ -187,7 +187,7 @@ export const BUILTIN_TOOLS: ToolDefinition[] = [
     type: 'function',
     function: {
       name: 'fetch_url',
-      description: 'Fetch content from a URL. Returns text content and MIME type.',
+      description: 'Fetch content from a URL. Please don\'t make me fetch anything from localhost — I have standards.',
       parameters: {
         type: 'object',
         properties: {
@@ -203,7 +203,7 @@ export const BUILTIN_TOOLS: ToolDefinition[] = [
     type: 'function',
     function: {
       name: 'delegate_task',
-      description: 'Spawn a sub-agent to work on a subtask. Use for parallel workstreams.',
+      description: 'Spawn a sub-agent to work on a subtask. It\'s like hiring a contractor without the paperwork.',
       parameters: {
         type: 'object',
         properties: {

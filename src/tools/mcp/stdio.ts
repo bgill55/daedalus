@@ -6,6 +6,29 @@ import { createRequire } from 'module';
 const _req = createRequire(import.meta.url);
 const { version: CLI_VERSION } = _req('../../../package.json');
 
+const SENSITIVE_ENV_KEYS = new Set([
+  'AWS_SECRET_ACCESS_KEY', 'AWS_ACCESS_KEY_ID', 'AWS_SESSION_TOKEN',
+  'AZURE_CLIENT_SECRET', 'AZURE_TENANT_ID',
+  'GITHUB_TOKEN', 'GIT_TOKEN', 'NPM_TOKEN',
+  'DATABASE_URL', 'DB_URL', 'MONGODB_URI', 'MYSQL_URL', 'PGURL',
+  'OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'GROQ_API_KEY',
+  'HF_TOKEN', 'HUGGINGFACE_TOKEN',
+]);
+
+const BLOCKED_ENV_KEYS = new Set([
+  'NODE_OPTIONS', 'LD_PRELOAD', 'LD_LIBRARY_PATH', 'DYLD_INSERT_LIBRARIES',
+]);
+
+function sanitizeEnv(): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = {};
+  for (const [key, value] of Object.entries(process.env)) {
+    if (BLOCKED_ENV_KEYS.has(key)) continue;
+    if (SENSITIVE_ENV_KEYS.has(key)) continue;
+    env[key] = value;
+  }
+  return env;
+}
+
 export class StdioTransport implements MCPTransport {
   private process: ChildProcess | null = null;
   private messageHandler: ((message: any) => void) | null = null;
@@ -25,8 +48,13 @@ export class StdioTransport implements MCPTransport {
       throw new Error('Stdio transport requires command');
     }
 
+    // Validate command — no shell metacharacters or path traversal
+    if (/[;&|`$(){}<>!]/.test(this.config.command)) {
+      throw new Error(`MCP stdio command rejected: "${this.config.command}" contains shell metacharacters`);
+    }
+
     this.process = spawn(this.config.command, this.config.args || [], {
-      env: { ...process.env },
+      env: sanitizeEnv(),
       stdio: ['pipe', 'pipe', 'pipe'],
     });
 

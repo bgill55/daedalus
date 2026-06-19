@@ -3,6 +3,29 @@
 import { spawn, execSync } from 'child_process';
 import { ToolContext, ToolResult } from '../../types.js';
 
+const SENSITIVE_ENV_KEYS = new Set([
+  'AWS_SECRET_ACCESS_KEY', 'AWS_ACCESS_KEY_ID', 'AWS_SESSION_TOKEN',
+  'AZURE_CLIENT_SECRET', 'AZURE_TENANT_ID',
+  'GITHUB_TOKEN', 'GIT_TOKEN', 'NPM_TOKEN',
+  'DATABASE_URL', 'DB_URL', 'MONGODB_URI', 'MYSQL_URL', 'PGURL',
+  'OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'GROQ_API_KEY',
+  'HF_TOKEN', 'HUGGINGFACE_TOKEN',
+]);
+
+const BLOCKED_ENV_KEYS = new Set([
+  'NODE_OPTIONS', 'LD_PRELOAD', 'LD_LIBRARY_PATH', 'DYLD_INSERT_LIBRARIES',
+]);
+
+function sanitizeEnv(): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = {};
+  for (const [key, value] of Object.entries(process.env)) {
+    if (BLOCKED_ENV_KEYS.has(key)) continue;
+    if (SENSITIVE_ENV_KEYS.has(key)) continue;
+    env[key] = value;
+  }
+  return env;
+}
+
 export async function execute(args: { command: string; timeout?: number; workdir?: string }, context: ToolContext): Promise<ToolResult> {
   const timeout = args.timeout ?? 180;
   const workdir = args.workdir ?? context.projectRoot;
@@ -29,7 +52,7 @@ export async function execute(args: { command: string; timeout?: number; workdir
 
     const child = spawn(shell, shellArgs, {
       cwd: workdir,
-      env: { ...process.env },
+      env: sanitizeEnv(),
       shell: false,
     });
 

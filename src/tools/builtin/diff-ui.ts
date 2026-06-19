@@ -97,11 +97,8 @@ export async function promptDiffDecision(
   globalAutoApply: 'prompt' | 'all' | 'skip' = 'prompt',
   context?: ToolContext
 ): Promise<DiffResult> {
-  // Check if we are running as a sub-agent
-  const isSubAgent = context && context.agentRole !== 'main';
-
   // Check global auto-apply setting
-  if (globalAutoApply === 'all' || isSubAgent) {
+  if (globalAutoApply === 'all') {
     return { decision: 'yes' };
   }
   if (globalAutoApply === 'skip') {
@@ -116,7 +113,7 @@ export async function promptDiffDecision(
   // Show the diff
   const diffOutput = generateUnifiedDiff(options.oldContent, options.newContent, options.filePath);
   process.stdout.write(diffOutput);
-  process.stdout.write(pc.bold(`\nApply? [y]es / [n]o / [a]ll / [s]kip / [d]iff / [e]dit: `));
+  process.stdout.write(pc.bold(`\nApply this masterpiece? [y]es / [n]o / [a]ll / [s]kip / [d]iff / [e]dit: `));
 
   return new Promise((resolve) => {
     // Raw mode for single keypress
@@ -178,7 +175,7 @@ export async function openEditor(content: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const child = spawn(editor, [tmpFile], {
       stdio: 'inherit',
-      shell: true,
+      shell: false,
     });
 
     child.on('close', (code) => {

@@ -3,7 +3,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { execSync } from 'child_process';
+import { execSync, spawn } from 'child_process';
 import { ToolContext, ToolResult } from '../../types.js';
 import { runDiffWorkflow, DiffOptions } from './diff-ui.js';
 
@@ -30,8 +30,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 function resolvePath(p: string, projectRoot: string): string {
-  if (path.isAbsolute(p)) return p;
-  return path.resolve(projectRoot, p);
+  const resolved = path.isAbsolute(p) ? p : path.resolve(projectRoot, p);
+  const relative = path.relative(projectRoot, resolved);
+  if (relative.startsWith('..') || path.isAbsolute(relative)) {
+    throw new Error(`Path traversal blocked: ${p} is outside the project directory`);
+  }
+  return resolved;
 }
 
 function formatError(error: string, toolCallId: string = '', name: string = ''): ToolResult {
@@ -240,14 +244,37 @@ export async function searchFiles(args: { pattern: string; target?: 'content' | 
 
     // Content search — try ripgrep first, fall back to native
     if (rgAvailable()) {
-      let cmd = `rg --no-heading --line-number --color=never `;
-      cmd += JSON.stringify(args.pattern);
-      if (args.file_glob) cmd += ` --glob ${JSON.stringify(args.file_glob)}`;
-      cmd += ` ${JSON.stringify(searchPath)} | head -n ${limit}`;
+      const rgArgs = ['--no-heading', '--line-number', '--color=never'];
+      rgArgs.push(args.pattern);
+      if (args.file_glob) {
+        rgArgs.push('--glob', args.file_glob);
+      }
+      rgArgs.push(searchPath);
 
-      const { execute: terminalExecute } = await import('./terminal.js');
-      const result = await terminalExecute({ command: cmd, timeout: 30, workdir: context.projectRoot }, context);
-      return { toolCallId: '', name: 'search_files', success: result.success, content: result.content || '(no matches)', error: result.error };
+      return new Promise((resolve) => {
+        const child = spawn('rg', rgArgs, { cwd: context.projectRoot, stdio: ['ignore', 'pipe', 'pipe'] });
+        let output = '';
+        let errorOutput = '';
+
+        child.stdout?.on('data', (data: Buffer) => { output += data.toString(); });
+        child.stderr?.on('data', (data: Buffer) => { errorOutput += data.toString(); });
+
+        const killTimer = setTimeout(() => {
+          child.kill('SIGTERM');
+          resolve({ toolCallId: '', name: 'search_files', success: true, content: output.slice(0, 50000) || '(no matches)' });
+        }, 30000);
+
+        child.on('close', () => {
+          clearTimeout(killTimer);
+          const lines = output.split('\n').filter(l => l).slice(0, limit);
+          resolve({ toolCallId: '', name: 'search_files', success: true, content: lines.length > 0 ? lines.join('\n') : '(no matches)' });
+        });
+
+        child.on('error', (err) => {
+          clearTimeout(killTimer);
+          resolve({ toolCallId: '', name: 'search_files', success: false, content: '', error: `rg failed: ${err.message}` });
+        });
+      });
     }
 
     // Native fallback
