@@ -15,13 +15,14 @@ export class MCPRegistry {
   }
 
   async connectAll(): Promise<void> {
-    for (const config of this.serverConfigs) {
+    const connections = this.serverConfigs.map(async (config) => {
       try {
         await this.connectServer(config);
       } catch (err: any) {
         console.error(`[MCP] Failed to connect to ${config.name}: ${err.message}`);
       }
-    }
+    });
+    await Promise.all(connections);
   }
 
   private async connectServer(config: MCPServerConfig): Promise<void> {

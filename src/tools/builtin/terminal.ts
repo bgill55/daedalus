@@ -26,6 +26,8 @@ function sanitizeEnv(): NodeJS.ProcessEnv {
   return env;
 }
 
+let cachedShell: { shell: string; isBash: boolean } | null = null;
+
 export async function execute(args: { command: string; timeout?: number; workdir?: string }, context: ToolContext): Promise<ToolResult> {
   const timeout = args.timeout ?? 180;
   const workdir = args.workdir ?? context.projectRoot;
@@ -39,11 +41,21 @@ export async function execute(args: { command: string; timeout?: number; workdir
     // Cross-platform shell detection: prefer bash, fall back to system shell
     function detectShell(): { shell: string; args: string[] } {
       if (process.platform === 'win32') {
-        const bashPaths = ['bash.exe', 'C:\\Program Files\\Git\\bin\\bash.exe', 'C:\\Program Files (x86)\\Git\\bin\\bash.exe'];
-        for (const bp of bashPaths) {
-          try { execSync(`where "${bp}"`, { stdio: 'ignore' }); return { shell: bp, args: ['-c', command] }; } catch {}
+        if (!cachedShell) {
+          const bashPaths = ['bash.exe', 'C:\\Program Files\\Git\\bin\\bash.exe', 'C:\\Program Files (x86)\\Git\\bin\\bash.exe'];
+          let detected = 'cmd.exe';
+          let isBash = false;
+          for (const bp of bashPaths) {
+            try {
+              execSync(`where "${bp}"`, { stdio: 'ignore' });
+              detected = bp;
+              isBash = true;
+              break;
+            } catch {}
+          }
+          cachedShell = { shell: detected, isBash };
         }
-        return { shell: 'cmd.exe', args: ['/c', command] };
+        return { shell: cachedShell.shell, args: cachedShell.isBash ? ['-c', command] : ['/c', command] };
       }
       return { shell: '/bin/bash', args: ['-c', command] };
     }

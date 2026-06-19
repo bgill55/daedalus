@@ -56,7 +56,7 @@ export class LocalRouter {
 
   async startHealthChecks(): Promise<void> {
     // Initial health check
-    await this.runHealthChecks();
+    this.runHealthChecks().catch(() => {});
     
     // Periodic health checks
     this.healthCheckTimer = setInterval(() => {

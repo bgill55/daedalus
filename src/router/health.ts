@@ -24,9 +24,13 @@ export async function checkModelHealth(model: ModelEntry, timeout: number): Prom
       baseUrl = 'https://' + baseUrl;
     }
     // Use /models endpoint to check health
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (model.apiKey) {
+      headers['Authorization'] = `Bearer ${model.apiKey}`;
+    }
     const response = await fetch(`${baseUrl}/models`, {
       signal: controller.signal,
-      headers: { 'Content-Type': 'application/json' },
+      headers,
     });
     
     clearTimeout(timeoutId);
