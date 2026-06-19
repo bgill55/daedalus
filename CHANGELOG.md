@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- stdin leak in approval gate — switched from raw mode keypresses to readline.question() to prevent character bleed into the next prompt
+
+### Fixed
+
 - CRITICAL: Path traversal in resolvePath — now enforces project directory boundary
 - CRITICAL: Sub-agent auto-approval in diff UI — removed isSubAgent bypass
 - HIGH: Environment variables leaked to child processes — sanitized env in terminal and MCP stdio

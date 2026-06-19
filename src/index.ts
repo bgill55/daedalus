@@ -837,21 +837,10 @@ async function callModelWithTools(
         const args = tc.function.arguments;
         const preview = args.length > 120 ? args.slice(0, 120) + '...' : args;
         process.stdout.write(`\n  ${pc.yellow('⚠')} ${pc.bold(tc.function.name)} ${pc.dim(preview)}\n`);
-        process.stdout.write(`  ${pc.dim('Allow? [y]es / [n]o / [a]ll for this turn: ')}`);
-
-        const answer = await new Promise<string>((resolve) => {
-          const onKey = (key: Buffer) => {
-            const char = key.toString().toLowerCase();
-            if (char === 'y' || char === 'n' || char === 'a') {
-              process.stdin.off('data', onKey);
-              if (char === 'a') turnApproved = true;
-              process.stdout.write(char.toUpperCase() + '\n');
-              resolve(char);
-            }
-          };
-          process.stdin.on('data', onKey);
-        });
-        if (answer === 'n') {
+        const line = await askLine(`  ${pc.dim('Allow? [y]es / [n]o / [a]ll for this turn: ')}`);
+        const char = line.trim().toLowerCase().slice(0, 1);
+        if (char === 'a') turnApproved = true;
+        if (char === 'n') {
           console.log(`  ${pc.red('✗')} ${tc.function.name} ${pc.red('— rejected')}`);
           continue;
         }
