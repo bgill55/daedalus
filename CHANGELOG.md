@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.19] - 2026-06-19
+
+### Added
+- Multi-Model Ensemble Drafting (Sprint 6): added `/ensemble <goal>` command to run a draft-review revision loop where a fast local model drafts changes and a smart model critiques them before writing to disk
+- Support for target model routing in LocalRouter by matching request.model against configured names or model IDs in the chain
+
 ## [0.5.18] - 2026-06-19
 
 ### Added

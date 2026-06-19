@@ -206,7 +206,7 @@ const COMMANDS = [
   '/index', '/find', '/refs', '/def',
   '/commit', '/undo', '/test', '/paste',
   '/models', '/tools', '/config', '/project', '/doctor', '/session', '/onboard',
-  '/help', 'exit', 'quit', '?', '/prune', '/branch', '/pr', '/debug',
+  '/help', 'exit', 'quit', '?', '/prune', '/branch', '/pr', '/debug', '/ensemble',
 ];
 
 const rl = readline.createInterface({
@@ -1228,6 +1228,7 @@ async function chatLoop(): Promise<void> {
       console.log(`  ${pc.cyan('/paste')}   Paste clipboard text/image as message`);
       console.log(`  ${pc.cyan('/test')}     Run tests and auto-fix failures`);
       console.log(`  ${pc.cyan('/debug')}    Run a command and autonomously fix failures`);
+      console.log(`  ${pc.cyan('/ensemble')} Run multi-model ensemble drafting pipeline`);
       console.log(`  ${pc.cyan('/index')}    Index codebase for symbol search`);
       console.log(`  ${pc.cyan('/find')}     Search indexed symbols`);
       console.log(`  ${pc.cyan('/refs')}    Find symbol references`);
@@ -1881,6 +1882,24 @@ Once you have finished making changes, I will automatically re-run the command t
 
       if (!success) {
         console.log(pc.red(`\n  Autonomous debugging did not succeed after ${MAX_RETRIES} attempts.`));
+      }
+      turnSeparator();
+      continue;
+    }
+
+    // Command: /ensemble <goal> — run multi-model ensemble drafting pipeline
+    if (lowerInput.startsWith('/ensemble ') || lowerInput === '/ensemble') {
+      const ensembleGoal = trimmedInput.substring(9).trim();
+      if (!ensembleGoal) {
+        console.log(pc.red('  Error: Please specify a goal for the ensemble draft. Example: /ensemble Implement feature X'));
+        continue;
+      }
+
+      try {
+        const { runEnsembleWorkflow } = await import('./agents/ensemble.js');
+        await runEnsembleWorkflow(ensembleGoal, toolContext, config, router as any);
+      } catch (err: any) {
+        console.log(pc.red(`\n  Error in ensemble drafting: ${err.message}`));
       }
       turnSeparator();
       continue;

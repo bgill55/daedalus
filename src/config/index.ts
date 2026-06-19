@@ -51,10 +51,27 @@ export const ConfigSchema = z.object({
     default: z.string().default('coder'),
     available: z.array(z.string()).default(['orchestrator', 'planner', 'coder', 'reviewer', 'debugger', 'researcher']),
     autoOrchestrate: z.boolean().default(true),
+    ensemble: z.object({
+      enabled: z.boolean().default(false),
+      draftModel: z.string().default('auto'),
+      criticModel: z.string().default('auto'),
+      maxLoops: z.number().int().min(1).max(5).default(2),
+    }).default({
+      enabled: false,
+      draftModel: 'auto',
+      criticModel: 'auto',
+      maxLoops: 2,
+    }),
   }).default({
     default: 'coder',
     available: ['orchestrator', 'planner', 'coder', 'reviewer', 'debugger', 'researcher'],
     autoOrchestrate: true,
+    ensemble: {
+      enabled: false,
+      draftModel: 'auto',
+      criticModel: 'auto',
+      maxLoops: 2,
+    },
   }),
   tools: z.object({
     builtin: z.array(z.string()).default([
@@ -142,6 +159,12 @@ const DEFAULT_CONFIG: DaedalusConfig = {
     default: 'coder',
     available: ['orchestrator', 'planner', 'coder', 'reviewer', 'debugger', 'researcher'],
     autoOrchestrate: true,
+    ensemble: {
+      enabled: false,
+      draftModel: 'auto',
+      criticModel: 'auto',
+      maxLoops: 2,
+    },
   },
   tools: {
     builtin: [

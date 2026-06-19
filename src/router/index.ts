@@ -95,28 +95,34 @@ export class LocalRouter {
       throw new Error('No healthy models available. Check your local servers (LM Studio, Ollama, etc.)');
     }
 
-    let selectedModel: ModelEntry;
+    let selectedModel: ModelEntry | undefined;
 
-    switch (this.config.strategy) {
-      case 'priority':
-        selectedModel = [...healthyModels].sort((a, b) => a.priority - b.priority)[0];
-        break;
-        
-      case 'round-robin':
-        selectedModel = healthyModels[this.roundRobinIndex % healthyModels.length];
-        this.roundRobinIndex++;
-        break;
-        
-      case 'fastest':
-        selectedModel = [...healthyModels].sort((a, b) => {
-          const ha = getCachedHealth(a);
-          const hb = getCachedHealth(b);
-          return (ha?.latencyMs ?? Infinity) - (hb?.latencyMs ?? Infinity);
-        })[0];
-        break;
-        
-      default:
-        selectedModel = healthyModels[0];
+    if (request.model && request.model !== 'auto') {
+      selectedModel = healthyModels.find(m => m.name === request.model || m.model === request.model);
+    }
+
+    if (!selectedModel) {
+      switch (this.config.strategy) {
+        case 'priority':
+          selectedModel = [...healthyModels].sort((a, b) => a.priority - b.priority)[0];
+          break;
+          
+        case 'round-robin':
+          selectedModel = healthyModels[this.roundRobinIndex % healthyModels.length];
+          this.roundRobinIndex++;
+          break;
+          
+        case 'fastest':
+          selectedModel = [...healthyModels].sort((a, b) => {
+            const ha = getCachedHealth(a);
+            const hb = getCachedHealth(b);
+            return (ha?.latencyMs ?? Infinity) - (hb?.latencyMs ?? Infinity);
+          })[0];
+          break;
+          
+        default:
+          selectedModel = healthyModels[0];
+      }
     }
 
     // Check rate limit
