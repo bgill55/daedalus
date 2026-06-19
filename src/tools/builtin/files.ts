@@ -1,19 +1,15 @@
-// File operation tools
-
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { execSync, spawn } from 'child_process';
+import { execSync, spawnSync, spawn } from 'child_process';
 import { ToolContext, ToolResult } from '../../types.js';
 import { runDiffWorkflow, DiffOptions } from './diff-ui.js';
 
-/** Ask the user a yes/no/all/skip question — writes to stdout, reads one line from stdin. */
 function askUser(question: string): Promise<string> {
   return new Promise((resolve) => {
     process.stdout.write(question);
     const onData = (chunk: Buffer) => {
       const text = chunk.toString('utf8');
-      // Handle backspace, enter, etc. — just take the first line
       const line = text.replace(/\r?\n/g, '').trim().toLowerCase();
       if (line) {
         process.stdin.off('data', onData);
@@ -21,9 +17,148 @@ function askUser(question: string): Promise<string> {
       }
     };
     process.stdin.on('data', onData);
-    // Resume stdin if paused (e.g. after spinner stopped)
     if (process.stdin.isPaused()) process.stdin.resume();
   });
+}
+
+function normalizeWhitespace(str: string): string {
+  return str
+    .split('\n')
+    .map(line => (line.match(/^\s+/) ? ' ' : '') + line.trimStart().trimEnd())
+    .join('\n');
+}
+
+function levenshtein(a: string, b: string): number {
+  const m = a.length;
+  const n = b.length;
+  const dp: number[] = Array.from({ length: n + 1 }, (_, i) => i);
+  for (let i = 1; i <= m; i++) {
+    let prev = dp[0];
+    dp[0] = i;
+    for (let j = 1; j <= n; j++) {
+      const temp = dp[j];
+      dp[j] = a[i - 1] === b[j - 1] ? prev : 1 + Math.min(prev, dp[j], dp[j - 1]);
+      prev = temp;
+    }
+  }
+  return dp[n];
+}
+
+function findClosestBlock(content: string, target: string): { snippet: string; lineNo: number } | null {
+  const targetLines = target.split('\n');
+  const windowSize = targetLines.length;
+  const contentLines = content.split('\n');
+  const searchLimit = Math.min(contentLines.length, 300);
+  const normalTarget = normalizeWhitespace(target);
+  const threshold = Math.ceil(normalTarget.length * 0.30);
+
+  let bestDist = Infinity;
+  let bestLineNo = -1;
+  let bestSnippet = '';
+
+  for (let i = 0; i <= searchLimit - windowSize; i++) {
+    const window = contentLines.slice(i, i + windowSize).join('\n');
+    const dist = levenshtein(normalizeWhitespace(window), normalTarget);
+    if (dist < bestDist) {
+      bestDist = dist;
+      bestLineNo = i + 1;
+      bestSnippet = window;
+    }
+  }
+
+  if (bestDist <= threshold) {
+    return { snippet: bestSnippet, lineNo: bestLineNo };
+  }
+  return null;
+}
+
+interface FuzzyResult {
+  patched?: string;
+  error?: string;
+}
+
+function fuzzyWhitespacePatch(content: string, oldStr: string, newStr: string, replaceAll: boolean): FuzzyResult {
+  const normalOld = normalizeWhitespace(oldStr);
+  const oldLineCount = oldStr.split('\n').length;
+  const contentLines = content.split('\n');
+  const matches: Array<{ start: number; end: number }> = [];
+
+  for (let i = 0; i <= contentLines.length - oldLineCount; i++) {
+    const window = contentLines.slice(i, i + oldLineCount).join('\n');
+    if (normalizeWhitespace(window) === normalOld) {
+      const start = contentLines.slice(0, i).join('\n').length + (i > 0 ? 1 : 0);
+      const end = start + window.length;
+      matches.push({ start, end });
+    }
+  }
+
+  if (matches.length === 0) return { error: 'no_fuzzy_match' };
+  if (matches.length > 1 && !replaceAll) {
+    return { error: `Fuzzy whitespace match found ${matches.length} ambiguous locations; add more surrounding context to make old_string unique.` };
+  }
+
+  if (replaceAll) {
+    let result = content;
+    for (let i = matches.length - 1; i >= 0; i--) {
+      const { start, end } = matches[i];
+      result = result.slice(0, start) + newStr + result.slice(end);
+    }
+    return { patched: result };
+  }
+
+  const { start, end } = matches[0];
+  return { patched: content.slice(0, start) + newStr + content.slice(end) };
+}
+
+async function syntaxCheck(filePath: string, projectRoot: string): Promise<string | null> {
+  const ext = path.extname(filePath).toLowerCase();
+
+  if (ext === '.json') {
+    try {
+      JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      return null;
+    } catch (e: any) {
+      return `JSON syntax error: ${e.message}`;
+    }
+  }
+
+  if (ext === '.yaml' || ext === '.yml') {
+    const content = fs.readFileSync(filePath, 'utf8');
+    const tabLine = content.split('\n').findIndex(l => l.includes('\t'));
+    if (tabLine !== -1) return `YAML syntax error: tab character on line ${tabLine + 1} (YAML requires spaces)`;
+    return null;
+  }
+
+  if (ext === '.ts' || ext === '.tsx') {
+    const tsconfig = path.join(projectRoot, 'tsconfig.json');
+    if (fs.existsSync(tsconfig)) {
+      const result = spawnSync('npx', ['tsc', '--noEmit', '--skipLibCheck'], {
+        cwd: projectRoot,
+        timeout: 15000,
+        encoding: 'utf8',
+        shell: true,
+      });
+      if (result.status !== 0) {
+        const output = (result.stdout ?? '') + (result.stderr ?? '');
+        const firstError = output.split('\n').find(l => l.includes('error TS'));
+        return firstError ?? output.slice(0, 300);
+      }
+      return null;
+    }
+  }
+
+  if (ext === '.js' || ext === '.mjs' || ext === '.cjs' || ext === '.ts' || ext === '.tsx') {
+    const result = spawnSync(process.execPath, ['--check', filePath], {
+      timeout: 10000,
+      encoding: 'utf8',
+    });
+    if (result.status !== 0) {
+      const output = (result.stderr ?? result.stdout ?? '').split('\n')[0];
+      return output || 'Syntax error detected';
+    }
+  }
+
+  return null;
 }
 
 const __filename = fileURLToPath(import.meta.url);
@@ -105,7 +240,19 @@ export async function writeFile(args: { path: string; content: string }, context
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
+    const previousContent = fs.existsSync(targetPath) ? fs.readFileSync(targetPath, 'utf8') : null;
     fs.writeFileSync(targetPath, args.content, 'utf8');
+
+    const syntaxError = await syntaxCheck(targetPath, context.projectRoot);
+    if (syntaxError) {
+      if (previousContent !== null) {
+        fs.writeFileSync(targetPath, previousContent, 'utf8');
+      } else {
+        fs.unlinkSync(targetPath);
+      }
+      return formatError(`Syntax error in ${args.path} — file reverted.\n${syntaxError}\nFix the error and retry.`);
+    }
+
     return { toolCallId: '', name: 'write_file', success: true, content: `Written ${args.content.length} chars to ${args.path}` };
   } catch (err: any) {
     return formatError(`Failed to write file: ${err.message}`);
@@ -133,23 +280,34 @@ export async function patchFile(args: { path: string; old_string: string; new_st
     let patched: string;
     if (replaceAll) {
       if (!content.includes(oldStr)) {
-        return formatError(`Old string not found in file (checked with CRLF normalization)`);
+        const fuzzy = fuzzyWhitespacePatch(content, oldStr, newStr, true);
+        if (fuzzy.error && fuzzy.error !== 'no_fuzzy_match') return formatError(fuzzy.error);
+        if (!fuzzy.patched) return formatError(`Old string not found in file (checked with CRLF normalization and fuzzy whitespace matching).`);
+        patched = fuzzy.patched;
+      } else {
+        patched = content.split(oldStr).join(newStr);
       }
-      patched = content.split(oldStr).join(newStr);
     } else {
       const idx = content.indexOf(oldStr);
       if (idx === -1) {
-        const fileLines = content.split('\n').length;
-        return formatError(
-          `Old string not found in ${args.path} (${fileLines} lines, CRLF normalized). ` +
-          `Tip: use read_file to verify exact whitespace/indentation before patching.`
-        );
+        const fuzzy = fuzzyWhitespacePatch(content, oldStr, newStr, false);
+        if (fuzzy.error && fuzzy.error !== 'no_fuzzy_match') return formatError(fuzzy.error);
+        if (fuzzy.patched) {
+          patched = fuzzy.patched;
+        } else {
+          const hint = findClosestBlock(content, oldStr);
+          const hintMsg = hint
+            ? `\n\nClosest match found at line ${hint.lineNo}:\n${'─'.repeat(40)}\n${hint.snippet}\n${'─'.repeat(40)}\nRe-read the file and retry the patch with the exact content above.`
+            : `\n\nNo close match found. Use read_file to verify the exact content before patching.`;
+          return formatError(`Old string not found in ${args.path}.${hintMsg}`);
+        }
+      } else {
+        const secondIdx = content.indexOf(oldStr, idx + oldStr.length);
+        if (secondIdx !== -1) {
+          return formatError(`Old string matches multiple locations; use replace_all: true or add more surrounding context`);
+        }
+        patched = content.slice(0, idx) + newStr + content.slice(idx + oldStr.length);
       }
-      const secondIdx = content.indexOf(oldStr, idx + oldStr.length);
-      if (secondIdx !== -1) {
-        return formatError(`Old string matches multiple locations; use replace_all: true or add more surrounding context`);
-      }
-      patched = content.slice(0, idx) + newStr + content.slice(idx + oldStr.length);
     }
 
     const finalNormalized = hasCRLF ? patched.replace(/\r\n/g, '\n').replace(/\n/g, '\r\n') : patched;
@@ -167,6 +325,11 @@ export async function patchFile(args: { path: string; old_string: string; new_st
 
     if (autoApply === 'all') {
       fs.writeFileSync(targetPath, finalNormalized, 'utf8');
+      const syntaxError = await syntaxCheck(targetPath, context.projectRoot);
+      if (syntaxError) {
+        fs.writeFileSync(targetPath, rawContent, 'utf8');
+        return formatError(`Syntax error introduced by patch — reverted.\n${syntaxError}\nFix the patch and retry.`);
+      }
       if (context.patchHistory) {
         context.patchHistory.push({
           filePath: targetPath,
@@ -204,6 +367,12 @@ export async function patchFile(args: { path: string; old_string: string; new_st
       : finalNormalized;
 
     fs.writeFileSync(targetPath, writeContent, 'utf8');
+
+    const syntaxError = await syntaxCheck(targetPath, context.projectRoot);
+    if (syntaxError) {
+      fs.writeFileSync(targetPath, rawContent, 'utf8');
+      return formatError(`Syntax error introduced by patch — reverted.\n${syntaxError}\nFix the patch and retry.`);
+    }
 
     if (diffResult.decision === 'all') {
       context.autoApplyEdits = 'all';
