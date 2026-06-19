@@ -957,14 +957,38 @@ if ($img) {
 
 // ── Visual formatting helpers ──────────────────────────────────────────────────
 
+const termW = Math.max(50, (process.stdout.columns ?? 80) - 5);
+
+function wrapLine(line: string, maxW: number): string[] {
+  if (line.length <= maxW) return [line];
+  const words = line.split(' ');
+  const result: string[] = [];
+  let cur = '';
+  for (const word of words) {
+    if (cur && cur.length + 1 + word.length <= maxW) {
+      cur += ' ' + word;
+    } else {
+      if (cur) result.push(cur);
+      cur = word;
+      while (cur.length > maxW) {
+        result.push(cur.slice(0, maxW));
+        cur = cur.slice(maxW);
+      }
+    }
+  }
+  if (cur) result.push(cur);
+  return result;
+}
+
 function printUserTurn(userMessage: string): void {
   const bdr = (s: string) => pc.dim(pc.yellow(s));
   const lines = userMessage.split('\n');
-  const w = 56;
+  const w = termW;
   console.log(`\n  ${bdr('╭─')} ${pc.yellow(pc.bold('⬡ You'))} ${bdr('─'.repeat(Math.max(0, w - 7)))}${bdr('╮')}`);
   for (const line of lines) {
-    const t = line.length > w ? line.slice(0, w - 1) + '…' : line;
-    console.log(`  ${bdr('│')} ${pc.white(t)}${' '.repeat(Math.max(0, w - t.length))}${bdr('│')}`);
+    for (const part of wrapLine(line, w)) {
+      console.log(`  ${bdr('│')} ${pc.white(part)}${' '.repeat(Math.max(0, w - part.length))}${bdr('│')}`);
+    }
   }
   console.log(`  ${bdr('╰')}${bdr('─'.repeat(w + 1))}${bdr('╯')}`);
   console.log();
@@ -974,7 +998,7 @@ let _assistantLineBuf = '';
 
 function openAssistantBlock(): void {
   const bdr = (s: string) => pc.dim(pc.cyan(s));
-  const w = 56;
+  const w = termW;
   console.log(`  ${bdr('╭─')} ${pc.dim('◇')} ${pc.dim('Daedalus')} ${bdr('─'.repeat(Math.max(0, w - 12)))}${bdr('╮')}`);
 }
 
@@ -983,19 +1007,21 @@ function writeAssistantChunk(chunk: string): void {
   const lines = _assistantLineBuf.split('\n');
   _assistantLineBuf = lines.pop() || '';
   const bdr = (s: string) => pc.dim(pc.cyan(s));
-  const w = 56;
+  const w = termW;
   for (const line of lines) {
-    const t = line.length > w ? line.slice(0, w - 1) + '…' : line;
-    console.log(`  ${bdr('│')} ${pc.white(t)}${' '.repeat(Math.max(0, w - t.length))}${bdr('│')}`);
+    for (const part of wrapLine(line, w)) {
+      console.log(`  ${bdr('│')} ${pc.white(part)}${' '.repeat(Math.max(0, w - part.length))}${bdr('│')}`);
+    }
   }
 }
 
 function closeAssistantBlock(tokens: number, elapsedMs: number, toolCount?: number): void {
   const bdr = (s: string) => pc.dim(pc.cyan(s));
-  const w = 56;
+  const w = termW;
   if (_assistantLineBuf) {
-    const t = _assistantLineBuf.length > w ? _assistantLineBuf.slice(0, w - 1) + '…' : _assistantLineBuf;
-    console.log(`  ${bdr('│')} ${pc.white(t)}${' '.repeat(Math.max(0, w - t.length))}${bdr('│')}`);
+    for (const part of wrapLine(_assistantLineBuf, w)) {
+      console.log(`  ${bdr('│')} ${pc.white(part)}${' '.repeat(Math.max(0, w - part.length))}${bdr('│')}`);
+    }
     _assistantLineBuf = '';
   }
   const meta = toolCount !== undefined
