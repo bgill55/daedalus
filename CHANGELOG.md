@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.16] - 2026-06-19
+
+### Added
+- `/debug <command>` command to run autonomous debugging loops: executes the command, captures errors/logs, invokes the model to patch relevant files, and re-runs the command (retrying up to 5 times)
+- Tab autocompletion and help menu quickref support for `/debug`
+
 ## [0.5.15] - 2026-06-19
 
 ### Added

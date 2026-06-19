@@ -206,7 +206,7 @@ const COMMANDS = [
   '/index', '/find', '/refs', '/def',
   '/commit', '/undo', '/test', '/paste',
   '/models', '/tools', '/config', '/project', '/doctor', '/session', '/onboard',
-  '/help', 'exit', 'quit', '?', '/prune', '/branch', '/pr',
+  '/help', 'exit', 'quit', '?', '/prune', '/branch', '/pr', '/debug',
 ];
 
 const rl = readline.createInterface({
@@ -1227,6 +1227,7 @@ async function chatLoop(): Promise<void> {
       console.log(`  ${pc.cyan('/undo')}     Undo last file patch`);
       console.log(`  ${pc.cyan('/paste')}   Paste clipboard text/image as message`);
       console.log(`  ${pc.cyan('/test')}     Run tests and auto-fix failures`);
+      console.log(`  ${pc.cyan('/debug')}    Run a command and autonomously fix failures`);
       console.log(`  ${pc.cyan('/index')}    Index codebase for symbol search`);
       console.log(`  ${pc.cyan('/find')}     Search indexed symbols`);
       console.log(`  ${pc.cyan('/refs')}    Find symbol references`);
@@ -1796,6 +1797,80 @@ async function chatLoop(): Promise<void> {
       } catch (err: any) {
         console.log(pc.red(`[WARN] PR command error: ${err.message}`));
       }
+      continue;
+    }
+
+    // Command: /debug <command> — run command and autonomously fix errors
+    if (lowerInput.startsWith('/debug ')) {
+      const debugCmd = trimmedInput.substring(7).trim();
+      if (!debugCmd) {
+        console.log(pc.red('  Error: Please specify a command to run. Example: /debug npm test'));
+        continue;
+      }
+
+      console.log(`\n  ${pc.cyan('Starting autonomous debugging loop for:')} ${pc.bold(debugCmd)}`);
+
+      const MAX_RETRIES = 5;
+      let attempt = 1;
+      let success = false;
+
+      while (attempt <= MAX_RETRIES) {
+        console.log(`\n  ${pc.yellow(`[Attempt ${attempt}/${MAX_RETRIES}]`)} Running: ${pc.bold(debugCmd)}...`);
+
+        try {
+          const { execute: termExec } = await import('./tools/builtin/terminal.js');
+          const execResult = await termExec({ command: debugCmd, timeout: 60, workdir: process.cwd() }, toolContext);
+
+          if (execResult.success) {
+            console.log(pc.green(`\n  ${pc.green('✔')} ${pc.bold(`Success on attempt ${attempt}!`)} Command passed with exit code 0.`));
+            success = true;
+            break;
+          }
+
+          console.log(pc.red(`\n  ${pc.red('✗')} ${pc.bold(`Command failed on attempt ${attempt}.`)}`));
+
+          const stdout = execResult.content || '';
+          const errorMsg = execResult.error || '';
+          const logs = `${stdout}\n${errorMsg}`.trim();
+
+          console.log(pc.bold('\n--- Failure Logs ---'));
+          const logLines = logs.split('\n');
+          const preview = logLines.length > 20 ? logLines.slice(-20).join('\n') : logs;
+          console.log(preview);
+          if (logLines.length > 20) {
+            console.log(pc.dim(`\n  (... truncated ${logLines.length - 20} lines of logs ...)`));
+          }
+          console.log(pc.bold('--------------------'));
+
+          if (attempt === MAX_RETRIES) {
+            console.log(pc.red(`\n  Reached maximum attempt limit of ${MAX_RETRIES}. Debugging loop failed.`));
+            break;
+          }
+
+          console.log(pc.dim('\n  Calling Daedalus to analyze failure and apply a fix...'));
+
+          const debugPrompt = `The command "${debugCmd}" failed on attempt ${attempt}.
+Here are the execution logs (showing the failure details):
+
+${logs.slice(-6000)}
+
+Please analyze the error, identify which files need correction, and apply surgical edits using 'patch' or write tools to fix the issue.
+Once you have finished making changes, I will automatically re-run the command to verify if it passes.`;
+
+          await callModelWithTools(debugPrompt);
+
+        } catch (err: any) {
+          console.log(pc.red(`\n  Error in debugging loop: ${err.message}`));
+          break;
+        }
+
+        attempt++;
+      }
+
+      if (!success) {
+        console.log(pc.red(`\n  Autonomous debugging did not succeed after ${MAX_RETRIES} attempts.`));
+      }
+      turnSeparator();
       continue;
     }
 
