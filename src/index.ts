@@ -1103,7 +1103,7 @@ function printUserTurn(userMessage: string): void {
   const bdr = (s: string) => pc.dim(pc.yellow(s));
   const lines = userMessage.split('\n');
   const w = termW;
-  console.log(`\n  ${bdr('╭─')} ${pc.yellow(pc.bold('⬡ You'))} ${bdr('─'.repeat(Math.max(0, w - 7)))}${bdr('╮')}`);
+  console.log(`\n  ${bdr('╭─')} ${pc.yellow(pc.bold('⬡ You'))} ${bdr('─'.repeat(Math.max(0, w - 6)))}${bdr('╮')}`);
   for (const line of lines) {
     for (const part of wrapLine(line, w)) {
       console.log(`  ${bdr('│')} ${pc.white(part)}${' '.repeat(Math.max(0, w - part.length))}${bdr('│')}`);

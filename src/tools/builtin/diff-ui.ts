@@ -32,9 +32,11 @@ export function generateUnifiedDiff(
   const patches = diff.diffLines(oldContent, newContent);
 
   let output = '';
-  output += pc.bold(pc.cyan(`\n\u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510\n`));
-  output += pc.bold(pc.cyan(`\u2502 Proposed change to ${filePath.padEnd(55)} \u2502\n`));
-  output += pc.bold(pc.cyan(`\u251c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2524\n`));
+  const titleText = ` Proposed change to ${filePath.padEnd(55)} `;
+  const borderW = titleText.length;
+  output += pc.bold(pc.cyan(`\n\u250c${'\u2500'.repeat(borderW)}\u2510\n`));
+  output += pc.bold(pc.cyan(`\u2502${titleText}\u2502\n`));
+  output += pc.bold(pc.cyan(`\u251c${'\u2500'.repeat(borderW)}\u2524\n`));
 
   let lineNumOld = 1;
   let lineNumNew = 1;
@@ -68,7 +70,7 @@ export function generateUnifiedDiff(
     }
   }
 
-  output += pc.bold(pc.cyan(`\u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518\n`));
+  output += pc.bold(pc.cyan(`\u2514${'\u2500'.repeat(borderW)}\u2518\n`));
   return output;
 }
 

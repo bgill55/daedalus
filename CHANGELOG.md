@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.12] - 2026-06-19
+
+### Fixed
+- Fixed off-by-one border misalignment in the user prompt box
+- Fixed misaligned static border widths in the interactive diff approval UI to dynamically scale with file paths
+
 ## [0.5.11] - 2026-06-19
 
 ### Added
