@@ -280,6 +280,155 @@ export const BUILTIN_TOOLS: ToolDefinition[] = [
   },
 ];
 
+export const POWER_TOOLS: ToolDefinition[] = [
+  {
+    type: 'function',
+    function: {
+      name: 'lsp_diagnostics',
+      description: 'Get TypeScript type errors and diagnostics for a file or the whole project using the real language service. Know before you guess.',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'File path to check (omit for whole project)' },
+        },
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'lsp_hover',
+      description: 'Get the inferred TypeScript type and JSDoc at a specific file position. Answer "what type is this?" without guessing.',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'File path' },
+          line: { type: 'integer', description: 'Line number (1-indexed)' },
+          col: { type: 'integer', description: 'Column number (1-indexed)' },
+        },
+        required: ['path', 'line', 'col'],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'lsp_rename',
+      description: 'Atomically rename a symbol across all files using the TypeScript language service. Safe cross-file refactor.',
+      parameters: {
+        type: 'object',
+        properties: {
+          path: { type: 'string', description: 'File containing the symbol to rename' },
+          line: { type: 'integer', description: 'Line number of the symbol (1-indexed)' },
+          col: { type: 'integer', description: 'Column number of the symbol (1-indexed)' },
+          new_name: { type: 'string', description: 'New symbol name' },
+        },
+        required: ['path', 'line', 'col', 'new_name'],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'screenshot_page',
+      description: 'Take a screenshot of a URL (e.g. http://localhost:3000) and see what the UI actually looks like. Requires Chrome.',
+      parameters: {
+        type: 'object',
+        properties: {
+          url: { type: 'string', description: 'URL to screenshot (e.g. http://localhost:3000)' },
+          selector: { type: 'string', description: 'Optional CSS selector to screenshot a specific element' },
+          width: { type: 'integer', description: 'Viewport width in pixels', default: 1280 },
+          height: { type: 'integer', description: 'Viewport height in pixels', default: 900 },
+        },
+        required: ['url'],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_impact',
+      description: 'Analyze the blast radius of changing a file — returns all files that directly or transitively import it. Check before you wreck.',
+      parameters: {
+        type: 'object',
+        properties: {
+          target: { type: 'string', description: 'File path to analyze (relative or absolute)' },
+        },
+        required: ['target'],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'watch_process',
+      description: 'Start a background process (e.g. npm run dev) and capture its output into a ring buffer. Use read_process to poll it.',
+      parameters: {
+        type: 'object',
+        properties: {
+          command: { type: 'string', description: 'Shell command to run in the background' },
+          workdir: { type: 'string', description: 'Working directory (defaults to project root)' },
+        },
+        required: ['command'],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'read_process',
+      description: 'Read the last N lines of output from a watched background process.',
+      parameters: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: 'Process ID returned by watch_process' },
+          lines: { type: 'integer', description: 'Number of lines to return', default: 50, minimum: 1, maximum: 200 },
+        },
+        required: ['id'],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'kill_process',
+      description: 'Terminate a background process started with watch_process.',
+      parameters: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', description: 'Process ID to terminate' },
+        },
+        required: ['id'],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'eval_code',
+      description: 'Run a JS or TS snippet in the project module context and return the output. For validating logic, regex, or API shapes without writing a full file. Requires user approval.',
+      parameters: {
+        type: 'object',
+        properties: {
+          code: { type: 'string', description: 'JavaScript or TypeScript code snippet to evaluate' },
+          lang: { type: 'string', enum: ['js', 'ts'], description: 'Language: js or ts (default: ts)', default: 'ts' },
+          timeout: { type: 'integer', description: 'Execution timeout in seconds', default: 10, minimum: 1, maximum: 60 },
+        },
+        required: ['code'],
+        additionalProperties: false,
+      },
+    },
+  },
+];
+
 // Tool name to implementation function mapping
 export const TOOL_IMPLEMENTATIONS: Record<string, string> = {
   read_file: 'tools/builtin/files.readFile',
@@ -298,4 +447,13 @@ export const TOOL_IMPLEMENTATIONS: Record<string, string> = {
   find_symbol: 'tools/builtin/indexing.find_symbol',
   get_definition: 'tools/builtin/indexing.get_definition',
   get_references: 'tools/builtin/indexing.get_references',
+  lsp_diagnostics: 'tools/builtin/lsp.lspDiagnostics',
+  lsp_hover: 'tools/builtin/lsp.lspHover',
+  lsp_rename: 'tools/builtin/lsp.lspRename',
+  screenshot_page: 'tools/builtin/screenshot.screenshotPage',
+  get_impact: 'tools/builtin/impact.getImpact',
+  watch_process: 'tools/builtin/process-watcher.watchProcess',
+  read_process: 'tools/builtin/process-watcher.readProcess',
+  kill_process: 'tools/builtin/process-watcher.killProcess',
+  eval_code: 'tools/builtin/eval.evalCode',
 };

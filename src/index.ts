@@ -9,7 +9,7 @@ import readline from 'readline';
 import os from 'os';
 import pc from 'picocolors';
 
-import { BUILTIN_TOOLS } from './tools/definitions.js';
+import { BUILTIN_TOOLS, POWER_TOOLS } from './tools/definitions.js';
 import { executeToolCalls } from './tools/executor.js';
 import { setRouterClient } from './tools/builtin/delegation.js';
 import { mcpRegistry } from './tools/mcp/registry.js';
@@ -800,7 +800,7 @@ async function callModelWithTools(
   }
 
   // Combine built-in tools with MCP tools (stable across turns)
-  const allTools = [...BUILTIN_TOOLS, ...mcpRegistry.getToolDefinitions()];
+  const allTools = [...BUILTIN_TOOLS, ...POWER_TOOLS, ...mcpRegistry.getToolDefinitions()];
 
   turnStartTime = Date.now();
 
@@ -978,6 +978,21 @@ async function callModelWithTools(
         if (lines.length > 3) {
           console.log(`  ${pc.dim('┃')} ${pc.dim(`… ${lines.length - 3} more line${lines.length - 3 > 1 ? 's' : ''}`)}`);
         }
+      }
+      if (result.success && result.name === 'screenshot_page') {
+        try {
+          const parsed = JSON.parse(result.content);
+          if (parsed.type === 'vision' && parsed.base64) {
+            messages.push({
+              role: 'user',
+              content: [
+                { type: 'text', text: `[Screenshot of ${parsed.url}${parsed.selector ? ` > ${parsed.selector}` : ''}]` },
+                { type: 'image_url', image_url: { url: `data:image/png;base64,${parsed.base64}` } },
+              ],
+            } as ChatMessage);
+            console.log(`  ${pc.cyan('[VISION]')} Screenshot injected into context (${Math.round(parsed.base64.length * 0.75 / 1024)}KB)`);
+          }
+        } catch {}
       }
     }
 
@@ -2292,6 +2307,7 @@ async function main() {
   // Clean up health checks on normal exit too
   process.on('exit', () => {
     router.stopHealthChecks?.();
+    import('./tools/builtin/process-watcher.js').then(m => m.killAllWatchedProcesses()).catch(() => {});
   });
 
   // Print the awesome banner first!
