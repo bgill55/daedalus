@@ -7,7 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.11] - 2026-06-19
+
+### Added
+- Cached Windows shell detection in `/terminal` tool to eliminate process spawn lag
+- Concurrent MCP server initialization (parallel `Promise.all` connections)
+
 ### Fixed
+- Asynchronous boot health checks: initial health checks now run in the background to prevent boot blocking
+- Included Authorization header with API key in health check fetches to prevent auth failures on remote endpoints
+
+## [0.5.10] - 2026-06-19
+
+### Fixed
+- Restored missing SIGINT handler registration in main function to fix syntax error
+- Refined terminal outputs: replaced emojis with standardized text labels (`[OK]`, `[WARN]`, `[ERROR]`) to align with style guide
 
 - Indexer yields after every file instead of every 10 — eliminates keyboard lag during background indexing (v0.5.9)
 
