@@ -206,7 +206,7 @@ const COMMANDS = [
   '/index', '/find', '/refs', '/def',
   '/commit', '/undo', '/test', '/paste',
   '/models', '/tools', '/config', '/project', '/doctor', '/session', '/onboard',
-  '/help', 'exit', 'quit', '?', '/prune',
+  '/help', 'exit', 'quit', '?', '/prune', '/branch', '/pr',
 ];
 
 const rl = readline.createInterface({
@@ -1222,6 +1222,8 @@ async function chatLoop(): Promise<void> {
       console.log(`  ${pc.cyan('/context')}  Show active file context`);
       console.log(`  ${pc.cyan('/prune')}    Prune old conversation history & save budget`);
       console.log(`  ${pc.cyan('/commit')}   Stage and commit changes`);
+      console.log(`  ${pc.cyan('/branch')}   View or create Git branches`);
+      console.log(`  ${pc.cyan('/pr')}       Generate Pull Request description`);
       console.log(`  ${pc.cyan('/undo')}     Undo last file patch`);
       console.log(`  ${pc.cyan('/paste')}   Paste clipboard text/image as message`);
       console.log(`  ${pc.cyan('/test')}     Run tests and auto-fix failures`);
@@ -1683,6 +1685,116 @@ async function chatLoop(): Promise<void> {
         } catch (err: any) {
           console.log(pc.red(`[WARN] Failed to undo: ${err.message}`));
         }
+      }
+      continue;
+    }
+
+    // Command: /branch — view or switch branch
+    if (lowerInput === '/branch' || lowerInput.startsWith('/branch ')) {
+      try {
+        const { execute: termExec } = await import('./tools/builtin/terminal.js');
+        const arg = trimmedInput.substring(7).trim();
+        if (!arg) {
+          const currentBranchResult = await termExec({ command: 'git branch --show-current', timeout: 5, workdir: process.cwd() }, toolContext);
+          const current = currentBranchResult.content?.trim();
+          if (current) {
+            console.log(`\n  ${pc.cyan('Current Git branch:')} ${pc.bold(current)}`);
+          } else {
+            console.log(pc.red('\n  Not in a Git repository or no branch found.'));
+          }
+        } else {
+          console.log(`\n  Creating and switching to branch ${pc.cyan(arg)}...`);
+          const checkoutResult = await termExec({ command: `git checkout -b ${arg}`, timeout: 10, workdir: process.cwd() }, toolContext);
+          if (checkoutResult.success) {
+            console.log(pc.green(`  [OK] Switched to a new branch '${arg}'`));
+          } else {
+            console.log(pc.yellow(`  Branch might already exist, attempting to switch...`));
+            const switchResult = await termExec({ command: `git checkout ${arg}`, timeout: 10, workdir: process.cwd() }, toolContext);
+            if (switchResult.success) {
+              console.log(pc.green(`  [OK] Switched to branch '${arg}'`));
+            } else {
+              console.log(pc.red(`  Switch failed: ${switchResult.error || switchResult.content}`));
+            }
+          }
+        }
+      } catch (err: any) {
+        console.log(pc.red(`[WARN] Branch command error: ${err.message}`));
+      }
+      continue;
+    }
+
+    // Command: /pr — generate PR description
+    if (lowerInput === '/pr' || lowerInput.startsWith('/pr ')) {
+      const arg = trimmedInput.substring(3).trim();
+      try {
+        const { execute: termExec } = await import('./tools/builtin/terminal.js');
+
+        const gitCheck = await termExec({ command: 'git rev-parse --is-inside-work-tree', timeout: 5, workdir: process.cwd() }, toolContext);
+        if (!gitCheck.success) {
+          console.log(pc.red('  Error: Not inside a Git repository.'));
+          continue;
+        }
+
+        let baseBranch = arg || 'main';
+        if (!arg) {
+          const mainCheck = await termExec({ command: 'git show-ref --verify refs/heads/main', timeout: 5, workdir: process.cwd() }, toolContext);
+          if (!mainCheck.success) {
+            const masterCheck = await termExec({ command: 'git show-ref --verify refs/heads/master', timeout: 5, workdir: process.cwd() }, toolContext);
+            if (masterCheck.success) {
+              baseBranch = 'master';
+            }
+          }
+        }
+
+        const currentBranchResult = await termExec({ command: 'git branch --show-current', timeout: 5, workdir: process.cwd() }, toolContext);
+        const currentBranch = currentBranchResult.content?.trim();
+
+        console.log(`\n  Comparing ${pc.cyan(currentBranch || 'HEAD')} with base branch ${pc.cyan(baseBranch)}...`);
+
+        const commitsResult = await termExec({ command: `git log ${baseBranch}..HEAD --oneline`, timeout: 10, workdir: process.cwd() }, toolContext);
+        const commitList = commitsResult.content?.trim() || '';
+
+        const diffResult = await termExec({ command: `git diff ${baseBranch}...HEAD`, timeout: 15, workdir: process.cwd() }, toolContext);
+        const diffContent = diffResult.content?.slice(0, 15000) || '';
+
+        if (!commitList && !diffContent) {
+          console.log(pc.yellow(`  No commits or diff found between ${currentBranch} and ${baseBranch}.`));
+          continue;
+        }
+
+        console.log(pc.dim('  Analyzing changes and generating PR description...'));
+
+        const aiResponse = await router.chat.completions.create({
+          model: 'auto',
+          messages: [
+            {
+              role: 'system',
+              content: 'You write clean, comprehensive, professional Pull Request descriptions in Markdown format. Output ONLY the markdown content — no extra chat, wrapper, or quotes.'
+            },
+            {
+              role: 'user',
+              content: `Generate a Pull Request description for the current branch compared to ${baseBranch}.\n\nCommits:\n${commitList}\n\nDiff:\n${diffContent}`
+            }
+          ],
+          temperature: 0.3,
+        });
+
+        const prDesc = (aiResponse.choices[0] as any)?.message?.content?.trim() || '';
+        if (!prDesc) {
+          console.log(pc.red('  Failed to generate PR description.'));
+          continue;
+        }
+
+        console.log(pc.bold('\n--- Generated PR Description ---'));
+        console.log(prDesc);
+        console.log(pc.bold('--------------------------------'));
+
+        const outPath = path.join(process.cwd(), 'pr-desc.md');
+        fs.writeFileSync(outPath, prDesc, 'utf8');
+        console.log(pc.green(`\n[OK] PR description saved to ${pc.cyan('pr-desc.md')}`));
+
+      } catch (err: any) {
+        console.log(pc.red(`[WARN] PR command error: ${err.message}`));
       }
       continue;
     }

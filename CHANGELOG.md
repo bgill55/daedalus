@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.15] - 2026-06-19
+
+### Added
+- `/branch [name]` command to view the current active branch or create/switch branches directly in the REPL
+- `/pr [base-branch]` command to automatically generate a detailed markdown Pull Request description comparing the current branch to a base branch (e.g. `main` or `master`) and save it to `pr-desc.md`
+- Tab autocompletion and help menu quickref support for `/branch` and `/pr`
+
 ## [0.5.14] - 2026-06-19
 
 ### Added
