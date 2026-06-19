@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { parseTextToolCalls, formatMarkdownLine } from './index.js';
+import { detectPlaceholders } from './tools/builtin/files.js';
 
 describe('parseTextToolCalls', () => {
   it('should parse longcat_tool_call with keys and values', () => {
@@ -79,5 +80,32 @@ describe('formatMarkdownLine', () => {
     expect(formatted).toContain('italic');
     expect(formatted).toContain('code');
     expect(formatted).not.toContain('`code`');
+  });
+});
+
+describe('detectPlaceholders', () => {
+  it('should detect ellipsis comment placeholders', () => {
+    expect(detectPlaceholders('// ...')).toBe(true);
+    expect(detectPlaceholders('  // ...')).toBe(true);
+    expect(detectPlaceholders('// ... rest of the function')).toBe(true);
+    expect(detectPlaceholders('/* ... */')).toBe(true);
+    expect(detectPlaceholders('# ...')).toBe(true);
+  });
+
+  it('should detect raw ellipsis line placeholders', () => {
+    expect(detectPlaceholders('...')).toBe(true);
+    expect(detectPlaceholders('  ...  ')).toBe(true);
+  });
+
+  it('should detect textual rest/same description placeholders', () => {
+    expect(detectPlaceholders('// rest of the function remains the same')).toBe(true);
+    expect(detectPlaceholders('// same as before')).toBe(true);
+    expect(detectPlaceholders('// existing imports')).toBe(true);
+  });
+
+  it('should not false-positive on valid code strings or TODOs', () => {
+    expect(detectPlaceholders('console.log("...");')).toBe(false);
+    expect(detectPlaceholders('// TODO: implement feature')).toBe(false);
+    expect(detectPlaceholders('const x = 5;')).toBe(false);
   });
 });

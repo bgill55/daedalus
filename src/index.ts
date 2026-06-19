@@ -133,6 +133,11 @@ The index context is automatically injected before each user turn. When working 
 - \`write_file\` is ONLY for creating brand-new files that do not yet exist on disk.
 - Rewriting an entire file with \`write_file\` when only a few lines need changing is a serious mistake.
 
+### NEVER use code placeholders or ellipses
+- NEVER use placeholders, comments like "// ...", or ellipses (e.g. \`// rest of the function remains the same\`, \`/* ... */\`) in your code edits.
+- The tools will automatically reject any edit containing these placeholders.
+- Always output the complete, non-abbreviated code changes.
+
 ### patch best practices
 - Your \`old_string\` must be the EXACT text from the file — same indentation, same spacing.
 - Use read_file first if you are not 100% certain of the exact text. Do not guess.

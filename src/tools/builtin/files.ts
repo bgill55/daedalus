@@ -74,8 +74,32 @@ export async function readFile(args: { path: string; offset?: number; limit?: nu
   }
 }
 
+export function detectPlaceholders(text: string): boolean {
+  if (!text) return false;
+  const lines = text.split('\n');
+  const placeholderPatterns = [
+    /^\s*(\/\/|#|\/\*)\s*\.\.\./i,
+    /^\s*\.\.\.\s*$/,
+    /^\s*(\/\/|#)\s*(rest of the|same as|existing|todo: rest)/i,
+    /^\s*\/\*\s*(rest of the|same as|existing|todo: rest).*?\*\//i,
+  ];
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    for (const pattern of placeholderPatterns) {
+      if (pattern.test(trimmed)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 export async function writeFile(args: { path: string; content: string }, context: ToolContext): Promise<ToolResult> {
   try {
+    if (detectPlaceholders(args.content)) {
+      return formatError(`Code placeholders like '// ...' or '/* ... */' detected. You must write the complete, non-abbreviated code.`);
+    }
     const targetPath = resolvePath(args.path, context.projectRoot);
     const dir = path.dirname(targetPath);
     if (!fs.existsSync(dir)) {
@@ -90,6 +114,9 @@ export async function writeFile(args: { path: string; content: string }, context
 
 export async function patchFile(args: { path: string; old_string: string; new_string: string; replace_all?: boolean }, context: ToolContext): Promise<ToolResult> {
   try {
+    if (detectPlaceholders(args.new_string) && !detectPlaceholders(args.old_string)) {
+      return formatError(`Code placeholders like '// ...' or '/* ... */' detected in new_string. You must write the complete, modified code.`);
+    }
     const targetPath = resolvePath(args.path, context.projectRoot);
     if (!fs.existsSync(targetPath)) {
       return formatError(`File not found: ${args.path}`);

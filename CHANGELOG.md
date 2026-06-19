@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.22] - 2026-06-19
+
+### Added
+- Automated placeholder detection guardrails in file manipulation tools (`write_file` and `patch`) to prevent local models from writing lazy ellipsis comments (like `// ...`) or abbreviated code placeholders into source files
+- Promoted guidelines in agent system prompts warning against using code placeholders
+
 ## [0.5.21] - 2026-06-19
 
 ### Added
