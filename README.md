@@ -1,285 +1,150 @@
 # Daedalus
 
-<img width="1024" height="1024" alt="daedalus_emblem_1781855172596" src="https://github.com/user-attachments/assets/a5d4b394-3c2c-427e-b877-6e49f77467fc" />
+<img width="256" alt="daedalus_emblem" src="https://github.com/user-attachments/assets/a5d4b394-3c2c-427e-b877-6e49f77467fc" />
 
+**Local-first terminal-based AI coding assistant.**
 
-**Local-first coding CLI with an embedded model router, multi-agent orchestration, and codebase indexing.**
-
-Daedalus is a standalone terminal-based AI coding assistant that runs entirely on your machine. It connects to local LLM servers (LM Studio, Ollama, llama.cpp, vLLM) or remote providers (OpenAI, Groq, OpenRouter, Anthropic), routes requests intelligently, and gives your AI agent access to your file system, terminal, git, web search, and codebase indexing — all from your command line.
+Daedalus connects to local LLM servers (LM Studio, Ollama, llama.cpp, vLLM) or remote providers (OpenAI, Groq, OpenRouter, Anthropic), routes requests across models, and gives your AI agent access to your file system, terminal, git, web search, and codebase indexing.
 
 ```text
-  ╭─ ⬡ You ───────────────────────────────────────────────╮
-  │ refactor the auth middleware to use async/await         │
-  ╰────────────────────────────────────────────────────────╯
+  ╭─ You ───────────────────────────────────────────────────╮
+  │ refactor the auth middleware to use async/await           │
+  ╰──────────────────────────────────────────────────────────╯
 
-  ╭─ ◇ Daedalus ───────────────────────────────────────────╮
-  │ Let me look at the current auth middleware...            │
-  │ I'll refactor it to use async/await pattern.             │
-  ╰────────────────────────────────────────────────────────╯  ~132t · 3.2s
+  ╭─ Daedalus ───────────────────────────────────────────────╮
+  │ Let me look at the current auth middleware...              │
+  │ I'll refactor it to use async/await pattern.               │
+  ╰──────────────────────────────────────────────────────────╯  ~132t · 3.2s
 ```
-
----
-
-## Features
-
-- **Local-first** — Works with local LLMs (LM Studio, Ollama, llama.cpp, vLLM) or remote APIs
-- **Embedded model router** — Priority, round-robin, or fastest-response routing across multiple models; displays active model in response metadata
-- **Multi-agent orchestration** — Spawns sub-agents (planner, coder, reviewer, debugger, researcher) for complex tasks
-- **Codebase indexing** — FTS5-powered symbol search, definitions, and call-graph references (TS/JS, Python, Go, Rust)
-- **Resilient file tools** — Read, write, patch with interactive diff UI; fuzzy whitespace matching, syntax validation with auto-revert, and context-aware patch hints
-- **Trust layer** — Write-without-read guardrail, circuit breaker, import/export validation, auto-test loop, and large-rewrite annotation prevent hallucinated edits from reaching disk
-- **Terminal access** — Cross-platform shell execution (bash/cmd) with timeout and abort
-- **Git integration** — Status, diff, stage-all-and-commit, undo last patch
-- **Session management** — SQLite-backed conversation history with save/load/export
-- **Persistent memory** — Facts and conventions auto-inject into every turn. User profile (`/profile`) and coding style (`/style`) persist across sessions. Auto-fact extraction learns from your edits and commits.
-- **MCP support** — Connect Model Context Protocol servers (stdio and HTTP/SSE)
-- **Web tools** — DuckDuckGo search and URL fetching (no API key needed)
-- **Visual chat UI** — Bordered message blocks, tab completion, syntax-highlighted code blocks, inline markdown rendering
-- **Configurable** — Per-project settings (test commands, auto-run), full daedalus config
-- **Windows + Unix** — Full cross-platform support
 
 ---
 
 ## Quick Start
 
-### Prerequisites
-
-- Node.js 20+
-- A local LLM server (recommended) or a remote API key
-
-### Install
-
 ```bash
 npm install -g daedalus-cli
-```
-
-Or run directly from source:
-
-```bash
-git clone https://github.com/bgill55/daedalus.git
-cd daedalus
-npm install
-npm run build
-```
-
-### Launch
-
-```bash
 daedalus
 ```
 
-On first run, Daedalus will scan for local LLM servers and guide you through setup. If none are found, it prompts you to configure a remote provider (OpenAI, Groq, OpenRouter, Anthropic, or custom).
+On first run, Daedalus scans for local LLM servers and guides you through setup. If none are found, it prompts for a remote provider.
+
+From source: `git clone https://github.com/bgill55/daedalus.git && cd daedalus && npm install && npm run build`
 
 ---
 
-## Usage
+## Why Daedalus?
 
-Once inside the REPL, type `?` or `help` for the full command reference.
+AI assistance without:
+- Sending your code to third-party servers
+- Per-token pricing for every interaction
+- Being locked into a single provider
+- Losing conversation history between sessions
+
+---
+
+## Features
+
+### Core
+- **Local-first** — works entirely on your machine with local LLMs
+- **Embedded model router** — priority, round-robin, or fastest-response routing across multiple models
+- **Multi-agent orchestration** — spawns planner, coder, reviewer, debugger, and researcher sub-agents
+- **Codebase indexing** — FTS5-powered symbol search, definitions, and call-graph references (TS/JS, Python, Go, Rust)
+- **Session management** — SQLite-backed history with save, load, JSONL export
+- **Persistent memory** — facts and coding conventions auto-inject every turn; `/profile` and `/style` persist across sessions
+- **MCP support** — Model Context Protocol servers via stdio and HTTP/SSE
+- **Windows + Unix** — full cross-platform support
+
+### Tools
+- **File tools** — read, write, patch with interactive diff UI; fuzzy whitespace matching, syntax validation with auto-revert
+- **Trust layer** — write-without-read guardrail, circuit breaker, import/export validation, auto-test loop, large-rewrite annotation
+- **Terminal** — cross-platform shell execution (bash/cmd) with timeout and abort
+- **Git** — status, diff, stage-all-and-commit, undo
+- **Web** — DuckDuckGo search and URL fetching (no API key needed)
+- **Codebase** — index, find, definitions, references
 
 ### Commands
 
 | Command | Description |
 |---------|-------------|
-| `/add <file>` | Add file to active context |
-| `/remove <file>` | Remove file from context |
-| `/context` | Show active file context |
-| `/clear` | Clear conversation history |
-| `/commit [message]` | Stage all and commit changes |
-| `/undo` | Revert last file patch |
-| `/test [iterations]` | Run tests and auto-fix failures |
-| `/memory` | View saved project facts and conventions |
-| `/fact <key> = <value>` | Save a project fact |
-| `/convention <key> = <value>` | Save a coding convention |
-| `/extract` | Manually extract facts from current session |
-| `/profile view\|name\|bio` | View or set your user profile |
-| `/style <preferences>` | Set persistent coding style preferences |
-| `/index` | Index codebase for symbol search |
-| `/find <query>` | Fuzzy-search indexed symbols |
-| `/refs <symbol>` | Find symbol references (callers) |
-| `/def <symbol>` | Get symbol definition |
-| `/project` | View or set project config |
-| `/session list\|load\|new\|delete` | Manage chat sessions |
-| `/models` | List available models |
-| `/tools` | List all tools |
-| `/doctor` | Diagnose local server connections |
-| `/onboard` | Re-run setup wizard |
-| `/spawn <role> <task>` | Spawn a sub-agent |
 | `/orchestrate <goal>` | Run multi-agent orchestration |
-| `/branch [name]` | View active branch or switch/create branches |
-| `/pr [base-branch]` | Generate Pull Request description |
-| `/debug <command>` | Run command and autonomously fix errors |
-| `/ensemble <goal>` | Run multi-model ensemble drafting pipeline |
-| `/prune [budget]` | View context breakdown and prune message history |
+| `/spawn <role> <task>` | Spawn a sub-agent |
+| `/ensemble <goal>` | Multi-model ensemble drafting |
+| `/debug <command>` | Run and autonomously fix errors |
+| `/find <query>` | Fuzzy-search indexed symbols |
+| `/refs <symbol>` | Find symbol references |
+| `/def <symbol>` | Get symbol definition |
+| `/add` / `/remove` / `/context` | Manage file context |
+| `/commit [msg]` | Stage all and commit |
+| `/undo` | Revert last file patch |
+| `/test [n]` | Run tests and auto-fix failures |
+| `/profile` / `/style` | Set user profile and coding preferences |
+| `/memory` / `/fact` / `/convention` | Manage project memory |
+| `/branch [name]` | View or switch branches |
+| `/pr [base]` | Generate PR description |
+| `/session` | Manage chat sessions |
+| `/project` | View or set project config |
+| `/prune [budget]` | View and prune message history |
+| `/doctor` | Diagnose server connections |
+| `/index` | Index codebase |
+| `/onboard` | Re-run setup wizard |
+| `/models` / `/tools` | List models and tools |
 | `?` / `help` | Show command reference |
 | `exit` / `quit` | Save and quit |
 
-### Tab Completion
-
-Start typing a command and press Tab — Daedalus auto-completes it:
-
-```
-  ⬡ › /fi[TAB]
-  ⬡ › /find
-```
+Tab completion works on all commands.
 
 ---
 
 ## Configuration
 
-Daedalus stores its configuration at `~/.daedalus/config.json`. Key sections:
+Daedalus stores config at `~/.daedalus/config.json`. Key sections:
 
 ```json
 {
   "router": {
     "strategy": "priority",
     "chain": [
-      {
-        "name": "local",
-        "endpoint": "http://localhost:1234/v1",
-        "model": "auto",
-        "enabled": true,
-        "priority": 1,
-        "maxTokens": 8192
-      }
+      { "name": "local", "endpoint": "http://localhost:1234/v1", "model": "auto", "enabled": true, "priority": 1 }
     ]
   },
-  "indexing": {
-    "enabled": true,
-    "exclude": ["node_modules", "dist", ".git"]
-  },
-  "ui": {
-    "showTokens": true
-  }
+  "indexing": { "enabled": true, "exclude": ["node_modules", "dist", ".git"] }
 }
 ```
 
-### Router Strategies
+Router strategies: `priority` (default), `round-robin`, `fastest`.
 
-- **`priority`** (default) — Picks the healthy model with lowest priority number
-- **`round-robin`** — Cycles through healthy models evenly
-- **`fastest`** — Picks the model with the lowest cached response time
-
-### Per-Project Config
-
-Each project can have its own settings at `~/.daedalus/config/<project-hash>.json`:
-
-```json
-{
-  "testCommand": "npm test",
-  "buildCommand": "npm run build",
-  "lintCommand": "npm run lint",
-  "devCommand": "npm run dev"
-}
-```
-
-Configured via `/project set <key> <value>`.
-
----
-
-## Architecture
-
-```text
-src/
-├── index.ts                # CLI entry point, REPL, command dispatch
-├── types.ts                # Shared type definitions
-├── highlight.ts            # Syntax highlighting for code blocks
-├── profile.ts              # User profile (name, bio, style) persistence
-├── extraction.ts           # Auto-fact extraction engine
-├── config/                 # Configuration loading, schema, discovery
-│   └── index.ts
-├── router/                 # Model routing engine
-│   ├── index.ts            # LocalRouter: routing, streaming, completion
-│   ├── types.ts            # Router types
-│   ├── health.ts           # Model health checks
-│   └── rate-limiter.ts     # Token-bucket rate limiter
-├── session/                # Session persistence
-│   ├── manager.ts          # Session orchestration
-│   ├── sqlite.ts           # SQLite CRUD
-│   ├── memory.ts           # Project facts & conventions
-│   └── jsonl.ts            # JSONL import/export
-├── agents/                 # Multi-agent system
-│   ├── agent.ts            # Agent interface
-│   ├── roles.ts            # Role definitions (coder, reviewer, etc.)
-│   └── orchestrator.ts     # Orchestration engine
-├── tools/                  # Tool system
-│   ├── definitions.ts      # 16 built-in tool definitions
-│   ├── executor.ts         # Tool execution engine
-│   ├── daedalus-spinner.ts # Terminal spinner
-│   ├── builtin/            # Built-in tool implementations
-│   │   ├── files.ts        # File read/write/patch/search
-│   │   ├── terminal.ts     # Shell execution
-│   │   ├── git.ts          # Git diff/status
-│   │   ├── web.ts          # Web search/fetch
-│   │   ├── todo.ts         # Task management
-│   │   ├── delegation.ts   # Sub-agent delegation
-│   │   ├── indexing.ts     # Codebase indexing tools
-│   │   ├── diff-ui.ts      # Interactive diff viewer
-│   │   └── project-config.ts
-│   └── mcp/                # MCP transport
-│       ├── registry.ts     # MCP server manager
-│       ├── stdio.ts        # stdio transport
-│       ├── http.ts         # HTTP/SSE transport
-│       └── tool-executor.ts
-├── indexing/               # Codebase indexing
-│   ├── fts.ts              # FTS5 database layer
-│   └── indexer.ts          # File crawler & language parsers
-└── onboarding/             # Setup wizard
-    └── wizard.ts
-```
+Per-project config at `~/.daedalus/config/<project-hash>.json` — set via `/project set <key> <value>`.
 
 ---
 
 ## Development
 
 ```bash
-# Run in dev mode (hot reload)
-npm run dev
-
-# Run directly
-npm start
-
-# Build
-npm run build
-
-# Type check
-npx tsc --noEmit
-
-# Test
-npm test
-
-# Lint
-npm run lint
+npm run dev       # hot-reload
+npm run build     # compile TypeScript
+npm test          # vitest (270+ tests)
+npm run lint      # eslint (flat config)
+npx tsc --noEmit  # type check
 ```
 
----
+### Architecture
 
-## Why Daedalus?
-
-Daedalus is built for developers who want AI assistance without:
-- Sending their code to third-party servers
-- Paying per-token for every interaction
-- Being locked into a single provider
-- Losing their conversation history between sessions
-- Having limited tool access
-
-It's for local-first, private, customizable AI coding — with memory that grows with you.
+```
+src/
+├── index.ts           CLI entry, REPL, command dispatch
+├── config/            Zod-schema validated config
+├── router/            Model routing, health checks, rate limiter
+├── session/           SQLite sessions, project memory, JSONL export
+├── agents/            Multi-agent orchestration (planner, coder, et al.)
+├── tools/             16 built-in tools + MCP transport
+├── indexing/          FTS5 codebase indexing
+└── onboarding/        Setup wizard
+```
 
 ---
 
 ## Contributing
 
-Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for our contribution guidelines, coding standards, and pull request process.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines, coding standards, and the PR process. Governed by the [Code of Conduct](CODE_OF_CONDUCT.md).
 
-This project is governed by a [Code of Conduct](CODE_OF_CONDUCT.md). Please report any unacceptable behavior.
-
-## Changelog
-
-See [CHANGELOG.md](CHANGELOG.md) for the project history.
-
-## Security
-
-Report security vulnerabilities privately to bgill55_dev@voxvivid.com — see [SECURITY.md](SECURITY.md) for details.
-
-## License
-
-MIT
+[CHANGELOG.md](CHANGELOG.md) | [SECURITY.md](SECURITY.md) | MIT License
