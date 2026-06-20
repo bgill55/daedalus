@@ -21,6 +21,7 @@ export const ModelEntrySchema = z.object({
   maxTokens: z.number().int().positive().optional(),
   supportsTools: z.boolean().optional(),
   supportsVision: z.boolean().optional(),
+  tier: z.enum(['standard', 'fast', 'intelligence']).default('standard').optional(),
 });
 
 export const RouterConfigSchema = z.object({

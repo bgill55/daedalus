@@ -10,6 +10,7 @@ export interface ModelEntry {
   maxTokens?: number;           // Context window (optional, for auto-detection)
   supportsTools?: boolean;      // Whether model supports tool calling
   supportsVision?: boolean;     // Whether model supports vision
+  tier?: 'standard' | 'fast' | 'intelligence';
 }
 
 export interface ModelHealth {

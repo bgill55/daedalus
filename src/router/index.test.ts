@@ -155,4 +155,45 @@ describe('LocalRouter', () => {
     await expect(router.route({ messages: [{ role: 'user', content: 'hello world' }] })).rejects.toThrow('Rate limited');
   });
 
+  it('proactively routes tool-calling requests to models supporting tools', async () => {
+    const router = new LocalRouter(makeConfig({
+      chain: [
+        { name: 'no-tools', endpoint: 'http://localhost:1/v1', model: 'm1', priority: 1, enabled: true, supportsTools: false },
+        { name: 'has-tools', endpoint: 'http://localhost:2/v1', model: 'm2', priority: 5, enabled: true, supportsTools: true },
+      ],
+    }));
+    const result = await router.route({
+      messages: [{ role: 'user', content: 'run tool' }],
+      tools: [{ type: 'function', function: { name: 'test_tool' } }],
+    });
+    expect(result.model.name).toBe('has-tools');
+  });
+
+  it('proactively routes complex tasks to intelligence tier models', async () => {
+    const router = new LocalRouter(makeConfig({
+      chain: [
+        { name: 'fast-model', endpoint: 'http://localhost:1/v1', model: 'm1', priority: 1, enabled: true, tier: 'fast' },
+        { name: 'intel-model', endpoint: 'http://localhost:2/v1', model: 'm2', priority: 5, enabled: true, tier: 'intelligence' },
+      ],
+    }));
+    const longPrompt = 'a'.repeat(33000);
+    const result = await router.route({
+      messages: [{ role: 'user', content: longPrompt }],
+    });
+    expect(result.model.name).toBe('intel-model');
+  });
+
+  it('proactively routes simple tasks to fast tier models', async () => {
+    const router = new LocalRouter(makeConfig({
+      chain: [
+        { name: 'intel-model', endpoint: 'http://localhost:1/v1', model: 'm1', priority: 1, enabled: true, tier: 'intelligence' },
+        { name: 'fast-model', endpoint: 'http://localhost:2/v1', model: 'm2', priority: 5, enabled: true, tier: 'fast' },
+      ],
+    }));
+    const result = await router.route({
+      messages: [{ role: 'user', content: 'hello' }],
+    });
+    expect(result.model.name).toBe('fast-model');
+  });
+
 });

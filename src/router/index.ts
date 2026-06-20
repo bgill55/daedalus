@@ -112,18 +112,47 @@ export class LocalRouter {
     }
 
     if (!selectedModel) {
+      const requiresTools = !!(request.tools && request.tools.length > 0);
+      const estimatedTokens = this.estimateTokens(request);
+      const isComplexTask = requiresTools || estimatedTokens > 8000;
+
+      let candidateModels = healthyModels;
+      if (requiresTools) {
+        const toolSupporting = healthyModels.filter(m => m.supportsTools);
+        if (toolSupporting.length > 0) {
+          candidateModels = toolSupporting;
+        }
+      }
+
+      let tierFilteredModels: ModelEntry[] = [];
+      if (isComplexTask) {
+        tierFilteredModels = candidateModels.filter(m => m.tier === 'intelligence');
+        if (tierFilteredModels.length === 0) {
+          tierFilteredModels = candidateModels.filter(m => m.tier === 'standard' || !m.tier);
+        }
+      } else {
+        tierFilteredModels = candidateModels.filter(m => m.tier === 'fast');
+        if (tierFilteredModels.length === 0) {
+          tierFilteredModels = candidateModels.filter(m => m.tier === 'standard' || !m.tier);
+        }
+      }
+
+      if (tierFilteredModels.length === 0) {
+        tierFilteredModels = candidateModels;
+      }
+
       switch (this.config.strategy) {
         case 'priority':
-          selectedModel = [...healthyModels].sort((a, b) => a.priority - b.priority)[0];
+          selectedModel = [...tierFilteredModels].sort((a, b) => a.priority - b.priority)[0];
           break;
           
         case 'round-robin':
-          selectedModel = healthyModels[this.roundRobinIndex % healthyModels.length];
+          selectedModel = tierFilteredModels[this.roundRobinIndex % tierFilteredModels.length];
           this.roundRobinIndex++;
           break;
           
         case 'fastest':
-          selectedModel = [...healthyModels].sort((a, b) => {
+          selectedModel = [...tierFilteredModels].sort((a, b) => {
             const ha = getCachedHealth(a);
             const hb = getCachedHealth(b);
             return (ha?.latencyMs ?? Infinity) - (hb?.latencyMs ?? Infinity);
@@ -131,7 +160,7 @@ export class LocalRouter {
           break;
           
         default:
-          selectedModel = healthyModels[0];
+          selectedModel = tierFilteredModels[0];
       }
     }
 
