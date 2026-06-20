@@ -3,17 +3,11 @@
 
 import path from 'path';
 import os from 'os';
-import crypto from 'crypto';
 import Database from 'better-sqlite3';
 import { initIndexDb, searchSymbols, findDefinitions, findReferences } from '../../indexing/fts.js';
 import { indexCodebase } from '../../indexing/indexer.js';
+import { getProjectHash } from '../../project-hash.js';
 import { ToolContext, ToolResult } from '../../types.js';
-
-// ── Shared DB helpers ──────────────────────────────────────────────────────────
-
-export function getProjectHash(projectRoot: string): string {
-  return crypto.createHash('sha256').update(path.resolve(projectRoot)).digest('hex').slice(0, 12);
-}
 
 export function getIndexDbPath(projectRoot: string): string {
   const homedir = os.homedir();

@@ -15,6 +15,7 @@ import { setRouterClient } from './tools/builtin/delegation.js';
 import { mcpRegistry } from './tools/mcp/registry.js';
 import { LocalRouter, createRouter, RouteResult, RouterConfig } from './router/index.js';
 import { loadConfig, saveConfig, getConfigDirPath, discoverLocalServers } from './config/index.js';
+import { getProjectHash } from './project-hash.js';
 import crypto from 'crypto';
 import { ToolContext, ToolCall, ChatMessage } from './types.js';
 import { getSessionTodos, setSessionTodos } from './tools/builtin/todo.js';
@@ -51,7 +52,7 @@ let turnStartTime = 0;
 let currentAbortController: AbortController | null = null;
 
 // Compute stable projectHash once
-const projectHash = crypto.createHash('sha256').update(path.resolve(process.cwd())).digest('hex').slice(0, 12);
+const projectHash = getProjectHash(process.cwd());
 
 // Max chars of tool output stored in message history (prevents context-window overflow)
 const TOOL_RESULT_MAX_CHARS = 32_000;
@@ -85,7 +86,7 @@ if (initialSession.todos.length > 0) {
 }
 
 // Ensure CLI temp directory exists
-const cliTempDir = path.join(os.homedir(), '.daedalus', 'temp');
+const cliTempDir = path.join(os.tmpdir(), 'daedalus');
 if (!fs.existsSync(cliTempDir)) {
   fs.mkdirSync(cliTempDir, { recursive: true });
 }
@@ -100,7 +101,7 @@ const toolContext: ToolContext = {
   projectHash,
   activeFiles,
   agentRole: config.agents.default,
-  abortSignal: new AbortController().signal,
+  get abortSignal() { return currentAbortController?.signal ?? new AbortController().signal; },
   autoApplyEdits: 'prompt',
   patchHistory: [],
   pauseSpinner: () => {},
@@ -708,7 +709,7 @@ function truncateToolResult(content: string): string {
 
 // ── Version update check ──────────────────────────────────────────────────────
 
-const UPDATE_CACHE_PATH = path.join(os.homedir(), '.daedalus', 'temp', 'version-check.json');
+const UPDATE_CACHE_PATH = path.join(cliTempDir, 'version-check.json');
 
 function parseVersion(v: string): number[] {
   return v.replace(/^v/, '').split('.').map(Number);

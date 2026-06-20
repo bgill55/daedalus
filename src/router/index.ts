@@ -56,13 +56,22 @@ export class LocalRouter {
   }
 
   async startHealthChecks(): Promise<void> {
-    // Initial health check
-    this.runHealthChecks().catch(() => {});
-    
-    // Periodic health checks
-    this.healthCheckTimer = setInterval(() => {
-      this.runHealthChecks();
-    }, this.config.healthCheckInterval);
+    let running = false;
+
+    const run = async () => {
+      if (running) return;
+      running = true;
+      try {
+        await this.runHealthChecks();
+      } catch (err) {
+        console.error('Health check failed:', (err as Error).message);
+      } finally {
+        running = false;
+      }
+    };
+
+    await run();
+    this.healthCheckTimer = setInterval(run, this.config.healthCheckInterval);
   }
 
   async stopHealthChecks(): Promise<void> {

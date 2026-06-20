@@ -1,6 +1,8 @@
 // Terminal execution tool
 
 import { spawn, execSync } from 'child_process';
+import fs from 'fs';
+import path from 'path';
 import { ToolContext, ToolResult } from '../../types.js';
 
 const SENSITIVE_ENV_KEYS = new Set([
@@ -38,20 +40,22 @@ export async function execute(args: { command: string; timeout?: number; workdir
     let errorOutput = '';
     let exited = false;
 
-    // Cross-platform shell detection: prefer bash, fall back to system shell
     function detectShell(): { shell: string; args: string[] } {
       if (process.platform === 'win32') {
         if (!cachedShell) {
-          const bashPaths = ['bash.exe', 'C:\\Program Files\\Git\\bin\\bash.exe', 'C:\\Program Files (x86)\\Git\\bin\\bash.exe'];
           let detected = 'cmd.exe';
           let isBash = false;
-          for (const bp of bashPaths) {
-            try {
-              execSync(`where "${bp}"`, { stdio: 'ignore' });
-              detected = bp;
-              isBash = true;
-              break;
-            } catch {}
+          try { execSync('where bash.exe', { stdio: 'ignore' }); detected = 'bash.exe'; isBash = true; }
+          catch {
+            const fallbacks = [
+              'C:\\Program Files\\Git\\bin\\bash.exe',
+              'C:\\Program Files (x86)\\Git\\bin\\bash.exe',
+              path.join(process.env.LOCALAPPDATA || '', 'Programs', 'Git', 'bin', 'bash.exe'),
+              path.join(process.env.SYSTEMDRIVE || 'C:', 'tools', 'git', 'bin', 'bash.exe'),
+            ];
+            for (const fp of fallbacks) {
+              if (fs.existsSync(fp)) { detected = fp; isBash = true; break; }
+            }
           }
           cachedShell = { shell: detected, isBash };
         }

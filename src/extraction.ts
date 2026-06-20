@@ -100,7 +100,7 @@ export async function extractAndSave(
     for (const f of newFacts) {
       console.log(`  ${pc.dim('  |')} ${pc.cyan(f.key)}${pc.dim(':')} ${pc.gray(f.value)}`);
     }
-  } catch {
-    // Extraction is best-effort
+  } catch (err) {
+    console.log(`  ${pc.dim('[extract]')} ${pc.yellow(`skipped: ${(err as Error).message}`)}`);
   }
 }

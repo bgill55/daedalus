@@ -5,6 +5,7 @@ import path from 'path';
 import os from 'os';
 import crypto from 'crypto';
 import Database from 'better-sqlite3';
+import { getProjectHash } from '../project-hash.js';
 import {
   initIndexDb,
   initSessionDb,
@@ -43,7 +44,7 @@ export class SessionManager {
 
   constructor(projectRoot = process.cwd()) {
     this.projectRoot = path.resolve(projectRoot);
-    this.projectHash = crypto.createHash('sha256').update(this.projectRoot).digest('hex').slice(0, 12);
+    this.projectHash = getProjectHash(this.projectRoot);
   }
 
   /** Initialize directories and the index database */

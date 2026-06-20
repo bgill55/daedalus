@@ -149,7 +149,7 @@ export class Orchestrator {
       role: task.role,
       goal: task.goal,
       summary: result,
-      success: !result.includes('Error') && !result.includes('Failed'),
+      success: !/^(Error|Failed)/.test(result.trim()),
     });
     
     console.log(`[OK] ${role.name} completed`);

@@ -3,8 +3,9 @@
 
 import fs from 'fs';
 import path from 'path';
+import fs from 'fs';
 import os from 'os';
-import crypto from 'crypto';
+import { getProjectHash } from '../../project-hash.js';
 
 export interface ProjectConfig {
   projectHash: string;
@@ -23,13 +24,13 @@ function getConfigDir(): string {
 }
 
 function getConfigPath(projectRoot: string): string {
-  const projectHash = crypto.createHash('sha256').update(path.resolve(projectRoot)).digest('hex').slice(0, 12);
+  const projectHash = getProjectHash(projectRoot);
   return path.join(getConfigDir(), `${projectHash}.json`);
 }
 
 function getDefaultConfig(projectRoot: string): ProjectConfig {
   return {
-    projectHash: crypto.createHash('sha256').update(path.resolve(projectRoot)).digest('hex').slice(0, 12),
+    projectHash: getProjectHash(projectRoot),
     projectRoot: path.resolve(projectRoot),
     testCommand: undefined,
     buildCommand: undefined,

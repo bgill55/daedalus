@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { getProjectHash, getIndexDbPath } from './indexing.js';
+import { getProjectHash } from '../../project-hash.js';
+import { getIndexDbPath } from './indexing.js';
 import type { ToolContext } from '../../types.js';
 
 describe('Indexing tool helpers', () => {

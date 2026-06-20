@@ -135,8 +135,11 @@ export class StdioTransport implements MCPTransport {
 
   private waitForResponse(method: string): Promise<any> {
     return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => reject(new Error(`Timeout waiting for ${method}`)), 10000);
-      
+      const timeout = setTimeout(() => {
+        this.messageHandler = originalHandler;
+        reject(new Error(`Timeout waiting for ${method}`));
+      }, 10000);
+
       const originalHandler = this.messageHandler;
       this.messageHandler = (msg: any) => {
         if (msg.method === method || (msg.id && msg.result)) {

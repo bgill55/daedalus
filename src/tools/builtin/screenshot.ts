@@ -19,21 +19,26 @@ export async function screenshotPage(
       return formatError('puppeteer-core is not installed. Run: npm install -g puppeteer-core');
     }
 
-    const chromePaths = [
-      process.env.CHROME_PATH,
-      'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-      'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
-      '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-      '/usr/bin/google-chrome',
-      '/usr/bin/chromium-browser',
-      '/usr/bin/chromium',
-    ].filter(Boolean) as string[];
-
-    const executablePath = chromePaths.find(p => fs.existsSync(p));
+    let executablePath = process.env.CHROME_PATH;
+    if (!executablePath) {
+      const chromePaths = [
+        'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+        'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+        ...(process.env.LOCALAPPDATA ? [`${process.env.LOCALAPPDATA}\\Google\\Chrome\\Application\\chrome.exe`] : []),
+        ...(process.env.ProgramW6432 ? [`${process.env.ProgramW6432}\\Google\\Chrome\\Application\\chrome.exe`] : []),
+        `${process.env.USERPROFILE || ''}\\scoop\\apps\\googlechrome\\current\\chrome.exe`,
+        `${process.env.USERPROFILE || ''}\\AppData\\Local\\Programs\\Opera\\opera.exe`,
+        '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+        '/usr/bin/google-chrome',
+        '/usr/bin/chromium-browser',
+        '/usr/bin/chromium',
+      ];
+      executablePath = chromePaths.find(p => fs.existsSync(p));
+    }
     if (!executablePath) {
       return formatError(
         'Chrome not found. Set CHROME_PATH env var or install Google Chrome. ' +
-        'Checked: ' + chromePaths.slice(1).join(', ')
+        'Checked: environment variable and common install paths'
       );
     }
 
@@ -80,6 +85,6 @@ export async function screenshotPage(
   } catch (err: any) {
     return formatError(`Screenshot failed: ${err.message}`);
   } finally {
-    if (browser) await browser.close().catch(() => {});
+    if (browser) await browser.close().catch((err: unknown) => console.error('browser close error:', (err as Error).message));
   }
 }
