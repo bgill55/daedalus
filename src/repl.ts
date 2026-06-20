@@ -81,6 +81,7 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
 
       rl.on('line', onLine);
       process.stdout.write(prompt);
+      process.stdin.resume();
       rl.resume();
     });
   }

@@ -220,6 +220,7 @@ function buildFileContext(): string {
 // Single-line prompt (approval gate, commit message) — standalone to avoid rl conflict with REPL
 function askLine(prompt: string): Promise<string> {
   return new Promise((resolve) => {
+    process.stdin.resume();
     const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
     rl.question(prompt, (answer) => { rl.close(); resolve(answer); });
   });
