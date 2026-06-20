@@ -179,16 +179,22 @@ export class Orchestrator {
     if (!this.requiresRealArtifacts(role, goal)) return true;
     if (this.isDeclaredError(result)) return true;
 
-    const paths = this.extractPendingWrites(result);
+    const rawPaths = this.extractPendingWrites(result);
+    const paths = rawPaths.map(p => p.replace(/\\/g, '/'));
 
     if (this.toolContext.patchHistory && this.toolContext.patchHistory.length > 0) {
-      const hasPatchedMentioned = this.toolContext.patchHistory.some(h =>
-        paths.includes(h.filePath) || paths.some(p => p.endsWith(h.filePath) || h.filePath.endsWith(p))
+      const normalizedHistory = this.toolContext.patchHistory.map(h => ({
+        ...h,
+        normalizedPath: h.filePath.replace(/\\/g, '/')
+      }));
+
+      const hasPatchedMentioned = normalizedHistory.some(h =>
+        paths.includes(h.normalizedPath) || paths.some(p => h.normalizedPath.endsWith(p) || p.endsWith(h.normalizedPath))
       );
       if (hasPatchedMentioned) return true;
 
-      const hasRelevantPatch = this.toolContext.patchHistory.some(h => {
-        const base = h.filePath.split('/').pop() || '';
+      const hasRelevantPatch = normalizedHistory.some(h => {
+        const base = h.normalizedPath.split('/').pop() || '';
         const goalLower = goal.toLowerCase();
         return goalLower.includes(base.split('.')[0].toLowerCase());
       });
