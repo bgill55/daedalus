@@ -3,6 +3,8 @@
 <img width="256" alt="daedalus_emblem" src="https://github.com/user-attachments/assets/a5d4b394-3c2c-427e-b877-6e49f77467fc" />
 
 [![npm version](https://img.shields.io/npm/v/daedalus-cli?color=blue)](https://www.npmjs.com/package/daedalus-cli)
+[![npm downloads](https://img.shields.io/npm/dm/daedalus-cli?color=blue)](https://www.npmjs.com/package/daedalus-cli)
+[![GitHub stars](https://img.shields.io/github/stars/bgill55/daedalus?color=blue)](https://github.com/bgill55/daedalus/stargazers)
 [![CI](https://github.com/bgill55/daedalus/actions/workflows/ci.yml/badge.svg)](https://github.com/bgill55/daedalus/actions/workflows/ci.yml)
 [![License](https://img.shields.io/github/license/bgill55/daedalus?color=blue)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](https://nodejs.org)
@@ -72,7 +74,9 @@ AI assistance without:
 | Command | Description |
 |---------|-------------|
 | `/orchestrate <goal>` | Run multi-agent orchestration |
-| `/spawn <role> <task>` | Spawn a sub-agent |
+| `/spawn [--bg] <role> <task>` | Spawn a sub-agent (foreground or background) |
+| `/tasks` | List background agent tasks |
+| `/task <id>` | Show detailed task results or cancel with `kill` |
 | `/ensemble <goal>` | Multi-model ensemble drafting |
 | `/debug <command>` | Run and autonomously fix errors |
 | `/find <query>` | Fuzzy-search indexed symbols |
@@ -109,7 +113,15 @@ Daedalus stores config at `~/.daedalus/config.json`. Key sections:
   "router": {
     "strategy": "priority",
     "chain": [
-      { "name": "local", "endpoint": "http://localhost:1234/v1", "model": "auto", "enabled": true, "priority": 1 }
+      { 
+        "name": "local", 
+        "endpoint": "http://localhost:1234/v1", 
+        "model": "auto", 
+        "enabled": true, 
+        "priority": 1,
+        "supportsTools": true,
+        "tier": "intelligence"
+      }
     ]
   },
   "indexing": { "enabled": true, "watch": true, "exclude": ["node_modules", "dist", ".git"] },
@@ -118,6 +130,16 @@ Daedalus stores config at `~/.daedalus/config.json`. Key sections:
 ```
 
 Router strategies: `priority` (default), `round-robin`, `fastest`.
+
+### Proactive Model Routing & Tiers
+You can configure a `tier` (`"fast"`, `"intelligence"`, or `"standard"`) and tool support (`"supportsTools": true`) for each model in your configuration chain. 
+* **Automatic Tier Detection**: Simple questions or quick requests route to healthy `"fast"` tier models. Large coding contexts (estimated tokens > 8k) or agent subtasks automatically target `"intelligence"` tier models.
+* **Tool capability filtering**: Sub-agents needing tools will automatically filter and route to models with `"supportsTools": true` enabled.
+
+### Concurrent Background Execution
+Run sub-agents concurrently in the background by adding the `--bg` flag to `/spawn` or `/delegate` (e.g. `/spawn --bg coder "Implement helper"`).
+* **Notification Queueing**: Agent task completions are queued and printed synchronously in a prompt-safe manner right before your next REPL prompt redraw to keep your terminal output clean.
+* **Management**: View running jobs via `/tasks`, cancel running jobs via `/task kill <id>`, and read results of completed tasks using `/task <id>`.
 
 ### Shell Preference
 The shell used by the terminal tool can be configured:
