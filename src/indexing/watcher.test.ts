@@ -36,13 +36,21 @@ describe('Watcher - Incremental Indexing', () => {
     db = initIndexDb(dbPath);
   });
 
-  afterEach(() => {
+  afterEach(async () => {
     db.close();
-    fs.rmSync(tmpDir, { recursive: true, force: true });
+    try {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    } catch {
+      await sleep(100);
+      try {
+        fs.rmSync(tmpDir, { recursive: true, force: true });
+      } catch {}
+    }
   });
 
   it('indexes a newly created file and ignores excluded paths or non-matching extensions', async () => {
     const watcher = watchCodebase(db, tmpDir, projectHash);
+    await sleep(200);
 
     fs.writeFileSync(path.join(tmpDir, 'test.ts'), 'export function testFunc() {}');
 
@@ -68,6 +76,7 @@ describe('Watcher - Incremental Indexing', () => {
 
   it('updates index when a file is modified', async () => {
     const watcher = watchCodebase(db, tmpDir, projectHash);
+    await sleep(200);
 
     fs.writeFileSync(path.join(tmpDir, 'modify.ts'), 'export function firstFunc() {}');
     await waitFor(() => findDefinitions(db, 'firstFunc', projectHash).length === 1);
@@ -90,6 +99,7 @@ describe('Watcher - Incremental Indexing', () => {
 
   it('removes symbols when a file is deleted', async () => {
     const watcher = watchCodebase(db, tmpDir, projectHash);
+    await sleep(200);
 
     fs.writeFileSync(path.join(tmpDir, 'delete.ts'), 'export function byeFunc() {}');
     await waitFor(() => findDefinitions(db, 'byeFunc', projectHash).length === 1);
@@ -108,6 +118,7 @@ describe('Watcher - Incremental Indexing', () => {
 
   it('removes symbols recursively when a directory is deleted', async () => {
     const watcher = watchCodebase(db, tmpDir, projectHash);
+    await sleep(200);
 
     fs.mkdirSync(path.join(tmpDir, 'subfolder'), { recursive: true });
     await sleep(200);

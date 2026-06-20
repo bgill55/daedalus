@@ -23,6 +23,7 @@ export function watchCodebase(
 
   const watchers = new Map<string, fs.FSWatcher>();
   const debounceTimers = new Map<string, NodeJS.Timeout>();
+  let isClosed = false;
 
   function isPathExcluded(relPath: string): boolean {
     const normalized = relPath.replace(/\\/g, '/');
@@ -39,6 +40,7 @@ export function watchCodebase(
   }
 
   function handleFileChange(relPath: string) {
+    if (isClosed) return;
     if (isPathExcluded(relPath)) return;
 
     const ext = path.extname(relPath).toLowerCase();
@@ -89,6 +91,7 @@ export function watchCodebase(
   if (isWindowsOrMac) {
     try {
       const watcher = fs.watch(root, { recursive: true }, (eventType, filename) => {
+        if (isClosed) return;
         if (!filename) return;
         handleFileChange(path.normalize(filename));
       });
@@ -106,6 +109,7 @@ export function watchCodebase(
 
     try {
       const watcher = fs.watch(dirPath, { recursive: false }, (eventType, filename) => {
+        if (isClosed) return;
         if (!filename) return;
         const fullFilePath = path.join(dirPath, filename);
         const relativeFile = path.relative(root, fullFilePath);
@@ -142,6 +146,7 @@ export function watchCodebase(
 
   return {
     close: () => {
+      isClosed = true;
       for (const timer of debounceTimers.values()) {
         clearTimeout(timer);
       }
