@@ -230,7 +230,24 @@ export function createModelFunctions(deps: ModelDeps) {
       const approvedCalls = toolCallArray.filter((_, i) => approvedCallIndices.has(i));
 
       console.log(`\n  ${pc.dim('[TOOL]')} ${pc.dim(`Executing ${approvedCalls.length} tool call(s)...`)}`);
-      const results = await executeToolCalls(approvedCalls, toolContext);
+      
+      const toolNames = approvedCalls.map(c => c.function.name);
+      const spinnerLabel = approvedCalls.length === 1
+        ? `Executing ${toolNames[0]}`
+        : `Executing ${approvedCalls.length} tool calls (${toolNames.join(', ')})`;
+
+      const toolSpinner = new DaedalusSpinner({
+        text: spinnerLabel,
+        color: (s) => pc.dim(s)
+      });
+      toolSpinner.start();
+
+      let results;
+      try {
+        results = await executeToolCalls(approvedCalls, toolContext);
+      } finally {
+        toolSpinner.stop();
+      }
 
       for (const result of results) {
         messages.push({
