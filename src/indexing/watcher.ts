@@ -96,6 +96,7 @@ export function watchCodebase(
         if (!filename) return;
         handleFileChange(path.normalize(filename));
       });
+      watcher.on('error', () => {});
       watchers.set(root, watcher);
     } catch {
       setupManualWatcher(root);
@@ -128,6 +129,7 @@ export function watchCodebase(
 
         handleFileChange(relativeFile);
       });
+      watcher.on('error', () => {});
       watchers.set(dirPath, watcher);
     } catch {}
 
