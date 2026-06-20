@@ -5,6 +5,8 @@ import { BUILTIN_TOOLS } from '../tools/definitions.js';
 import { executeToolCalls } from '../tools/executor.js';
 import { getAgentRole, filterToolsForRole, AgentRole } from './roles.js';
 import { ToolContext, ToolCall, ChatMessage } from '../types.js';
+import pc from 'picocolors';
+import { DaedalusSpinner } from '../tools/daedalus-spinner.js';
 
 interface DelegationTask {
   goal: string;
@@ -59,13 +61,20 @@ export class Orchestrator {
       { role: 'user', content: `Create a plan for: ${goal}\n\nContext:\n${this.toolContext.activeFiles.size > 0 ? 'Files in context: ' + Array.from(this.toolContext.activeFiles.values()).join(', ') : 'No files in context'}` },
     ];
 
-    const completion = await this.router.chat.completions.create({
-      model: 'auto',
-      messages,
-      temperature: plannerRole.temperature ?? 0.2,
-      tools,
-      tool_choice: 'auto',
-    });
+    const planSpinner = new DaedalusSpinner({ text: 'planner generating plan', color: (s) => pc.cyan(s) });
+    planSpinner.start();
+    let completion;
+    try {
+      completion = await this.router.chat.completions.create({
+        model: 'auto',
+        messages,
+        temperature: plannerRole.temperature ?? 0.2,
+        tools,
+        tool_choice: 'auto',
+      });
+    } finally {
+      planSpinner.stop();
+    }
 
     const assistantMessage = completion.choices[0].message;
     const toolCalls = assistantMessage.tool_calls;
@@ -85,13 +94,20 @@ export class Orchestrator {
       }
 
       // Ask the planner for a final text summary now that tools have run
-      const followUp = await this.router.chat.completions.create({
-        model: 'auto',
-        messages,
-        temperature: plannerRole.temperature ?? 0.2,
-        tools,
-        tool_choice: 'none', // No more tool calls — just produce the plan text
-      });
+      const finalizeSpinner = new DaedalusSpinner({ text: 'planner finalizing plan', color: (s) => pc.cyan(s) });
+      finalizeSpinner.start();
+      let followUp;
+      try {
+        followUp = await this.router.chat.completions.create({
+          model: 'auto',
+          messages,
+          temperature: plannerRole.temperature ?? 0.2,
+          tools,
+          tool_choice: 'none', // No more tool calls — just produce the plan text
+        });
+      } finally {
+        finalizeSpinner.stop();
+      }
       return (followUp.choices[0].message).content || 'No plan generated';
     }
 
@@ -292,13 +308,20 @@ export class Orchestrator {
     const maxTurns = role.maxTurns ?? 10;
 
     while (turns < maxTurns) {
-      const completion = await this.router.chat.completions.create({
-        model: 'auto',
-        messages,
-        temperature: role.temperature ?? 0.1,
-        tools,
-        tool_choice: 'auto',
-      });
+      const agentSpinner = new DaedalusSpinner({ text: `${role.name} running (turn ${turns + 1})`, color: (s) => pc.cyan(s) });
+      agentSpinner.start();
+      let completion;
+      try {
+        completion = await this.router.chat.completions.create({
+          model: 'auto',
+          messages,
+          temperature: role.temperature ?? 0.1,
+          tools,
+          tool_choice: 'auto',
+        });
+      } finally {
+        agentSpinner.stop();
+      }
 
       if (!completion || !completion.choices || completion.choices.length === 0) {
         return 'Agent completed without response';
@@ -353,7 +376,11 @@ export class Orchestrator {
     for (const result of this.results) {
       const status = result.success ? '[OK]' : '[ERROR]';
       output += `${status} **${result.role}**: ${result.goal.slice(0, 100)}\n`;
-      output += `   ${result.summary.slice(0, 200)}\n`;
+      const indented = result.summary
+        .split('\n')
+        .map(line => '   ' + line)
+        .join('\n');
+      output += `${indented}\n`;
       if (result.evidence) {
         output += `   Evidence: ${result.evidence}\n`;
       }
