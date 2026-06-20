@@ -56,11 +56,13 @@ export const ConfigSchema = z.object({
       draftModel: z.string().default('auto'),
       criticModel: z.string().default('auto'),
       maxLoops: z.number().int().min(1).max(5).default(2),
+      candidatesCount: z.number().int().min(1).max(5).default(2),
     }).default({
       enabled: false,
       draftModel: 'auto',
       criticModel: 'auto',
       maxLoops: 2,
+      candidatesCount: 2,
     }),
   }).default({
     default: 'coder',
@@ -165,6 +167,7 @@ const DEFAULT_CONFIG: DaedalusConfig = {
       draftModel: 'auto',
       criticModel: 'auto',
       maxLoops: 2,
+      candidatesCount: 2,
     },
   },
   tools: {
