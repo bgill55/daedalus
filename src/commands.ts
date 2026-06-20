@@ -1118,11 +1118,79 @@ Once you have finished making changes, I will automatically re-run the command t
     name: '/config',
     description: 'Show current configuration',
     execute: async (args, ctx) => {
-      console.log(pc.bold('\n--- Current Configuration ---'));
-      console.log(JSON.stringify(ctx.config, null, 2));
-      console.log(pc.bold('-----------------------------'));
-      console.log(pc.gray(`\nEdit ${ctx.configDir}/config.json to modify settings.`));
-      console.log(pc.gray('Run `daedalus /doctor` to auto-discover local servers.'));
+      const rest = args.trim();
+      if (!rest) {
+        console.log(pc.bold('\n--- Current Configuration ---'));
+        console.log(JSON.stringify(ctx.config, null, 2));
+        console.log(pc.bold('-----------------------------'));
+        console.log(pc.gray(`\nEdit ${ctx.configDir}/config.json to modify settings.`));
+        console.log(pc.gray('Or run `/config set <key> = <value>` (e.g. `/config set router.strategy = round-robin`)'));
+        console.log(pc.gray('Or run `/config set model.<name>.<property> = <value>` (e.g. `/config set model.lmstudio-default.tier = intelligence`)'));
+        return;
+      }
+
+      if (rest.startsWith('set ')) {
+        const setArgs = rest.substring(4).trim();
+        const eqIdx = setArgs.indexOf('=');
+        let key: string, value: string;
+        if (eqIdx >= 0) {
+          key = setArgs.slice(0, eqIdx).trim();
+          value = setArgs.slice(eqIdx + 1).trim();
+        } else {
+          const parts = setArgs.split(/\s+/);
+          key = parts[0];
+          value = parts.slice(1).join(' ').trim();
+        }
+
+        if (!key || !value) {
+          console.log(pc.red('[WARN] Usage: /config set <key> = <value>'));
+          return;
+        }
+
+        const { saveConfig, ConfigSchema } = await import('./config/index.js');
+        let parsedVal: any = value;
+        if (value.toLowerCase() === 'true') parsedVal = true;
+        else if (value.toLowerCase() === 'false') parsedVal = false;
+        else if (!isNaN(Number(value))) parsedVal = Number(value);
+
+        try {
+          if (key.startsWith('model.')) {
+            const parts = key.split('.');
+            if (parts.length < 3) {
+              console.log(pc.red('[WARN] Usage: /config set model.<name>.<property> = <value>'));
+              return;
+            }
+            const modelIdentifier = parts[1];
+            const property = parts.slice(2).join('.');
+            const chain = ctx.config.router.chain;
+            const modelEntry = chain.find((m: any) => m.name === modelIdentifier || m.model === modelIdentifier);
+            if (!modelEntry) {
+              console.log(pc.red(`[WARN] Model '${modelIdentifier}' not found in router chain.`));
+              return;
+            }
+            (modelEntry as Record<string, any>)[property] = parsedVal;
+          } else {
+            const parts = key.split('.');
+            let currentObj: any = ctx.config;
+            for (let i = 0; i < parts.length - 1; i++) {
+              if (currentObj[parts[i]] === undefined) {
+                currentObj[parts[i]] = {};
+              }
+              currentObj = currentObj[parts[i]];
+            }
+            currentObj[parts[parts.length - 1]] = parsedVal;
+          }
+
+          const validated = ConfigSchema.parse(ctx.config);
+          ctx.config = validated;
+          saveConfig(validated);
+          console.log(pc.green(`[OK] Set global config: ${key} = ${value}`));
+        } catch (err: any) {
+          console.log(pc.red(`[WARN] Invalid configuration value: ${err.message}`));
+        }
+      } else {
+        console.log(pc.red('[WARN] Usage: /config | /config set <key> = <value>'));
+      }
     }
   },
   {
