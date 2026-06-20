@@ -3,6 +3,7 @@ import path from 'path';
 import readline from 'readline';
 import pc from 'picocolors';
 
+import { pendingNotifications } from './agents/background.js';
 import { searchSymbols as ftsSearch } from './indexing/fts.js';
 import { getSessionTodos, setSessionTodos } from './tools/builtin/todo.js';
 import { calculateSessionTokens } from './session/tokens.js';
@@ -116,6 +117,12 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
 
   async function chatLoop(): Promise<void> {
     while (true) {
+      if (pendingNotifications.length > 0) {
+        console.log();
+        while (pendingNotifications.length > 0) {
+          console.log(pc.yellow(pendingNotifications.shift()!));
+        }
+      }
       let prompt = `\n${pc.cyan('  ⬡')} `;
       if (activeFiles.size > 0 || (config.ui.showTokens && messages.length > 1)) {
         const fileStr = activeFiles.size > 0 ? `${activeFiles.size} file${activeFiles.size > 1 ? 's' : ''}` : '';

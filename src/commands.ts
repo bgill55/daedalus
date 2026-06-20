@@ -20,6 +20,7 @@ import { runOnboarding } from './onboarding/wizard.js';
 import { extractAndSave } from './extraction.js';
 import { printUserTurn, turnSeparator } from './formatting.js';
 import { getClipboardText, getClipboardImage } from './clipboard.js';
+import { spawnBackgroundAgent } from './agents/background.js';
 
 export interface CommandContext {
   config: any;
@@ -208,28 +209,38 @@ export const commandsList: Command[] = [
   {
     name: '/spawn',
     aliases: ['/delegate'],
-    description: 'Spawn sub-agent: /spawn <role> <task>',
+    description: 'Spawn sub-agent: /spawn [--bg] <role> <task>',
     execute: async (args, ctx) => {
       let role = '';
       let task = '';
+      let isBackground = false;
 
-      if (args.includes(' to ')) {
-        const match = args.match(/^(.+)\s+to\s+(\w+)$/i);
+      let cleanedArgs = args.trim();
+      if (cleanedArgs.startsWith('--bg ')) {
+        isBackground = true;
+        cleanedArgs = cleanedArgs.substring(5).trim();
+      } else if (cleanedArgs.endsWith(' --bg')) {
+        isBackground = true;
+        cleanedArgs = cleanedArgs.substring(0, cleanedArgs.length - 5).trim();
+      }
+
+      if (cleanedArgs.includes(' to ')) {
+        const match = cleanedArgs.match(/^(.+)\s+to\s+(\w+)$/i);
         if (match) {
           task = match[1].trim();
           role = match[2].toLowerCase();
         }
       } else {
-        const parts = args.trim().split(/\s+/);
+        const parts = cleanedArgs.split(/\s+/);
         if (parts.length >= 2) {
           role = parts[0].toLowerCase();
-          task = args.substring(parts[0].length).trim();
+          task = cleanedArgs.substring(parts[0].length).trim();
         }
       }
 
       const validRoles = ['coder', 'reviewer', 'debugger', 'researcher', 'planner'];
       if (!role || !task) {
-        console.log(pc.red('[WARN] Usage: /spawn <role> <task>  OR  /delegate <task> to <role>'));
+        console.log(pc.red('[WARN] Usage: /spawn [--bg] <role> <task>  OR  /delegate [--bg] <task> to <role>'));
         console.log(pc.gray(`  Roles: ${validRoles.join(', ')}`));
         return;
       }
@@ -239,8 +250,17 @@ export const commandsList: Command[] = [
         return;
       }
 
-      console.log(pc.cyan(`\n[SPAWN] Spawning ${role} agent for: ${task.slice(0, 80)}...`));
       const context = `Active files: ${Array.from(ctx.activeFiles.values()).join(', ') || 'none'}`;
+
+      if (isBackground) {
+        console.log(pc.cyan(`\n[SPAWN] Spawning ${role} agent in background for: ${task.slice(0, 80)}...`));
+        const id = spawnBackgroundAgent(role, task, context, ctx.toolContext);
+        console.log(pc.green(`[OK] Spawned background task #${id} (${role}) successfully.`));
+        console.log(pc.gray(`  Check status via /tasks, view logs/results via /task ${id}, or cancel via /task kill ${id}`));
+        return;
+      }
+
+      console.log(pc.cyan(`\n[SPAWN] Spawning ${role} agent for: ${task.slice(0, 80)}...`));
 
       const fakeToolCall: ToolCall = {
         id: `call_${Date.now()}`,
@@ -259,6 +279,98 @@ export const commandsList: Command[] = [
         if (!result.success && result.error) {
           console.log(pc.red(`Error: ${result.error}`));
         }
+      }
+    }
+  },
+  {
+    name: '/tasks',
+    description: 'List background agent tasks',
+    execute: async (args, ctx) => {
+      const { backgroundJobs } = await import('./agents/background.js');
+      if (backgroundJobs.size === 0) {
+        console.log(pc.gray('No background tasks found.'));
+        return;
+      }
+
+      console.log(pc.cyan('\n--- Background Tasks ---'));
+      for (const job of backgroundJobs.values()) {
+        const duration = job.finishedAt
+          ? `${Math.round((job.finishedAt - job.startedAt) / 1000)}s`
+          : `${Math.round((Date.now() - job.startedAt) / 1000)}s elapsed`;
+
+        let statusStr = '';
+        if (job.status === 'running') {
+          statusStr = pc.blue('RUNNING');
+        } else if (job.status === 'completed') {
+          statusStr = pc.green('COMPLETED');
+        } else if (job.status === 'failed') {
+          statusStr = pc.red('FAILED');
+        } else {
+          statusStr = pc.yellow('CANCELLED');
+        }
+
+        console.log(`[#${job.id}] ${pc.bold(job.role)} — ${statusStr} (${duration})`);
+        console.log(pc.gray(`  Goal: ${job.goal.slice(0, 80)}`));
+      }
+    }
+  },
+  {
+    name: '/task',
+    description: 'Manage background task: /task <id> | /task kill <id>',
+    execute: async (args, ctx) => {
+      const { backgroundJobs, killBackgroundAgent } = await import('./agents/background.js');
+      const trimmed = args.trim();
+
+      if (!trimmed) {
+        console.log(pc.red('[WARN] Usage: /task <id>  OR  /task kill <id>'));
+        return;
+      }
+
+      if (trimmed.startsWith('kill ')) {
+        const idStr = trimmed.substring(5).trim();
+        const id = parseInt(idStr, 10);
+        if (isNaN(id)) {
+          console.log(pc.red(`[WARN] Invalid task ID: ${idStr}`));
+          return;
+        }
+        const killed = killBackgroundAgent(id);
+        if (killed) {
+          console.log(pc.green(`[OK] Task #${id} cancelled.`));
+        } else {
+          console.log(pc.red(`[WARN] Task #${id} is not running or not found.`));
+        }
+        return;
+      }
+
+      const id = parseInt(trimmed, 10);
+      if (isNaN(id)) {
+        console.log(pc.red('[WARN] Usage: /task <id>  OR  /task kill <id>'));
+        return;
+      }
+
+      const job = backgroundJobs.get(id);
+      if (!job) {
+        console.log(pc.red(`[WARN] Task #${id} not found.`));
+        return;
+      }
+
+      console.log(pc.cyan(`\n--- Task #${job.id} (${job.role}) ---`));
+      console.log(`Goal: ${job.goal}`);
+      console.log(`Status: ${job.status.toUpperCase()}`);
+      console.log(`Started: ${new Date(job.startedAt).toLocaleTimeString()}`);
+      if (job.finishedAt) {
+        console.log(`Finished: ${new Date(job.finishedAt).toLocaleTimeString()}`);
+        console.log(`Duration: ${Math.round((job.finishedAt - job.startedAt) / 1000)}s`);
+      }
+
+      if (job.status === 'completed' && job.result) {
+        console.log(pc.white('\n--- Result ---'));
+        console.log(job.result);
+      } else if (job.status === 'failed' && job.error) {
+        console.log(pc.red(`\n--- Error ---`));
+        console.log(job.error);
+      } else if (job.status === 'running') {
+        console.log(pc.gray('\nThis task is still running. Check again later.'));
       }
     }
   },
