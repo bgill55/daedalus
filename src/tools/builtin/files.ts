@@ -376,6 +376,16 @@ export async function writeFile(args: { path: string; content: string }, context
       return formatError(`Syntax error in ${args.path} — file reverted.\n${syntaxError}\nFix the error and retry.`);
     }
 
+    if (context.patchHistory) {
+      context.patchHistory.push({
+        filePath: targetPath,
+        oldContent: previousContent || '',
+        newContent: args.content,
+        timestamp: Date.now(),
+        description: `Created new file: ${args.path}`,
+      });
+    }
+
     const postWarnings = buildPostWriteWarnings(targetPath, context.projectRoot);
     const testFailure = await runColocatedTests(targetPath, context.projectRoot);
     const notices: string[] = [];
