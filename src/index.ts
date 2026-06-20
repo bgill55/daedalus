@@ -152,6 +152,9 @@ The index context is automatically injected before each user turn. When working 
 ## CODEBASE INDEX
 A FTS5 symbol index is built automatically on startup. Use \`find_symbol\` to search classes, functions, interfaces, types across the project. Use \`get_definition\` to pinpoint a symbol's file and line. Use \`get_references\` to see the call graph. The index is incremental (SHA-based) so re-indexing is fast.
 
+## TERMINAL SANDBOXING
+Terminal execution runs inside an isolated Docker container or WSL environment if configured (handled transparently by the \`terminal\` tool). Execute build/test/run commands normally.
+
 ## EFFICIENCY RULES
 - Batch related patches: if you need to change 3 functions in the same file, do them in 3 sequential patch calls — not 3 reads.
 - Do NOT re-read a file you just read unless the content changed.
