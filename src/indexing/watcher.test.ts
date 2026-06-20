@@ -28,6 +28,7 @@ describe('Watcher - Incremental Indexing', () => {
   let tmpDir: string;
   let dbPath: string;
   let db: Database.Database;
+  let watcher: { close: () => void } | undefined;
   const projectHash = 'watchertest';
 
   beforeEach(() => {
@@ -37,6 +38,10 @@ describe('Watcher - Incremental Indexing', () => {
   });
 
   afterEach(async () => {
+    if (watcher) {
+      watcher.close();
+      watcher = undefined;
+    }
     db.close();
     try {
       fs.rmSync(tmpDir, { recursive: true, force: true });
@@ -49,7 +54,7 @@ describe('Watcher - Incremental Indexing', () => {
   });
 
   it('indexes a newly created file and ignores excluded paths or non-matching extensions', async () => {
-    const watcher = watchCodebase(db, tmpDir, projectHash);
+    watcher = watchCodebase(db, tmpDir, projectHash);
     await sleep(200);
 
     fs.writeFileSync(path.join(tmpDir, 'test.ts'), 'export function testFunc() {}');
@@ -72,10 +77,11 @@ describe('Watcher - Incremental Indexing', () => {
     expect(docFuncDefs).toHaveLength(0);
 
     watcher.close();
+    watcher = undefined;
   });
 
   it('updates index when a file is modified', async () => {
-    const watcher = watchCodebase(db, tmpDir, projectHash);
+    watcher = watchCodebase(db, tmpDir, projectHash);
     await sleep(200);
 
     fs.writeFileSync(path.join(tmpDir, 'modify.ts'), 'export function firstFunc() {}');
@@ -95,10 +101,11 @@ describe('Watcher - Incremental Indexing', () => {
     expect(defsAfterNew[0].file_path).toBe('modify.ts');
 
     watcher.close();
+    watcher = undefined;
   });
 
   it('removes symbols when a file is deleted', async () => {
-    const watcher = watchCodebase(db, tmpDir, projectHash);
+    watcher = watchCodebase(db, tmpDir, projectHash);
     await sleep(200);
 
     fs.writeFileSync(path.join(tmpDir, 'delete.ts'), 'export function byeFunc() {}');
@@ -114,10 +121,11 @@ describe('Watcher - Incremental Indexing', () => {
     expect(defsAfter).toHaveLength(0);
 
     watcher.close();
+    watcher = undefined;
   });
 
   it('removes symbols recursively when a directory is deleted', async () => {
-    const watcher = watchCodebase(db, tmpDir, projectHash);
+    watcher = watchCodebase(db, tmpDir, projectHash);
     await sleep(200);
 
     fs.mkdirSync(path.join(tmpDir, 'subfolder'), { recursive: true });
@@ -135,5 +143,6 @@ describe('Watcher - Incremental Indexing', () => {
     expect(defsAfter).toHaveLength(0);
 
     watcher.close();
+    watcher = undefined;
   });
 });

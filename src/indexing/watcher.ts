@@ -52,6 +52,7 @@ export function watchCodebase(
     }
 
     const timer = setTimeout(() => {
+      if (isClosed) return;
       debounceTimers.delete(relPath);
       const fullPath = path.join(root, relPath);
 
