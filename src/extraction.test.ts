@@ -120,4 +120,38 @@ describe('Fact extraction', () => {
     await expect(extractAndSave(mockRouter as any, mockSessionManager as any, messages)).resolves.not.toThrow();
   });
 
+  it('cleans non-standard JSON formats', async () => {
+    const messages: ChatMessage[] = [
+      { role: 'user', content: 'use vitest' },
+      {
+        role: 'assistant',
+        content: 'ok',
+        tool_calls: [
+          { id: '1', type: 'function', function: { name: 'patch', arguments: '{}' } },
+        ],
+      },
+      { role: 'tool', content: 'done', tool_call_id: '1' },
+    ];
+
+    const relaxedJson = `[\n      // inline comment\n      {\n        key: 'framework', /* block comment */\n        value: 'vitest',\n      },\n    ]`;
+
+    const mockRouter = {
+      chat: {
+        completions: {
+          create: vi.fn().mockResolvedValue({
+            choices: [{ message: { content: relaxedJson } }],
+          }),
+        },
+      },
+    };
+
+    const mockSessionManager = {
+      loadMemory: vi.fn().mockReturnValue({ facts: [] }),
+      addFact: vi.fn(),
+    };
+
+    await extractAndSave(mockRouter as any, mockSessionManager as any, messages);
+    expect(mockSessionManager.addFact).toHaveBeenCalledWith('framework', 'vitest', 'agent');
+  });
+
 });

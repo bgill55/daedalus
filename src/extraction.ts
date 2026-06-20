@@ -81,7 +81,8 @@ export async function extractAndSave(
     const jsonMatch = text.match(/\[[\s\S]*?\]/);
     if (!jsonMatch) return;
 
-    const parsed: { key: string; value: string }[] = JSON.parse(jsonMatch[0]);
+    const cleanedJson = cleanJson(jsonMatch[0]);
+    const parsed: { key: string; value: string }[] = JSON.parse(cleanedJson);
     if (!Array.isArray(parsed)) return;
 
     const existingKeyValues = new Set(existingFacts.map(f => `${f.key}::${f.value}`));
@@ -104,3 +105,15 @@ export async function extractAndSave(
     console.log(`  ${pc.dim('[extract]')} ${pc.yellow(`skipped: ${(err as Error).message}`)}`);
   }
 }
+
+function cleanJson(str: string): string {
+  let cleaned = str.trim();
+  cleaned = cleaned.replace(/\/\*[\s\S]*?\*\/|([^\\:]|^)\/\/.*$/gm, '$1');
+  cleaned = cleaned.replace(/([{,\[]\s*)'([^']*)'\s*:/g, '$1"$2":');
+  cleaned = cleaned.replace(/:\s*'([^']*)'\s*([,}\]])/g, ':"$1"$2');
+  cleaned = cleaned.replace(/\[\s*'([^']*)'\s*([,\]])/g, '["$1"$2');
+  cleaned = cleaned.replace(/([{,]\s*)([a-zA-Z0-9_-]+)\s*:/g, '$1"$2":');
+  cleaned = cleaned.replace(/,\s*([}\]])/g, '$1');
+  return cleaned;
+}
+
