@@ -112,7 +112,8 @@ Daedalus stores config at `~/.daedalus/config.json`. Key sections:
       { "name": "local", "endpoint": "http://localhost:1234/v1", "model": "auto", "enabled": true, "priority": 1 }
     ]
   },
-  "indexing": { "enabled": true, "exclude": ["node_modules", "dist", ".git"] }
+  "indexing": { "enabled": true, "watch": true, "exclude": ["node_modules", "dist", ".git"] },
+  "tools": { "sandbox": "none", "sandboxImage": "node:20" }
 }
 ```
 
@@ -122,6 +123,28 @@ Router strategies: `priority` (default), `round-robin`, `fastest`.
 The shell used by the terminal tool can be configured:
 1. Environment variable: `DAEDALUS_SHELL` or `SHELL`.
 2. Configuration file setting: `"tools": { "shell": "powershell" }` (supports `powershell`, `pwsh`, `cmd`, `bash`, or absolute executable paths).
+
+### Codebase File Watching
+By default, indexing happens sequentially on startup. To enable real-time incremental indexing as files are created, modified, or deleted:
+- Set `"watch": true` under `"indexing"` in the configuration.
+
+### Execution Sandboxing
+By default, the terminal tool runs commands directly on the host machine. You can configure isolated execution using Docker or WSL:
+
+1. **Docker Sandbox**: Run all commands inside a Docker container. Mounts the project root automatically to `/workspace` so edits map directly back to the host:
+   ```json
+   "tools": {
+     "sandbox": "docker",
+     "sandboxImage": "node:20"
+   }
+   ```
+2. **WSL Sandbox (Windows only)**: Run all commands inside Windows Subsystem for Linux, automatically converting Windows directory paths to WSL paths:
+   ```json
+   "tools": {
+     "sandbox": "wsl",
+     "wslDistribution": "Ubuntu"
+   }
+   ```
 
 Per-project config at `~/.daedalus/config/<project-hash>.json` — set via `/project set <key> <value>`.
 
