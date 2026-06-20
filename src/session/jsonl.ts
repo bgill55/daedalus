@@ -1,5 +1,3 @@
-// JSONL import/export for session portability
-
 import fs from 'fs';
 import Database from 'better-sqlite3';
 import { getTurns, clearTurns, saveTurn, SqliteTurn } from './sqlite.js';
@@ -19,10 +17,9 @@ export interface JsonlTurn {
   timestamp?: number;
 }
 
-/** Export all turns from a session SQLite DB to a JSONL file */
 export function exportToJsonl(db: Database.Database, jsonlPath: string): void {
   const turns = getTurns(db);
-  const stream = fs.createWriteStream(jsonlPath, { encoding: 'utf8' });
+  const lines: string[] = [];
 
   turns.forEach((t, index) => {
     let toolCallsParsed: any[] | undefined = undefined;
@@ -30,7 +27,6 @@ export function exportToJsonl(db: Database.Database, jsonlPath: string): void {
       try {
         toolCallsParsed = JSON.parse(t.tool_calls);
       } catch {
-        // Ignored
       }
     }
 
@@ -51,13 +47,12 @@ export function exportToJsonl(db: Database.Database, jsonlPath: string): void {
       timestamp: t.created_at,
     };
 
-    stream.write(JSON.stringify(line) + '\n');
+    lines.push(JSON.stringify(line) + '\n');
   });
 
-  stream.end();
+  fs.writeFileSync(jsonlPath, lines.join(''), 'utf8');
 }
 
-/** Import turns from a JSONL file into a session SQLite DB */
 export function importFromJsonl(db: Database.Database, jsonlPath: string): void {
   if (!fs.existsSync(jsonlPath)) {
     throw new Error(`JSONL file not found: ${jsonlPath}`);

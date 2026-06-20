@@ -69,7 +69,7 @@ function yieldToEventLoop(): Promise<void> {
 }
 
 /** Extract symbols and references from TypeScript/JavaScript file */
-function parseTypeScript(content: string, relPath: string, projectHash: string): { symbols: SymbolRow[]; references: ReferenceRow[] } {
+export function parseTypeScript(content: string, relPath: string, projectHash: string): { symbols: SymbolRow[]; references: ReferenceRow[] } {
   const symbols: SymbolRow[] = [];
   const references: ReferenceRow[] = [];
   const lines = content.split(/\r?\n/);
@@ -206,7 +206,7 @@ function parseTypeScript(content: string, relPath: string, projectHash: string):
 }
 
 /** Extract symbols and references from Python file */
-function parsePython(content: string, relPath: string, projectHash: string): { symbols: SymbolRow[]; references: ReferenceRow[] } {
+export function parsePython(content: string, relPath: string, projectHash: string): { symbols: SymbolRow[]; references: ReferenceRow[] } {
   const symbols: SymbolRow[] = [];
   const references: ReferenceRow[] = [];
   const lines = content.split(/\r?\n/);
@@ -289,7 +289,7 @@ function parsePython(content: string, relPath: string, projectHash: string): { s
 }
 
 /** Extract symbols and references from Go file */
-function parseGo(content: string, relPath: string, projectHash: string): { symbols: SymbolRow[]; references: ReferenceRow[] } {
+export function parseGo(content: string, relPath: string, projectHash: string): { symbols: SymbolRow[]; references: ReferenceRow[] } {
   const symbols: SymbolRow[] = [];
   const references: ReferenceRow[] = [];
   const lines = content.split(/\r?\n/);
@@ -407,7 +407,7 @@ function parseGo(content: string, relPath: string, projectHash: string): { symbo
 }
 
 /** Extract symbols and references from Rust file */
-function parseRust(content: string, relPath: string, projectHash: string): { symbols: SymbolRow[]; references: ReferenceRow[] } {
+export function parseRust(content: string, relPath: string, projectHash: string): { symbols: SymbolRow[]; references: ReferenceRow[] } {
   const symbols: SymbolRow[] = [];
   const references: ReferenceRow[] = [];
   const lines = content.split(/\r?\n/);

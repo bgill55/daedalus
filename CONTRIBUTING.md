@@ -130,8 +130,9 @@ test(session): add SQLite CRUD tests
 1. **Small PRs are better** — keep each PR focused on one concern
 2. **Update the CHANGELOG** — add your change under the `[Unreleased]` section
 3. **Include tests** — new features should include tests; bug fixes should add a regression test
-4. **Pass CI** — ensure all checks pass (type check, lint, tests)
-5. **Request review** — tag a maintainer or mention `@bgill55`
+4. **Pass CI** — CI runs `npm run lint` (ubuntu) and `npm test` (win/ubuntu/macos). Ensure all pass before requesting review
+5. **Auto-release on merge** — when a PR merges to `main`, semantic-release publishes a new version to npm and creates a GitHub release automatically. The version bump is determined by commit messages (conventional commits)
+6. **Request review** — tag a maintainer or mention `@bgill55`
 
 ### PR Title Format
 

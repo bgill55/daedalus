@@ -1,0 +1,39 @@
+name: Canary
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Version bump
+        required: true
+        default: prerelease
+        type: choice
+        options:
+          - prerelease
+          - prepatch
+          - preminor
+
+jobs:
+  canary:
+    name: Publish canary
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '>=20.0.0'
+          registry-url: 'https://registry.npmjs.org'
+          cache: npm
+      - run: npm ci
+      - name: Bump version
+        run: |
+          npm version ${{ inputs.bump }} --preid=canary --no-git-tag-version
+          VERSION=$(node -p "require('./package.json').version")
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+      - run: npm run build
+      - run: npm publish --tag canary --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - run: echo "Published canary ${{ env.VERSION }}"

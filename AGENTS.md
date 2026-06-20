@@ -25,8 +25,18 @@
 
 ## Testing
 - Framework: vitest
-- Run: `npm test` (vitest run)
-- No tests exist yet — add them under `src/` co-located as `*.test.ts`
+- Run: `npm test` (vitest run, 270+ tests across 32 files)
+- Tests co-located as `*.test.ts` under `src/`
+
+## Lint
+- Framework: eslint v10 (flat config)
+- Run: `npm run lint` (eslint src --ext .ts)
+
+## CI/CD
+- **CI** (`.github/workflows/ci.yml`): on PR → lint (ubuntu) + test (win/ubuntu/macos)
+- **Release** (`.github/workflows/release.yml`): on push to `main` → `npx semantic-release`
+- **Canary** (`.github/workflows/canary.yml`): manual dispatch → publish with `--tag canary`
+- Requires `NPM_TOKEN` and `GITHUB_TOKEN` GitHub secrets
 
 ## important
 - never lint before asking

@@ -199,6 +199,10 @@ export class SessionManager {
     deleteSessionFromIndex(this.indexDb, sessionId);
     const dbPath = path.join(this.sessionsDir, this.projectHash, `${sessionId}.sqlite`);
     const jsonlPath = path.join(this.sessionsDir, this.projectHash, `${sessionId}.jsonl`);
+    if (this.sessionDb && this.sessionDb.name === dbPath) {
+      this.sessionDb.close();
+      this.sessionDb = undefined;
+    }
     if (fs.existsSync(dbPath)) fs.unlinkSync(dbPath);
     if (fs.existsSync(jsonlPath)) fs.unlinkSync(jsonlPath);
   }
@@ -223,5 +227,16 @@ export class SessionManager {
 
   public loadMemory(): ProjectMemory {
     return loadMemory(this.getMemoryPath(), this.projectHash);
+  }
+
+  /** Close database connections */
+  public close(): void {
+    if (this.sessionDb) {
+      this.sessionDb.close();
+      this.sessionDb = undefined;
+    }
+    if (this.indexDb) {
+      this.indexDb.close();
+    }
   }
 }

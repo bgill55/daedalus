@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **CI/CD pipeline** — lint on ubuntu + test on win/ubuntu/macos runs on every PR; push to main triggers semantic-release (npm publish + GitHub release); manual canary release workflow with `--tag canary`
+- **ESLint v10 flat config** — typescript-eslint integration, pragmatically tuned to warn on pre-existing issues and error on new ones
+- **`DAEDALUS_PROFILE_PATH` env var** — allows overriding profile path without mocking `os.homedir()`
+
+### Fixed
+- **Orchestrator error handling** — `run()` now catches errors and returns a graceful fallback message instead of crashing
+
 ## [0.5.24] - 2026-06-19
 
 ### Added

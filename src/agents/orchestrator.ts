@@ -34,14 +34,14 @@ export class Orchestrator {
 
   async run(goal: string): Promise<string> {
     this.results = [];
-    
-    // Create initial plan
-    const plan = await this.createPlan(goal);
-    
-    // Execute plan by delegating to agents
-    await this.executePlan(plan);
-    
-    // Synthesize results
+
+    try {
+      const plan = await this.createPlan(goal);
+      await this.executePlan(plan);
+    } catch (err) {
+      return `Orchestration failed: ${(err as Error).message}`;
+    }
+
     return this.synthesize(goal);
   }
 
