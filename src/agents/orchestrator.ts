@@ -195,36 +195,29 @@ export class Orchestrator {
     if (!this.requiresRealArtifacts(role, goal)) return true;
     if (this.isDeclaredError(result)) return true;
 
+    if (!this.toolContext.patchHistory || this.toolContext.patchHistory.length === 0) {
+      return false;
+    }
+
     const rawPaths = this.extractPendingWrites(result);
     const paths = rawPaths.map(p => p.replace(/\\/g, '/'));
 
-    if (this.toolContext.patchHistory && this.toolContext.patchHistory.length > 0) {
-      const normalizedHistory = this.toolContext.patchHistory.map(h => ({
-        ...h,
-        normalizedPath: h.filePath.replace(/\\/g, '/')
-      }));
+    const normalizedHistory = this.toolContext.patchHistory.map(h => ({
+      ...h,
+      normalizedPath: h.filePath.replace(/\\/g, '/')
+    }));
 
-      const hasPatchedMentioned = normalizedHistory.some(h =>
-        paths.includes(h.normalizedPath) || paths.some(p => h.normalizedPath.endsWith(p) || p.endsWith(h.normalizedPath))
-      );
-      if (hasPatchedMentioned) return true;
+    const hasPatchedMentioned = normalizedHistory.some(h =>
+      paths.includes(h.normalizedPath) || paths.some(p => h.normalizedPath.endsWith(p) || p.endsWith(h.normalizedPath))
+    );
+    if (hasPatchedMentioned) return true;
 
-      const hasRelevantPatch = normalizedHistory.some(h => {
-        const base = h.normalizedPath.split('/').pop() || '';
-        const goalLower = goal.toLowerCase();
-        return goalLower.includes(base.split('.')[0].toLowerCase());
-      });
-      if (hasRelevantPatch) return true;
-    }
-
-    if (paths.length > 0) {
-      const goalWords = goal.toLowerCase().split(/\s+/).filter(w => w.length > 2);
-      const isAnyPathRelevant = paths.some(p => {
-        const base = (p.split('/').pop() || '').toLowerCase();
-        return goalWords.some(w => base.includes(w));
-      });
-      if (isAnyPathRelevant) return true;
-    }
+    const hasRelevantPatch = normalizedHistory.some(h => {
+      const base = h.normalizedPath.split('/').pop() || '';
+      const goalLower = goal.toLowerCase();
+      return goalLower.includes(base.split('.')[0].toLowerCase());
+    });
+    if (hasRelevantPatch) return true;
 
     return false;
   }
