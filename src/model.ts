@@ -242,11 +242,20 @@ export function createModelFunctions(deps: ModelDeps) {
       });
       toolSpinner.start();
 
+      toolContext.pauseSpinner = () => {
+        toolSpinner.stop();
+      };
+      toolContext.resumeSpinner = () => {
+        toolSpinner.start();
+      };
+
       let results;
       try {
         results = await executeToolCalls(approvedCalls, toolContext);
       } finally {
         toolSpinner.stop();
+        toolContext.pauseSpinner = () => {};
+        toolContext.resumeSpinner = () => {};
       }
 
       for (const result of results) {

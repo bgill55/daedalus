@@ -130,6 +130,9 @@ export async function promptDiffDecision(
     if (process.stdin.isTTY) {
       process.stdin.setRawMode?.(true);
     }
+    if (process.stdin.isPaused()) {
+      process.stdin.resume();
+    }
 
     const onKey = (key: Buffer) => {
       const char = key.toString().toLowerCase();
