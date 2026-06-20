@@ -91,9 +91,14 @@ export const ConfigSchema = z.object({
       enabled: z.boolean().default(false),
     })).default({}),
     shell: z.string().optional(),
+    sandbox: z.enum(['none', 'docker', 'wsl']).default('none'),
+    sandboxImage: z.string().default('node:20'),
+    wslDistribution: z.string().optional(),
   }).default({
     builtin: [],
     mcpServers: {},
+    sandbox: 'none',
+    sandboxImage: 'node:20',
   }),
   context: z.object({
     maxTokens: z.number().int().positive().default(128000),
@@ -178,6 +183,8 @@ const DEFAULT_CONFIG: DaedalusConfig = {
       'get_definition', 'get_references'
     ],
     mcpServers: {},
+    sandbox: 'none',
+    sandboxImage: 'node:20',
   },
   context: {
     maxTokens: 128000,

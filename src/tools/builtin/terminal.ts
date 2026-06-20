@@ -124,7 +124,57 @@ export async function execute(args: { command: string; timeout?: number; workdir
       return { shell: active.shell, args: getShellArgs(active.type, command) };
     }
 
-    const { shell, args: shellArgs } = detectShell();
+    function getExecutionShell(): { shell: string; args: string[] } {
+      let config;
+      try {
+        config = loadConfig();
+      } catch {
+        return detectShell();
+      }
+      const sandbox = config.tools?.sandbox ?? 'none';
+      const sandboxImage = config.tools?.sandboxImage ?? 'node:20';
+      const wslDistribution = config.tools?.wslDistribution;
+
+      if (sandbox === 'docker') {
+        const rel = path.relative(context.projectRoot, workdir);
+        const containerWorkdir = rel ? `/workspace/${rel.replace(/\\/g, '/')}` : '/workspace';
+        const dockerArgs = [
+          'run',
+          '-i',
+          '--rm',
+          '-v',
+          `${context.projectRoot}:/workspace`,
+          '-w',
+          containerWorkdir,
+          sandboxImage,
+          'sh',
+          '-c',
+          command,
+        ];
+        return { shell: 'docker', args: dockerArgs };
+      }
+
+      if (sandbox === 'wsl' && process.platform === 'win32') {
+        let wslWorkdir = '';
+        try {
+          wslWorkdir = execSync(`wsl wslpath -u "${workdir}"`, { encoding: 'utf8', stdio: 'pipe' }).trim();
+        } catch {
+          const letter = workdir.charAt(0).toLowerCase();
+          const rest = workdir.slice(3).replace(/\\/g, '/');
+          wslWorkdir = `/mnt/${letter}/${rest}`;
+        }
+        const wslArgs = [];
+        if (wslDistribution) {
+          wslArgs.push('-d', wslDistribution);
+        }
+        wslArgs.push('--cd', wslWorkdir, '--', 'sh', '-c', command);
+        return { shell: 'wsl', args: wslArgs };
+      }
+
+      return detectShell();
+    }
+
+    const { shell, args: shellArgs } = getExecutionShell();
 
     const child = spawn(shell, shellArgs, {
       cwd: workdir,

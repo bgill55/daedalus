@@ -195,4 +195,61 @@ describe('terminal execute', () => {
 
     expect(spawn).toHaveBeenCalledWith('pwsh', ['-NoProfile', '-Command', 'Get-ChildItem'], expect.any(Object));
   });
+
+  it('uses Docker sandbox when configured', async () => {
+    (loadConfig as any).mockReturnValue({
+      tools: {
+        sandbox: 'docker',
+        sandboxImage: 'custom-node:18',
+      }
+    });
+    const mockProc = makeMockProcess();
+    (spawn as any).mockReturnValue(mockProc);
+
+    const resultPromise = execute({ command: 'echo hello' }, makeContext());
+    mockProc.emit('close', 0);
+    await resultPromise;
+
+    expect(spawn).toHaveBeenCalledWith(
+      'docker',
+      [
+        'run',
+        '-i',
+        '--rm',
+        '-v',
+        '/tmp/test:/workspace',
+        '-w',
+        '/workspace',
+        'custom-node:18',
+        'sh',
+        '-c',
+        'echo hello',
+      ],
+      expect.any(Object)
+    );
+  });
+
+  it('uses WSL sandbox when configured on Windows', async () => {
+    Object.defineProperty(process, 'platform', { value: 'win32', configurable: true });
+    (loadConfig as any).mockReturnValue({
+      tools: {
+        sandbox: 'wsl',
+        wslDistribution: 'Ubuntu',
+      }
+    });
+    (execSync as any).mockReturnValue('/mnt/tmp/test');
+
+    const mockProc = makeMockProcess();
+    (spawn as any).mockReturnValue(mockProc);
+
+    const resultPromise = execute({ command: 'echo hello' }, makeContext());
+    mockProc.emit('close', 0);
+    await resultPromise;
+
+    expect(spawn).toHaveBeenCalledWith(
+      'wsl',
+      ['-d', 'Ubuntu', '--cd', '/mnt/tmp/test', '--', 'sh', '-c', 'echo hello'],
+      expect.any(Object)
+    );
+  });
 });
