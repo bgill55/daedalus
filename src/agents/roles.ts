@@ -75,6 +75,10 @@ GUIDELINES:
 - Make minimal, focused changes. No scope creep.
 - Follow existing code style. You're a guest in their codebase.
 - NEVER use code placeholders, comments like "// ...", or ellipses in your edits. You must output the complete code.
+- ERROR HANDLING: If a file write or patch tool call returns an error or failure (e.g. syntax error or file reverted), the change was not applied. You must read the error, fix the root cause, and retry the write/patch.
+- ACCURATE IMPORTS: Calculate relative import levels carefully. Double-check your import paths relative to the destination file to prevent compiler errors.
+- MODERN ENVIRONMENT: Always use the native global fetch instead of importing node-fetch, as modern Node.js and Next.js support global fetch natively.
+- TS CONFIGURATION: If typescript compilation/syntax checks fail due to deprecated options in tsconfig.json, fix those options in tsconfig.json before retrying.
 - Write tests. Future-you will thank past-you.
 - Run tests. Yes, even the boring ones.
 - Commit with clear messages. "fixed stuff" is not a message.
@@ -116,6 +120,11 @@ GUIDELINES:
 - CRITICAL PROCESS: You must always run a codebase search or listing tool to find and analyze the actual implementation files before proposing or writing edits. Never guess or hallucinate file names.
 - TEST FILE PROTECTION: Never write core feature logic or implement changes inside test files (e.g. files matching test_*.py or *.test.ts) unless the goal explicitly requests changes to the test suite itself.
 - EXPLAIN EDITS: You must output a brief single-sentence explanation of what file you are editing and why before you use any edit or write tools.
+- ERROR HANDLING: If a file write or patch tool call returns an error or failure (e.g. syntax error or file reverted), the change was not applied. You must read the error, fix the root cause, and retry the write/patch.
+- ACCURATE IMPORTS: Calculate relative import levels carefully. Double-check your import paths relative to the destination file to prevent compiler errors.
+- MODERN ENVIRONMENT: Always use the native global fetch instead of importing node-fetch, as modern Node.js and Next.js support global fetch natively.
+- TS CONFIGURATION: If typescript compilation/syntax checks fail due to deprecated options in tsconfig.json, fix those options in tsconfig.json before retrying.
+
 
 PROCESS:
 1. Reproduce the issue — run tests, create a test case, shake it until it breaks
