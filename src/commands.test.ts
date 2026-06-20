@@ -153,3 +153,85 @@ describe('Help Command', () => {
     expect(calls.length).toBe(3);
   });
 });
+
+describe('Session Command', () => {
+  let mockContext: CommandContext;
+
+  beforeEach(() => {
+    mockContext = {
+      config: {},
+      configDir: '',
+      cliTempDir: '',
+      router: {} as any,
+      sessionManager: {
+        sessionId: 'session-123',
+        sessionTitle: 'Test Session',
+        getSessionsForProject: vi.fn().mockReturnValue([
+          { id: 'session-123', title: 'Test Session', updated_at: 1000 },
+          { id: 'session-456', title: 'Other Session', updated_at: 2000 }
+        ]),
+        startSession: vi.fn().mockReturnValue({ sessionId: 'session-456', turns: [], activeFiles: new Map(), todos: [] }),
+        saveSessionState: vi.fn(),
+        deleteSession: vi.fn(),
+      } as any,
+      userProfile: {} as any,
+      projectHash: '',
+      messages: [],
+      activeFiles: new Map(),
+      toolContext: { sessionId: 'session-123' } as any,
+      getSystemPromptWithMemory: () => '',
+      callModelWithTools: async () => ({ content: '', toolCalls: [] }),
+      callModelWithFallback: async () => '',
+      rl: {} as any,
+      initializeSessionState: vi.fn(),
+      buildFileContext: () => '',
+      askLine: async () => '',
+      buildIndexContext: async () => '',
+      getIndexDbPath: () => '',
+    };
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('lists sessions', async () => {
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const handled = await executeCommand('/session list', mockContext);
+    expect(handled).toBe(true);
+    expect(mockContext.sessionManager.getSessionsForProject).toHaveBeenCalled();
+    const call = logSpy.mock.calls.find(c => c[0] && c[0].includes('Past Sessions'));
+    expect(call).toBeDefined();
+  });
+
+  it('loads a session', async () => {
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const handled = await executeCommand('/session load session-456', mockContext);
+    expect(handled).toBe(true);
+    expect(mockContext.sessionManager.saveSessionState).toHaveBeenCalled();
+    expect(mockContext.sessionManager.startSession).toHaveBeenCalledWith('session-456', 'Other Session');
+    expect(mockContext.initializeSessionState).toHaveBeenCalled();
+    const successCall = logSpy.mock.calls.find(c => c[0] && c[0].includes('Loaded session'));
+    expect(successCall).toBeDefined();
+  });
+
+  it('starts a new session', async () => {
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const handled = await executeCommand('/session new My New Session', mockContext);
+    expect(handled).toBe(true);
+    expect(mockContext.sessionManager.saveSessionState).toHaveBeenCalled();
+    expect(mockContext.sessionManager.startSession).toHaveBeenCalledWith(undefined, 'My New Session');
+    expect(mockContext.initializeSessionState).toHaveBeenCalled();
+    const successCall = logSpy.mock.calls.find(c => c[0] && c[0].includes('Started new session'));
+    expect(successCall).toBeDefined();
+  });
+
+  it('deletes a session', async () => {
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const handled = await executeCommand('/session delete session-456', mockContext);
+    expect(handled).toBe(true);
+    expect(mockContext.sessionManager.deleteSession).toHaveBeenCalledWith('session-456');
+    const successCall = logSpy.mock.calls.find(c => c[0] && c[0].includes('Deleted session'));
+    expect(successCall).toBeDefined();
+  });
+});

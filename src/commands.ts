@@ -870,6 +870,90 @@ Once you have finished making changes, I will automatically re-run the command t
     }
   },
   {
+    name: '/session',
+    description: 'Manage chat sessions',
+    execute: async (args, ctx) => {
+      const parts = args.trim().split(/\s+/);
+      const subcommand = parts[0].toLowerCase();
+      const subcommandArg = parts.slice(1).join(' ').trim();
+
+      if (!subcommand || subcommand === 'list') {
+        const sessions = ctx.sessionManager.getSessionsForProject();
+        console.log(pc.bold('\n--- Past Sessions ---'));
+        if (sessions.length === 0) {
+          console.log(pc.gray('  No past sessions found.'));
+        } else {
+          sessions.forEach(s => {
+            const currentTag = s.id === ctx.sessionManager.sessionId ? pc.green(' (current)') : '';
+            const dateStr = new Date(s.updated_at).toLocaleString();
+            console.log(`  • ${pc.cyan(s.id)}${currentTag}`);
+            console.log(`    Title: ${pc.white(s.title)}`);
+            console.log(`    Updated: ${pc.dim(dateStr)}`);
+          });
+        }
+        console.log(pc.bold('---------------------\n'));
+        console.log(pc.gray('Use `/session load <id>` to switch to a past session.'));
+        console.log(pc.gray('Use `/session new [title]` to start a new session.'));
+        console.log(pc.gray('Use `/session delete <id>` to delete a session.'));
+        return;
+      }
+
+      if (subcommand === 'load') {
+        if (!subcommandArg) {
+          console.log(pc.red('[WARN] Usage: /session load <session-id>'));
+          return;
+        }
+        const sessions = ctx.sessionManager.getSessionsForProject();
+        const found = sessions.find(s => s.id === subcommandArg || s.id.startsWith(subcommandArg));
+        if (!found) {
+          console.log(pc.red(`[WARN] Session "${subcommandArg}" not found.`));
+          return;
+        }
+        const currentTodos = getSessionTodos(ctx.toolContext.sessionId);
+        ctx.sessionManager.saveSessionState(ctx.messages, ctx.activeFiles, currentTodos);
+
+        const loaded = ctx.sessionManager.startSession(found.id, found.title);
+        ctx.initializeSessionState(loaded);
+        console.log(pc.green(`[OK] Loaded session: ${pc.bold(found.id)} ("${found.title}")`));
+        return;
+      }
+
+      if (subcommand === 'new') {
+        const currentTodos = getSessionTodos(ctx.toolContext.sessionId);
+        ctx.sessionManager.saveSessionState(ctx.messages, ctx.activeFiles, currentTodos);
+
+        const title = subcommandArg || `Session on ${new Date().toLocaleDateString()}`;
+        const loaded = ctx.sessionManager.startSession(undefined, title);
+        ctx.initializeSessionState(loaded);
+        console.log(pc.green(`[OK] Started new session: ${pc.bold(loaded.sessionId)}`));
+        return;
+      }
+
+      if (subcommand === 'delete') {
+        if (!subcommandArg) {
+          console.log(pc.red('[WARN] Usage: /session delete <session-id>'));
+          return;
+        }
+        if (subcommandArg === ctx.sessionManager.sessionId) {
+          console.log(pc.red('[WARN] Cannot delete the current active session.'));
+          return;
+        }
+        const sessions = ctx.sessionManager.getSessionsForProject();
+        const found = sessions.find(s => s.id === subcommandArg || s.id.startsWith(subcommandArg));
+        if (!found) {
+          console.log(pc.red(`[WARN] Session "${subcommandArg}" not found.`));
+          return;
+        }
+
+        ctx.sessionManager.deleteSession(found.id);
+        console.log(pc.green(`[OK] Deleted session: ${pc.bold(found.id)}`));
+        return;
+      }
+
+      console.log(pc.red(`[WARN] Unknown subcommand: ${subcommand}`));
+    }
+  },
+  {
     name: '/test',
     description: 'Run test loop and fix failures',
     execute: async (args, ctx) => {
