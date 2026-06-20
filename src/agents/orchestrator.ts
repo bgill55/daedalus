@@ -18,6 +18,7 @@ interface AgentResult {
   goal: string;
   summary: string;
   success: boolean;
+  evidence?: string;
 }
 
 export class Orchestrator {
@@ -138,20 +139,126 @@ export class Orchestrator {
     return tasks;
   }
 
+  private isDeclaredError(result: string): boolean {
+    const normalized = result.trim().toLowerCase();
+    return /^(error|failed)/.test(normalized);
+  }
+
+  private requiresRealArtifacts(role: string, goal: string): boolean {
+    if (role !== 'coder') return false;
+    const keywords = ['implement', 'create', 'write', 'add', 'make', 'build', 'update', 'change', 'modify', 'generate', 'setup', 'fix'];
+    const lower = goal.toLowerCase();
+    return keywords.some(k => lower.includes(k));
+  }
+
+  private extractPendingWrites(result: string): string[] {
+    const paths: string[] = [];
+    const regex = /(?:created|wrote|added|updated|modified|in)\s+([A-Za-z0-9_\-./\\:]+\.[A-Za-z0-9]+)/gi;
+    let match;
+    while ((match = regex.exec(result)) !== null) {
+      paths.push(match[1]);
+    }
+    const standaloneRegex = /\b([A-Za-z0-9_\-./\\:]+\.[a-zA-Z0-9]+)\b/g;
+    let standaloneMatch;
+    while ((standaloneMatch = standaloneRegex.exec(result)) !== null) {
+      const p = standaloneMatch[1];
+      if (!paths.includes(p) && (p.includes('/') || p.includes('\\') || p.includes('.'))) {
+        paths.push(p);
+      }
+    }
+    return paths;
+  }
+
+  private async verifyArtifacts(role: string, goal: string, result: string): Promise<boolean> {
+    if (!this.requiresRealArtifacts(role, goal)) return true;
+    if (this.isDeclaredError(result)) return true;
+
+    const paths = this.extractPendingWrites(result);
+
+    if (this.toolContext.patchHistory && this.toolContext.patchHistory.length > 0) {
+      const hasPatchedMentioned = this.toolContext.patchHistory.some(h =>
+        paths.includes(h.filePath) || paths.some(p => p.endsWith(h.filePath) || h.filePath.endsWith(p))
+      );
+      if (hasPatchedMentioned) return true;
+
+      const hasRelevantPatch = this.toolContext.patchHistory.some(h => {
+        const base = h.filePath.split('/').pop() || '';
+        const goalLower = goal.toLowerCase();
+        return goalLower.includes(base.split('.')[0].toLowerCase());
+      });
+      if (hasRelevantPatch) return true;
+    }
+
+    if (paths.length > 0) {
+      const goalWords = goal.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+      const isAnyPathRelevant = paths.some(p => {
+        const base = (p.split('/').pop() || '').toLowerCase();
+        return goalWords.some(w => base.includes(w));
+      });
+      if (isAnyPathRelevant) return true;
+    }
+
+    return false;
+  }
+
+  private async attemptRepair(
+    task: DelegationTask,
+    previous: AgentResult
+  ): Promise<{ success: boolean; summary: string; evidence?: string }> {
+    const role = getAgentRole(task.role);
+    const tools = filterToolsForRole(BUILTIN_TOOLS, task.role);
+    const maxRetries = 2;
+    let attempt = 0;
+    let currentSummary = previous.summary;
+
+    while (attempt < maxRetries) {
+      attempt++;
+      console.log(`\n[REPAIR] Attempt ${attempt}/${maxRetries} to repair task: ${task.goal.slice(0, 60)}...`);
+
+      const repairContext = `${task.context}\n\nPrevious attempt failed verification. Output was:\n${currentSummary}\n\nPlease retry and ensure you actually write the required files/artifacts.`;
+
+      const result = await this.runAgent(role, task.goal, repairContext, tools);
+      const verified = await this.verifyArtifacts(task.role, task.goal, result);
+
+      if (verified && !this.isDeclaredError(result)) {
+        return { success: true, summary: result };
+      }
+      currentSummary = result;
+    }
+
+    return { success: false, summary: currentSummary, evidence: 'no artifacts' };
+  }
+
   private async delegateTask(task: DelegationTask): Promise<void> {
     const role = getAgentRole(task.role);
     console.log(`\n[SPAWN] Delegating to ${role.name}: ${task.goal.slice(0, 80)}...`);
-    
+
     const tools = filterToolsForRole(BUILTIN_TOOLS, task.role);
-    const result = await this.runAgent(role, task.goal, task.context, tools);
-    
+    let result = await this.runAgent(role, task.goal, task.context, tools);
+
+    let verified = await this.verifyArtifacts(task.role, task.goal, result);
+    let evidence = '';
+
+    if (!verified) {
+      const repaired = await this.attemptRepair(task, {
+        role: task.role,
+        goal: task.goal,
+        summary: result,
+        success: false,
+      });
+      result = repaired.summary;
+      verified = repaired.success;
+      evidence = repaired.evidence || '';
+    }
+
     this.results.push({
       role: task.role,
       goal: task.goal,
       summary: result,
-      success: !/^(Error|Failed)/.test(result.trim()),
+      success: verified && !this.isDeclaredError(result),
+      ...(evidence ? { evidence } : {}),
     });
-    
+
     console.log(`[OK] ${role.name} completed`);
   }
 
@@ -177,6 +284,10 @@ export class Orchestrator {
         tools,
         tool_choice: 'auto',
       });
+
+      if (!completion || !completion.choices || completion.choices.length === 0) {
+        return 'Agent completed without response';
+      }
 
       const message = completion.choices[0].message;
       messages.push(message);
@@ -219,14 +330,21 @@ export class Orchestrator {
   }
 
   private synthesize(goal: string): string {
-    let output = `## Orchestration Complete: ${goal}\n\n`;
-    
+    const hasFailures = this.results.some(r => !r.success);
+    let output = hasFailures
+      ? `## Orchestration Hit Verification Failures: ${goal}\n\n`
+      : `## Orchestration Complete: ${goal}\n\n`;
+
     for (const result of this.results) {
       const status = result.success ? '[OK]' : '[ERROR]';
       output += `${status} **${result.role}**: ${result.goal.slice(0, 100)}\n`;
-      output += `   ${result.summary.slice(0, 200)}\n\n`;
+      output += `   ${result.summary.slice(0, 200)}\n`;
+      if (result.evidence) {
+        output += `   Evidence: ${result.evidence}\n`;
+      }
+      output += `\n`;
     }
-    
+
     return output;
   }
 }
