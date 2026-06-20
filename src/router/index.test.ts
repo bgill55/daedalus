@@ -5,7 +5,7 @@ import * as health from './health.js';
 import * as rateLimiter from './rate-limiter.js';
 
 function makeConfig(overrides: Partial<RouterConfig> = {}): RouterConfig {
-  const config = {
+  const config: RouterConfig = {
     strategy: 'priority',
     chain: [
       { name: 'primary', endpoint: 'http://localhost:1234/v1', model: 'auto', priority: 1, enabled: true },
