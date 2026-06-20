@@ -18,14 +18,27 @@
 Daedalus connects to local LLM servers (LM Studio, Ollama, llama.cpp, vLLM) or remote providers (OpenAI, Groq, OpenRouter, Anthropic), routes requests across models, and gives your AI agent access to your file system, terminal, git, web search, and codebase indexing.
 
 ```text
-  ╭─ You ───────────────────────────────────────────────────╮
-  │ refactor the auth middleware to use async/await           │
-  ╰──────────────────────────────────────────────────────────╯
+╔═══════════════════════════════════════════════════════════════════╗
+║  ██████╗  █████╗ ███████╗██████╗  █████╗ ██╗     ██╗   ██╗███████╗║
+║  ██╔══██╗██╔══██╗██╔════╝██╔══██╗██╔══██╗██║     ██║   ██║██╔════╝║
+║  ██║  ██║███████║█████╗  ██║  ██║███████║██║     ██║   ██║███████╗║
+║  ██║  ██║██╔══██║██╔══╝  ██║  ██║██╔══██║██║     ██║   ██║╚════██║║
+║  ██████╔╝██║  ██║███████╗██████╔╝██║  ██║███████╗╚██████╔╝███████║║
+║  ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═════╝ ╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚══════╝║
+║                                                                   ║
+║  o  local-first · embedded router · multi-agent · not sentient o  ║
+╚═══════════════════════════════════════════════════════════════════╝
 
-  ╭─ Daedalus ───────────────────────────────────────────────╮
-  │ Let me look at the current auth middleware...              │
-  │ I'll refactor it to use async/await pattern.               │
-  ╰──────────────────────────────────────────────────────────╯  ~132t · 3.2s
+DAEDALUS  v1.6.0 · bgill55_dev
+
+┌─ router ──────────────────────────────────────────────────────────┐
+│ strategy  priority    models  2    config  ~/.daedalus/config.json│
+└───────────────────────────────────────────────────────────────────┘
+
+Type ? for commands  ·  Tab completes  ·  Be nice to your AI
+
+[OK] Router started. Health checks running every 30s.
+o › 
 ```
 
 ---
