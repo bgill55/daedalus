@@ -148,10 +148,10 @@ export class SessionManager {
           tool_calls: msg.tool_calls ? JSON.stringify(msg.tool_calls) : undefined,
           tool_call_id: msg.tool_call_id,
           name: msg.name,
-          model: (msg as ChatMessage & { model?: string; tokens?: { in?: number; out?: number }; latency_ms?: number }).model || null,
-          tokens_input: (msg as ChatMessage & { tokens?: { in?: number; out?: number } }).tokens?.in || null,
-          tokens_output: (msg as ChatMessage & { tokens?: { in?: number; out?: number } }).tokens?.out || null,
-          latency_ms: (msg as ChatMessage & { latency_ms?: number }).latency_ms || null,
+          model: (msg as ChatMessage & { model?: string; tokens?: { in?: number; out?: number }; latency_ms?: number }).model || undefined,
+          tokens_input: (msg as ChatMessage & { tokens?: { in?: number; out?: number } }).tokens?.in || undefined,
+          tokens_output: (msg as ChatMessage & { tokens?: { in?: number; out?: number } }).tokens?.out || undefined,
+          latency_ms: (msg as ChatMessage & { latency_ms?: number }).latency_ms || undefined,
         };
         saveTurn(this.sessionDb!, turn);
       });

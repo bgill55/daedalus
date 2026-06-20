@@ -303,7 +303,7 @@ export function createModelFunctions(deps: ModelDeps) {
         temperature: 0.1,
       });
 
-      const reply = (response.choices[0] as ChatResponse).message?.content || '';
+      const reply = response.choices[0]?.message?.content || '';
       messages.push({ role: 'assistant', content: reply });
       openAssistantBlock();
       writeAssistantChunk(reply);

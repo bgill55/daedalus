@@ -19,7 +19,6 @@ import { loadProfile, getProfilePrompt, UserProfile } from './profile.js';
 import { printBanner, printConfigInfo } from './banner.js';
 import { checkForUpdates } from './update-check.js';
 import { createModelFunctions, currentAbortController } from './model.js';
-import { createCommandHandlers } from './commands.js';
 import { createRepl } from './repl.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -223,26 +222,9 @@ function askLine(prompt: string): Promise<string> {
   });
 }
 
-const {
-  handleSpawn,
-  handleOrchestrate,
-  handleModels,
-  handleConfig,
-  handleDoctor,
-  handleIndex,
-  handleFindSymbol,
-  handleGetReferences,
-  handleGetDefinition,
-  getIndexDbPath,
-} = createCommandHandlers({
-  router,
-  config,
-  configDir,
-  toolContext,
-  activeFiles,
-  messages,
-  projectHash,
-});
+function getIndexDbPath(): string {
+  return path.join(os.homedir(), '.daedalus', 'indexing', `${projectHash}.sqlite`);
+}
 
 const { callModelWithTools, callModelWithFallback } = createModelFunctions({
   messages,
@@ -268,15 +250,6 @@ const chatLoop = createRepl({
   getSystemPromptWithMemory,
   callModelWithTools,
   callModelWithFallback,
-  handleSpawn,
-  handleOrchestrate,
-  handleModels,
-  handleConfig,
-  handleDoctor,
-  handleIndex,
-  handleFindSymbol,
-  handleGetReferences,
-  handleGetDefinition,
   getIndexDbPath,
 });
 

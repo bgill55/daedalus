@@ -1,305 +1,1110 @@
+// Command Registry and Router for Daedalus CLI
+import fs from 'fs';
 import path from 'path';
-import os from 'os';
+import readline from 'readline';
 import pc from 'picocolors';
+
 import { executeToolCalls } from './tools/executor.js';
 import { discoverLocalServers } from './config/index.js';
 import type { ToolContext, ToolCall, ChatMessage } from './types.js';
 import type { LocalRouter } from './router/index.js';
+import type { SessionManager } from './session/manager.js';
+import type { UserProfile } from './profile.js';
+import type { SqliteTodo } from './session/sqlite.js';
 
-export interface CommandDeps {
-  router: LocalRouter;
+import { BUILTIN_TOOLS } from './tools/definitions.js';
+import { getSessionTodos } from './tools/builtin/todo.js';
+import { calculateSessionTokens, pruneMessages } from './session/tokens.js';
+import { saveProfile } from './profile.js';
+import { runOnboarding } from './onboarding/wizard.js';
+import { extractAndSave } from './extraction.js';
+import { printUserTurn, turnSeparator } from './formatting.js';
+import { getClipboardText, getClipboardImage } from './clipboard.js';
+
+export interface CommandContext {
   config: any;
   configDir: string;
-  toolContext: ToolContext;
-  activeFiles: Map<string, string>;
-  messages: ChatMessage[];
+  cliTempDir: string;
+  router: LocalRouter;
+  sessionManager: SessionManager;
+  userProfile: UserProfile;
   projectHash: string;
+  messages: ChatMessage[];
+  activeFiles: Map<string, string>;
+  toolContext: ToolContext;
+  getSystemPromptWithMemory: () => string;
+  callModelWithTools: (userContent: string, imageBase64?: string) => Promise<{ content: string; toolCalls: ToolCall[] }>;
+  callModelWithFallback: (userContent: string, imageBase64?: string) => Promise<string>;
+  rl: readline.Interface;
+  initializeSessionState: (loaded: { sessionId: string; turns: ChatMessage[]; activeFiles: Map<string, string>; todos: SqliteTodo[] }) => void;
+  buildFileContext: () => string;
+  askLine: (prompt: string) => Promise<string>;
+  buildIndexContext: (msg: string) => Promise<string>;
+  getIndexDbPath: () => string;
 }
 
-function getIndexDbPath(projectHash: string): string {
-  return path.join(os.homedir(), '.daedalus', 'indexing', `${projectHash}.sqlite`);
+export interface Command {
+  name: string;
+  aliases?: string[];
+  description: string;
+  execute: (args: string, ctx: CommandContext) => Promise<boolean | void>;
 }
 
-export function createCommandHandlers(deps: CommandDeps) {
-  const { router, config, configDir, toolContext, activeFiles, messages, projectHash } = deps;
-
-  async function handleSpawn(role: string, task: string): Promise<void> {
-    const validRoles = ['coder', 'reviewer', 'debugger', 'researcher', 'planner'];
-    if (!validRoles.includes(role)) {
-      console.log(pc.red(`[WARN] Unknown role: ${role}. Valid: ${validRoles.join(', ')}`));
-      return;
-    }
-
-    console.log(pc.cyan(`\n[SPAWN] Spawning ${role} agent for: ${task.slice(0, 80)}...`));
-
-    const context = `Active files: ${Array.from(activeFiles.values()).join(', ') || 'none'}`;
-
-    const fakeToolCall: ToolCall = {
-      id: `call_${Date.now()}`,
-      type: 'function',
-      function: {
-        name: 'delegate_task',
-        arguments: JSON.stringify({ goal: task, context, role }),
-      },
-    };
-
-    const results = await executeToolCalls([fakeToolCall], toolContext);
-    
-    for (const result of results) {
-      const status = result.success ? pc.green('✔') : pc.red('✗');
-      console.log(`\n${status} ${role} agent completed`);
-      console.log(pc.white(result.content));
-      if (!result.success && result.error) {
-        console.log(pc.red(`Error: ${result.error}`));
-      }
-    }
-  }
-
-  async function handleOrchestrate(goal: string): Promise<void> {
-    console.log(pc.cyan(`\n[ORCHESTRATE] Starting orchestration for: ${goal}`));
-    
-    const { Orchestrator } = await import('./agents/orchestrator.js');
-    const orchestrator = new Orchestrator(router, messages, toolContext);
-    
-    const result = await orchestrator.run(goal);
-    console.log(pc.white(`\n${result}`));
-  }
-
-  async function handleModels(): Promise<void> {
-    console.log(pc.bold('\n--- Available Models ---'));
-    
-    const models = await router.listModels();
-    if (models.length === 0) {
-      console.log(pc.yellow('  No models found. Check your local servers (LM Studio, Ollama, etc.)'));
-    } else {
-      for (const model of models) {
-        console.log(`  • ${pc.cyan(model)}`);
-      }
-    }
-    
-    const { checkModelHealth } = await import('./router/health.js');
-    const healthyModels = router.getHealthyModels();
-    console.log(pc.bold('\n--- Healthy Models ---'));
-    for (const model of healthyModels) {
-      const health = await checkModelHealth(model, 5000);
-      const status = health?.healthy ? pc.green('●') : pc.red('●');
-      console.log(`  ${status} ${pc.cyan(model.name)} (${model.endpoint}) - ${model.model}`);
-    }
-    console.log(pc.bold('----------------------\n'));
-  }
-
-  function handleConfig(): void {
-    console.log(pc.bold('\n--- Current Configuration ---'));
-    console.log(JSON.stringify(config, null, 2));
-    console.log(pc.bold('-----------------------------'));
-    console.log(pc.gray(`\nEdit ${configDir}/config.json to modify settings.`));
-    console.log(pc.gray('Run `daedalus /doctor` to auto-discover local servers.'));
-  }
-
-  async function handleDoctor(): Promise<void> {
-    console.log(pc.bold('\n--- Daedalus Doctor ---'));
-    console.log(pc.gray('Checking local server connections...\n'));
-    
-    const discovered = await discoverLocalServers();
-    
-    if (discovered.length === 0) {
-      console.log(pc.yellow('  No local servers detected.'));
-      console.log(pc.gray('  Start one of:'));
-      console.log(pc.gray('    • LM Studio (http://localhost:1234)'));
-      console.log(pc.gray('    • Ollama (http://localhost:11434)'));
-      console.log(pc.gray('    • llama.cpp server (--server, default :8080)'));
-      console.log(pc.gray('    • vLLM (http://localhost:8000)'));
-    } else {
-      console.log(pc.green(`  Found ${discovered.length} running server(s):\n`));
-      for (const server of discovered) {
-        console.log(`  ${pc.green('●')} ${server.name} at ${server.endpoint}`);
-        for (const model of server.models.slice(0, 5)) {
-          console.log(`      - ${model}`);
+export const commandsList: Command[] = [
+  {
+    name: '/add',
+    description: 'Add file to context',
+    execute: async (args, ctx) => {
+      const fileArg = args.trim();
+      if (!fileArg) {
+        const { runInteractiveFileSelector } = await import('./session/selector.js');
+        ctx.rl.pause();
+        const result = await runInteractiveFileSelector(process.cwd(), ctx.config.indexing.exclude, new Set(ctx.activeFiles.keys()));
+        ctx.rl.resume();
+        if (result !== null) {
+          ctx.activeFiles.clear();
+          for (const absPath of result) {
+            const rel = path.relative(process.cwd(), absPath);
+            ctx.activeFiles.set(absPath, rel);
+          }
+          ctx.toolContext.activeFiles = new Map(ctx.activeFiles);
+          console.log(pc.green(`\n[OK] Active context files updated: ${ctx.activeFiles.size} file(s)`));
         }
-        if (server.models.length > 5) {
-          console.log(pc.gray(`      ... and ${server.models.length - 5} more`));
+      } else {
+        const absPath = path.resolve(fileArg);
+        ctx.activeFiles.set(absPath, fileArg);
+        ctx.toolContext.activeFiles = new Map(ctx.activeFiles);
+        console.log(pc.green(`[OK] Added file to context: ${pc.bold(fileArg)}`));
+      }
+    }
+  },
+  {
+    name: '/remove',
+    description: 'Remove file from context',
+    execute: async (args, ctx) => {
+      const fileArg = args.trim();
+      if (!fileArg) {
+        console.log(pc.red('[WARN] Please specify a file path. Example: /remove src/App.tsx'));
+      } else {
+        const absPath = path.resolve(fileArg);
+        if (ctx.activeFiles.delete(absPath)) {
+          ctx.toolContext.activeFiles = new Map(ctx.activeFiles);
+          console.log(pc.green(`[OK] Removed file from context: ${pc.bold(fileArg)}`));
+        } else {
+          console.log(pc.yellow(`[WARN] File was not in context: ${fileArg}`));
         }
       }
     }
-    
-    console.log(pc.bold('\n--- Router Health ---'));
-    const enabledModels = router.getEnabledModels();
-    if (enabledModels.length === 0) {
-      console.log(pc.yellow('  No models configured. Run /onboard to set one up.'));
-    } else {
-      for (const model of enabledModels) {
-        const { checkModelHealth } = await import('./router/health.js');
-        const health = await checkModelHealth(model, 5000);
-        const status = health.healthy ? pc.green('●') : pc.red('●');
-        const latency = health.latencyMs ? ` (${health.latencyMs}ms)` : '';
-        const err = health.error ? ` ${pc.red(health.error)}` : '';
-        console.log(`  ${status} ${model.name}: ${model.endpoint}${latency}${err}`);
+  },
+  {
+    name: '/context',
+    description: 'Show active file context',
+    execute: async (args, ctx) => {
+      console.log(pc.bold('\n--- Monitored Files in Context ---'));
+      if (ctx.activeFiles.size === 0) {
+        console.log(pc.gray('  (No active files. Use "/add <filepath>" to add files)'));
+      } else {
+        ctx.activeFiles.forEach((filename) => {
+          console.log(`  • ${pc.cyan(filename)}`);
+        });
       }
+      console.log(pc.bold('----------------------------------'));
     }
-    console.log(pc.bold('  Config:') + pc.gray(` ${configDir}\\config.json`));
-    console.log(pc.bold('----------------------\n'));
-  }
+  },
+  {
+    name: '/paste',
+    description: 'Paste clipboard text/image as message',
+    execute: async (args, ctx) => {
+      const extra = args.trim();
+      if (extra && !extra.startsWith('http')) {
+        const filePath = path.resolve(extra);
+        if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+          const ext = path.extname(filePath).toLowerCase();
+          if (['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp'].includes(ext)) {
+            const imgBuffer = fs.readFileSync(filePath);
+            const base64 = imgBuffer.toString('base64');
+            const message = 'What do you see in this image?';
+            printUserTurn(`${path.basename(filePath)} (image)`);
+            try {
+              const filesContext = ctx.buildFileContext();
+              const indexCtx = await ctx.buildIndexContext(message);
+              const userContent = `${indexCtx}${filesContext}User Prompt: ${message}`;
+              await ctx.callModelWithTools(userContent, base64);
+              ctx.sessionManager.saveSessionState(ctx.messages, ctx.activeFiles, getSessionTodos(ctx.toolContext.sessionId));
+            } catch {
+              try {
+                const filesContext = ctx.buildFileContext();
+                const userContent = `${filesContext}User Prompt: ${message}`;
+                console.log(pc.yellow('\n  [RETRY] Trying fallback mode...'));
+                await ctx.callModelWithFallback(userContent, base64);
+                ctx.sessionManager.saveSessionState(ctx.messages, ctx.activeFiles, getSessionTodos(ctx.toolContext.sessionId));
+              } catch (fallbackErr: any) {
+                const firstLine = (fallbackErr.message || '').split('\n')[0];
+                console.log(pc.red(`\n  ${pc.bold('[ERROR]')} Fallback also failed: ${firstLine}`));
+              }
+            }
+            turnSeparator();
+            return;
+          }
+        }
+      }
 
-  async function handleIndex(opts: { exclude?: string[]; extensions?: string[] }): Promise<void> {
-    console.log(pc.bold('\n--- Indexing Codebase ---'));
-    console.log(pc.gray(`Project: ${process.cwd()}`));
+      const imgPath = getClipboardImage(ctx.cliTempDir);
+      if (imgPath) {
+        const imgBuffer = fs.readFileSync(imgPath);
+        fs.unlinkSync(imgPath);
+        const base64 = imgBuffer.toString('base64');
+        const message = extra || 'What do you see in this image?';
+        printUserTurn(`${message} (image)`);
+        try {
+          const filesContext = ctx.buildFileContext();
+          const indexCtx = await ctx.buildIndexContext(message);
+          const userContent = `${indexCtx}${filesContext}User Prompt: ${message}`;
+          await ctx.callModelWithTools(userContent, base64);
+          ctx.sessionManager.saveSessionState(ctx.messages, ctx.activeFiles, getSessionTodos(ctx.toolContext.sessionId));
+        } catch {
+          try {
+            const filesContext = ctx.buildFileContext();
+            const userContent = `${filesContext}User Prompt: ${message}`;
+            console.log(pc.yellow('\n  [RETRY] Trying fallback mode...'));
+            await ctx.callModelWithFallback(userContent, base64);
+            ctx.sessionManager.saveSessionState(ctx.messages, ctx.activeFiles, getSessionTodos(ctx.toolContext.sessionId));
+          } catch (fallbackErr: any) {
+            const firstLine = (fallbackErr.message || '').split('\n')[0];
+            console.log(pc.red(`\n  ${pc.bold('[ERROR]')} Fallback also failed: ${firstLine}`));
+          }
+        }
+        turnSeparator();
+        return;
+      }
 
-    const indexDbPath = getIndexDbPath(projectHash);
-
-    if (!fs.existsSync(path.dirname(indexDbPath))) {
-      fs.mkdirSync(path.dirname(indexDbPath), { recursive: true });
+      const clipboard = getClipboardText();
+      if (!clipboard) {
+        console.log(pc.red('[WARN] Clipboard is empty or inaccessible.'));
+        return;
+      }
+      const fullMessage = extra ? `${clipboard}\n\n${extra}` : clipboard;
+      printUserTurn(fullMessage);
+      try {
+        const filesContext = ctx.buildFileContext();
+        const indexCtx = await ctx.buildIndexContext(fullMessage);
+        const userContent = `${indexCtx}${filesContext}User Prompt: ${fullMessage}`;
+        await ctx.callModelWithTools(userContent);
+        ctx.sessionManager.saveSessionState(ctx.messages, ctx.activeFiles, getSessionTodos(ctx.toolContext.sessionId));
+      } catch {
+      }
+      turnSeparator();
     }
+  },
+  {
+    name: '/clear',
+    description: 'Clear conversation history',
+    execute: async (args, ctx) => {
+      ctx.messages.length = 0;
+      ctx.messages.push({ role: 'system', content: ctx.getSystemPromptWithMemory() });
+      console.log(pc.green('[OK] Conversation history cleared!'));
+    }
+  },
+  {
+    name: '/spawn',
+    aliases: ['/delegate'],
+    description: 'Spawn sub-agent: /spawn <role> <task>',
+    execute: async (args, ctx) => {
+      let role = '';
+      let task = '';
 
-    const { initIndexDb } = await import('./indexing/fts.js');
-    const { indexCodebase } = await import('./indexing/indexer.js');
+      if (args.includes(' to ')) {
+        const match = args.match(/^(.+)\s+to\s+(\w+)$/i);
+        if (match) {
+          task = match[1].trim();
+          role = match[2].toLowerCase();
+        }
+      } else {
+        const parts = args.trim().split(/\s+/);
+        if (parts.length >= 2) {
+          role = parts[0].toLowerCase();
+          task = args.substring(parts[0].length).trim();
+        }
+      }
 
-    const db = initIndexDb(indexDbPath);
+      const validRoles = ['coder', 'reviewer', 'debugger', 'researcher', 'planner'];
+      if (!role || !task) {
+        console.log(pc.red('[WARN] Usage: /spawn <role> <task>  OR  /delegate <task> to <role>'));
+        console.log(pc.gray(`  Roles: ${validRoles.join(', ')}`));
+        return;
+      }
 
-    console.log(pc.gray('\nScanning files...'));
-    const start = Date.now();
+      if (!validRoles.includes(role)) {
+        console.log(pc.red(`[WARN] Unknown role: ${role}. Valid: ${validRoles.join(', ')}`));
+        return;
+      }
 
-    try {
-      const barWidth = 20;
-      let lastPct = -1;
-      const onProgress = ({ current, total, file }: { current: number; total: number; file: string }) => {
-        const pct = Math.round((current / total) * 100);
-        if (pct === lastPct) return;
-        lastPct = pct;
-        const filled = Math.round((current / total) * barWidth);
-        const bar = '\u2588'.repeat(filled) + '\u2591'.repeat(barWidth - filled);
-        process.stdout.write(`\r  ${pc.cyan(bar)} ${pc.white(`${current}/${total}`)} ${pc.gray(file.slice(-40))}`);
+      console.log(pc.cyan(`\n[SPAWN] Spawning ${role} agent for: ${task.slice(0, 80)}...`));
+      const context = `Active files: ${Array.from(ctx.activeFiles.values()).join(', ') || 'none'}`;
+
+      const fakeToolCall: ToolCall = {
+        id: `call_${Date.now()}`,
+        type: 'function',
+        function: {
+          name: 'delegate_task',
+          arguments: JSON.stringify({ goal: task, context, role }),
+        },
       };
 
-      const result = await indexCodebase(db, process.cwd(), projectHash, { ...opts, onProgress });
-      process.stdout.write('\n');
-      const elapsed = Date.now() - start;
-
-      toolContext.indexDb = db;
-
-      console.log(pc.green(`\n✔ Indexing complete in ${elapsed}ms`));
-      console.log(pc.white(`  Total files:     ${result.totalFiles}`));
-      console.log(pc.white(`  Indexed files:   ${result.indexedFiles}`));
-      console.log(pc.white(`  Skipped (unchanged): ${result.skippedFiles}`));
-      if (result.errors.length > 0) {
-        console.log(pc.yellow(`\nErrors (${result.errors.length}):`));
-        result.errors.slice(0, 10).forEach(e => console.log(pc.red(`  - ${e}`)));
-        if (result.errors.length > 10) {
-          console.log(pc.gray(`  ... and ${result.errors.length - 10} more`));
+      const results = await executeToolCalls([fakeToolCall], ctx.toolContext);
+      for (const result of results) {
+        const status = result.success ? pc.green('✔') : pc.red('✗');
+        console.log(`\n${status} ${role} agent completed`);
+        console.log(pc.white(result.content));
+        if (!result.success && result.error) {
+          console.log(pc.red(`Error: ${result.error}`));
         }
       }
+    }
+  },
+  {
+    name: '/orchestrate',
+    description: 'Orchestrate agents for a goal',
+    execute: async (args, ctx) => {
+      const goal = args.trim();
+      if (!goal) {
+        console.log(pc.red('[WARN] Usage: /orchestrate <goal>'));
+        return;
+      }
+      console.log(pc.cyan(`\n[ORCHESTRATE] Starting orchestration for: ${goal}`));
+      const { Orchestrator } = await import('./agents/orchestrator.js');
+      const orchestrator = new Orchestrator(ctx.router, ctx.messages, ctx.toolContext);
+      const result = await orchestrator.run(goal);
+      console.log(pc.white(`\n${result}`));
+    }
+  },
+  {
+    name: '/memory',
+    description: 'View project memory (facts & conventions)',
+    execute: async (args, ctx) => {
+      const mem = ctx.sessionManager.loadMemory();
+      console.log(pc.bold('\n--- Project Facts & Conventions (Memory) ---'));
+      console.log(pc.bold('Conventions:'));
+      if (Object.keys(mem.conventions).length === 0) {
+        console.log(pc.gray('  No conventions saved.'));
+      } else {
+        for (const [k, v] of Object.entries(mem.conventions)) {
+          console.log(`  • ${pc.cyan(k)}: ${v}`);
+        }
+      }
+      console.log(pc.bold('\nFacts:'));
+      if (mem.facts.length === 0) {
+        console.log(pc.gray('  No facts saved.'));
+      } else {
+        mem.facts.forEach(f => {
+          console.log(`  • ${pc.cyan(f.key)}: ${f.value} (source: ${f.source})`);
+        });
+      }
+      console.log(pc.bold('------------------------------------------'));
+    }
+  },
+  {
+    name: '/fact',
+    description: 'Add a project fact to memory',
+    execute: async (args, ctx) => {
+      const eqIdx = args.indexOf('=');
+      if (eqIdx < 0) {
+        console.log(pc.red('[WARN] Usage: /fact <key> = <value>'));
+      } else {
+        const key = args.slice(0, eqIdx).trim();
+        const value = args.slice(eqIdx + 1).trim();
+        ctx.sessionManager.addFact(key, value, 'user');
+        console.log(pc.green(`[OK] Saved fact: ${key} = ${value}`));
+      }
+    }
+  },
+  {
+    name: '/convention',
+    description: 'Add a project convention to memory',
+    execute: async (args, ctx) => {
+      const eqIdx = args.indexOf('=');
+      if (eqIdx < 0) {
+        console.log(pc.red('[WARN] Usage: /convention <key> = <value>'));
+      } else {
+        const key = args.slice(0, eqIdx).trim();
+        const value = args.slice(eqIdx + 1).trim();
+        ctx.sessionManager.setConvention(key, value);
+        console.log(pc.green(`[OK] Saved convention: ${key} = ${value}`));
+      }
+    }
+  },
+  {
+    name: '/extract',
+    description: 'Manually extract facts from session',
+    execute: async (args, ctx) => {
+      console.log(pc.dim('  [EXTRACT] Extracting facts from conversation...'));
+      await extractAndSave(ctx.router, ctx.sessionManager, ctx.messages);
+    }
+  },
+  {
+    name: '/profile',
+    description: 'View or set user profile info',
+    execute: async (args, ctx) => {
+      const rest = args.trim();
+      if (!rest || rest === 'view') {
+        console.log(pc.bold('\n--- Your Profile ---'));
+        console.log(`  ${pc.cyan('Name')}: ${ctx.userProfile.name || '(not set)'}`);
+        console.log(`  ${pc.cyan('Bio')}:  ${ctx.userProfile.bio || '(not set)'}`);
+        if (ctx.userProfile.updatedAt) {
+          console.log(pc.gray(`  Last updated: ${new Date(ctx.userProfile.updatedAt).toLocaleString()}`));
+        }
+        console.log(pc.dim('  Set name: /profile name = Your Name'));
+        console.log(pc.dim('  Set bio:  /profile bio = Tell me about yourself'));
+        return;
+      }
+
+      const eqIdx = rest.indexOf('=');
+      if (eqIdx < 0) {
+        if (rest.startsWith('name ')) {
+          ctx.userProfile.name = rest.substring(5).trim();
+          saveProfile(ctx.userProfile);
+          console.log(pc.green(`[OK] Profile name set: ${ctx.userProfile.name}`));
+          return;
+        }
+        if (rest.startsWith('bio ')) {
+          ctx.userProfile.bio = rest.substring(4).trim();
+          saveProfile(ctx.userProfile);
+          console.log(pc.green('[OK] Profile bio set.'));
+          return;
+        }
+      } else {
+        const key = rest.slice(0, eqIdx).trim().toLowerCase();
+        const val = rest.slice(eqIdx + 1).trim();
+        if (key === 'name') {
+          ctx.userProfile.name = val;
+          saveProfile(ctx.userProfile);
+          console.log(pc.green(`[OK] Profile name set: ${ctx.userProfile.name}`));
+          return;
+        } else if (key === 'bio') {
+          ctx.userProfile.bio = val;
+          saveProfile(ctx.userProfile);
+          console.log(pc.green('[OK] Profile bio set.'));
+          return;
+        }
+      }
+      console.log(pc.red('[WARN] Usage: /profile view | /profile name = <name> | /profile bio = <bio>'));
+    }
+  },
+  {
+    name: '/style',
+    description: 'Set your coding style preferences',
+    execute: async (args, ctx) => {
+      const rest = args.trim();
+      if (!rest || rest === 'view') {
+        console.log(pc.bold('\n--- Coding Style ---'));
+        console.log(`  ${ctx.userProfile.style || '(not set)'}`);
+        console.log(pc.dim('  Set: /style <your coding preferences>'));
+        console.log(pc.dim('  Example: /style I prefer tabs, functional style, descriptive variable names'));
+        return;
+      }
+      ctx.userProfile.style = rest;
+      saveProfile(ctx.userProfile);
+      console.log(pc.green('[OK] Coding style saved. It will be injected into every session.'));
+    }
+  },
+  {
+    name: '/undo',
+    description: 'Undo last file patch',
+    execute: async (args, ctx) => {
+      const history = ctx.toolContext.patchHistory;
+      if (!history || history.length === 0) {
+        console.log(pc.yellow('[WARN] No patches to undo.'));
+      } else {
+        const last = history[history.length - 1];
+        try {
+          const currentContent = fs.readFileSync(last.filePath, 'utf8');
+          if (currentContent === last.newContent) {
+            fs.writeFileSync(last.filePath, last.oldContent, 'utf8');
+            console.log(pc.green(`[OK] Undid patch to ${last.filePath} (${last.description})`));
+          } else {
+            console.log(pc.yellow(`[WARN] File ${last.filePath} has been modified since last patch. Cannot auto-undo.`));
+          }
+          history.pop();
+        } catch (err: any) {
+          console.log(pc.red(`[WARN] Failed to undo: ${err.message}`));
+        }
+      }
+    }
+  },
+  {
+    name: '/branch',
+    description: 'Git branch operations',
+    execute: async (args, ctx) => {
+      try {
+        const { execute: termExec } = await import('./tools/builtin/terminal.js');
+        const arg = args.trim();
+        if (!arg) {
+          const currentBranchResult = await termExec({ command: 'git branch --show-current', timeout: 5, workdir: process.cwd() }, ctx.toolContext);
+          const current = currentBranchResult.content?.trim();
+          if (current) {
+            console.log(`\n  ${pc.cyan('Current Git branch:')} ${pc.bold(current)}`);
+          } else {
+            console.log(pc.red('\n  Not in a Git repository or no branch found.'));
+          }
+        } else {
+          console.log(`\n  Creating and switching to branch ${pc.cyan(arg)}...`);
+          const checkoutResult = await termExec({ command: `git checkout -b ${arg}`, timeout: 10, workdir: process.cwd() }, ctx.toolContext);
+          if (checkoutResult.success) {
+            console.log(pc.green(`  [OK] Switched to a new branch '${arg}'`));
+          } else {
+            console.log(pc.yellow(`  Branch might already exist, attempting to switch...`));
+            const switchResult = await termExec({ command: `git checkout ${arg}`, timeout: 10, workdir: process.cwd() }, ctx.toolContext);
+            if (switchResult.success) {
+              console.log(pc.green(`  [OK] Switched to branch '${arg}'`));
+            } else {
+              console.log(pc.red(`  Switch failed: ${switchResult.error || switchResult.content}`));
+            }
+          }
+        }
+      } catch (err: any) {
+        console.log(pc.red(`[WARN] Branch command error: ${err.message}`));
+      }
+    }
+  },
+  {
+    name: '/pr',
+    description: 'Generate PR description Compared to base branch',
+    execute: async (args, ctx) => {
+      const arg = args.trim();
+      try {
+        const { execute: termExec } = await import('./tools/builtin/terminal.js');
+        const gitCheck = await termExec({ command: 'git rev-parse --is-inside-work-tree', timeout: 5, workdir: process.cwd() }, ctx.toolContext);
+        if (!gitCheck.success) {
+          console.log(pc.red('  Error: Not inside a Git repository.'));
+          return;
+        }
+
+        let baseBranch = arg || 'main';
+        if (!arg) {
+          const mainCheck = await termExec({ command: 'git show-ref --verify refs/heads/main', timeout: 5, workdir: process.cwd() }, ctx.toolContext);
+          if (!mainCheck.success) {
+            const masterCheck = await termExec({ command: 'git show-ref --verify refs/heads/master', timeout: 5, workdir: process.cwd() }, ctx.toolContext);
+            if (masterCheck.success) {
+              baseBranch = 'master';
+            }
+          }
+        }
+
+        const currentBranchResult = await termExec({ command: 'git branch --show-current', timeout: 5, workdir: process.cwd() }, ctx.toolContext);
+        const currentBranch = currentBranchResult.content?.trim();
+
+        console.log(`\n  Comparing ${pc.cyan(currentBranch || 'HEAD')} with base branch ${pc.cyan(baseBranch)}...`);
+
+        const commitsResult = await termExec({ command: `git log ${baseBranch}..HEAD --oneline`, timeout: 10, workdir: process.cwd() }, ctx.toolContext);
+        const commitList = commitsResult.content?.trim() || '';
+
+        const diffResult = await termExec({ command: `git diff ${baseBranch}...HEAD`, timeout: 15, workdir: process.cwd() }, ctx.toolContext);
+        const diffContent = diffResult.content?.slice(0, 15000) || '';
+
+        if (!commitList && !diffContent) {
+          console.log(pc.yellow(`  No commits or diff found between ${currentBranch} and ${baseBranch}.`));
+          return;
+        }
+
+        console.log(pc.dim('  Analyzing changes and generating PR description...'));
+
+        const aiResponse = await ctx.router.chat.completions.create({
+          model: 'auto',
+          messages: [
+            {
+              role: 'system',
+              content: 'You write clean, comprehensive, professional Pull Request descriptions in Markdown format. Output ONLY the markdown content — no extra chat, wrapper, or quotes.'
+            },
+            {
+              role: 'user',
+              content: `Generate a Pull Request description for the current branch compared to ${baseBranch}.\n\nCommits:\n${commitList}\n\nDiff:\n${diffContent}`
+            }
+          ],
+          temperature: 0.3,
+        });
+
+        const prDesc = (aiResponse.choices[0]?.message?.content || '').trim();
+        if (!prDesc) {
+          console.log(pc.red('  Failed to generate PR description.'));
+          return;
+        }
+
+        console.log(pc.bold('\n--- Generated PR Description ---'));
+        console.log(prDesc);
+        console.log(pc.bold('--------------------------------'));
+
+        const outPath = path.join(process.cwd(), 'pr-desc.md');
+        fs.writeFileSync(outPath, prDesc, 'utf8');
+        console.log(pc.green(`\n[OK] PR description saved to ${pc.cyan('pr-desc.md')}`));
+      } catch (err: any) {
+        console.log(pc.red(`[WARN] PR command error: ${err.message}`));
+      }
+    }
+  },
+  {
+    name: '/debug',
+    description: 'Run command and autonomously debug failures',
+    execute: async (args, ctx) => {
+      const debugCmd = args.trim();
+      if (!debugCmd) {
+        console.log(pc.red('  Error: Please specify a command to run. Example: /debug npm test'));
+        return;
+      }
+
+      console.log(`\n  ${pc.cyan('Starting autonomous debugging loop for:')} ${pc.bold(debugCmd)}`);
+
+      const MAX_RETRIES = 5;
+      let attempt = 1;
+      let success = false;
+
+      while (attempt <= MAX_RETRIES) {
+        console.log(`\n  ${pc.yellow(`[Attempt ${attempt}/${MAX_RETRIES}]`)} Running: ${pc.bold(debugCmd)}...`);
+
+        try {
+          const { execute: termExec } = await import('./tools/builtin/terminal.js');
+          const execResult = await termExec({ command: debugCmd, timeout: 60, workdir: process.cwd() }, ctx.toolContext);
+
+          if (execResult.success) {
+            console.log(pc.green(`\n  ${pc.green('✔')} ${pc.bold(`Success on attempt ${attempt}!`)} Command passed with exit code 0.`));
+            success = true;
+            break;
+          }
+
+          console.log(pc.red(`\n  ${pc.red('✗')} ${pc.bold(`Command failed on attempt ${attempt}.`)}`));
+
+          const stdout = execResult.content || '';
+          const errorMsg = execResult.error || '';
+          const logs = `${stdout}\n${errorMsg}`.trim();
+
+          console.log(pc.bold('\n--- Failure Logs ---'));
+          const logLines = logs.split('\n');
+          const preview = logLines.length > 20 ? logLines.slice(-20).join('\n') : logs;
+          console.log(preview);
+          if (logLines.length > 20) {
+            console.log(pc.dim(`\n  (... truncated ${logLines.length - 20} lines of logs ...)`));
+          }
+          console.log(pc.bold('--------------------'));
+
+          if (attempt === MAX_RETRIES) {
+            console.log(pc.red(`\n  Reached maximum attempt limit of ${MAX_RETRIES}. Debugging loop failed.`));
+            break;
+          }
+
+          console.log(pc.dim('\n  Calling Daedalus to analyze failure and apply a fix...'));
+
+          const debugPrompt = `The command "${debugCmd}" failed on attempt ${attempt}.
+Here are the execution logs (showing the failure details):
+
+${logs.slice(-6000)}
+
+Please analyze the error, identify which files need correction, and apply surgical edits using 'patch' or write tools to fix the issue.
+Once you have finished making changes, I will automatically re-run the command to verify if it passes.`;
+
+          await ctx.callModelWithTools(debugPrompt);
+
+        } catch (err: any) {
+          console.log(pc.red(`\n  Error in debugging loop: ${err.message}`));
+          break;
+        }
+
+        attempt++;
+      }
+
+      if (!success) {
+        console.log(pc.red(`\n  Autonomous debugging did not succeed after ${MAX_RETRIES} attempts.`));
+      }
+      turnSeparator();
+    }
+  },
+  {
+    name: '/ensemble',
+    description: 'Ensemble model drafting pipeline',
+    execute: async (args, ctx) => {
+      const ensembleGoal = args.trim();
+      if (!ensembleGoal) {
+        console.log(pc.red('  Error: Please specify a goal for the ensemble draft. Example: /ensemble Implement feature X'));
+        return;
+      }
+
+      try {
+        const { runEnsembleWorkflow } = await import('./agents/ensemble.js');
+        await runEnsembleWorkflow(ensembleGoal, ctx.toolContext, ctx.config, ctx.router);
+      } catch (err: any) {
+        console.log(pc.red(`\n  Error in ensemble drafting: ${err.message}`));
+      }
+      turnSeparator();
+    }
+  },
+  {
+    name: '/commit',
+    description: 'Stage and commit changes',
+    execute: async (args, ctx) => {
+      const forcedMsg = args.trim();
+      try {
+        const { execute: termExec } = await import('./tools/builtin/terminal.js');
+        const statusResult = await termExec({ command: 'git status --short', timeout: 10, workdir: process.cwd() }, ctx.toolContext);
+        console.log(pc.bold('\n--- Git Status ---'));
+        console.log(statusResult.content || pc.gray('(clean)'));
+        if (!statusResult.content?.trim()) {
+          console.log(pc.yellow('Nothing to commit.'));
+          return;
+        }
+        const addResult = await termExec({ command: 'git add -A', timeout: 10, workdir: process.cwd() }, ctx.toolContext);
+        if (!addResult.success) {
+          console.log(pc.red(`Stage failed: ${addResult.error}`));
+          return;
+        }
+        let commitMsg = forcedMsg;
+        if (!commitMsg) {
+          const diffResult = await termExec({ command: 'git diff --cached --stat', timeout: 10, workdir: process.cwd() }, ctx.toolContext);
+          const diffFull = await termExec({ command: 'git diff --cached', timeout: 10, workdir: process.cwd() }, ctx.toolContext);
+          const diffContent = diffFull.content?.slice(0, 6000) || '';
+          if (diffResult.content) console.log(pc.gray(diffResult.content));
+
+          if (diffContent) {
+            console.log(pc.dim('  Generating commit message...'));
+            try {
+              const aiResponse = await ctx.router.chat.completions.create({
+                model: 'auto',
+                messages: [
+                  { role: 'system', content: 'You write concise git commit messages following the Conventional Commits spec (type(scope): description). Output only the commit message — no explanation, no quotes, no extra text.' },
+                  { role: 'user', content: `Write a commit message for this diff:\n\n${diffContent}` }
+                ],
+                temperature: 0.2,
+                max_tokens: 80,
+              });
+              const suggested = ((aiResponse.choices[0]?.message?.content) || '').trim().split('\n')[0].trim();
+              if (suggested) {
+                console.log(`\n  ${pc.dim('Suggested:')} ${pc.cyan(suggested)}`);
+                const choice = await ctx.askLine(pc.dim('  [Enter] accept  [e] edit  [n] cancel: '));
+                if (choice.trim().toLowerCase() === 'n') {
+                  console.log(pc.yellow('Commit cancelled.'));
+                  await termExec({ command: 'git restore --staged .', timeout: 10, workdir: process.cwd() }, ctx.toolContext);
+                  return;
+                } else if (choice.trim().toLowerCase() === 'e') {
+                  commitMsg = await ctx.askLine(pc.cyan('  Commit message: '));
+                } else {
+                  commitMsg = suggested;
+                }
+              }
+            } catch {
+              // Model unavailable — manual fallback
+            }
+          }
+
+          if (!commitMsg) {
+            commitMsg = await ctx.askLine(pc.cyan('  Commit message: '));
+          }
+          if (!commitMsg.trim()) {
+            console.log(pc.yellow('Commit cancelled — empty message.'));
+            await termExec({ command: 'git restore --staged .', timeout: 10, workdir: process.cwd() }, ctx.toolContext);
+            return;
+          }
+        }
+        const commitResult = await termExec({ command: `git commit -m ${JSON.stringify(commitMsg)}`, timeout: 10, workdir: process.cwd() }, ctx.toolContext);
+        if (commitResult.success) {
+          console.log(pc.green(`\n[OK] Commit: ${commitMsg.slice(0, 60)}`));
+        } else {
+          console.log(pc.red(`Commit failed: ${commitResult.error}`));
+        }
+      } catch (err: any) {
+        console.log(pc.red(`[WARN] Commit error: ${err.message}`));
+      }
+    }
+  },
+  {
+    name: '/project',
+    description: 'View or set project config settings',
+    execute: async (args, ctx) => {
+      const rest = args.trim();
+      const { loadProjectConfig, saveProjectConfig } = await import('./tools/builtin/project-config.js');
+      if (!rest) {
+        const cfg = loadProjectConfig(process.cwd());
+        console.log(pc.bold('\n--- Project Config (.daedalus) ---'));
+        console.log(JSON.stringify(cfg, null, 2));
+        console.log(pc.bold('----------------------------------'));
+        console.log(pc.gray('Use /project set <key> = <value> to update'));
+        return;
+      }
+
+      if (rest.startsWith('set ')) {
+        const setArgs = rest.substring(4).trim();
+        const eqIdx = setArgs.indexOf('=');
+        let key: string, value: string;
+        if (eqIdx >= 0) {
+          key = setArgs.slice(0, eqIdx).trim();
+          value = setArgs.slice(eqIdx + 1).trim();
+        } else {
+          const parts = setArgs.split(/\s+/);
+          key = parts[0];
+          value = parts.slice(1).join(' ');
+        }
+        if (!key || !value) {
+          console.log(pc.red('[WARN] Usage: /project set <key> = <value>'));
+        } else {
+          const cfg = loadProjectConfig(process.cwd());
+          let parsedVal: any = value;
+          if (value.toLowerCase() === 'true') parsedVal = true;
+          else if (value.toLowerCase() === 'false') parsedVal = false;
+          else if (!isNaN(Number(value))) parsedVal = Number(value);
+
+          (cfg as Record<string, any>)[key] = parsedVal;
+          saveProjectConfig(cfg);
+          console.log(pc.green(`[OK] Set ${key} = ${value}`));
+        }
+      } else {
+        console.log(pc.red('[WARN] Usage: /project | /project set <key> = <value>'));
+      }
+    }
+  },
+  {
+    name: '/test',
+    description: 'Run test loop and fix failures',
+    execute: async (args, ctx) => {
+      const maxLoops = args.trim() ? parseInt(args.trim(), 10) || 3 : 3;
+      const { loadProjectConfig } = await import('./tools/builtin/project-config.js');
+      const { execute: termExec } = await import('./tools/builtin/terminal.js');
+      const cfg = loadProjectConfig(process.cwd());
+      const testCmd = cfg.testCommand || 'npm test';
+      console.log(pc.bold(`\nTest-Run-Fix Loop (max ${maxLoops} iterations)`));
+      console.log(pc.gray(`Test command: ${testCmd}\n`));
+      for (let i = 0; i < maxLoops; i++) {
+        console.log(pc.cyan(`\n--- Run ${i + 1}/${maxLoops} ---`));
+        const result = await termExec({ command: testCmd, timeout: 120, workdir: process.cwd() }, ctx.toolContext);
+        console.log(result.content?.slice(0, 2000) || pc.gray('(no output)'));
+        if (result.success) {
+          console.log(pc.green('\n[OK] All tests passed!'));
+          break;
+        }
+        if (i === maxLoops - 1) {
+          console.log(pc.yellow(`\n[WARN] Max loops (${maxLoops}) reached. Tests still failing.`));
+          break;
+        }
+        const failureCtx = `Tests failed (run ${i + 1}/${maxLoops}). Output:\n\n${result.content?.slice(0, 8000) || 'Unknown failure'}\n\nAnalyze the failures and fix the code. Do not re-read files you already have in context.`;
+        await ctx.callModelWithTools(`User Prompt: ${failureCtx}`);
+        ctx.sessionManager.saveSessionState(ctx.messages, ctx.activeFiles, getSessionTodos(ctx.toolContext.sessionId));
+      }
+    }
+  },
+  {
+    name: '/index',
+    description: 'Index codebase for symbol search',
+    execute: async (args, ctx) => {
+      const parts = args.trim().split(/\s+/).filter(Boolean);
+      const opts: { exclude?: string[]; extensions?: string[] } = {};
+      for (const arg of parts) {
+        if (arg.startsWith('--exclude=')) {
+          opts.exclude = arg.split('=')[1].split(',');
+        } else if (arg.startsWith('--ext=')) {
+          opts.extensions = arg.split('=')[1].split(',');
+        }
+      }
+      
+      console.log(pc.bold('\n--- Indexing Codebase ---'));
+      console.log(pc.gray(`Project: ${process.cwd()}`));
+
+      const indexDbPath = ctx.getIndexDbPath();
+
+      if (!fs.existsSync(path.dirname(indexDbPath))) {
+        fs.mkdirSync(path.dirname(indexDbPath), { recursive: true });
+      }
+
+      const { initIndexDb } = await import('./indexing/fts.js');
+      const { indexCodebase } = await import('./indexing/indexer.js');
+      const db = initIndexDb(indexDbPath);
+
+      console.log(pc.gray('\nScanning files...'));
+      const start = Date.now();
+
+      try {
+        const barWidth = 20;
+        let lastPct = -1;
+        const onProgress = ({ current, total, file }: { current: number; total: number; file: string }) => {
+          const pct = Math.round((current / total) * 100);
+          if (pct === lastPct) return;
+          lastPct = pct;
+          const filled = Math.round((current / total) * barWidth);
+          const bar = '\u2588'.repeat(filled) + '\u2591'.repeat(barWidth - filled);
+          process.stdout.write(`\r  ${pc.cyan(bar)} ${pc.white(`${current}/${total}`)} ${pc.gray(file.slice(-40))}`);
+        };
+
+        const result = await indexCodebase(db, process.cwd(), ctx.projectHash, { ...opts, onProgress });
+        process.stdout.write('\n');
+        const elapsed = Date.now() - start;
+
+        ctx.toolContext.indexDb = db;
+
+        console.log(pc.green(`\n✔ Indexing complete in ${elapsed}ms`));
+        console.log(pc.white(`  Total files:     ${result.totalFiles}`));
+        console.log(pc.white(`  Indexed files:   ${result.indexedFiles}`));
+        console.log(pc.white(`  Skipped (unchanged): ${result.skippedFiles}`));
+        if (result.errors.length > 0) {
+          console.log(pc.yellow(`\nErrors (${result.errors.length}):`));
+          result.errors.slice(0, 10).forEach(e => console.log(pc.red(`  - ${e}`)));
+          if (result.errors.length > 10) {
+            console.log(pc.gray(`  ... and ${result.errors.length - 10} more`));
+          }
+        }
+      } catch (err: any) {
+        console.error(pc.red(`\n[ERROR] Indexing failed: ${err.message}`));
+      }
+    }
+  },
+  {
+    name: '/find',
+    description: 'Search indexed symbols',
+    execute: async (args, ctx) => {
+      const parts = args.trim().split(/\s+/).filter(Boolean);
+      if (parts.length === 0) {
+        console.log(pc.red('[WARN] Usage: /find <query> [limit]'));
+        return;
+      }
+      const query = parts[0];
+      const limit = parts[1] ? parseInt(parts[1], 10) : 30;
+      if (isNaN(limit)) {
+        console.log(pc.red('[WARN] Invalid limit'));
+        return;
+      }
+
+      const indexDbPath = ctx.getIndexDbPath();
+      if (!fs.existsSync(indexDbPath)) {
+        console.log(pc.yellow('[WARN] No index found. Run /index first.'));
+        return;
+      }
+      
+      const { initIndexDb, searchSymbols } = await import('./indexing/fts.js');
+      const db = initIndexDb(indexDbPath);
+
+      console.log(pc.bold(`\n--- Symbol Search: "${query}" ---`));
+      const symbols = searchSymbols(db, query, ctx.projectHash, limit);
+
+      if (symbols.length === 0) {
+        console.log(pc.gray('  No symbols found.'));
+        return;
+      }
+
+      console.log(pc.white(`\nFound ${symbols.length} symbol(s):`));
+      for (const s of symbols) {
+        const kindColor = s.kind === 'function' ? pc.cyan : s.kind === 'class' ? pc.green : s.kind === 'interface' ? pc.blue : pc.white;
+        const loc = `${s.file_path}:${s.line_start}${s.line_end !== s.line_start ? '-' + s.line_end : ''}`;
+        console.log(`  ${kindColor(`[${s.kind}]`)} ${pc.bold(s.name)} ${pc.dim(`(${loc})`)}`);
+        if (s.signature) {
+          console.log(pc.dim(`    ${s.signature.slice(0, 100)}${s.signature.length > 100 ? '...' : ''}`));
+        }
+      }
+    }
+  },
+  {
+    name: '/refs',
+    description: 'Find symbol references (callers)',
+    execute: async (args, ctx) => {
+      const symbol = args.trim();
+      if (!symbol) {
+        console.log(pc.red('[WARN] Usage: /refs <symbol>'));
+        return;
+      }
+
+      const indexDbPath = ctx.getIndexDbPath();
+      if (!fs.existsSync(indexDbPath)) {
+        console.log(pc.yellow('[WARN] No index found. Run /index first.'));
+        return;
+      }
+
+      const { initIndexDb, findReferences } = await import('./indexing/fts.js');
+      const db = initIndexDb(indexDbPath);
+
+      console.log(pc.bold(`\n--- References to: ${symbol} ---`));
+      const refs = findReferences(db, symbol, ctx.projectHash);
+
+      if (refs.length === 0) {
+        console.log(pc.gray('  No references found.'));
+        return;
+      }
+
+      const byCaller = new Map<string, typeof refs>();
+      for (const r of refs) {
+        const key = `${r.caller_name} (${r.caller_file}:${r.caller_line})`;
+        if (!byCaller.has(key)) byCaller.set(key, []);
+        byCaller.get(key)!.push(r);
+      }
+
+      console.log(pc.white(`\nFound ${refs.length} reference(s) from ${byCaller.size} caller(s):`));
+      for (const [caller, refs] of byCaller) {
+        console.log(pc.cyan(`\n  ${caller}:`));
+        for (const r of refs.slice(0, 5)) {
+          console.log(pc.dim(`    ${r.callee_name} at ${r.callee_file}:${r.callee_line}`));
+        }
+        if (refs.length > 5) {
+          console.log(pc.dim(`    ... and ${refs.length - 5} more`));
+        }
+      }
+    }
+  },
+  {
+    name: '/def',
+    description: 'Get symbol definition',
+    execute: async (args, ctx) => {
+      const symbol = args.trim();
+      if (!symbol) {
+        console.log(pc.red('[WARN] Usage: /def <symbol>'));
+        return;
+      }
+
+      const indexDbPath = ctx.getIndexDbPath();
+      if (!fs.existsSync(indexDbPath)) {
+        console.log(pc.yellow('[WARN] No index found. Run /index first.'));
+        return;
+      }
+
+      const { initIndexDb, findDefinitions } = await import('./indexing/fts.js');
+      const db = initIndexDb(indexDbPath);
+
+      console.log(pc.bold(`\n--- Definition: ${symbol} ---`));
+      const defs = findDefinitions(db, symbol, ctx.projectHash);
+
+      if (defs.length === 0) {
+        console.log(pc.gray('  No definitions found.'));
+        return;
+      }
+
+      console.log(pc.white(`\nFound ${defs.length} definition(s):`));
+      for (const d of defs) {
+        const kindColor = d.kind === 'function' ? pc.cyan : d.kind === 'class' ? pc.green : d.kind === 'interface' ? pc.blue : pc.white;
+        const loc = `${d.file_path}:${d.line_start}${d.line_end !== d.line_start ? '-' + d.line_end : ''}`;
+        console.log(`  ${kindColor(`[${d.kind}]`)} ${pc.bold(d.name)} ${pc.dim(`(${loc})`)}`);
+        if (d.signature) {
+          console.log(pc.dim(`    ${d.signature.slice(0, 120)}${d.signature.length > 120 ? '...' : ''}`));
+        }
+      }
+    }
+  },
+  {
+    name: '/models',
+    description: 'List available and healthy models',
+    execute: async (args, ctx) => {
+      console.log(pc.bold('\n--- Available Models ---'));
+      const models = await ctx.router.listModels();
+      if (models.length === 0) {
+        console.log(pc.yellow('  No models found. Check your local servers (LM Studio, Ollama, etc.)'));
+      } else {
+        for (const model of models) {
+          console.log(`  • ${pc.cyan(model)}`);
+        }
+      }
+      const { checkModelHealth } = await import('./router/health.js');
+      const healthyModels = ctx.router.getHealthyModels();
+      console.log(pc.bold('\n--- Healthy Models ---'));
+      for (const model of healthyModels) {
+        const health = await checkModelHealth(model, 5000);
+        const status = health?.healthy ? pc.green('●') : pc.red('●');
+        console.log(`  ${status} ${pc.cyan(model.name)} (${model.endpoint}) - ${model.model}`);
+      }
+      console.log(pc.bold('----------------------\n'));
+    }
+  },
+  {
+    name: '/config',
+    description: 'Show current configuration',
+    execute: async (args, ctx) => {
+      console.log(pc.bold('\n--- Current Configuration ---'));
+      console.log(JSON.stringify(ctx.config, null, 2));
+      console.log(pc.bold('-----------------------------'));
+      console.log(pc.gray(`\nEdit ${ctx.configDir}/config.json to modify settings.`));
+      console.log(pc.gray('Run `daedalus /doctor` to auto-discover local servers.'));
+    }
+  },
+  {
+    name: '/doctor',
+    description: 'Diagnose connection and discovery',
+    execute: async (args, ctx) => {
+      console.log(pc.bold('\n--- Daedalus Doctor ---'));
+      console.log(pc.gray('Checking local server connections...\n'));
+      const discovered = await discoverLocalServers();
+      if (discovered.length === 0) {
+        console.log(pc.yellow('  No local servers detected.'));
+        console.log(pc.gray('  Start one of:'));
+        console.log(pc.gray('    • LM Studio (http://localhost:1234)'));
+        console.log(pc.gray('    • Ollama (http://localhost:11434)'));
+        console.log(pc.gray('    • llama.cpp server (--server, default :8080)'));
+        console.log(pc.gray('    • vLLM (http://localhost:8000)'));
+      } else {
+        console.log(pc.green(`  Found ${discovered.length} running server(s):\n`));
+        for (const server of discovered) {
+          console.log(`  ${pc.green('●')} ${server.name} at ${server.endpoint}`);
+          for (const model of server.models.slice(0, 5)) {
+            console.log(`      - ${model}`);
+          }
+          if (server.models.length > 5) {
+            console.log(pc.gray(`      ... and ${server.models.length - 5} more`));
+          }
+        }
+      }
+      console.log(pc.bold('\n--- Router Health ---'));
+      const enabledModels = ctx.router.getEnabledModels();
+      if (enabledModels.length === 0) {
+        console.log(pc.yellow('  No models configured. Run /onboard to set one up.'));
+      } else {
+        for (const model of enabledModels) {
+          const { checkModelHealth } = await import('./router/health.js');
+          const health = await checkModelHealth(model, 5000);
+          const status = health.healthy ? pc.green('●') : pc.red('●');
+          const latency = health.latencyMs ? ` (${health.latencyMs}ms)` : '';
+          const err = health.error ? ` ${pc.red(health.error)}` : '';
+          console.log(`  ${status} ${model.name}: ${model.endpoint}${latency}${err}`);
+        }
+      }
+      console.log(pc.bold('  Config:') + pc.gray(` ${ctx.configDir}\\config.json`));
+      console.log(pc.bold('----------------------\n'));
+    }
+  },
+  {
+    name: 'exit',
+    aliases: ['quit'],
+    description: 'Save session and exit',
+    execute: async (args, ctx) => {
+      const todos = getSessionTodos(ctx.toolContext.sessionId);
+      ctx.sessionManager.saveSessionState(ctx.messages, ctx.activeFiles, todos);
+      console.log(pc.dim('  [EXTRACT] Extracting facts from session...'));
+      await extractAndSave(ctx.router, ctx.sessionManager, ctx.messages);
+      console.log(pc.gray(`Session saved: ${ctx.sessionManager.sessionId}`));
+      console.log(pc.yellow('\nEnding session. Goodbye!\n'));
+      ctx.rl.close();
+      process.exit(0);
+    }
+  }
+];
+
+export async function executeCommand(input: string, ctx: CommandContext): Promise<boolean> {
+  const trimmed = input.trim();
+  if (!trimmed) return false;
+
+  const parts = trimmed.split(/\s+/);
+  const commandName = parts[0].toLowerCase();
+  const args = trimmed.substring(parts[0].length).trim();
+
+  let mappedName = commandName;
+  if (commandName === '?') {
+    mappedName = '/help';
+  }
+
+  const command = commandsList.find(c =>
+    c.name.toLowerCase() === mappedName ||
+    c.aliases?.some(alias => alias.toLowerCase() === mappedName)
+  );
+
+  if (command) {
+    try {
+      await command.execute(args, ctx);
     } catch (err: any) {
-      console.error(pc.red(`\n[ERROR] Indexing failed: ${err.message}`));
+      console.log(pc.red(`[ERROR] Command ${command.name} failed: ${err.message}`));
     }
+    return true; // Handled
   }
 
-  async function handleFindSymbol(query: string, limit: number): Promise<void> {
-    const indexDbPath = getIndexDbPath(projectHash);
-
-    if (!fs.existsSync(indexDbPath)) {
-      console.log(pc.yellow('[WARN] No index found. Run /index first.'));
-      return;
-    }
-    
-    const { initIndexDb, searchSymbols } = await import('./indexing/fts.js');
-    const db = initIndexDb(indexDbPath);
-
-    console.log(pc.bold(`\n--- Symbol Search: "${query}" ---`));
-    const symbols = searchSymbols(db, query, projectHash, limit);
-
-    if (symbols.length === 0) {
-      console.log(pc.gray('  No symbols found.'));
-      return;
-    }
-
-    console.log(pc.white(`\nFound ${symbols.length} symbol(s):`));
-    for (const s of symbols) {
-      const kindColor = s.kind === 'function' ? pc.cyan : s.kind === 'class' ? pc.green : s.kind === 'interface' ? pc.blue : pc.white;
-      const loc = `${s.file_path}:${s.line_start}${s.line_end !== s.line_start ? '-' + s.line_end : ''}`;
-      console.log(`  ${kindColor(`[${s.kind}]`)} ${pc.bold(s.name)} ${pc.dim(`(${loc})`)}`);
-      if (s.signature) {
-        console.log(pc.dim(`    ${s.signature.slice(0, 100)}${s.signature.length > 100 ? '...' : ''}`));
-      }
-    }
+  if (trimmed.startsWith('/')) {
+    console.log(pc.red(`[WARN] Unknown command: ${commandName}. Type /help or ? to view all available commands.`));
+    return true; // We treated it as a command, so don't pass it to the model
   }
 
-  async function handleGetReferences(symbol: string): Promise<void> {
-    const indexDbPath = getIndexDbPath(projectHash);
-
-    if (!fs.existsSync(indexDbPath)) {
-      console.log(pc.yellow('[WARN] No index found. Run /index first.'));
-      return;
-    }
-
-    const { initIndexDb, findReferences } = await import('./indexing/fts.js');
-    const db = initIndexDb(indexDbPath);
-
-    console.log(pc.bold(`\n--- References to: ${symbol} ---`));
-    const refs = findReferences(db, symbol, projectHash);
-
-    if (refs.length === 0) {
-      console.log(pc.gray('  No references found.'));
-      return;
-    }
-
-    const byCaller = new Map<string, typeof refs>();
-    for (const r of refs) {
-      const key = `${r.caller_name} (${r.caller_file}:${r.caller_line})`;
-      if (!byCaller.has(key)) byCaller.set(key, []);
-      byCaller.get(key)!.push(r);
-    }
-
-    console.log(pc.white(`\nFound ${refs.length} reference(s) from ${byCaller.size} caller(s):`));
-    for (const [caller, refs] of byCaller) {
-      console.log(pc.cyan(`\n  ${caller}:`));
-      for (const r of refs.slice(0, 5)) {
-        console.log(pc.dim(`    ${r.callee_name} at ${r.callee_file}:${r.callee_line}`));
-      }
-      if (refs.length > 5) {
-        console.log(pc.dim(`    ... and ${refs.length - 5} more`));
-      }
-    }
-  }
-
-  async function handleGetDefinition(symbol: string): Promise<void> {
-    const indexDbPath = getIndexDbPath(projectHash);
-
-    if (!fs.existsSync(indexDbPath)) {
-      console.log(pc.yellow('[WARN] No index found. Run /index first.'));
-      return;
-    }
-
-    const { initIndexDb, findDefinitions } = await import('./indexing/fts.js');
-    const db = initIndexDb(indexDbPath);
-
-    console.log(pc.bold(`\n--- Definition: ${symbol} ---`));
-    const defs = findDefinitions(db, symbol, projectHash);
-
-    if (defs.length === 0) {
-      console.log(pc.gray('  No definitions found.'));
-      return;
-    }
-
-    console.log(pc.white(`\nFound ${defs.length} definition(s):`));
-    for (const d of defs) {
-      const kindColor = d.kind === 'function' ? pc.cyan : d.kind === 'class' ? pc.green : d.kind === 'interface' ? pc.blue : pc.white;
-      const loc = `${d.file_path}:${d.line_start}${d.line_end !== d.line_start ? '-' + d.line_end : ''}`;
-      console.log(`  ${kindColor(`[${d.kind}]`)} ${pc.bold(d.name)} ${pc.dim(`(${loc})`)}`);
-      if (d.signature) {
-        console.log(pc.dim(`    ${d.signature.slice(0, 120)}${d.signature.length > 120 ? '...' : ''}`));
-      }
-    }
-  }
-
-  return {
-    handleSpawn,
-    handleOrchestrate,
-    handleModels,
-    handleConfig,
-    handleDoctor,
-    handleIndex,
-    handleFindSymbol,
-    handleGetReferences,
-    handleGetDefinition,
-    getIndexDbPath: () => getIndexDbPath(projectHash),
-  };
+  return false; // Not a command
 }

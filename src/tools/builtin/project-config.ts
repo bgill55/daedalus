@@ -3,7 +3,6 @@
 
 import fs from 'fs';
 import path from 'path';
-import fs from 'fs';
 import os from 'os';
 import { getProjectHash } from '../../project-hash.js';
 
