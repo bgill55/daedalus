@@ -23,7 +23,7 @@ const DEFAULT_EXCLUDE = ['node_modules', 'dist', 'build', '.git', 'target', 'cov
 const DEFAULT_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.py', '.go', '.rs'];
 
 /** Compute SHA256 of string content */
-function hashContent(content: string): string {
+export function hashContent(content: string): string {
   return crypto.createHash('sha256').update(content).digest('hex');
 }
 
@@ -521,7 +521,7 @@ export function parseRust(content: string, relPath: string, projectHash: string)
 }
 
 /** Language parser dispatch */
-function parseFile(content: string, relPath: string, projectHash: string): { symbols: SymbolRow[]; references: ReferenceRow[] } {
+export function parseFile(content: string, relPath: string, projectHash: string): { symbols: SymbolRow[]; references: ReferenceRow[] } {
   const ext = path.extname(relPath).toLowerCase();
   
   switch (ext) {

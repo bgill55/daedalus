@@ -38,7 +38,7 @@ const userProfile: UserProfile = loadProfile();
 const activeFiles = new Map<string, string>(); // Absolute path -> filename key
 const messages: ChatMessage[] = [];
 
-
+let indexWatcher: { close: () => void } | null = null;
 
 // Compute stable projectHash once
 const projectHash = getProjectHash(process.cwd());
@@ -256,6 +256,9 @@ const chatLoop = createRepl({
 // Start health checks and REPL
 async function main() {
   process.on('SIGINT', () => {
+    if (indexWatcher) {
+      indexWatcher.close();
+    }
     if (currentAbortController) {
       currentAbortController.abort();
       return;
@@ -268,6 +271,9 @@ async function main() {
 
   // Clean up health checks on normal exit too
   process.on('exit', () => {
+    if (indexWatcher) {
+      indexWatcher.close();
+    }
     router.stopHealthChecks?.();
     import('./tools/builtin/process-watcher.js').then(m => m.killAllWatchedProcesses()).catch(() => {});
   });
@@ -324,6 +330,13 @@ async function main() {
             console.log(pc.yellow(`  [WARN] ${result.errors.length} file(s) had index errors`));
           }
           toolContext.indexDb = db;
+
+          if (config.indexing.watch) {
+            const { watchCodebase } = await import('./indexing/watcher.js');
+            indexWatcher = watchCodebase(db, process.cwd(), projectHash, {
+              exclude: config.indexing.exclude,
+            });
+          }
         } catch (err: any) {
           console.error(pc.yellow(`  [WARN] Auto-index failed: ${err.message}`));
         }
