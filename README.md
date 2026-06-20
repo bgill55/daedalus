@@ -1,13 +1,17 @@
 # Daedalus
 
-<img width="256" alt="daedalus_emblem" src="https://github.com/user-attachments/assets/a5d4b394-3c2c-427e-b877-6e49f77467fc" />
+<p align="center">
+  <img width="256" alt="daedalus_emblem" src="https://github.com/user-attachments/assets/a5d4b394-3c2c-427e-b877-6e49f77467fc" />
+</p>
 
-[![npm version](https://img.shields.io/npm/v/daedalus-cli?color=blue)](https://www.npmjs.com/package/daedalus-cli)
-[![npm downloads](https://img.shields.io/npm/dm/daedalus-cli?color=blue)](https://www.npmjs.com/package/daedalus-cli)
-[![GitHub stars](https://img.shields.io/github/stars/bgill55/daedalus?color=blue)](https://github.com/bgill55/daedalus/stargazers)
-[![CI](https://github.com/bgill55/daedalus/actions/workflows/ci.yml/badge.svg)](https://github.com/bgill55/daedalus/actions/workflows/ci.yml)
-[![License](https://img.shields.io/github/license/bgill55/daedalus?color=blue)](LICENSE)
-[![Node](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](https://nodejs.org)
+<p align="center">
+  <a href="https://www.npmjs.com/package/daedalus-cli"><img src="https://img.shields.io/npm/v/daedalus-cli?color=blue" alt="npm version" /></a>
+  <a href="https://www.npmjs.com/package/daedalus-cli"><img src="https://img.shields.io/npm/dm/daedalus-cli?color=blue" alt="npm downloads" /></a>
+  <a href="https://github.com/bgill55/daedalus/stargazers"><img src="https://img.shields.io/github/stars/bgill55/daedalus?color=blue" alt="GitHub stars" /></a>
+  <a href="https://github.com/bgill55/daedalus/actions/workflows/ci.yml"><img src="https://github.com/bgill55/daedalus/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/bgill55/daedalus?color=blue" alt="License" /></a>
+  <a href="https://nodejs.org"><img src="https://img.shields.io/badge/node-%3E%3D20-brightgreen" alt="Node" /></a>
+</p>
 
 **Local-first terminal-based AI coding assistant.**
 
