@@ -5,7 +5,7 @@ import * as health from './health.js';
 import * as rateLimiter from './rate-limiter.js';
 
 function makeConfig(overrides: Partial<RouterConfig> = {}): RouterConfig {
-  return {
+  const config = {
     strategy: 'priority',
     chain: [
       { name: 'primary', endpoint: 'http://localhost:1234/v1', model: 'auto', priority: 1, enabled: true },
@@ -16,9 +16,25 @@ function makeConfig(overrides: Partial<RouterConfig> = {}): RouterConfig {
     defaultRateLimit: { rpm: 60, tpm: 100000 },
     ...overrides,
   };
+  for (const m of config.chain) {
+    health.markHealthy(m, 10);
+  }
+  return config;
 }
 
 describe('LocalRouter', () => {
+  beforeEach(() => {
+    vi.spyOn(health, 'checkModelHealth').mockResolvedValue({
+      healthy: true,
+      lastCheck: Date.now(),
+      latencyMs: 10,
+      consecutiveFailures: 0,
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
 
   it('creates router with factory function', () => {
     const router = createRouter({ chain: [{ name: 'test', endpoint: 'http://localhost:1234/v1', model: 'm', priority: 1, enabled: true }] });
