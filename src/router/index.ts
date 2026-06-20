@@ -1,7 +1,7 @@
 // Daedalus Local Router - Main routing logic
 
 import { OpenAI } from 'openai';
-import { 
+import type { 
   ModelEntry, 
   ModelHealth, 
   RouterConfig, 
@@ -11,7 +11,7 @@ import {
   StreamChunk 
 } from './types.js';
 
-export { RouteResult, RouterConfig, ChatResponse };
+export type { RouteResult, RouterConfig, ChatResponse };
 import { createTokenBucket, consumeTokens, getWaitTime } from './rate-limiter.js';
 import { checkModelHealth, getCachedHealth, markHealthy, markUnhealthy } from './health.js';
 
