@@ -57,13 +57,13 @@ export class Orchestrator {
 
     const completion = await this.router.chat.completions.create({
       model: 'auto',
-      messages: messages as any,
+      messages,
       temperature: plannerRole.temperature ?? 0.2,
       tools,
       tool_choice: 'auto',
     });
 
-    const assistantMessage = completion.choices[0].message as any;
+    const assistantMessage = completion.choices[0].message;
     const toolCalls = assistantMessage.tool_calls;
 
     if (toolCalls && toolCalls.length > 0) {
@@ -88,7 +88,7 @@ export class Orchestrator {
         tools,
         tool_choice: 'none', // No more tool calls — just produce the plan text
       });
-      return (followUp.choices[0].message as any).content || 'No plan generated';
+      return (followUp.choices[0].message).content || 'No plan generated';
     }
 
     return assistantMessage.content || 'No plan generated';
@@ -172,18 +172,18 @@ export class Orchestrator {
     while (turns < maxTurns) {
       const completion = await this.router.chat.completions.create({
         model: 'auto',
-        messages: messages as any,
+        messages,
         temperature: role.temperature ?? 0.1,
         tools,
         tool_choice: 'auto',
       });
 
       const message = completion.choices[0].message;
-      messages.push(message as any);
+      messages.push(message);
 
-      if ((message as any).tool_calls && (message as any).tool_calls.length > 0) {
+      if (message.tool_calls && message.tool_calls.length > 0) {
         const results = await executeToolCalls(
-          (message as any).tool_calls.map((tc: any) => ({
+          message.tool_calls.map((tc: any) => ({
             id: tc.id,
             type: 'function' as const,
             function: { name: tc.function.name, arguments: tc.function.arguments },
@@ -196,14 +196,14 @@ export class Orchestrator {
             role: 'tool',
             content: result.content,
             tool_call_id: result.toolCallId,
-          } as any);
+          });
         }
         turns++;
         continue;
       }
 
       // No tool calls - agent is done
-      return (message as any).content || 'Agent completed without response';
+      return message.content || 'Agent completed without response';
     }
 
     return 'Agent reached max turns';

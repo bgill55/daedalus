@@ -3,19 +3,21 @@
 import { ToolContext, ToolResult } from '../../types.js';
 
 // In-memory todo store (will be replaced with session persistence later)
-const todoStore = new Map<string, Array<{ id: string; content: string; status: string }>>();
+const state: { store: Map<string, Array<{ id: string; content: string; status: string }>> } = {
+  store: new Map(),
+};
 
 export function getSessionTodos(sessionId: string): Array<{ id: string; content: string; status: string }> {
-  return todoStore.get(sessionId) ?? [];
+  return state.store.get(sessionId) ?? [];
 }
 
 export function setSessionTodos(sessionId: string, todos: Array<{ id: string; content: string; status: string }>) {
-  todoStore.set(sessionId, todos);
+  state.store.set(sessionId, todos);
 }
 
 export async function manage(args: { todos: Array<{ id: string; content: string; status: string }>; merge?: boolean }, context: ToolContext): Promise<ToolResult> {
   const sessionKey = context.sessionId;
-  const existing = todoStore.get(sessionKey) ?? [];
+  const existing = state.store.get(sessionKey) ?? [];
 
   let updated: Array<{ id: string; content: string; status: string }>;
   if (args.merge) {
@@ -28,7 +30,7 @@ export async function manage(args: { todos: Array<{ id: string; content: string;
     updated = args.todos;
   }
 
-  todoStore.set(sessionKey, updated);
+  state.store.set(sessionKey, updated);
 
   const lines = updated.map(t => {
     const icon = t.status === 'completed' ? '✓' : t.status === 'in_progress' ? '▶' : t.status === 'cancelled' ? '✗' : '○';

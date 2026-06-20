@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseTextToolCalls, formatMarkdownLine } from './index.js';
+import { parseTextToolCalls, formatMarkdownLine } from './formatting.js';
 import { detectPlaceholders } from './tools/builtin/files.js';
 
 describe('parseTextToolCalls', () => {

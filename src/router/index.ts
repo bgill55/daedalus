@@ -11,7 +11,7 @@ import {
   StreamChunk 
 } from './types.js';
 
-export { RouteResult, RouterConfig };
+export { RouteResult, RouterConfig, ChatResponse };
 import { createTokenBucket, consumeTokens, getWaitTime } from './rate-limiter.js';
 import { checkModelHealth, getCachedHealth, markHealthy, markUnhealthy } from './health.js';
 

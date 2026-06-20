@@ -88,6 +88,7 @@ export const ConfigSchema = z.object({
       headers: z.record(z.string()).optional(),
       enabled: z.boolean().default(false),
     })).default({}),
+    shell: z.string().optional(),
   }).default({
     builtin: [],
     mcpServers: {},

@@ -63,13 +63,7 @@ export class MCPRegistry {
       throw new Error(`MCP server not connected: ${serverName}`);
     }
 
-    // Call via transport (need to cast to access callTool)
-    const typedTransport = transport as any;
-    if (typeof typedTransport.callTool === 'function') {
-      return typedTransport.callTool(toolName, args);
-    }
-    
-    throw new Error(`Transport doesn't support callTool`);
+    return transport.callTool(toolName, args);
   }
 
   getToolDefinitions(): ToolDefinition[] {

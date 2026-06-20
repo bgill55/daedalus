@@ -4,6 +4,7 @@ import { spawn, execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { ToolContext, ToolResult } from '../../types.js';
+import { loadConfig } from '../../config/index.js';
 
 const SENSITIVE_ENV_KEYS = new Set([
   'AWS_SECRET_ACCESS_KEY', 'AWS_ACCESS_KEY_ID', 'AWS_SESSION_TOKEN',
@@ -28,7 +29,41 @@ function sanitizeEnv(): NodeJS.ProcessEnv {
   return env;
 }
 
-let cachedShell: { shell: string; isBash: boolean } | null = null;
+interface ShellConfig {
+  shell: string;
+  type: 'bash' | 'cmd' | 'powershell';
+}
+
+function getShellType(shellPath: string): 'bash' | 'cmd' | 'powershell' {
+  const lower = shellPath.toLowerCase();
+  if (lower.includes('powershell') || lower.includes('pwsh')) {
+    return 'powershell';
+  }
+  if (lower.includes('cmd.exe') || lower.endsWith('cmd')) {
+    return 'cmd';
+  }
+  return 'bash';
+}
+
+function getShellArgs(type: 'bash' | 'cmd' | 'powershell', command: string): string[] {
+  switch (type) {
+    case 'powershell':
+      return ['-NoProfile', '-Command', command];
+    case 'cmd':
+      return ['/c', command];
+    case 'bash':
+    default:
+      return ['-c', command];
+  }
+}
+
+export const state: { cachedShell: ShellConfig | null } = {
+  cachedShell: null,
+};
+
+export function resetCachedShell(): void {
+  state.cachedShell = null;
+}
 
 export async function execute(args: { command: string; timeout?: number; workdir?: string }, context: ToolContext): Promise<ToolResult> {
   const timeout = args.timeout ?? 180;
@@ -41,27 +76,52 @@ export async function execute(args: { command: string; timeout?: number; workdir
     let exited = false;
 
     function detectShell(): { shell: string; args: string[] } {
-      if (process.platform === 'win32') {
-        if (!cachedShell) {
-          let detected = 'cmd.exe';
-          let isBash = false;
-          try { execSync('where bash.exe', { stdio: 'ignore' }); detected = 'bash.exe'; isBash = true; }
-          catch {
-            const fallbacks = [
-              'C:\\Program Files\\Git\\bin\\bash.exe',
-              'C:\\Program Files (x86)\\Git\\bin\\bash.exe',
-              path.join(process.env.LOCALAPPDATA || '', 'Programs', 'Git', 'bin', 'bash.exe'),
-              path.join(process.env.SYSTEMDRIVE || 'C:', 'tools', 'git', 'bin', 'bash.exe'),
-            ];
-            for (const fp of fallbacks) {
-              if (fs.existsSync(fp)) { detected = fp; isBash = true; break; }
-            }
+      if (!state.cachedShell) {
+        const envShell = process.env.DAEDALUS_SHELL || process.env.SHELL;
+        if (envShell) {
+          state.cachedShell = { shell: envShell, type: getShellType(envShell) };
+        } else {
+          let configShell: string | undefined;
+          try {
+            const config = loadConfig();
+            configShell = config.tools?.shell;
+          } catch {
+            // Ignore config load errors
           }
-          cachedShell = { shell: detected, isBash };
+
+          if (configShell) {
+            state.cachedShell = { shell: configShell, type: getShellType(configShell) };
+          } else if (process.platform === 'win32') {
+            let detected = 'cmd.exe';
+            let type: 'bash' | 'cmd' | 'powershell' = 'cmd';
+            try {
+              execSync('where bash.exe', { stdio: 'ignore' });
+              detected = 'bash.exe';
+              type = 'bash';
+            } catch {
+              const fallbacks = [
+                'C:\\Program Files\\Git\\bin\\bash.exe',
+                'C:\\Program Files (x86)\\Git\\bin\\bash.exe',
+                path.join(process.env.LOCALAPPDATA || '', 'Programs', 'Git', 'bin', 'bash.exe'),
+                path.join(process.env.SYSTEMDRIVE || 'C:', 'tools', 'git', 'bin', 'bash.exe'),
+              ];
+              for (const fp of fallbacks) {
+                if (fs.existsSync(fp)) {
+                  detected = fp;
+                  type = 'bash';
+                  break;
+                }
+              }
+            }
+            state.cachedShell = { shell: detected, type };
+          } else {
+            state.cachedShell = { shell: '/bin/bash', type: 'bash' };
+          }
         }
-        return { shell: cachedShell.shell, args: cachedShell.isBash ? ['-c', command] : ['/c', command] };
       }
-      return { shell: '/bin/bash', args: ['-c', command] };
+
+      const active = state.cachedShell!;
+      return { shell: active.shell, args: getShellArgs(active.type, command) };
     }
 
     const { shell, args: shellArgs } = detectShell();

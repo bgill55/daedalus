@@ -14,14 +14,20 @@ interface WatchedProcess {
 }
 
 const RING_SIZE = 200;
-const watched = new Map<string, WatchedProcess>();
-let idCounter = 0;
+
+const state: {
+  watched: Map<string, WatchedProcess>;
+  idCounter: number;
+} = {
+  watched: new Map(),
+  idCounter: 0,
+};
 
 export function killAllWatchedProcesses(): void {
-  for (const [, wp] of watched) {
+  for (const [, wp] of state.watched) {
     try { wp.proc.kill(); } catch {}
   }
-  watched.clear();
+  state.watched.clear();
 }
 
 export async function watchProcess(
@@ -29,7 +35,7 @@ export async function watchProcess(
   context: ToolContext
 ): Promise<ToolResult> {
   try {
-    const id = `proc_${++idCounter}`;
+    const id = `proc_${++state.idCounter}`;
     const cwd = args.workdir ?? context.projectRoot;
 
     const isWindows = process.platform === 'win32';
@@ -66,7 +72,7 @@ export async function watchProcess(
       wp.alive = false;
     });
 
-    watched.set(id, wp);
+    state.watched.set(id, wp);
 
     return {
       toolCallId: '', name: 'watch_process', success: true,
@@ -81,7 +87,7 @@ export async function readProcess(
   args: { id: string; lines?: number },
   _context: ToolContext
 ): Promise<ToolResult> {
-  const wp = watched.get(args.id);
+  const wp = state.watched.get(args.id);
   if (!wp) return formatError(`No watched process with id '${args.id}'. Use watch_process first.`);
 
   const n = Math.min(args.lines ?? 50, RING_SIZE);
@@ -97,12 +103,12 @@ export async function killProcess(
   args: { id: string },
   _context: ToolContext
 ): Promise<ToolResult> {
-  const wp = watched.get(args.id);
+  const wp = state.watched.get(args.id);
   if (!wp) return formatError(`No watched process with id '${args.id}'.`);
   try {
     wp.proc.kill();
     wp.alive = false;
-    watched.delete(args.id);
+    state.watched.delete(args.id);
     return { toolCallId: '', name: 'kill_process', success: true, content: `Process '${args.id}' killed.` };
   } catch (err: any) {
     return formatError(`Failed to kill process: ${err.message}`);

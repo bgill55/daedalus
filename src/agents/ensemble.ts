@@ -29,18 +29,18 @@ async function executeAgentRole(
   while (turns < maxTurns) {
     const completion = await router.chat.completions.create({
       model: modelName,
-      messages: messages as any,
+      messages,
       temperature: role.temperature ?? 0.1,
       tools: tools.length > 0 ? tools : undefined,
       tool_choice: tools.length > 0 ? 'auto' : undefined,
     });
 
     const message = completion.choices[0].message;
-    messages.push(message as any);
+    messages.push(message);
 
-    if ((message as any).tool_calls && (message as any).tool_calls.length > 0) {
+    if (message.tool_calls && message.tool_calls.length > 0) {
       const results = await executeToolCalls(
-        (message as any).tool_calls.map((tc: any) => ({
+        message.tool_calls.map((tc: any) => ({
           id: tc.id,
           type: 'function' as const,
           function: { name: tc.function.name, arguments: tc.function.arguments },
@@ -53,13 +53,13 @@ async function executeAgentRole(
           role: 'tool',
           content: result.content,
           tool_call_id: result.toolCallId,
-        } as any);
+        });
       }
       turns++;
       continue;
     }
 
-    return (message as any).content || 'Agent completed without response';
+    return message.content || 'Agent completed without response';
   }
 
   return 'Agent reached max turns';

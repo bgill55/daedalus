@@ -62,7 +62,7 @@ AI assistance without:
 ### Tools
 - **File tools** — read, write, patch with interactive diff UI; fuzzy whitespace matching, syntax validation with auto-revert
 - **Trust layer** — write-without-read guardrail, circuit breaker, import/export validation, auto-test loop, large-rewrite annotation
-- **Terminal** — cross-platform shell execution (bash/cmd) with timeout and abort
+- **Terminal** — cross-platform shell execution (bash/cmd/powershell) with custom preference support, timeout, and abort
 - **Git** — status, diff, stage-all-and-commit, undo
 - **Web** — DuckDuckGo search and URL fetching (no API key needed)
 - **Codebase** — index, find, definitions, references
@@ -117,6 +117,11 @@ Daedalus stores config at `~/.daedalus/config.json`. Key sections:
 ```
 
 Router strategies: `priority` (default), `round-robin`, `fastest`.
+
+### Shell Preference
+The shell used by the terminal tool can be configured:
+1. Environment variable: `DAEDALUS_SHELL` or `SHELL`.
+2. Configuration file setting: `"tools": { "shell": "powershell" }` (supports `powershell`, `pwsh`, `cmd`, `bash`, or absolute executable paths).
 
 Per-project config at `~/.daedalus/config/<project-hash>.json` — set via `/project set <key> <value>`.
 

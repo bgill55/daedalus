@@ -14,8 +14,8 @@ const EXTRACTION_INTERVAL = 5;
 function recentTurnHasLearningSignal(messages: ChatMessage[]): boolean {
   const lastMsgs = messages.slice(-10);
   for (const msg of lastMsgs) {
-    if (msg.role === 'assistant' && (msg as any).tool_calls) {
-      const calls: Array<{ function: { name: string } }> = (msg as any).tool_calls;
+    if (msg.role === 'assistant' && msg.tool_calls) {
+      const calls = msg.tool_calls;
       for (const tc of calls) {
         if (LEARNING_TOOLS.has(tc.function.name)) return true;
       }
@@ -75,7 +75,7 @@ export async function extractAndSave(
       max_tokens: 300,
     });
 
-    const text = ((response.choices[0] as any)?.message?.content || '').trim();
+    const text = (response.choices[0]?.message?.content || '').trim();
     if (!text) return;
 
     const jsonMatch = text.match(/\[[\s\S]*?\]/);

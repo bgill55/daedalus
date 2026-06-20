@@ -8,7 +8,7 @@ import pc from 'picocolors';
 import { loadConfig, saveConfig, discoverLocalServers } from '../config/index.js';
 import { DaedalusConfig } from '../config/index.js';
 import { checkModelHealth } from '../router/health.js';
-import type { ModelEntry } from '../router/types.js';
+import type { ModelEntry, ModelHealth } from '../router/types.js';
 
 // ── Utility: prompt for input ──
 
@@ -22,9 +22,9 @@ async function hasAnyHealthyModel(config: DaedalusConfig): Promise<boolean> {
   const enabled = config.router.chain.filter(m => m.enabled);
   if (enabled.length === 0) return false;
   const results = await Promise.allSettled(
-    enabled.map(m => checkModelHealth(m as any, 5000))
+    enabled.map(m => checkModelHealth(m as ModelEntry, 5000))
   );
-  return results.some(r => r.status === 'fulfilled' && (r.value as any)?.healthy === true);
+  return results.some(r => r.status === 'fulfilled' && (r.value).healthy === true);
 }
 
 // ── Add a remote provider entry ──
