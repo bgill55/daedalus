@@ -108,7 +108,8 @@ AI assistance without:
 | `/branch [name]` | View or switch branches |
 | `/pr [base]` | Generate PR description |
 | `/session` | Manage chat sessions |
-| `/project` | View or set project config |
+| `/project [set <key> = <val>]` | View or set project-level config settings |
+| `/config [set <key> = <val>]` | View or set global configuration settings |
 | `/prune [budget]` | View and prune message history |
 | `/doctor` | Diagnose server connections |
 | `/index` | Index codebase |
@@ -157,6 +158,16 @@ You can configure a `tier` (`"fast"`, `"intelligence"`, or `"standard"`) and too
 Run sub-agents concurrently in the background by adding the `--bg` flag to `/spawn` or `/delegate` (e.g. `/spawn --bg coder "Implement helper"`).
 * **Notification Queueing**: Agent task completions are queued and printed synchronously in a prompt-safe manner right before your next REPL prompt redraw to keep your terminal output clean.
 * **Management**: View running jobs via `/tasks`, cancel running jobs via `/task kill <id>`, and read results of completed tasks using `/task <id>`.
+
+### Updating Configuration via CLI
+You can view and modify global configuration options directly within the CLI without manually editing files. The values are automatically validated before saving to prevent corrupting your settings:
+* **View Config**: Run `/config` to display your current active configuration.
+* **Set Global Config**: Run `/config set <key> = <value>` (e.g., `/config set router.strategy = round-robin`).
+* **Set Model Config**: Run `/config set model.<name>.<property> = <value>` (e.g., `/config set model.local.tier = intelligence`).
+
+To modify project-specific overrides for the current workspace, use:
+* **View Project Config**: Run `/project`.
+* **Set Project Config**: Run `/project set <key> = <value>` (e.g., `/project set testCommand = npm run test`).
 
 ### Shell Preference
 The shell used by the terminal tool can be configured:
