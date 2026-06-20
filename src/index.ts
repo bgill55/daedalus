@@ -18,7 +18,7 @@ import { SessionManager } from './session/manager.js';
 import { loadProfile, getProfilePrompt, UserProfile } from './profile.js';
 import { printBanner, printConfigInfo } from './banner.js';
 import { checkForUpdates } from './update-check.js';
-import { createModelFunctions, currentAbortController } from './model.js';
+import { createModelFunctions, currentAbortController, abortTurn } from './model.js';
 import { createRepl } from './repl.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -271,7 +271,7 @@ async function main() {
       indexWatcher.close();
     }
     if (currentAbortController) {
-      currentAbortController.abort();
+      abortTurn();
       return;
     }
     router.stopHealthChecks?.();

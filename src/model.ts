@@ -18,6 +18,23 @@ export function getTurnStartTime(): number {
 }
 
 export let currentAbortController: AbortController | null = null;
+let turnAborted = false;
+
+export function abortTurn(): void {
+  turnAborted = true;
+  if (currentAbortController) {
+    currentAbortController.abort();
+  }
+}
+
+export function resetTurnAborted(): void {
+  turnAborted = false;
+  currentAbortController = null;
+}
+
+export function isTurnAborted(): boolean {
+  return turnAborted;
+}
 
 function truncateToolResult(content: string): string {
   if (content.length <= TOOL_RESULT_MAX_CHARS) return content;
@@ -37,7 +54,11 @@ export interface ModelDeps {
 
 function ensureAbortController(): AbortController {
   const c = new AbortController();
-  currentAbortController = c;
+  if (turnAborted) {
+    c.abort();
+  } else {
+    currentAbortController = c;
+  }
   return c;
 }
 

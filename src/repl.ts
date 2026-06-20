@@ -15,6 +15,7 @@ import type { SqliteTodo } from './session/sqlite.js';
 import type { UserProfile } from './profile.js';
 import { commandsList, executeCommand, CommandContext } from './commands.js';
 import { extractAndSave } from './extraction.js';
+import { resetTurnAborted } from './model.js';
 
 export interface ReplDeps {
   config: any;
@@ -140,6 +141,8 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
       const input = await readMultiLineInput(prompt);
       const trimmedInput = input.trim();
       if (!trimmedInput) continue;
+
+      resetTurnAborted();
 
       // Construct CommandContext
       const cmdContext: CommandContext = {

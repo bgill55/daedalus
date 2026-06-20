@@ -38,6 +38,9 @@ export class Orchestrator {
 
     try {
       const plan = await this.createPlan(goal);
+      if (this.toolContext.abortSignal.aborted) {
+        return 'Orchestration stopped by user';
+      }
       await this.executePlan(plan);
     } catch (err) {
       return `Orchestration failed: ${(err as Error).message}`;
@@ -99,6 +102,9 @@ export class Orchestrator {
     const delegationTasks = this.parseDelegationTasks(plan);
     
     for (const task of delegationTasks) {
+      if (this.toolContext.abortSignal.aborted) {
+        break;
+      }
       await this.delegateTask(task);
     }
   }
@@ -212,6 +218,9 @@ export class Orchestrator {
     let currentSummary = previous.summary;
 
     while (attempt < maxRetries) {
+      if (this.toolContext.abortSignal.aborted) {
+        break;
+      }
       attempt++;
       console.log(`\n[REPAIR] Attempt ${attempt}/${maxRetries} to repair task: ${task.goal.slice(0, 60)}...`);
 
