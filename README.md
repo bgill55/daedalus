@@ -2,6 +2,11 @@
 
 <img width="256" alt="daedalus_emblem" src="https://github.com/user-attachments/assets/a5d4b394-3c2c-427e-b877-6e49f77467fc" />
 
+[![npm version](https://img.shields.io/npm/v/daedalus-cli?color=blue)](https://www.npmjs.com/package/daedalus-cli)
+[![CI](https://github.com/bgill55/daedalus/actions/workflows/ci.yml/badge.svg)](https://github.com/bgill55/daedalus/actions/workflows/ci.yml)
+[![License](https://img.shields.io/github/license/bgill55/daedalus?color=blue)](LICENSE)
+[![Node](https://img.shields.io/badge/node-%3E%3D20-brightgreen)](https://nodejs.org)
+
 **Local-first terminal-based AI coding assistant.**
 
 Daedalus connects to local LLM servers (LM Studio, Ollama, llama.cpp, vLLM) or remote providers (OpenAI, Groq, OpenRouter, Anthropic), routes requests across models, and gives your AI agent access to your file system, terminal, git, web search, and codebase indexing.
