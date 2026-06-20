@@ -105,3 +105,51 @@ describe('Config Command', () => {
     expect(warnCall).toBeDefined();
   });
 });
+
+describe('Help Command', () => {
+  let mockContext: CommandContext;
+
+  beforeEach(() => {
+    mockContext = {
+      config: {},
+      configDir: '',
+      cliTempDir: '',
+      router: {} as any,
+      sessionManager: {} as any,
+      userProfile: {} as any,
+      projectHash: '',
+      messages: [],
+      activeFiles: new Map(),
+      toolContext: {} as any,
+      getSystemPromptWithMemory: () => '',
+      callModelWithTools: async () => ({ content: '', toolCalls: [] }),
+      callModelWithFallback: async () => '',
+      rl: {} as any,
+      initializeSessionState: () => {},
+      buildFileContext: () => '',
+      askLine: async () => '',
+      buildIndexContext: async () => '',
+      getIndexDbPath: () => '',
+    };
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('runs help command via /help, ?, and help', async () => {
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    const h1 = await executeCommand('/help', mockContext);
+    const h2 = await executeCommand('?', mockContext);
+    const h3 = await executeCommand('help', mockContext);
+
+    expect(h1).toBe(true);
+    expect(h2).toBe(true);
+    expect(h3).toBe(true);
+
+    expect(logSpy).toHaveBeenCalled();
+    const calls = logSpy.mock.calls.filter(c => c[0] && c[0].includes('Available Commands'));
+    expect(calls.length).toBe(3);
+  });
+});

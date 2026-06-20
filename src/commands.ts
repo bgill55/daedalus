@@ -1238,6 +1238,20 @@ Once you have finished making changes, I will automatically re-run the command t
     }
   },
   {
+    name: '/help',
+    aliases: ['?', 'help'],
+    description: 'Show available commands',
+    execute: async (args, ctx) => {
+      console.log(pc.bold('\n--- Available Commands ---'));
+      for (const cmd of commandsList) {
+        const aliasList = cmd.aliases ? cmd.aliases.map(a => a.startsWith('/') ? a : `/${a}`) : [];
+        const nameAndAliases = [cmd.name, ...aliasList].join(', ');
+        console.log(`  ${pc.cyan(nameAndAliases.padEnd(30))} - ${cmd.description}`);
+      }
+      console.log(pc.bold('--------------------------\n'));
+    }
+  },
+  {
     name: 'exit',
     aliases: ['quit'],
     description: 'Save session and exit',
@@ -1263,7 +1277,7 @@ export async function executeCommand(input: string, ctx: CommandContext): Promis
   const args = trimmed.substring(parts[0].length).trim();
 
   let mappedName = commandName;
-  if (commandName === '?') {
+  if (commandName === '?' || commandName === 'help') {
     mappedName = '/help';
   }
 
