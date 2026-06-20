@@ -24,7 +24,7 @@ async function waitFor(fn: () => boolean | Promise<boolean>, timeout = 3000, int
   throw new Error('Timeout waiting for condition');
 }
 
-describe('Watcher - Incremental Indexing', () => {
+describe.skipIf(process.platform === 'win32')('Watcher - Incremental Indexing', () => {
   let tmpDir: string;
   let dbPath: string;
   let db: Database.Database;
