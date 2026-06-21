@@ -109,7 +109,7 @@ function syncConfigReference() {
   const existingDescriptions: Record<string, string> = {};
 
   if (fs.existsSync(docPath)) {
-    const content = fs.readFileSync(docPath, 'utf8');
+    const content = fs.readFileSync(docPath, 'utf8').replace(/\r\n/g, '\n');
     const lines = content.split('\n');
     for (const line of lines) {
       const match = line.match(/^\*\s+\*\*`([\w.-]+)`\*\*:\s*(.*)$/);

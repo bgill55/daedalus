@@ -129,7 +129,7 @@ describe('Documentation Sync Verification', () => {
 
     expect(fs.existsSync(docPath)).toBe(true);
     
-    const docContent = fs.readFileSync(docPath, 'utf8');
+    const docContent = fs.readFileSync(docPath, 'utf8').replace(/\r\n/g, '\n');
     const lines = docContent.split('\n');
     for (const line of lines) {
       const match = line.match(/^\*\s+\*\*`([\w.-]+)`\*\*:\s*(.*)$/);
