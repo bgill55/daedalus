@@ -81,6 +81,6 @@ export function printConfigInfo(
   console.log(bot);
   console.log('');
 
-  console.log(`  ${pc.dim('Type')} ${pc.cyan('?')} ${pc.dim('for commands  ·  Tab completes  ·  Be nice to your AI')}`);
+  console.log(`  ${pc.dim('Type')} ${pc.cyan('?')} ${pc.dim('for commands  ·  Tab completes  ·  ')} ${pc.cyan('https://github.com/bgill55/daedalus/tree/main/docs')}`);
   console.log('');
 }

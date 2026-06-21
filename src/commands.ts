@@ -1423,7 +1423,9 @@ Once you have finished making changes, I will automatically re-run the command t
         const nameAndAliases = [cmd.name, ...aliasList].join(', ');
         console.log(`  ${pc.cyan(nameAndAliases.padEnd(30))} - ${cmd.description}`);
       }
-      console.log(pc.bold('--------------------------\n'));
+      console.log(pc.bold('--------------------------'));
+      console.log(pc.gray('  Detailed documentation: ') + pc.underline(pc.cyan('https://github.com/bgill55/daedalus/tree/main/docs')));
+      console.log();
     }
   },
   {
