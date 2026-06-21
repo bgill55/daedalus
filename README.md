@@ -149,83 +149,18 @@ Daedalus stores config at `~/.daedalus/config.json`. Key sections:
 
 Router strategies: `priority` (default), `round-robin`, `fastest`.
 
-### Proactive Model Routing & Tiers
-You can configure a `tier` (`"fast"`, `"intelligence"`, or `"standard"`) and tool support (`"supportsTools": true`) for each model in your configuration chain. 
-* **Automatic Tier Detection**: Simple questions or quick requests route to healthy `"fast"` tier models. Large coding contexts (estimated tokens > 8k) or agent subtasks automatically target `"intelligence"` tier models.
-* **Tool capability filtering**: Sub-agents needing tools will automatically filter and route to models with `"supportsTools": true` enabled.
-
-### Concurrent Background Execution
-Run sub-agents concurrently in the background by adding the `--bg` flag to `/spawn` or `/delegate` (e.g. `/spawn --bg coder "Implement helper"`).
-* **Notification Queueing**: Agent task completions are queued and printed synchronously in a prompt-safe manner right before your next REPL prompt redraw to keep your terminal output clean.
-* **Management**: View running jobs via `/tasks`, cancel running jobs via `/task kill <id>`, and read results of completed tasks using `/task <id>`.
-
-### Multi-Agent Orchestration & Task Control
-When you run the `/orchestrate <goal>` command, Daedalus plans and delegates work to sub-agents (planner, coder, researcher, reviewer, debugger) with enhanced visibility and recovery options:
-* **Interactive Task Checklist**: Displays a dynamically wrapped, real-time updated checklist in your console:
-  * `[ ]` (Pending)
-  * `[▶]` (In Progress)
-  * `[✓]` (Completed)
-  * `[✗]` (Failed)
-  * `[S]` (Skipped)
-* **Failure Checkpoints & Recovery**: If a sub-agent task fails or reaches its turn limit, the orchestrator pauses, shows the failed task, and prompts you to select an action:
-  * `[r]etry`: Re-runs the task with a clean turn budget and error feedback.
-  * `[e]dit`: Prompts you to rephrase the task goal before retrying.
-  * `[s]kip`: Skips the current step and moves to the next.
-  * `[a]bort`: Pauses execution and keeps the orchestration session state alive.
-* **Persistent Sessions & Resuming**: If you pause or abort execution, running `/orchestrate` later will prompt you to resume the pending plan, automatically checking off previously completed tasks in the checklist.
-* **Granular Task Planning**: The planner agent automatically decomposes complex goals into small, file-scoped or function-scoped tasks that easily fit within the coder's 10-turn limit, preventing agents from getting stuck on oversized requests.
-
-### Updating Configuration via CLI
-You can view and modify global configuration options directly within the CLI without manually editing files. The values are automatically validated before saving to prevent corrupting your settings:
-* **View Config**: Run `/config` to display your current active configuration.
-* **Set Global Config**: Run `/config set <key> = <value>` (e.g., `/config set router.strategy = round-robin`).
-* **Set Model Config**: Run `/config set model.<name>.<property> = <value>` (e.g., `/config set model.local.tier = intelligence`).
-
-To modify project-specific overrides for the current workspace, use:
-* **View Project Config**: Run `/project`.
-* **Set Project Config**: Run `/project set <key> = <value>` (e.g., `/project set testCommand = npm run test`).
-
-### Shell Preference
-The shell used by the terminal tool can be configured:
-1. Environment variable: `DAEDALUS_SHELL` or `SHELL`.
-2. Configuration file setting: `"tools": { "shell": "powershell" }` (supports `powershell`, `pwsh`, `cmd`, `bash`, or absolute executable paths).
-
-### Codebase File Watching
-By default, indexing happens sequentially on startup. To enable real-time incremental indexing as files are created, modified, or deleted:
-- Set `"watch": true` under `"indexing"` in the configuration.
-
-### Execution Sandboxing
-By default, the terminal tool runs commands directly on the host machine. You can configure isolated execution using Docker or WSL:
-
-1. **Docker Sandbox**: Run all commands inside a Docker container. Mounts the project root automatically to `/workspace` so edits map directly back to the host:
-   ```json
-   "tools": {
-     "sandbox": "docker",
-     "sandboxImage": "node:20"
-   }
-   ```
-2. **WSL Sandbox (Windows only)**: Run all commands inside Windows Subsystem for Linux, automatically converting Windows directory paths to WSL paths:
-   ```json
-   "tools": {
-     "sandbox": "wsl",
-     "wslDistribution": "Ubuntu"
-   }
-   ```
-
-Per-project config at `~/.daedalus/config/<project-hash>.json` — set via `/project set <key> <value>`.
+Per-project config is stored at `~/.daedalus/config/<project-hash>.json` and can be set via `/project set <key> <value>`.
 
 ---
 
-## Local LLM Tuning & Performance
+## Detailed Documentation Guides
 
-Running local models on consumer hardware (e.g., **8GB VRAM GPU** and **32GB System RAM**) can offer a night-and-day performance difference if configured correctly.
+For in-depth explanations, configuration options, and hardware optimization tips, see the modular guides below:
 
-### Context Length Optimization (LM Studio)
-*   **The Problem**: Many coding models default to a 32k context length. Attempting to run a 32k context length on an 8GB VRAM card will cause the context to spill over into system RAM (CPU fallback). This results in extremely slow processing (minutes per turn), connection hangs, and CLI timeouts.
-*   **The Solution**: In LM Studio (Hardware Settings / Model Settings), set the **Context Length** limit to **8192** (8k). Keeping the context within VRAM ensures near-instant generation and zero timeout hangs.
-*   **Recommended Models**: 
-    *   **Qwen2.5-Coder-7B-Instruct** (GGUF, e.g., `Q4_K_M` or `Q5_K_M` quantization) - highly recommended for coding accuracy.
-    *   **Llama-3-8B-Instruct** - excellent general coding and orchestration capabilities.
+*   [Model Routing & Tuning Guide](docs/routing-and-tuning.md) — Endpoints, failover chains, routing strategy configs, and GPU/LM Studio tuning recommendations.
+*   [Multi-Agent Orchestration](docs/orchestration.md) — Overview of the planning, coding, and review loops, recovery checkpoints, and background task runners.
+*   [Execution Sandboxing](docs/sandboxing.md) — Running commands inside isolated Docker containers or WSL distributions.
+*   [Model Context Protocol (MCP) Integration](docs/mcp.md) — Configuring stdio and HTTP/SSE servers to expand your agent's capabilities.
 
 ---
 
