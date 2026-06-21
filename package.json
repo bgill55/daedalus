@@ -22,7 +22,8 @@
     "build": "tsc",
     "prepublishOnly": "npm run build",
     "test": "vitest run",
-    "lint": "eslint src --ext .ts"
+    "lint": "eslint src --ext .ts",
+    "sync-docs": "tsx scripts/sync-docs.ts"
   },
   "engines": {
     "node": ">=20.0.0"

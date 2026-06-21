@@ -26,6 +26,7 @@ This guide describes all configuration options available in Daedalus. You can vi
 ## Tool Settings
 
 *   **`tools.builtin`**: The list of built-in CLI tools enabled for agent use.
+*   **`tools.mcpServers`**: Configured Model Context Protocol (MCP) servers (stdio/HTTP SSE transport) to extend the agent's tool registry.
 *   **`tools.shell`**: The preferred shell command executable or path (e.g., `"powershell"`, `"bash"`, `"cmd"`).
 *   **`tools.sandbox`**: Isolated execution environment sandbox (`"none"`, `"docker"`, or `"wsl"`).
 *   **`tools.sandboxImage`**: Docker image name to run commands inside when using Docker sandboxing (default: `"node:20"`).

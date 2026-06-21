@@ -88,39 +88,44 @@ AI assistance without:
 
 ### Commands
 
+<!-- START_COMMANDS_TABLE -->
 | Command | Description |
 |---------|-------------|
-| `/orchestrate <goal>` | Run multi-agent orchestration |
-| `/spawn [--bg] <role> <task>` | Spawn a sub-agent (foreground or background) |
+| `/add` | Add file to context |
+| `/remove` | Remove file from context |
+| `/context` | Show active file context |
+| `/paste` | Paste clipboard text/image as message |
+| `/clear` | Clear conversation history |
+| `/spawn [--bg] <role> <task>` / `/delegate` | Spawn sub-agent: /spawn [--bg] <role> <task> |
 | `/tasks` | List background agent tasks |
-| `/task <id>` | Show detailed task results or cancel with `kill` |
-| `/ensemble <goal>` | Multi-model ensemble drafting |
-| `/debug <command>` | Run and autonomously fix errors |
-| `/find <query>` | Fuzzy-search indexed symbols |
-| `/refs <symbol>` | Find symbol references |
+| `/task <id>` | Manage background task: /task <id> | /task kill <id> |
+| `/orchestrate <goal>` / `/orc` / `/run` / `/o` | Orchestrate agents for a goal |
+| `/memory` | View project memory (facts & conventions) |
+| `/fact [text]` | Add a project fact to memory |
+| `/convention [text]` | Add a project convention to memory |
+| `/extract` | Manually extract facts from session |
+| `/profile` | View or set user profile info |
+| `/style` | Set your coding style preferences |
+| `/undo` | Undo last file patch |
+| `/branch [name]` | Git branch operations |
+| `/pr [base]` | Generate PR description Compared to base branch |
+| `/debug <command>` | Run command and autonomously debug failures |
+| `/ensemble <goal>` | Ensemble model drafting pipeline |
+| `/commit [msg]` | Stage and commit changes |
+| `/project [set <key> = <val>]` | View or set project config settings |
+| `/session [name]` | Manage chat sessions |
+| `/test [n]` | Run test loop and fix failures |
+| `/index` | Index codebase for symbol search |
+| `/find <query>` | Search indexed symbols |
+| `/refs <symbol>` | Find symbol references (callers) |
 | `/def <symbol>` | Get symbol definition |
-| `/add` / `/remove` / `/context` | Manage file context |
-| `/commit [msg]` | Stage all and commit |
-| `/undo` | Revert last file patch |
-| `/test [n]` | Run tests and auto-fix failures |
-| `/profile` / `/style` | Set user profile and coding preferences |
-| `/memory` / `/fact` / `/convention` | Manage project memory |
-| `/branch [name]` | View or switch branches |
-| `/pr [base]` | Generate PR description |
-| `/session` | Manage chat sessions |
-| `/project [set <key> = <val>]` | View or set project-level config settings |
-| `/config [set <key> = <val>]` | View or set global configuration settings |
-| `/prune [budget]` | View and prune message history |
-| `/doctor` | Diagnose server connections |
-| `/index` | Index codebase |
-| `/onboard` | Re-run setup wizard |
-| `/models` / `/tools` | List models and tools |
-| `/paste` | Paste clipboard contents (text or image) as message |
-| `/clear` | Clear active conversation history |
-| `/extract` | Extract facts from conversation history |
 | `/changelog` | View the latest CLI changes |
-| `/help` / `?` / `help` | Show command reference |
-| `exit` / `quit` | Save and quit |
+| `/models` | List available and healthy models |
+| `/config [set <key> = <val>]` | Show current configuration |
+| `/doctor` | Diagnose connection and discovery |
+| `/help` / `?` / `help` | Show available commands |
+| `exit` / `quit` | Save session and exit |
+<!-- END_COMMANDS_TABLE -->
 
 Tab completion works on all commands.
 
