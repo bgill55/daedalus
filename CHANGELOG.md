@@ -1,3 +1,10 @@
+## [1.14.1](https://github.com/bgill55/daedalus/compare/v1.14.0...v1.14.1) (2026-06-21)
+
+
+### Bug Fixes
+
+* **cli:** prepend slash to orchestrate aliases so they are parsed correctly as commands ([60fafe3](https://github.com/bgill55/daedalus/commit/60fafe30aefe6f9651ffcadd814de7b1890af91b))
+
 # [1.14.0](https://github.com/bgill55/daedalus/compare/v1.13.0...v1.14.0) (2026-06-21)
 
 
