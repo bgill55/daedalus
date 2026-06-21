@@ -216,6 +216,19 @@ Per-project config at `~/.daedalus/config/<project-hash>.json` — set via `/pro
 
 ---
 
+## Local LLM Tuning & Performance
+
+Running local models on consumer hardware (e.g., **8GB VRAM GPU** and **32GB System RAM**) can offer a night-and-day performance difference if configured correctly.
+
+### Context Length Optimization (LM Studio)
+*   **The Problem**: Many coding models default to a 32k context length. Attempting to run a 32k context length on an 8GB VRAM card will cause the context to spill over into system RAM (CPU fallback). This results in extremely slow processing (minutes per turn), connection hangs, and CLI timeouts.
+*   **The Solution**: In LM Studio (Hardware Settings / Model Settings), set the **Context Length** limit to **8192** (8k). Keeping the context within VRAM ensures near-instant generation and zero timeout hangs.
+*   **Recommended Models**: 
+    *   **Qwen2.5-Coder-7B-Instruct** (GGUF, e.g., `Q4_K_M` or `Q5_K_M` quantization) - highly recommended for coding accuracy.
+    *   **Llama-3-8B-Instruct** - excellent general coding and orchestration capabilities.
+
+---
+
 ## Development
 
 ```bash
