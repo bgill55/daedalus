@@ -47,3 +47,61 @@ export async function checkForUpdates(version: string, cachePath: string): Promi
     // Network failure, stale cache, etc. — silently ignore
   }
 }
+
+export function checkChangelogOnUpgrade(currentVersion: string, configDir: string, changelogPath: string): void {
+  const versionFilePath = path.join(configDir, 'version.json');
+  let lastRunVersion: string | null = null;
+
+  if (fs.existsSync(versionFilePath)) {
+    try {
+      const data = JSON.parse(fs.readFileSync(versionFilePath, 'utf8'));
+      lastRunVersion = data.lastRunVersion || null;
+    } catch {
+      // Ignore JSON parse errors
+    }
+  }
+
+  if (lastRunVersion && lastRunVersion !== currentVersion) {
+    console.log(pc.cyan(`\n  Welcome to Daedalus version v${pc.bold(currentVersion)} (upgraded from v${lastRunVersion})!`));
+    
+    if (fs.existsSync(changelogPath)) {
+      try {
+        const content = fs.readFileSync(changelogPath, 'utf8');
+        const lines = content.split('\n');
+        const displayLines: string[] = [];
+        let headerCount = 0;
+
+        for (const line of lines) {
+          const isHeader = line.startsWith('# ') || line.startsWith('## ');
+          if (isHeader) {
+            headerCount++;
+            if (headerCount > 1) {
+              break;
+            }
+          }
+          if (headerCount === 1) {
+            displayLines.push(line);
+          }
+        }
+
+        if (displayLines.length > 0) {
+          console.log(pc.bold('\n--- What\'s New in this Version ---'));
+          console.log(displayLines.join('\n').trim());
+          console.log(pc.bold('----------------------------------\n'));
+        }
+      } catch {
+        // Ignore read errors
+      }
+    }
+  }
+
+  try {
+    if (!fs.existsSync(configDir)) {
+      fs.mkdirSync(configDir, { recursive: true });
+    }
+    fs.writeFileSync(versionFilePath, JSON.stringify({ lastRunVersion: currentVersion }), 'utf8');
+  } catch {
+    // Ignore write errors
+  }
+}
+

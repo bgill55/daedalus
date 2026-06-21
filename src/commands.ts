@@ -1214,6 +1214,46 @@ Once you have finished making changes, I will automatically re-run the command t
     }
   },
   {
+    name: '/changelog',
+    description: 'View the latest CLI changes',
+    execute: async (args, ctx) => {
+      const { fileURLToPath } = await import('url');
+      const __filename = fileURLToPath(import.meta.url);
+      const __dirname = path.dirname(__filename);
+      const changelogPath = path.join(__dirname, '..', 'CHANGELOG.md');
+
+      if (!fs.existsSync(changelogPath)) {
+        console.log(pc.yellow('[WARN] CHANGELOG.md not found.'));
+        return;
+      }
+
+      const content = fs.readFileSync(changelogPath, 'utf8');
+      const lines = content.split('\n');
+
+      console.log(pc.bold('\n--- Latest CLI Changes ---'));
+
+      let versionCount = 0;
+      const maxVersions = 3;
+      const displayLines: string[] = [];
+
+      for (const line of lines) {
+        const isHeader = line.startsWith('# ') || line.startsWith('## ');
+        if (isHeader) {
+          versionCount++;
+          if (versionCount > maxVersions) {
+            break;
+          }
+        }
+        if (versionCount > 0) {
+          displayLines.push(line);
+        }
+      }
+
+      console.log(displayLines.join('\n').trim());
+      console.log(pc.bold('---------------------------\n'));
+    }
+  },
+  {
     name: '/models',
     description: 'List available and healthy models',
     execute: async (args, ctx) => {

@@ -17,7 +17,7 @@ import { getSessionTodos, setSessionTodos } from './tools/builtin/todo.js';
 import { SessionManager } from './session/manager.js';
 import { loadProfile, getProfilePrompt, UserProfile } from './profile.js';
 import { printBanner, printConfigInfo } from './banner.js';
-import { checkForUpdates } from './update-check.js';
+import { checkForUpdates, checkChangelogOnUpgrade } from './update-check.js';
 import { createModelFunctions, currentAbortController, abortTurn } from './model.js';
 import { createRepl } from './repl.js';
 
@@ -30,6 +30,9 @@ const { version: APP_VERSION } = _require('../package.json');
 // Load configuration
 const config = loadConfig();
 const configDir = getConfigDirPath();
+
+const changelogPath = path.join(__dirname, '..', 'CHANGELOG.md');
+checkChangelogOnUpgrade(APP_VERSION, configDir, changelogPath);
 
 // Load user profile
 const userProfile: UserProfile = loadProfile();

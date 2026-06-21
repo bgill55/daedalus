@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import fs from 'fs';
 import { executeCommand } from './commands.js';
 import type { CommandContext } from './commands.js';
 
@@ -235,3 +236,66 @@ describe('Session Command', () => {
     expect(successCall).toBeDefined();
   });
 });
+
+describe('Changelog Command', () => {
+  let mockContext: CommandContext;
+
+  beforeEach(() => {
+    mockContext = {
+      config: {},
+      configDir: '',
+      cliTempDir: '',
+      router: {} as any,
+      sessionManager: {} as any,
+      userProfile: {} as any,
+      projectHash: '',
+      messages: [],
+      activeFiles: new Map(),
+      toolContext: {} as any,
+      getSystemPromptWithMemory: () => '',
+      callModelWithTools: async () => ({ content: '', toolCalls: [] }),
+      callModelWithFallback: async () => '',
+      rl: {} as any,
+      initializeSessionState: () => {},
+      buildFileContext: () => '',
+      askLine: async () => '',
+      buildIndexContext: async () => '',
+      getIndexDbPath: () => '',
+    };
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('prints warning if CHANGELOG.md is not found', async () => {
+    const existsSpy = vi.spyOn(fs, 'existsSync').mockReturnValue(false);
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    const handled = await executeCommand('/changelog', mockContext);
+    expect(handled).toBe(true);
+    expect(existsSpy).toHaveBeenCalled();
+    const warnCall = logSpy.mock.calls.find(c => c[0] && c[0].includes('CHANGELOG.md not found'));
+    expect(warnCall).toBeDefined();
+  });
+
+  it('prints the latest changes if CHANGELOG.md exists', async () => {
+    const existsSpy = vi.spyOn(fs, 'existsSync').mockReturnValue(true);
+    const readSpy = vi.spyOn(fs, 'readFileSync').mockReturnValue(
+      '# 1.11.0 (2026-06-21)\n\n### Features\n\n* cool new feature\n\n## 1.10.1 (2026-06-20)\n\n### Bug Fixes\n\n* small bug fix\n\n# 1.10.0 (2026-06-20)\n\n### Features\n\n* another feature\n\n## 1.9.7 (2026-06-20)\n\n### Bug Fixes\n\n* old bug fix\n'
+    );
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    const handled = await executeCommand('/changelog', mockContext);
+    expect(handled).toBe(true);
+    expect(existsSpy).toHaveBeenCalled();
+    expect(readSpy).toHaveBeenCalled();
+
+    const output = logSpy.mock.calls.map(c => c[0]).join('\n');
+    expect(output).toContain('1.11.0');
+    expect(output).toContain('1.10.1');
+    expect(output).toContain('1.10.0');
+    expect(output).not.toContain('1.9.7');
+  });
+});
+
