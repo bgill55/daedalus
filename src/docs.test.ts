@@ -110,7 +110,7 @@ describe('Documentation Sync Verification', () => {
     const after = readmeContent.substring(endIndex);
     const expectedReadmeContent = `${before}\n${table}${after}`;
 
-    if (readmeContent !== expectedReadmeContent) {
+    if (readmeContent.replace(/\r\n/g, '\n') !== expectedReadmeContent.replace(/\r\n/g, '\n')) {
       throw new Error("README.md commands table is out of sync. Please run 'npm run sync-docs' to automatically update it.");
     }
 
@@ -158,7 +158,7 @@ describe('Documentation Sync Verification', () => {
     expectedDocContent += `---\n\n`;
     expectedDocContent += sectionBlocks.join('\n\n---\n\n') + '\n';
 
-    if (docContent !== expectedDocContent) {
+    if (docContent.replace(/\r\n/g, '\n') !== expectedDocContent.replace(/\r\n/g, '\n')) {
       throw new Error("docs/configuration-reference.md is out of sync. Please run 'npm run sync-docs' to automatically update it.");
     }
   });
