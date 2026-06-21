@@ -376,6 +376,7 @@ export const commandsList: Command[] = [
   },
   {
     name: '/orchestrate',
+    aliases: ['orc', 'run', 'o'],
     description: 'Orchestrate agents for a goal',
     execute: async (args, ctx) => {
       const pendingPlan = ctx.sessionManager.getState('orchestrate_plan');

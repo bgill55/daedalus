@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import fs from 'fs';
-import { executeCommand } from './commands.js';
+import { executeCommand, commandsList } from './commands.js';
 import type { CommandContext } from './commands.js';
 
 vi.mock('./config/index.js', async (importOriginal) => {
@@ -298,4 +298,15 @@ describe('Changelog Command', () => {
     expect(output).not.toContain('1.9.7');
   });
 });
+
+describe('Orchestrate Command Aliases', () => {
+  it('has correct aliases defined for /orchestrate', () => {
+    const cmd = commandsList.find(c => c.name === '/orchestrate');
+    expect(cmd).toBeDefined();
+    expect(cmd?.aliases).toContain('orc');
+    expect(cmd?.aliases).toContain('run');
+    expect(cmd?.aliases).toContain('o');
+  });
+});
+
 
