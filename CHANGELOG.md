@@ -1,3 +1,10 @@
+# [1.15.0](https://github.com/bgill55/daedalus/compare/v1.14.1...v1.15.0) (2026-06-21)
+
+
+### Features
+
+* add automatic session descriptive naming and manual rename subcommand ([fd144c8](https://github.com/bgill55/daedalus/commit/fd144c8c0f42527d22865511d7a42e8371385a8e))
+
 ## [1.14.1](https://github.com/bgill55/daedalus/compare/v1.14.0...v1.14.1) (2026-06-21)
 
 
