@@ -37,6 +37,46 @@ export async function extractAndSave(
   const assistantHadContent = lastFew.some(m => m.role === 'assistant' && m.content && String(m.content).length > 20);
 
   if (!hasSignal && !anyToolResults && !assistantHadContent) return;
+
+  const isGenericTitle = !sessionManager.sessionTitle ||
+    sessionManager.sessionTitle === 'Loaded Session' ||
+    sessionManager.sessionTitle === 'New Session' ||
+    /^Session on/i.test(sessionManager.sessionTitle);
+
+  if (isGenericTitle && messages.some(m => m.role === 'user')) {
+    const conversationBrief = messages
+      .filter(m => m.role === 'user' || m.role === 'assistant')
+      .slice(0, 6)
+      .map(m => `${m.role}: ${typeof m.content === 'string' ? m.content : JSON.stringify(m.content)}`)
+      .join('\n');
+
+    try {
+      const titleResponse = await router.chat.completions.create({
+        model: 'auto',
+        messages: [
+          {
+            role: 'system',
+            content: 'Generate a very short, concise, and descriptive title (3 to 5 words) for this conversation based on the messages. Return ONLY the plain text title, no quotes, no markdown, no punctuation, and no meta-text (do not say "Title:").'
+          },
+          {
+            role: 'user',
+            content: conversationBrief
+          }
+        ],
+        temperature: 0.3,
+        max_tokens: 20
+      });
+
+      const newTitle = (titleResponse.choices[0]?.message?.content || '').trim().replace(/^["']|["']$/g, '');
+      if (newTitle && newTitle.length > 2 && !/^Session on/i.test(newTitle)) {
+        sessionManager.updateSessionTitle(newTitle);
+        console.log(`  ${pc.dim('[')} ${pc.dim('auto-named session:')} ${pc.cyan(newTitle)} ${pc.dim(']')}`);
+      }
+    } catch (err) {
+      // Ignored
+    }
+  }
+
   if (!hasSignal && extractionTurnCount % EXTRACTION_INTERVAL !== 0) return;
 
   const existingFacts = sessionManager.loadMemory().facts;

@@ -183,6 +183,23 @@ export class SessionManager {
     exportToJsonl(this.sessionDb, jsonlPath);
   }
 
+  /** Update the session title in memory and index DB */
+  public updateSessionTitle(newTitle: string): void {
+    this.sessionTitle = newTitle;
+    if (this.indexDb) {
+      const existing = this.getSessionsForProject().find(s => s.id === this.sessionId);
+      const meta: SessionMeta = {
+        id: this.sessionId,
+        project_path: this.projectRoot,
+        project_hash: this.projectHash,
+        title: this.sessionTitle,
+        created_at: existing?.created_at ?? Date.now(),
+        updated_at: Date.now(),
+      };
+      registerSession(this.indexDb, meta);
+    }
+  }
+
   /** Import a JSONL session file */
   public importSessionFromJsonl(jsonlPath: string): ChatMessage[] {
     if (!this.sessionDb) throw new Error('No active session database');

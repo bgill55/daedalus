@@ -934,6 +934,7 @@ Once you have finished making changes, I will automatically re-run the command t
         console.log(pc.bold('---------------------\n'));
         console.log(pc.gray('Use `/session load <id>` to switch to a past session.'));
         console.log(pc.gray('Use `/session new [title]` to start a new session.'));
+        console.log(pc.gray('Use `/session rename <title>` to rename the current session.'));
         console.log(pc.gray('Use `/session delete <id>` to delete a session.'));
         return;
       }
@@ -966,6 +967,16 @@ Once you have finished making changes, I will automatically re-run the command t
         const loaded = ctx.sessionManager.startSession(undefined, title);
         ctx.initializeSessionState(loaded);
         console.log(pc.green(`[OK] Started new session: ${pc.bold(loaded.sessionId)}`));
+        return;
+      }
+
+      if (subcommand === 'rename') {
+        if (!subcommandArg) {
+          console.log(pc.red('[WARN] Usage: /session rename <new-title>'));
+          return;
+        }
+        ctx.sessionManager.updateSessionTitle(subcommandArg);
+        console.log(pc.green(`[OK] Session renamed to: "${subcommandArg}"`));
         return;
       }
 
