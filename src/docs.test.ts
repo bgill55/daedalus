@@ -111,7 +111,17 @@ describe('Documentation Sync Verification', () => {
     const expectedReadmeContent = `${before}\n${table}${after}`;
 
     if (readmeContent.replace(/\r\n/g, '\n') !== expectedReadmeContent.replace(/\r\n/g, '\n')) {
-      throw new Error("README.md commands table is out of sync. Please run 'npm run sync-docs' to automatically update it.");
+      const a = readmeContent.replace(/\r\n/g, '\n');
+      const b = expectedReadmeContent.replace(/\r\n/g, '\n');
+      let diffMsg = `README.md commands table is out of sync.\nACTUAL LENGTH: ${a.length}, EXPECTED LENGTH: ${b.length}\n`;
+      const aLines = a.split('\n');
+      const bLines = b.split('\n');
+      for (let i = 0; i < Math.max(aLines.length, bLines.length); i++) {
+        if (aLines[i] !== bLines[i]) {
+          diffMsg += `Diff at README.md line ${i + 1}:\nACTUAL:   |${aLines[i]}|\nEXPECTED: |${bLines[i]}|\n`;
+        }
+      }
+      throw new Error(diffMsg + "\nPlease run 'npm run sync-docs' to automatically update it.");
     }
 
     const docPath = path.join(projectRoot, 'docs', 'configuration-reference.md');
@@ -159,7 +169,17 @@ describe('Documentation Sync Verification', () => {
     expectedDocContent += sectionBlocks.join('\n\n---\n\n') + '\n';
 
     if (docContent.replace(/\r\n/g, '\n') !== expectedDocContent.replace(/\r\n/g, '\n')) {
-      throw new Error("docs/configuration-reference.md is out of sync. Please run 'npm run sync-docs' to automatically update it.");
+      const a = docContent.replace(/\r\n/g, '\n');
+      const b = expectedDocContent.replace(/\r\n/g, '\n');
+      let diffMsg = `docs/configuration-reference.md is out of sync.\nACTUAL LENGTH: ${a.length}, EXPECTED LENGTH: ${b.length}\n`;
+      const aLines = a.split('\n');
+      const bLines = b.split('\n');
+      for (let i = 0; i < Math.max(aLines.length, bLines.length); i++) {
+        if (aLines[i] !== bLines[i]) {
+          diffMsg += `Diff at docs/configuration-reference.md line ${i + 1}:\nACTUAL:   |${aLines[i]}|\nEXPECTED: |${bLines[i]}|\n`;
+        }
+      }
+      throw new Error(diffMsg + "\nPlease run 'npm run sync-docs' to automatically update it.");
     }
   });
 });
