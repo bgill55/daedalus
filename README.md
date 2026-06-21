@@ -115,7 +115,11 @@ AI assistance without:
 | `/index` | Index codebase |
 | `/onboard` | Re-run setup wizard |
 | `/models` / `/tools` | List models and tools |
-| `?` / `help` | Show command reference |
+| `/paste` | Paste clipboard contents (text or image) as message |
+| `/clear` | Clear active conversation history |
+| `/extract` | Extract facts from conversation history |
+| `/changelog` | View the latest CLI changes |
+| `/help` / `?` / `help` | Show command reference |
 | `exit` / `quit` | Save and quit |
 
 Tab completion works on all commands.
@@ -161,6 +165,7 @@ For in-depth explanations, configuration options, and hardware optimization tips
 *   [Multi-Agent Orchestration](docs/orchestration.md) — Overview of the planning, coding, and review loops, recovery checkpoints, and background task runners.
 *   [Execution Sandboxing](docs/sandboxing.md) — Running commands inside isolated Docker containers or WSL distributions.
 *   [Model Context Protocol (MCP) Integration](docs/mcp.md) — Configuring stdio and HTTP/SSE servers to expand your agent's capabilities.
+*   [Configuration Reference Guide](docs/configuration-reference.md) — Reference list of all global configuration keys (`router.*`, `agents.*`, `tools.*`, `ui.*`, etc.).
 
 ---
 
