@@ -303,9 +303,9 @@ describe('Orchestrate Command Aliases', () => {
   it('has correct aliases defined for /orchestrate', () => {
     const cmd = commandsList.find(c => c.name === '/orchestrate');
     expect(cmd).toBeDefined();
-    expect(cmd?.aliases).toContain('orc');
-    expect(cmd?.aliases).toContain('run');
-    expect(cmd?.aliases).toContain('o');
+    expect(cmd?.aliases).toContain('/orc');
+    expect(cmd?.aliases).toContain('/run');
+    expect(cmd?.aliases).toContain('/o');
   });
 });
 
