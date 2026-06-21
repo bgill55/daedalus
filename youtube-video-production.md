@@ -1,5 +1,7 @@
 # Daedalus: First Contact — Production Doc
 
+Watch the actual video: [I Let My AI Code Assistant Direct Its Own Launch Video](https://www.youtube.com/watch?v=f87fMfYz5cQ&t=207s)
+
 ## Concept
 
 Daedalus CLI writes, directs, and narrates its own launch video. The creator (you) follows the AI's instructions on screen. The "meta" hook is the entire thesis: this tool is useful enough that it can introduce itself.
