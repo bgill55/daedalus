@@ -109,69 +109,117 @@ export class LocalRouter {
 
     if (request.model && request.model !== 'auto') {
       selectedModel = healthyModels.find(m => m.name === request.model || m.model === request.model);
+      if (!selectedModel) {
+        throw new Error(`Requested model ${request.model} is not healthy or enabled.`);
+      }
+      if (!isLocalEndpoint(selectedModel.endpoint)) {
+        const rateLimiter = this.rateLimiters.get(`${selectedModel.endpoint}|${selectedModel.model}`);
+        if (rateLimiter) {
+          const estimatedTokens = this.estimateTokens(request);
+          if (!consumeTokens(rateLimiter, estimatedTokens)) {
+            const waitMs = getWaitTime(rateLimiter, estimatedTokens);
+            throw new Error(`Rate limited. Wait ${waitMs}ms or try another model.`);
+          }
+        }
+      }
+      const health = getCachedHealth(selectedModel) ?? { healthy: true, lastCheck: Date.now(), consecutiveFailures: 0 };
+      return { model: selectedModel, health };
+    }
+
+    const requiresTools = !!(request.tools && request.tools.length > 0);
+    const estimatedTokens = this.estimateTokens(request);
+    const isComplexTask = requiresTools || estimatedTokens > 8000;
+
+    let candidateModels = healthyModels;
+    if (requiresTools) {
+      const toolSupporting = healthyModels.filter(m => m.supportsTools);
+      if (toolSupporting.length > 0) {
+        candidateModels = toolSupporting;
+      }
+    }
+
+    let tierFilteredModels: ModelEntry[] = [];
+    if (isComplexTask) {
+      tierFilteredModels = candidateModels.filter(m => m.tier === 'intelligence');
+      if (tierFilteredModels.length === 0) {
+        tierFilteredModels = candidateModels.filter(m => m.tier === 'standard' || !m.tier);
+      }
+    } else {
+      tierFilteredModels = candidateModels.filter(m => m.tier === 'fast');
+      if (tierFilteredModels.length === 0) {
+        tierFilteredModels = candidateModels.filter(m => m.tier === 'standard' || !m.tier);
+      }
+    }
+
+    if (tierFilteredModels.length === 0) {
+      tierFilteredModels = candidateModels;
+    }
+
+    let rankedCandidates: ModelEntry[] = [];
+    switch (this.config.strategy) {
+      case 'priority':
+        rankedCandidates = [...tierFilteredModels].sort((a, b) => a.priority - b.priority);
+        break;
+        
+      case 'round-robin':
+        rankedCandidates = [];
+        for (let i = 0; i < tierFilteredModels.length; i++) {
+          rankedCandidates.push(tierFilteredModels[(this.roundRobinIndex + i) % tierFilteredModels.length]);
+        }
+        break;
+        
+      case 'fastest':
+        rankedCandidates = [...tierFilteredModels].sort((a, b) => {
+          const ha = getCachedHealth(a);
+          const hb = getCachedHealth(b);
+          return (ha?.latencyMs ?? Infinity) - (hb?.latencyMs ?? Infinity);
+        });
+        break;
+        
+      default:
+        rankedCandidates = tierFilteredModels;
+    }
+
+    let rateLimitError: Error | undefined;
+
+    for (const m of rankedCandidates) {
+      if (isLocalEndpoint(m.endpoint)) {
+        selectedModel = m;
+        if (this.config.strategy === 'round-robin') {
+          const chosenIndex = tierFilteredModels.indexOf(m);
+          this.roundRobinIndex = (chosenIndex + 1) % tierFilteredModels.length;
+        }
+        break;
+      }
+
+      const rateLimiter = this.rateLimiters.get(`${m.endpoint}|${m.model}`);
+      if (rateLimiter) {
+        const est = this.estimateTokens(request);
+        if (consumeTokens(rateLimiter, est)) {
+          selectedModel = m;
+          if (this.config.strategy === 'round-robin') {
+            const chosenIndex = tierFilteredModels.indexOf(m);
+            this.roundRobinIndex = (chosenIndex + 1) % tierFilteredModels.length;
+          }
+          break;
+        } else {
+          const waitMs = getWaitTime(rateLimiter, est);
+          if (!rateLimitError) {
+            rateLimitError = new Error(`Rate limited. Wait ${waitMs}ms or try another model.`);
+          }
+        }
+      } else {
+        selectedModel = m;
+        if (this.config.strategy === 'round-robin') {
+          const chosenIndex = tierFilteredModels.indexOf(m);
+          this.roundRobinIndex = (chosenIndex + 1) % tierFilteredModels.length;
+        }
+        break;
+      }
     }
 
     if (!selectedModel) {
-      const requiresTools = !!(request.tools && request.tools.length > 0);
-      const estimatedTokens = this.estimateTokens(request);
-      const isComplexTask = requiresTools || estimatedTokens > 8000;
-
-      let candidateModels = healthyModels;
-      if (requiresTools) {
-        const toolSupporting = healthyModels.filter(m => m.supportsTools);
-        if (toolSupporting.length > 0) {
-          candidateModels = toolSupporting;
-        }
-      }
-
-      let tierFilteredModels: ModelEntry[] = [];
-      if (isComplexTask) {
-        tierFilteredModels = candidateModels.filter(m => m.tier === 'intelligence');
-        if (tierFilteredModels.length === 0) {
-          tierFilteredModels = candidateModels.filter(m => m.tier === 'standard' || !m.tier);
-        }
-      } else {
-        tierFilteredModels = candidateModels.filter(m => m.tier === 'fast');
-        if (tierFilteredModels.length === 0) {
-          tierFilteredModels = candidateModels.filter(m => m.tier === 'standard' || !m.tier);
-        }
-      }
-
-      if (tierFilteredModels.length === 0) {
-        tierFilteredModels = candidateModels;
-      }
-
-      switch (this.config.strategy) {
-        case 'priority':
-          selectedModel = [...tierFilteredModels].sort((a, b) => a.priority - b.priority)[0];
-          break;
-          
-        case 'round-robin':
-          selectedModel = tierFilteredModels[this.roundRobinIndex % tierFilteredModels.length];
-          this.roundRobinIndex++;
-          break;
-          
-        case 'fastest':
-          selectedModel = [...tierFilteredModels].sort((a, b) => {
-            const ha = getCachedHealth(a);
-            const hb = getCachedHealth(b);
-            return (ha?.latencyMs ?? Infinity) - (hb?.latencyMs ?? Infinity);
-          })[0];
-          break;
-          
-        default:
-          selectedModel = tierFilteredModels[0];
-      }
-    }
-
-    // Check rate limit
-    const rateLimiter = this.rateLimiters.get(`${selectedModel.endpoint}|${selectedModel.model}`);
-    if (rateLimiter) {
-      const estimatedTokens = this.estimateTokens(request);
-      if (!consumeTokens(rateLimiter, estimatedTokens)) {
-        const waitMs = getWaitTime(rateLimiter, estimatedTokens);
-        throw new Error(`Rate limited. Wait ${waitMs}ms or try another model.`);
-      }
+      throw rateLimitError || new Error('All models are currently rate limited.');
     }
 
     const health = getCachedHealth(selectedModel) ?? { healthy: true, lastCheck: Date.now(), consecutiveFailures: 0 };

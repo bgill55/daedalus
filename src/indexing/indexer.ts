@@ -19,7 +19,7 @@ interface IndexerOptions {
   onProgress?: (progress: { current: number; total: number; file: string }) => void;
 }
 
-const DEFAULT_EXCLUDE = ['node_modules', 'dist', 'build', '.git', 'target', 'coverage'];
+const DEFAULT_EXCLUDE = ['node_modules', 'dist', 'build', '.git', 'target', 'coverage', 'venv', '.venv', 'env', '.env', '__pycache__', '.pytest_cache', '.mypy_cache', '.next', 'out', '.cache'];
 const DEFAULT_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.py', '.go', '.rs'];
 
 /** Compute SHA256 of string content */

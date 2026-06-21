@@ -89,20 +89,18 @@ export function createModelFunctions(deps: ModelDeps) {
     }
 
     // Auto-pruning check based on config context limit
-    if (config.ui.showTokens) {
-      const maxT = config.context.maxTokens ?? 128000;
-      const summarizeAt = config.context.summarizeAt ?? 0.8;
-      const threshold = Math.floor(maxT * summarizeAt);
+    const maxT = config?.context?.maxTokens ?? 128000;
+    const summarizeAt = config?.context?.summarizeAt ?? 0.8;
+    const threshold = Math.floor(maxT * summarizeAt);
 
-      const fileCtx = buildFileContext();
-      const tokens = calculateSessionTokens(messages, fileCtx);
-      if (tokens.total > threshold) {
-        console.log(pc.yellow(`\n  ${pc.bold('[WARN]')} Context budget threshold exceeded (${Math.round(summarizeAt * 100)}%). Auto-pruning older turns...`));
-        const target = Math.floor(maxT * 0.6);
-        const pruneResult = pruneMessages(messages, fileCtx, target);
-        if (pruneResult.prunedTurns > 0 || pruneResult.truncatedTools > 0) {
-          console.log(`  ${pc.green('✔')} Pruned ${pruneResult.prunedTurns} older cycles and truncated ${pruneResult.truncatedTools} tool outputs (saved ~${Math.round(pruneResult.savedTokens / 1000)}kt).`);
-        }
+    const fileCtx = buildFileContext();
+    const tokens = calculateSessionTokens(messages, fileCtx);
+    if (tokens.total > threshold) {
+      console.log(pc.yellow(`\n  ${pc.bold('[WARN]')} Context budget threshold exceeded (${Math.round(summarizeAt * 100)}%). Auto-pruning older turns...`));
+      const target = Math.floor(maxT * 0.6);
+      const pruneResult = pruneMessages(messages, fileCtx, target);
+      if (pruneResult.prunedTurns > 0 || pruneResult.truncatedTools > 0) {
+        console.log(`  ${pc.green('✔')} Pruned ${pruneResult.prunedTurns} older cycles and truncated ${pruneResult.truncatedTools} tool outputs (saved ~${Math.round(pruneResult.savedTokens / 1000)}kt).`);
       }
     }
 
@@ -114,6 +112,10 @@ export function createModelFunctions(deps: ModelDeps) {
     let turn = 0;
 
     while (turn < MAX_TOOL_TURNS) {
+      if (turnAborted) {
+        console.log(pc.dim('\n  [STOP] Stopped'));
+        return { content: lastContent, toolCalls: [] };
+      }
       const spinner = new DaedalusSpinner({ text: 'Daedalus thinking', color: (s) => pc.cyan(s) });
       spinner.start();
 
@@ -227,9 +229,10 @@ export function createModelFunctions(deps: ModelDeps) {
         tool_calls: toolCallArray,
       });
 
-      const dangerousTools = ['terminal', 'write_file'];
+      const dangerousTools = process.env.DAEDALUS_AUTO_APPROVE === 'true' ? [] : ['terminal', 'write_file'];
       let turnApproved = false;
       const approvedCallIndices = new Set<number>();
+      const rejectedCalls: ToolCall[] = [];
 
       for (let i = 0; i < toolCallArray.length; i++) {
         const tc = toolCallArray[i];
@@ -237,11 +240,12 @@ export function createModelFunctions(deps: ModelDeps) {
           const args = tc.function.arguments;
           const preview = args.length > 120 ? args.slice(0, 120) + '...' : args;
           process.stdout.write(`\n  ${pc.yellow('[WARN]')} ${pc.bold(tc.function.name)} ${pc.dim(preview)}\n`);
-          const line = await askLine(`  ${pc.dim('Allow? [y]es / [n]o / [a]ll for this turn: ')}`);
+          const line = await (toolContext.askLine || askLine)(`  ${pc.dim('Allow? [y]es / [n]o / [a]ll for this turn: ')}`);
           const char = line.trim().toLowerCase().slice(0, 1);
           if (char === 'a') turnApproved = true;
           if (char === 'n') {
             console.log(`  ${pc.red('[FAIL]')} ${tc.function.name} ${pc.red(' — rejected')}`);
+            rejectedCalls.push(tc);
             continue;
           }
         }
@@ -317,6 +321,36 @@ export function createModelFunctions(deps: ModelDeps) {
               console.log(`  ${pc.cyan('[VISION]')} Screenshot injected into context (${Math.round(parsed.base64.length * 0.75 / 1024)}KB)`);
             }
           } catch {}
+        }
+      }
+
+      for (const tc of rejectedCalls) {
+        messages.push({
+          role: 'tool',
+          content: 'Error: Tool execution rejected by user.',
+          tool_call_id: tc.id,
+        } as ChatMessage);
+      }
+
+      // Single-agent turn checkpoint gate
+      if (turn < MAX_TOOL_TURNS - 1 && process.env.DAEDALUS_AUTO_APPROVE !== 'true') {
+        const ask = toolContext.askLine || askLine;
+        const answer = await ask(`\n  ${pc.yellow('?')} Proceed to next agent turn? [y]es / [n]o / [e]dit feedback: `);
+        const norm = answer.trim().toLowerCase();
+
+        if (norm === 'n' || norm === 'no') {
+          console.log(pc.yellow('\n  [INFO] Stopped agent turn loop.'));
+          messages.push({ role: 'assistant', content: lastContent });
+          return { content: lastContent, toolCalls: [] };
+        } else if (norm === 'e' || norm === 'edit') {
+          const feedback = await ask(`  Enter feedback for agent: `);
+          if (feedback.trim()) {
+            messages.push({
+              role: 'user',
+              content: `[User Feedback] ${feedback.trim()}`,
+            } as ChatMessage);
+            console.log(pc.green(`  [OK] Feedback appended. Continuing.`));
+          }
         }
       }
 

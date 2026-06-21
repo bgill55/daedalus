@@ -8,8 +8,8 @@ function makeConfig(overrides: Partial<RouterConfig> = {}): RouterConfig {
   const config: RouterConfig = {
     strategy: 'priority',
     chain: [
-      { name: 'primary', endpoint: 'http://localhost:1234/v1', model: 'auto', priority: 1, enabled: true },
-      { name: 'secondary', endpoint: 'http://localhost:11434/v1', model: 'auto', priority: 2, enabled: true },
+      { name: 'primary', endpoint: 'https://api.primary.ai/v1', model: 'auto', priority: 1, enabled: true },
+      { name: 'secondary', endpoint: 'https://api.secondary.ai/v1', model: 'auto', priority: 2, enabled: true },
     ],
     healthCheckInterval: 30000,
     requestTimeout: 120000,
@@ -210,6 +210,38 @@ describe('LocalRouter', () => {
       messages: [{ role: 'user', content: 'hello' }],
     });
     expect(result.model.name).toBe('fast-model');
+  });
+
+  it('falls back to the secondary model if the primary model is rate limited', async () => {
+    const router = new LocalRouter(makeConfig({
+      chain: [
+        { name: 'primary', endpoint: 'https://api.primary.ai/v1', model: 'm1', priority: 1, enabled: true },
+        { name: 'secondary', endpoint: 'https://api.secondary.ai/v1', model: 'm2', priority: 2, enabled: true },
+      ],
+    }));
+
+    const primaryKey = 'https://api.primary.ai/v1|m1';
+    const secondaryKey = 'https://api.secondary.ai/v1|m2';
+
+    const consumeTokensSpy = vi.spyOn(rateLimiter, 'consumeTokens');
+    consumeTokensSpy.mockImplementation((bucket) => {
+      const limiters = (router as any).rateLimiters;
+      for (const [key, value] of limiters.entries()) {
+        if (value === bucket) {
+          if (key === primaryKey) {
+            return false;
+          }
+          if (key === secondaryKey) {
+            return true;
+          }
+        }
+      }
+      return true;
+    });
+
+    const result = await router.route({ messages: [{ role: 'user', content: 'hello' }] });
+    expect(result.model.name).toBe('secondary');
+    consumeTokensSpy.mockRestore();
   });
 
 });

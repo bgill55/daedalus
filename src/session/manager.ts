@@ -19,6 +19,8 @@ import {
   getActiveFiles,
   saveTodos,
   getTodos,
+  saveState,
+  getState,
   SqliteTurn,
   SqliteTodo,
   SessionMeta
@@ -228,6 +230,16 @@ export class SessionManager {
 
   public loadMemory(): ProjectMemory {
     return loadMemory(this.getMemoryPath(), this.projectHash);
+  }
+
+  public saveState(key: string, value: any): void {
+    if (!this.sessionDb) return;
+    saveState(this.sessionDb, key, value);
+  }
+
+  public getState(key: string): any | null {
+    if (!this.sessionDb) return null;
+    return getState(this.sessionDb, key);
   }
 
   /** Close database connections */

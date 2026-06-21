@@ -55,6 +55,7 @@ export interface ToolContext {
   patchHistory?: PatchEntry[];    // for /undo support
   sessionReadCache?: Map<string, number>;  // absPath -> mtime when last read
   patchFailureStreak?: Map<string, number>; // absPath -> consecutive failure count
+  askLine?: (prompt: string) => Promise<string>;
 }
 
 export interface PatchEntry {

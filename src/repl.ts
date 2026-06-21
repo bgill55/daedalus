@@ -59,6 +59,8 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
     },
   });
 
+  toolContext.askLine = (prompt: string) => new Promise((resolve) => rl.question(prompt, resolve));
+
   function askLine(prompt: string): Promise<string> {
     return new Promise((resolve) => rl.question(prompt, resolve));
   }

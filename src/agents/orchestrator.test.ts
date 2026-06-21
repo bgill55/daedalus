@@ -170,13 +170,30 @@ describe('Orchestrator delegateTask behavior', () => {
   });
 
   it('marks coder as [OK] when artifacts are present', async () => {
-    toolContext.patchHistory = [
-      { filePath: '/tmp/cli.ts', oldContent: '', newContent: '', timestamp: Date.now(), description: 'wrote file' },
-    ];
-    const { router: localRouter, chatMock: localChatMock } = createMockRouter(['Updated the CLI entrypoint.']);
+    const chatMock = vi.fn().mockImplementationOnce(() => {
+      toolContext.patchHistory?.push({
+        filePath: '/tmp/cli.ts',
+        oldContent: '',
+        newContent: '',
+        timestamp: Date.now(),
+        description: 'wrote file',
+      });
+      return Promise.resolve({
+        choices: [{ message: { content: 'Updated the CLI entrypoint.', tool_calls: null } }],
+      } as any);
+    });
+
+    const localRouter = {
+      chat: { completions: { create: chatMock } },
+      chatStream: vi.fn(),
+      chatCompletion: chatMock,
+      getModels: vi.fn().mockReturnValue([{ name: 'test', model: 'test' }]),
+    } as unknown as LocalRouter;
+
     const orch = new Orchestrator(localRouter, messages, toolContext);
     await (orch as any).delegateTask({ goal: 'implement a tiny CLI utility', context: '', role: 'coder' });
-    expect(localChatMock).toHaveBeenCalled();
+    expect(chatMock).toHaveBeenCalledTimes(1);
+    expect((orch as any).results.at(-1).success).toBe(true);
   });
 
   it('marks coder as [ERROR] when no artifacts are present', async () => {
@@ -206,20 +223,24 @@ describe('Orchestrator repair attempts', () => {
   });
 
   it('repairs a failed task and marks it successful when repair shows artifacts', async () => {
-    toolContext.patchHistory = [
-      { filePath: '/tmp/cli.ts', oldContent: '', newContent: '', timestamp: Date.now(), description: 'wrote file' },
-    ];
     chatMock = vi.fn();
     chatMock.mockImplementationOnce(() =>
       Promise.resolve({
         choices: [{ message: { content: 'Failed to write initial file.', tool_calls: null } }],
       } as any),
     );
-    chatMock.mockImplementationOnce(() =>
-      Promise.resolve({
+    chatMock.mockImplementationOnce(() => {
+      toolContext.patchHistory?.push({
+        filePath: '/tmp/cli.ts',
+        oldContent: '',
+        newContent: '',
+        timestamp: Date.now(),
+        description: 'wrote file',
+      });
+      return Promise.resolve({
         choices: [{ message: { content: 'Created the CLI entrypoint and supporting files.', tool_calls: null } }],
-      } as any),
-    );
+      } as any);
+    });
 
     router = {
       chat: { completions: { create: chatMock } },
@@ -261,5 +282,143 @@ describe('Orchestrator repair attempts', () => {
     );
     expect(repaired.success).toBe(false);
     expect(chatMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('stops repair attempts immediately if aborted', async () => {
+    const controller = new AbortController();
+    toolContext.abortSignal = controller.signal;
+    chatMock = vi.fn().mockImplementation(() => {
+      controller.abort();
+      return Promise.resolve({
+        choices: [{ message: { content: 'Wrote some files', tool_calls: null } }],
+      } as any);
+    });
+
+    router = {
+      chat: { completions: { create: chatMock } },
+      chatStream: vi.fn(),
+      chatCompletion: chatMock,
+      getModels: vi.fn().mockReturnValue([{ name: 'test', model: 'test' }]),
+    } as unknown as LocalRouter;
+
+    const orch = new Orchestrator(router, messages, toolContext);
+    const previous = { role: 'coder', goal: 'implement CLI', summary: 'failed', success: false };
+    const repaired = await (orch as any).attemptRepair(
+      { goal: 'implement CLI', context: '', role: 'coder' },
+      previous as any,
+    );
+    expect(repaired.success).toBe(false);
+    expect(chatMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('Orchestrator new workflow optimizations', () => {
+  let router: LocalRouter;
+  let toolContext: ToolContext;
+  let messages: ChatMessage[];
+
+  beforeEach(() => {
+    messages = [];
+    toolContext = baseContext();
+  });
+
+  it('parseDelegationTasks extracts goals cleanly without prefixes or colons', () => {
+    const plan = `
+1. delegate to coder: Implement new API endpoint
+- delegate to researcher - Research credentials config
+* delegate to reviewer: Code quality check
+delegate to debugger fix tsconfig deprecations
+    `;
+    const { router: localRouter } = createMockRouter([]);
+    const orch = new Orchestrator(localRouter, messages, toolContext);
+    const tasks = (orch as any).parseDelegationTasks(plan);
+
+    expect(tasks).toHaveLength(4);
+    expect(tasks[0]).toEqual({ role: 'coder', goal: 'Implement new API endpoint', context: '' });
+    expect(tasks[1]).toEqual({ role: 'researcher', goal: 'Research credentials config', context: '' });
+    expect(tasks[2]).toEqual({ role: 'reviewer', goal: 'Code quality check', context: '' });
+    expect(tasks[3]).toEqual({ role: 'debugger', goal: 'fix tsconfig deprecations', context: '' });
+  });
+
+  it('parseDelegationTasks extracts prefix-less and bulleted role goals correctly', () => {
+    const plan = `
+1. Coder: Implement OAuth flow
+- Researcher - check YouTube API
+Debugger: fix deprecations
+* Reviewer: inspect code quality
+    `;
+    const { router: localRouter } = createMockRouter([]);
+    const orch = new Orchestrator(localRouter, messages, toolContext);
+    const tasks = (orch as any).parseDelegationTasks(plan);
+
+    expect(tasks).toHaveLength(4);
+    expect(tasks[0]).toEqual({ role: 'coder', goal: 'Implement OAuth flow', context: '' });
+    expect(tasks[1]).toEqual({ role: 'researcher', goal: 'check YouTube API', context: '' });
+    expect(tasks[2]).toEqual({ role: 'debugger', goal: 'fix deprecations', context: '' });
+    expect(tasks[3]).toEqual({ role: 'reviewer', goal: 'inspect code quality', context: '' });
+  });
+
+  it('parseDelegationTasks includes active files list in task context', () => {
+    toolContext.activeFiles.set('/path/foo.ts', '/path/foo.ts');
+    const plan = `delegate to coder: modify foo.ts`;
+    const { router: localRouter } = createMockRouter([]);
+    const orch = new Orchestrator(localRouter, messages, toolContext);
+    const tasks = (orch as any).parseDelegationTasks(plan);
+
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0].context).toContain('Files in context: /path/foo.ts');
+  });
+
+  it('runAgent respects abortSignal', async () => {
+    const controller = new AbortController();
+    toolContext.abortSignal = controller.signal;
+    controller.abort();
+
+    const { router: localRouter, chatMock } = createMockRouter(['Response']);
+    const orch = new Orchestrator(localRouter, messages, toolContext);
+    
+    const role = { name: 'coder', systemPrompt: '', allowedTools: [] };
+    const result = await (orch as any).runAgent(role, 'goal', '', []);
+    expect(result).toBe('Agent execution aborted by user');
+    expect(chatMock).not.toHaveBeenCalled();
+  });
+
+  it('resume method runs executePlan from specified startIndex', async () => {
+    const { router: localRouter } = createMockRouter([]);
+    const orch = new Orchestrator(localRouter, messages, toolContext);
+    
+    const executePlanSpy = vi.spyOn(orch as any, 'executePlan').mockResolvedValue(undefined);
+    const synthesizeSpy = vi.spyOn(orch as any, 'synthesize').mockReturnValue('Synthesized Result');
+
+    const tasks = [{ goal: 'task 1', context: '', role: 'coder' }];
+    const prevResults = [{ role: 'coder', goal: 'task 0', summary: 'done', success: true }];
+    const result = await orch.resume('goal', 'planText', tasks, 1, prevResults);
+
+    expect(result).toBe('Synthesized Result');
+    expect(executePlanSpy).toHaveBeenCalledWith('planText', tasks, 1);
+    expect(synthesizeSpy).toHaveBeenCalledWith('goal');
+  });
+
+  it('executePlan saves state to sessionManager', async () => {
+    const { router: localRouter } = createMockRouter([]);
+    const mockSessionManager = {
+      saveState: vi.fn(),
+      getState: vi.fn(),
+    } as any;
+
+    const orch = new Orchestrator(localRouter, messages, toolContext, mockSessionManager);
+    vi.spyOn(orch as any, 'delegateTask').mockResolvedValue(undefined);
+
+    const tasks = [
+      { goal: 'task 1', context: '', role: 'coder' },
+      { goal: 'task 2', context: '', role: 'coder' }
+    ];
+
+    process.env.DAEDALUS_AUTO_APPROVE = 'true';
+    await (orch as any).executePlan('plan', tasks, 0);
+    delete process.env.DAEDALUS_AUTO_APPROVE;
+
+    expect(mockSessionManager.saveState).toHaveBeenCalledWith('orchestrate_task_index', 1);
+    expect(mockSessionManager.saveState).toHaveBeenCalledWith('orchestrate_task_index', 2);
   });
 });

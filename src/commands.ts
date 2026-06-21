@@ -378,6 +378,45 @@ export const commandsList: Command[] = [
     name: '/orchestrate',
     description: 'Orchestrate agents for a goal',
     execute: async (args, ctx) => {
+      const pendingPlan = ctx.sessionManager.getState('orchestrate_plan');
+      const pendingGoal = ctx.sessionManager.getState('orchestrate_goal');
+
+      if (pendingPlan && pendingGoal) {
+        const goal = args.trim();
+        const shouldResume = !goal || goal.toLowerCase() === pendingGoal.toLowerCase();
+
+        let proceed = false;
+        if (shouldResume && process.env.DAEDALUS_AUTO_APPROVE === 'true') {
+          proceed = true;
+        } else if (shouldResume) {
+          console.log(pc.yellow(`\n[INFO] Found a pending orchestration plan for: "${pendingGoal}"`));
+          const answer = await ctx.askLine(`Would you like to resume it? [y]es / [n]o: `);
+          const char = answer.trim().toLowerCase().slice(0, 1);
+          if (char === 'y' || answer.trim() === '') {
+            proceed = true;
+          }
+        }
+
+        if (proceed) {
+          console.log(pc.cyan(`\n[ORCHESTRATE] Resuming orchestration for: ${pendingGoal}`));
+          const { Orchestrator } = await import('./agents/orchestrator.js');
+          const orchestrator = new Orchestrator(ctx.router, ctx.messages, ctx.toolContext, ctx.sessionManager);
+          const planText = ctx.sessionManager.getState('orchestrate_plan_text') || '';
+          const taskIndex = ctx.sessionManager.getState('orchestrate_task_index') || 0;
+          const prevResults = ctx.sessionManager.getState('orchestrate_results') || [];
+
+          const result = await orchestrator.resume(pendingGoal, planText, pendingPlan, taskIndex, prevResults);
+          console.log(pc.white(`\n${result}`));
+          return;
+        } else {
+          ctx.sessionManager.saveState('orchestrate_plan', null);
+          ctx.sessionManager.saveState('orchestrate_goal', null);
+          ctx.sessionManager.saveState('orchestrate_task_index', null);
+          ctx.sessionManager.saveState('orchestrate_results', null);
+          ctx.sessionManager.saveState('orchestrate_plan_text', null);
+        }
+      }
+
       const goal = args.trim();
       if (!goal) {
         console.log(pc.red('[WARN] Usage: /orchestrate <goal>'));
@@ -385,7 +424,7 @@ export const commandsList: Command[] = [
       }
       console.log(pc.cyan(`\n[ORCHESTRATE] Starting orchestration for: ${goal}`));
       const { Orchestrator } = await import('./agents/orchestrator.js');
-      const orchestrator = new Orchestrator(ctx.router, ctx.messages, ctx.toolContext);
+      const orchestrator = new Orchestrator(ctx.router, ctx.messages, ctx.toolContext, ctx.sessionManager);
       const result = await orchestrator.run(goal);
       console.log(pc.white(`\n${result}`));
     }

@@ -1,5 +1,6 @@
 // Multi-agent orchestrator - coordinates delegation and synthesis
 
+import readline from 'readline';
 import { LocalRouter } from '../router/index.js';
 import { BUILTIN_TOOLS } from '../tools/definitions.js';
 import { executeToolCalls } from '../tools/executor.js';
@@ -7,6 +8,7 @@ import { getAgentRole, filterToolsForRole, AgentRole } from './roles.js';
 import { ToolContext, ToolCall, ChatMessage } from '../types.js';
 import pc from 'picocolors';
 import { DaedalusSpinner } from '../tools/daedalus-spinner.js';
+import { SessionManager } from '../session/manager.js';
 
 interface DelegationTask {
   goal: string;
@@ -27,12 +29,14 @@ export class Orchestrator {
   private router: LocalRouter;
   private messages: ChatMessage[];
   private toolContext: ToolContext;
+  private sessionManager?: SessionManager;
   private results: AgentResult[] = [];
 
-  constructor(router: LocalRouter, messages: ChatMessage[], toolContext: ToolContext) {
+  constructor(router: LocalRouter, messages: ChatMessage[], toolContext: ToolContext, sessionManager?: SessionManager) {
     this.router = router;
     this.messages = messages;
     this.toolContext = toolContext;
+    this.sessionManager = sessionManager;
   }
 
   async run(goal: string): Promise<string> {
@@ -43,9 +47,57 @@ export class Orchestrator {
       if (this.toolContext.abortSignal.aborted) {
         return 'Orchestration stopped by user';
       }
-      await this.executePlan(plan);
+
+      const tasks = this.parseDelegationTasks(plan);
+
+      if (this.sessionManager) {
+        this.sessionManager.saveState('orchestrate_plan', tasks);
+        this.sessionManager.saveState('orchestrate_goal', goal);
+        this.sessionManager.saveState('orchestrate_task_index', 0);
+        this.sessionManager.saveState('orchestrate_results', []);
+        this.sessionManager.saveState('orchestrate_plan_text', plan);
+      }
+
+      await this.executePlan(plan, tasks, 0);
     } catch (err) {
       return `Orchestration failed: ${(err as Error).message}`;
+    }
+
+    if (this.sessionManager) {
+      this.sessionManager.saveState('orchestrate_plan', null);
+      this.sessionManager.saveState('orchestrate_goal', null);
+      this.sessionManager.saveState('orchestrate_task_index', null);
+      this.sessionManager.saveState('orchestrate_results', null);
+      this.sessionManager.saveState('orchestrate_plan_text', null);
+    }
+
+    return this.synthesize(goal);
+  }
+
+  async resume(
+    goal: string,
+    planText: string,
+    tasks: DelegationTask[],
+    startIndex: number,
+    previousResults: AgentResult[]
+  ): Promise<string> {
+    this.results = [...previousResults];
+
+    try {
+      if (this.toolContext.abortSignal.aborted) {
+        return 'Orchestration stopped by user';
+      }
+      await this.executePlan(planText, tasks, startIndex);
+    } catch (err) {
+      return `Orchestration failed: ${(err as Error).message}`;
+    }
+
+    if (this.sessionManager) {
+      this.sessionManager.saveState('orchestrate_plan', null);
+      this.sessionManager.saveState('orchestrate_goal', null);
+      this.sessionManager.saveState('orchestrate_task_index', null);
+      this.sessionManager.saveState('orchestrate_results', null);
+      this.sessionManager.saveState('orchestrate_plan_text', null);
     }
 
     return this.synthesize(goal);
@@ -114,39 +166,94 @@ export class Orchestrator {
     return assistantMessage.content || 'No plan generated';
   }
 
-  private async executePlan(plan: string): Promise<void> {
-    const delegationTasks = this.parseDelegationTasks(plan);
-    
-    for (const task of delegationTasks) {
+  private async executePlan(
+    plan: string,
+    tasks: DelegationTask[],
+    startIndex: number = 0
+  ): Promise<void> {
+    for (let i = startIndex; i < tasks.length; i++) {
       if (this.toolContext.abortSignal.aborted) {
         break;
       }
+      const task = tasks[i];
       await this.delegateTask(task);
+
+      if (this.sessionManager) {
+        this.sessionManager.saveState('orchestrate_task_index', i + 1);
+        this.sessionManager.saveState('orchestrate_results', this.results);
+      }
+
+      if (i < tasks.length - 1 && process.env.DAEDALUS_AUTO_APPROVE !== 'true') {
+        console.log(`\n${pc.bold(pc.yellow('--- Task Checkpoint ---'))}`);
+        console.log(`${pc.green('[OK] Completed task:')} ${task.goal.slice(0, 80)}...`);
+        const nextTask = tasks[i + 1];
+        console.log(`${pc.cyan('Next task:')} [${nextTask.role}] ${nextTask.goal.slice(0, 80)}...`);
+
+        const ask = this.toolContext.askLine || (async (p: string) => {
+          return new Promise<string>((resolve) => {
+            const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+            rl.question(p, (ans) => { rl.close(); resolve(ans); });
+          });
+        });
+
+        const answer = await ask(`\nProceed to next task? [y]es / [n]o / [s]kip / [e]dit: `);
+        const norm = answer.trim().toLowerCase();
+
+        if (norm === 'n' || norm === 'no') {
+          console.log(pc.yellow('\n[INFO] Orchestration paused. You can resume it later.'));
+          // Set abort signal to stop execution gracefully
+          if (this.toolContext.abortSignal) {
+            Object.defineProperty(this.toolContext.abortSignal, 'aborted', { value: true, writable: true });
+          }
+          break;
+        } else if (norm === 's' || norm === 'skip') {
+          console.log(pc.yellow(`\n[INFO] Skipping task: ${nextTask.goal.slice(0, 60)}...`));
+          if (this.sessionManager) {
+            this.sessionManager.saveState('orchestrate_task_index', i + 2);
+          }
+          i++; // Skip the next task
+        } else if (norm === 'e' || norm === 'edit') {
+          const editGoal = await ask(`Enter new goal for next task: `);
+          if (editGoal.trim()) {
+            nextTask.goal = editGoal.trim();
+            if (this.sessionManager) {
+              this.sessionManager.saveState('orchestrate_plan', tasks);
+            }
+            console.log(pc.green(`[OK] Task goal updated.`));
+          }
+        }
+      }
     }
   }
 
   private parseDelegationTasks(plan: string): DelegationTask[] {
     const tasks: DelegationTask[] = [];
+    const activeFilesText = this.toolContext.activeFiles.size > 0
+      ? `Files in context: ${Array.from(this.toolContext.activeFiles.values()).join(', ')}`
+      : '';
     
     const lines = plan.split('\n');
     let currentRole = '';
     let currentGoal = '';
     
     for (const line of lines) {
-      const roleMatch = line.match(/(?:delegate to|have|assign to)\s+(planner|coder|reviewer|debugger|researcher)/i);
+      const roleMatch = line.match(/^\s*(?:-|\*|\d+\.)?\s*(?:delegate to|assign to|have|assign|role|agent:)?\s*(planner|coder|reviewer|debugger|researcher)\b/i);
       if (roleMatch) {
         if (currentRole && currentGoal) {
-          tasks.push({ goal: currentGoal, context: '', role: currentRole });
+          tasks.push({ goal: currentGoal, context: activeFilesText, role: currentRole });
         }
         currentRole = roleMatch[1].toLowerCase();
-        currentGoal = line.replace(roleMatch[0], '').trim();
+        const matchIndex = line.indexOf(roleMatch[0]);
+        let goalPart = line.substring(matchIndex + roleMatch[0].length);
+        goalPart = goalPart.replace(/^[:\s\-]+/, '');
+        currentGoal = goalPart.trim();
       } else if (currentRole && line.trim()) {
         currentGoal += ' ' + line.trim();
       }
     }
     
     if (currentRole && currentGoal) {
-      tasks.push({ goal: currentGoal, context: '', role: currentRole });
+      tasks.push({ goal: currentGoal, context: activeFilesText, role: currentRole });
     }
     
     // If no explicit delegation found, default to coder for implementation tasks
@@ -191,18 +298,19 @@ export class Orchestrator {
     return paths;
   }
 
-  private async verifyArtifacts(role: string, goal: string, result: string): Promise<boolean> {
+  private async verifyArtifacts(role: string, goal: string, result: string, historyStartIndex: number = 0): Promise<boolean> {
     if (!this.requiresRealArtifacts(role, goal)) return true;
     if (this.isDeclaredError(result)) return true;
 
-    if (!this.toolContext.patchHistory || this.toolContext.patchHistory.length === 0) {
+    if (!this.toolContext.patchHistory || this.toolContext.patchHistory.length <= historyStartIndex) {
       return false;
     }
 
     const rawPaths = this.extractPendingWrites(result);
     const paths = rawPaths.map(p => p.replace(/\\/g, '/'));
 
-    const normalizedHistory = this.toolContext.patchHistory.map(h => ({
+    const currentPatches = this.toolContext.patchHistory.slice(historyStartIndex);
+    const normalizedHistory = currentPatches.map(h => ({
       ...h,
       normalizedPath: h.filePath.replace(/\\/g, '/')
     }));
@@ -241,8 +349,14 @@ export class Orchestrator {
 
       const repairContext = `${task.context}\n\nPrevious attempt failed verification. Output was:\n${currentSummary}\n\nPlease retry and ensure you actually write the required files/artifacts.`;
 
+      const historyStartIndex = this.toolContext.patchHistory?.length || 0;
       const result = await this.runAgent(role, task.goal, repairContext, tools);
-      const verified = await this.verifyArtifacts(task.role, task.goal, result);
+
+      if (this.toolContext.abortSignal.aborted) {
+        return { success: false, summary: 'Task aborted by user' };
+      }
+
+      const verified = await this.verifyArtifacts(task.role, task.goal, result, historyStartIndex);
 
       if (verified && !this.isDeclaredError(result)) {
         return { success: true, summary: result };
@@ -258,9 +372,20 @@ export class Orchestrator {
     console.log(`\n[SPAWN] Delegating to ${role.name}: ${task.goal.slice(0, 80)}...`);
 
     const tools = filterToolsForRole(BUILTIN_TOOLS, task.role);
+    const historyStartIndex = this.toolContext.patchHistory?.length || 0;
     let result = await this.runAgent(role, task.goal, task.context, tools);
 
-    let verified = await this.verifyArtifacts(task.role, task.goal, result);
+    if (this.toolContext.abortSignal.aborted) {
+      this.results.push({
+        role: task.role,
+        goal: task.goal,
+        summary: 'Task aborted by user',
+        success: false,
+      });
+      return;
+    }
+
+    let verified = await this.verifyArtifacts(task.role, task.goal, result, historyStartIndex);
     let evidence = '';
 
     if (!verified) {
@@ -301,6 +426,9 @@ export class Orchestrator {
     const maxTurns = role.maxTurns ?? 10;
 
     while (turns < maxTurns) {
+      if (this.toolContext.abortSignal.aborted) {
+        return 'Agent execution aborted by user';
+      }
       const agentSpinner = new DaedalusSpinner({ text: `${role.name} running (turn ${turns + 1})`, color: (s) => pc.cyan(s) });
       agentSpinner.start();
       let completion;
