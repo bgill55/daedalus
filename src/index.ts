@@ -178,11 +178,16 @@ Terminal execution runs inside an isolated Docker container or WSL environment i
 | error contains \`multiple locations\` | [ERROR] old_string is too generic | Add more surrounding lines to old_string to make it unique, then retry |
 | error contains \`File not found\` | [ERROR] Wrong path | Use \`search_files\` or \`list_files\` to find the correct path |
 
-**Never freeze or loop silently.** If a patch fails, take one corrective action and tell the user what happened.`;
+**Never freeze or loop silently.** If a patch fails, take one corrective action and tell the user what happened.
+
+## DEPENDENCY FRESHNESS
+- When adding or updating project dependencies (e.g. in package.json, requirements.txt, Cargo.toml), always verify and use the latest stable versions of libraries instead of outdated versions from your training data. Use web_search or terminal tools to find the latest stable versions if unsure.`;
 
 // Build system prompt with project memory and user profile
 function getSystemPromptWithMemory(): string {
   let prompt = systemPrompt;
+  const currentDateStr = new Date().toLocaleString();
+  prompt += `\n\n## CURRENT TIME\nThe current date and local time is: ${currentDateStr}.\n`;
   const profilePrompt = getProfilePrompt(userProfile);
   if (profilePrompt) {
     prompt += '\n' + profilePrompt;

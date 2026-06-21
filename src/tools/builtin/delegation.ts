@@ -33,8 +33,10 @@ export async function manage(args: { goal: string; context?: string; role?: stri
   try {
     const role = args.role ?? 'coder';
     const agentRole = getAgentRole(role);
+    const currentDateStr = new Date().toLocaleString();
+    const dynamicSystemPrompt = `${agentRole.systemPrompt}\n\n## CURRENT TIME\nThe current date and local time is: ${currentDateStr}.\n`;
     const messages: any[] = [
-      { role: 'system', content: agentRole.systemPrompt },
+      { role: 'system', content: dynamicSystemPrompt },
       { role: 'user', content: `${args.context ?? ''}\n\nTask: ${args.goal}` },
     ];
 

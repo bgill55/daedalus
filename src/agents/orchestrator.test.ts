@@ -334,10 +334,10 @@ delegate to debugger fix tsconfig deprecations
     const tasks = (orch as any).parseDelegationTasks(plan);
 
     expect(tasks).toHaveLength(4);
-    expect(tasks[0]).toEqual({ role: 'coder', goal: 'Implement new API endpoint', context: '' });
-    expect(tasks[1]).toEqual({ role: 'researcher', goal: 'Research credentials config', context: '' });
-    expect(tasks[2]).toEqual({ role: 'reviewer', goal: 'Code quality check', context: '' });
-    expect(tasks[3]).toEqual({ role: 'debugger', goal: 'fix tsconfig deprecations', context: '' });
+    expect(tasks[0]).toEqual({ role: 'coder', goal: 'Implement new API endpoint', context: '', status: 'pending' });
+    expect(tasks[1]).toEqual({ role: 'researcher', goal: 'Research credentials config', context: '', status: 'pending' });
+    expect(tasks[2]).toEqual({ role: 'reviewer', goal: 'Code quality check', context: '', status: 'pending' });
+    expect(tasks[3]).toEqual({ role: 'debugger', goal: 'fix tsconfig deprecations', context: '', status: 'pending' });
   });
 
   it('parseDelegationTasks extracts prefix-less and bulleted role goals correctly', () => {
@@ -352,10 +352,10 @@ Debugger: fix deprecations
     const tasks = (orch as any).parseDelegationTasks(plan);
 
     expect(tasks).toHaveLength(4);
-    expect(tasks[0]).toEqual({ role: 'coder', goal: 'Implement OAuth flow', context: '' });
-    expect(tasks[1]).toEqual({ role: 'researcher', goal: 'check YouTube API', context: '' });
-    expect(tasks[2]).toEqual({ role: 'debugger', goal: 'fix deprecations', context: '' });
-    expect(tasks[3]).toEqual({ role: 'reviewer', goal: 'inspect code quality', context: '' });
+    expect(tasks[0]).toEqual({ role: 'coder', goal: 'Implement OAuth flow', context: '', status: 'pending' });
+    expect(tasks[1]).toEqual({ role: 'researcher', goal: 'check YouTube API', context: '', status: 'pending' });
+    expect(tasks[2]).toEqual({ role: 'debugger', goal: 'fix deprecations', context: '', status: 'pending' });
+    expect(tasks[3]).toEqual({ role: 'reviewer', goal: 'inspect code quality', context: '', status: 'pending' });
   });
 
   it('parseDelegationTasks includes active files list in task context', () => {
@@ -421,4 +421,57 @@ Debugger: fix deprecations
     expect(mockSessionManager.saveState).toHaveBeenCalledWith('orchestrate_task_index', 1);
     expect(mockSessionManager.saveState).toHaveBeenCalledWith('orchestrate_task_index', 2);
   });
+
+  it('runAgent dynamically injects date and time into system prompt', async () => {
+    const { router: localRouter, chatMock } = createMockRouter(['Response']);
+    const orch = new Orchestrator(localRouter, messages, toolContext);
+    const role = { name: 'coder', systemPrompt: 'System prompt content', allowedTools: [] };
+    await (orch as any).runAgent(role, 'goal', 'context', []);
+    
+    expect(chatMock).toHaveBeenCalled();
+    const calls = chatMock.mock.calls;
+    const firstCallArgs = calls[0][0];
+    const systemMessage = firstCallArgs.messages.find((m: any) => m.role === 'system');
+    expect(systemMessage.content).toContain('System prompt content');
+    expect(systemMessage.content).toContain('CURRENT TIME');
+  });
+
+  it('executePlan prompts for retry on task failure and handles abort', async () => {
+    const { router: localRouter } = createMockRouter([]);
+    const mockSessionManager = {
+      saveState: vi.fn(),
+      getState: vi.fn(),
+    } as any;
+
+    const askLineMock = vi.fn()
+      .mockResolvedValueOnce('retry')
+      .mockResolvedValueOnce('abort');
+
+    const abortController = new AbortController();
+    const mockToolContext = {
+      ...toolContext,
+      askLine: askLineMock,
+      abortSignal: abortController.signal,
+    };
+
+    const orch = new Orchestrator(localRouter, messages, mockToolContext, mockSessionManager);
+    
+    let callCount = 0;
+    vi.spyOn(orch as any, 'delegateTask').mockImplementation(async (task: any) => {
+      callCount++;
+      task.status = 'failed';
+      task.error = 'Test error';
+    });
+
+    const tasks = [
+      { goal: 'task 1', context: '', role: 'coder', status: 'pending' as const }
+    ];
+
+    await (orch as any).executePlan('plan', tasks, 0);
+
+    expect(callCount).toBe(2);
+    expect(askLineMock).toHaveBeenCalledTimes(2);
+    expect(abortController.signal.aborted).toBe(true);
+  });
 });
+

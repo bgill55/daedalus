@@ -98,4 +98,27 @@ describe('Delegation tool', () => {
     expect(result.error).toContain('Delegation failed');
   });
 
+  it('injects date and time dynamically into delegated system prompt', async () => {
+    const mockRouterClient = {
+      chat: {
+        completions: {
+          create: vi.fn().mockResolvedValueOnce({
+            choices: [{ message: { content: 'Done', role: 'assistant', tool_calls: [] } }],
+          }),
+        },
+      },
+    };
+    setRouterClient(mockRouterClient as any);
+
+    await manage({
+      goal: 'implement feature',
+      role: 'coder',
+    }, mockContext);
+
+    expect(mockRouterClient.chat.completions.create).toHaveBeenCalled();
+    const calls = mockRouterClient.chat.completions.create.mock.calls;
+    const firstCallArgs = calls[0][0];
+    const systemMessage = firstCallArgs.messages.find((m: any) => m.role === 'system');
+    expect(systemMessage.content).toContain('CURRENT TIME');
+  });
 });

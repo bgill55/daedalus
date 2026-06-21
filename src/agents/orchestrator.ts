@@ -15,6 +15,8 @@ interface DelegationTask {
   context: string;
   role: string;
   toolsets?: string[];
+  status?: 'pending' | 'in_progress' | 'completed' | 'failed' | 'skipped';
+  error?: string;
 }
 
 interface AgentResult {
@@ -63,7 +65,7 @@ export class Orchestrator {
       return `Orchestration failed: ${(err as Error).message}`;
     }
 
-    if (this.sessionManager) {
+    if (this.sessionManager && !this.toolContext.abortSignal.aborted) {
       this.sessionManager.saveState('orchestrate_plan', null);
       this.sessionManager.saveState('orchestrate_goal', null);
       this.sessionManager.saveState('orchestrate_task_index', null);
@@ -83,6 +85,14 @@ export class Orchestrator {
   ): Promise<string> {
     this.results = [...previousResults];
 
+    tasks.forEach((t, idx) => {
+      if (idx < startIndex) {
+        t.status = 'completed';
+      } else if (!t.status) {
+        t.status = 'pending';
+      }
+    });
+
     try {
       if (this.toolContext.abortSignal.aborted) {
         return 'Orchestration stopped by user';
@@ -92,7 +102,7 @@ export class Orchestrator {
       return `Orchestration failed: ${(err as Error).message}`;
     }
 
-    if (this.sessionManager) {
+    if (this.sessionManager && !this.toolContext.abortSignal.aborted) {
       this.sessionManager.saveState('orchestrate_plan', null);
       this.sessionManager.saveState('orchestrate_goal', null);
       this.sessionManager.saveState('orchestrate_task_index', null);
@@ -166,6 +176,51 @@ export class Orchestrator {
     return assistantMessage.content || 'No plan generated';
   }
 
+  private formatGoal(goal: string, indentLength: number, width: number = 80): string {
+    const words = goal.split(/\s+/);
+    const lines: string[] = [];
+    let currentLine = '';
+    const targetWidth = Math.max(40, width - indentLength);
+
+    for (const word of words) {
+      if ((currentLine + (currentLine ? ' ' : '') + word).length > targetWidth) {
+        lines.push(currentLine);
+        currentLine = word;
+      } else {
+        currentLine += (currentLine ? ' ' : '') + word;
+      }
+    }
+    if (currentLine) {
+      lines.push(currentLine);
+    }
+
+    const indent = ' '.repeat(indentLength);
+    return lines.join('\n' + indent);
+  }
+
+  private printTaskList(tasks: DelegationTask[]): void {
+    console.log(pc.bold(pc.cyan('\n--- Orchestration Task List ---')));
+    tasks.forEach((task, idx) => {
+      let icon = pc.gray('[ ]');
+      if (task.status === 'in_progress') {
+        icon = pc.blue('[▶]');
+      } else if (task.status === 'completed') {
+        icon = pc.green('[✓]');
+      } else if (task.status === 'failed') {
+        icon = pc.red('[✗]');
+      } else if (task.status === 'skipped') {
+        icon = pc.yellow('[S]');
+      }
+      
+      const roleStr = pc.bold(`[${task.role}]`);
+      const indentLength = 2 + 3 + 1 + 5 + (idx + 1).toString().length + 2 + 1 + task.role.length + 2;
+      const goalStr = this.formatGoal(task.goal, indentLength);
+      const errorStr = task.error ? pc.red(` (Error: ${task.error})`) : '';
+      console.log(`  ${icon} Task ${idx + 1}: ${roleStr} ${goalStr}${errorStr}`);
+    });
+    console.log(pc.bold(pc.cyan('--------------------------------')));
+  }
+
   private async executePlan(
     plan: string,
     tasks: DelegationTask[],
@@ -176,18 +231,83 @@ export class Orchestrator {
         break;
       }
       const task = tasks[i];
+      task.status = 'in_progress';
+      this.printTaskList(tasks);
+
       await this.delegateTask(task);
+      this.printTaskList(tasks);
 
       if (this.sessionManager) {
         this.sessionManager.saveState('orchestrate_task_index', i + 1);
         this.sessionManager.saveState('orchestrate_results', this.results);
       }
 
+      if ((task.status as any) === 'failed') {
+        console.log(`\n${pc.bold(pc.red('--- Task Failure Checkpoint ---'))}`);
+        console.log(`${pc.red('[ERROR] Task failed:')} ${task.role} - ${task.goal}`);
+
+        const ask = this.toolContext.askLine || (async (p: string) => {
+          return new Promise<string>((resolve) => {
+            const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+            rl.question(p, (ans) => { rl.close(); resolve(ans); });
+          });
+        });
+
+        let resolved = false;
+        while (!resolved) {
+          const answer = await ask(`\nTask failed. Choose action: [r]etry / [e]dit / [s]kip / [a]bort: `);
+          const norm = answer.trim().toLowerCase();
+
+          if (norm === 'r' || norm === 'retry') {
+            console.log(pc.cyan(`\nRetrying task: ${task.goal}`));
+            task.status = 'in_progress';
+            task.error = undefined;
+            this.printTaskList(tasks);
+            this.results.pop();
+            await this.delegateTask(task);
+            this.printTaskList(tasks);
+            if ((task.status as any) !== 'failed') {
+              resolved = true;
+            }
+          } else if (norm === 'e' || norm === 'edit') {
+            const editGoal = await ask(`Enter new goal for task: `);
+            if (editGoal.trim()) {
+              task.goal = editGoal.trim();
+              task.status = 'in_progress';
+              task.error = undefined;
+              this.printTaskList(tasks);
+              this.results.pop();
+              await this.delegateTask(task);
+              this.printTaskList(tasks);
+              if ((task.status as any) !== 'failed') {
+                resolved = true;
+              }
+            }
+          } else if (norm === 's' || norm === 'skip') {
+            console.log(pc.yellow(`\nSkipping failed task: ${task.goal}`));
+            task.status = 'skipped';
+            this.printTaskList(tasks);
+            resolved = true;
+          } else if (norm === 'a' || norm === 'abort') {
+            console.log(pc.yellow('\nOrchestration aborted on task failure. You can resume it later.'));
+            if (this.toolContext.abortSignal) {
+              Object.defineProperty(this.toolContext.abortSignal, 'aborted', { value: true, writable: true });
+            }
+            resolved = true;
+            break;
+          }
+        }
+
+        if (this.toolContext.abortSignal.aborted) {
+          break;
+        }
+      }
+
       if (i < tasks.length - 1 && process.env.DAEDALUS_AUTO_APPROVE !== 'true') {
         console.log(`\n${pc.bold(pc.yellow('--- Task Checkpoint ---'))}`);
-        console.log(`${pc.green('[OK] Completed task:')} ${task.goal.slice(0, 80)}...`);
+        console.log(`${pc.green('[OK] Completed task:')} ${task.goal}`);
         const nextTask = tasks[i + 1];
-        console.log(`${pc.cyan('Next task:')} [${nextTask.role}] ${nextTask.goal.slice(0, 80)}...`);
+        console.log(`${pc.cyan('Next task:')} [${nextTask.role}] ${nextTask.goal}`);
 
         const ask = this.toolContext.askLine || (async (p: string) => {
           return new Promise<string>((resolve) => {
@@ -201,17 +321,16 @@ export class Orchestrator {
 
         if (norm === 'n' || norm === 'no') {
           console.log(pc.yellow('\n[INFO] Orchestration paused. You can resume it later.'));
-          // Set abort signal to stop execution gracefully
           if (this.toolContext.abortSignal) {
             Object.defineProperty(this.toolContext.abortSignal, 'aborted', { value: true, writable: true });
           }
           break;
         } else if (norm === 's' || norm === 'skip') {
-          console.log(pc.yellow(`\n[INFO] Skipping task: ${nextTask.goal.slice(0, 60)}...`));
+          console.log(pc.yellow(`\n[INFO] Skipping task: ${nextTask.goal}`));
           if (this.sessionManager) {
             this.sessionManager.saveState('orchestrate_task_index', i + 2);
           }
-          i++; // Skip the next task
+          i++;
         } else if (norm === 'e' || norm === 'edit') {
           const editGoal = await ask(`Enter new goal for next task: `);
           if (editGoal.trim()) {
@@ -240,7 +359,7 @@ export class Orchestrator {
       const roleMatch = line.match(/^\s*(?:-|\*|\d+\.)?\s*(?:delegate to|assign to|have|assign|role|agent:)?\s*(planner|coder|reviewer|debugger|researcher)\b/i);
       if (roleMatch) {
         if (currentRole && currentGoal) {
-          tasks.push({ goal: currentGoal, context: activeFilesText, role: currentRole });
+          tasks.push({ goal: currentGoal, context: activeFilesText, role: currentRole, status: 'pending' });
         }
         currentRole = roleMatch[1].toLowerCase();
         const matchIndex = line.indexOf(roleMatch[0]);
@@ -253,15 +372,15 @@ export class Orchestrator {
     }
     
     if (currentRole && currentGoal) {
-      tasks.push({ goal: currentGoal, context: activeFilesText, role: currentRole });
+      tasks.push({ goal: currentGoal, context: activeFilesText, role: currentRole, status: 'pending' });
     }
     
-    // If no explicit delegation found, default to coder for implementation tasks
     if (tasks.length === 0) {
       tasks.push({ 
         goal: plan, 
         context: `Files in context: ${Array.from(this.toolContext.activeFiles.values()).join(', ')}`, 
-        role: 'coder' 
+        role: 'coder',
+        status: 'pending'
       });
     }
     
@@ -345,7 +464,7 @@ export class Orchestrator {
         break;
       }
       attempt++;
-      console.log(`\n[REPAIR] Attempt ${attempt}/${maxRetries} to repair task: ${task.goal.slice(0, 60)}...`);
+      console.log(`\n[REPAIR] Attempt ${attempt}/${maxRetries} to repair task: ${task.goal}`);
 
       const repairContext = `${task.context}\n\nPrevious attempt failed verification. Output was:\n${currentSummary}\n\nPlease retry and ensure you actually write the required files/artifacts.`;
 
@@ -369,7 +488,7 @@ export class Orchestrator {
 
   private async delegateTask(task: DelegationTask): Promise<void> {
     const role = getAgentRole(task.role);
-    console.log(`\n[SPAWN] Delegating to ${role.name}: ${task.goal.slice(0, 80)}...`);
+    console.log(`\n[SPAWN] Delegating to ${role.name}: ${task.goal}`);
 
     const tools = filterToolsForRole(BUILTIN_TOOLS, task.role);
     const historyStartIndex = this.toolContext.patchHistory?.length || 0;
@@ -382,6 +501,8 @@ export class Orchestrator {
         summary: 'Task aborted by user',
         success: false,
       });
+      task.status = 'failed';
+      task.error = 'Task aborted by user';
       return;
     }
 
@@ -400,11 +521,17 @@ export class Orchestrator {
       evidence = repaired.evidence || '';
     }
 
+    const success = verified && !this.isDeclaredError(result);
+    task.status = success ? 'completed' : 'failed';
+    if (!success) {
+      task.error = result.split('\n')[0] || 'Unknown failure';
+    }
+
     this.results.push({
       role: task.role,
       goal: task.goal,
       summary: result,
-      success: verified && !this.isDeclaredError(result),
+      success,
       ...(evidence ? { evidence } : {}),
     });
 
@@ -417,8 +544,10 @@ export class Orchestrator {
     context: string,
     tools: any[]
   ): Promise<string> {
+    const currentDateStr = new Date().toLocaleString();
+    const dynamicSystemPrompt = `${role.systemPrompt}\n\n## CURRENT TIME\nThe current date and local time is: ${currentDateStr}.\n`;
     const messages: ChatMessage[] = [
-      { role: 'system', content: role.systemPrompt },
+      { role: 'system', content: dynamicSystemPrompt },
       { role: 'user', content: `${context}\n\nTask: ${goal}` },
     ];
 
@@ -489,6 +618,9 @@ export class Orchestrator {
   }
 
   private synthesize(goal: string): string {
+    if (this.toolContext.abortSignal.aborted) {
+      return `## Orchestration Paused: ${goal}\n\nUse /orchestrate to resume the pending tasks.`;
+    }
     const hasFailures = this.results.some(r => !r.success);
     let output = hasFailures
       ? `## Orchestration Hit Verification Failures: ${goal}\n\n`
@@ -496,7 +628,7 @@ export class Orchestrator {
 
     for (const result of this.results) {
       const status = result.success ? '[OK]' : '[ERROR]';
-      output += `${status} **${result.role}**: ${result.goal.slice(0, 100)}\n`;
+      output += `${status} **${result.role}**: ${result.goal}\n`;
       const indented = result.summary
         .split('\n')
         .map(line => '   ' + line)

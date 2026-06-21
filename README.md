@@ -159,6 +159,22 @@ Run sub-agents concurrently in the background by adding the `--bg` flag to `/spa
 * **Notification Queueing**: Agent task completions are queued and printed synchronously in a prompt-safe manner right before your next REPL prompt redraw to keep your terminal output clean.
 * **Management**: View running jobs via `/tasks`, cancel running jobs via `/task kill <id>`, and read results of completed tasks using `/task <id>`.
 
+### Multi-Agent Orchestration & Task Control
+When you run the `/orchestrate <goal>` command, Daedalus plans and delegates work to sub-agents (planner, coder, researcher, reviewer, debugger) with enhanced visibility and recovery options:
+* **Interactive Task Checklist**: Displays a dynamically wrapped, real-time updated checklist in your console:
+  * `[ ]` (Pending)
+  * `[▶]` (In Progress)
+  * `[✓]` (Completed)
+  * `[✗]` (Failed)
+  * `[S]` (Skipped)
+* **Failure Checkpoints & Recovery**: If a sub-agent task fails or reaches its turn limit, the orchestrator pauses, shows the failed task, and prompts you to select an action:
+  * `[r]etry`: Re-runs the task with a clean turn budget and error feedback.
+  * `[e]dit`: Prompts you to rephrase the task goal before retrying.
+  * `[s]kip`: Skips the current step and moves to the next.
+  * `[a]bort`: Pauses execution and keeps the orchestration session state alive.
+* **Persistent Sessions & Resuming**: If you pause or abort execution, running `/orchestrate` later will prompt you to resume the pending plan, automatically checking off previously completed tasks in the checklist.
+* **Granular Task Planning**: The planner agent automatically decomposes complex goals into small, file-scoped or function-scoped tasks that easily fit within the coder's 10-turn limit, preventing agents from getting stuck on oversized requests.
+
 ### Updating Configuration via CLI
 You can view and modify global configuration options directly within the CLI without manually editing files. The values are automatically validated before saving to prevent corrupting your settings:
 * **View Config**: Run `/config` to display your current active configuration.
