@@ -197,44 +197,50 @@ async function syntaxCheck(filePath: string, projectRoot: string): Promise<strin
   }
 
   if (ext === '.ts' || ext === '.tsx') {
-    const tsconfig = path.join(projectRoot, 'tsconfig.json');
-    if (fs.existsSync(tsconfig)) {
-      let result = spawnSync('npx', ['tsc', '--noEmit', '--skipLibCheck'], {
-        cwd: projectRoot,
-        timeout: 15000,
-        encoding: 'utf8',
-        shell: true,
-      });
-      if (result.status !== 0) {
-        const output = (result.stdout ?? '') + (result.stderr ?? '');
-        const lines = output.split('\n');
-        // Auto-fix TS5xxx deprecation warnings in tsconfig.json
-        const hasDeprecation = lines.some(l => /error TS5\d{3}/.test(l));
-        if (hasDeprecation) {
-          try {
-            const raw = fs.readFileSync(tsconfig, 'utf8');
-            const cfg = JSON.parse(raw);
-            if (!cfg.compilerOptions) cfg.compilerOptions = {};
-            if (!cfg.compilerOptions.ignoreDeprecations) {
-              cfg.compilerOptions.ignoreDeprecations = '6.0';
-              fs.writeFileSync(tsconfig, JSON.stringify(cfg, null, 2) + '\n', 'utf8');
-              result = spawnSync('npx', ['tsc', '--noEmit', '--skipLibCheck'], {
-                cwd: projectRoot,
-                timeout: 15000,
-                encoding: 'utf8',
-                shell: true,
-              });
-            }
-          } catch { /* if tsconfig parse fails, leave it alone */ }
-        }
-        if (result.status !== 0) {
-          const retryOutput = (result.stdout ?? '') + (result.stderr ?? '');
-          const realError = retryOutput.split('\n').find(l => /error TS/.test(l) && !/error TS5\d{3}/.test(l));
-          if (realError) return realError;
-        }
-      }
-      return null;
+    // Walk up from the file's directory to find the nearest tsconfig.json
+    let tsconfigDir = path.dirname(filePath);
+    let tsconfigPath: string | null = null;
+    while (true) {
+      const candidate = path.join(tsconfigDir, 'tsconfig.json');
+      if (fs.existsSync(candidate)) { tsconfigPath = candidate; break; }
+      const parent = path.dirname(tsconfigDir);
+      if (parent === tsconfigDir) break;
+      tsconfigDir = parent;
     }
+    if (!tsconfigPath) tsconfigPath = path.join(projectRoot, 'tsconfig.json');
+    if (!fs.existsSync(tsconfigPath)) return null;
+
+    const tsconfigRoot = path.dirname(tsconfigPath);
+    const runTsc = () => spawnSync('npx', ['tsc', '--noEmit', '--skipLibCheck'], {
+      cwd: tsconfigRoot,
+      timeout: 15000,
+      encoding: 'utf8',
+      shell: true,
+    });
+    let result = runTsc();
+    if (result.status !== 0) {
+      const output = (result.stdout ?? '') + (result.stderr ?? '');
+      const lines = output.split('\n');
+      const hasDeprecation = lines.some(l => /error TS5\d{3}/.test(l));
+      if (hasDeprecation) {
+        try {
+          const raw = fs.readFileSync(tsconfigPath, 'utf8');
+          const cfg = JSON.parse(raw);
+          if (!cfg.compilerOptions) cfg.compilerOptions = {};
+          if (!cfg.compilerOptions.ignoreDeprecations) {
+            cfg.compilerOptions.ignoreDeprecations = '6.0';
+            fs.writeFileSync(tsconfigPath, JSON.stringify(cfg, null, 2) + '\n', 'utf8');
+            result = runTsc();
+          }
+        } catch { /* if tsconfig parse fails, leave it alone */ }
+      }
+      if (result.status !== 0) {
+        const retryOutput = (result.stdout ?? '') + (result.stderr ?? '');
+        const realError = retryOutput.split('\n').find(l => /error TS/.test(l) && !/error TS5\d{3}/.test(l));
+        if (realError) return realError;
+      }
+    }
+    return null;
   }
 
   if (ext === '.js' || ext === '.mjs' || ext === '.cjs' || ext === '.ts' || ext === '.tsx') {
