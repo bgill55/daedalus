@@ -262,7 +262,9 @@ function checkWriteWithoutRead(targetPath: string, context: ToolContext): string
   if (!fs.existsSync(targetPath)) return null;
   const readMtime = context.sessionReadCache.get(targetPath);
   if (readMtime === undefined) {
-    return `[READ REQUIRED] ${path.basename(targetPath)} has not been read this session. Use read_file first to verify the current content before modifying it.`;
+    // Auto-read: populate cache so the write/patch proceeds without requiring a separate read_file
+    context.sessionReadCache.set(targetPath, fs.statSync(targetPath).mtimeMs);
+    return null;
   }
   const currentMtime = fs.statSync(targetPath).mtimeMs;
   if (currentMtime > readMtime + 500) {

@@ -171,7 +171,7 @@ describe('patchFile — write-without-read guardrail', () => {
   beforeEach(() => { tmpDir = makeTmpDir(); });
   afterEach(() => { fs.rmSync(tmpDir, { recursive: true, force: true }); });
 
-  it('blocks patch if file not read this session', async () => {
+  it('auto-reads and allows patch if file not read this session', async () => {
     const file = path.join(tmpDir, 'guard.js');
     fs.writeFileSync(file, 'const x = 1;\n');
     const ctx = makeContext(tmpDir, true);
@@ -181,8 +181,7 @@ describe('patchFile — write-without-read guardrail', () => {
       ctx,
     );
 
-    expect(result.success).toBe(false);
-    expect(result.error).toMatch(/READ REQUIRED/);
+    expect(result.success).toBe(true);
   });
 
   it('allows patch if file was read first', async () => {
@@ -198,7 +197,7 @@ describe('patchFile — write-without-read guardrail', () => {
     expect(result.success).toBe(true);
   });
 
-  it('blocks write_file on existing file not read this session', async () => {
+  it('auto-reads and allows write_file on existing file not read this session', async () => {
     const file = path.join(tmpDir, 'guard3.js');
     fs.writeFileSync(file, 'const x = 1;\n');
     const ctx = makeContext(tmpDir, true);
@@ -208,8 +207,7 @@ describe('patchFile — write-without-read guardrail', () => {
       ctx,
     );
 
-    expect(result.success).toBe(false);
-    expect(result.error).toMatch(/READ REQUIRED/);
+    expect(result.success).toBe(true);
   });
 });
 
