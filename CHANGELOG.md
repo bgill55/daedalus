@@ -1,3 +1,10 @@
+## [1.21.4](https://github.com/bgill55/daedalus/compare/v1.21.3...v1.21.4) (2026-06-22)
+
+
+### Bug Fixes
+
+* **orchestrator:** break patch retry spirals with per-file failure cap; improve diff-ui input handling ([fed4175](https://github.com/bgill55/daedalus/commit/fed41756c9ff547cd392e1fc203f4e71cc850ded))
+
 ## [1.21.3](https://github.com/bgill55/daedalus/compare/v1.21.2...v1.21.3) (2026-06-22)
 
 
