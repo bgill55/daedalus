@@ -1,3 +1,10 @@
+## [1.21.3](https://github.com/bgill55/daedalus/compare/v1.21.2...v1.21.3) (2026-06-22)
+
+
+### Bug Fixes
+
+* per-task auto-approve, diff-ui hang, patch root-cause protections ([bdb910d](https://github.com/bgill55/daedalus/commit/bdb910d0beaf34eef76e336f099dc97609f1ae52))
+
 ## [1.21.2](https://github.com/bgill55/daedalus/compare/v1.21.1...v1.21.2) (2026-06-22)
 
 
