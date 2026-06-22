@@ -3,121 +3,106 @@ import type { ToolCall } from './types.js';
 
 export const termW = Math.max(50, (process.stdout.columns ?? 80) - 5);
 
-export function wrapLine(line: string, maxW: number): string[] {
-  if (line.length <= maxW) return [line];
-  const words = line.split(' ');
-  const result: string[] = [];
-  let cur = '';
-  for (const word of words) {
-    if (cur && cur.length + 1 + word.length <= maxW) {
-      cur += ' ' + word;
-    } else {
-      if (cur) result.push(cur);
-      cur = word;
-      while (cur.length > maxW) {
-        result.push(cur.slice(0, maxW));
-        cur = cur.slice(maxW);
-      }
-    }
-  }
-  if (cur) result.push(cur);
-  return result;
-}
-
-export function printUserTurn(userMessage: string): void {
-  const bdr = (s: string) => pc.dim(pc.yellow(s));
-  const lines = userMessage.split('\n');
-
-  let maxLineLen = 0;
-  const allWrappedLines: string[] = [];
-  for (const line of lines) {
-    const wrapped = wrapLine(line, termW);
-    allWrappedLines.push(...wrapped);
-    for (const part of wrapped) {
-      if (part.length > maxLineLen) maxLineLen = part.length;
-    }
-  }
-
-  const w = Math.max(15, maxLineLen);
-
-  console.log(`\n  ${bdr('╭─')} ${pc.yellow(pc.bold('⬡ You'))} ${bdr('─'.repeat(Math.max(0, w - 7)))}${bdr('╮')}`);
-  for (const part of allWrappedLines) {
-    console.log(`  ${bdr('│')} ${pc.white(part)}${' '.repeat(Math.max(0, w - part.length))}${bdr('│')}`);
-  }
-  console.log(`  ${bdr('╰')}${bdr('─'.repeat(w + 1))}${bdr('╯')}`);
-  console.log();
-}
-
-let _assistantLineBuf = '';
-let _inCodeBlock = false;
-
-export function stripAnsi(str: string): string {
+function stripAnsi(str: string): string {
   return str.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
 }
 
-export function wrapAnsiLine(line: string, maxW: number): string[] {
+// ── Line wrapping ──────────────────────────────────────────────
+
+function wrapLine(line: string, maxW: number): string[] {
   if (stripAnsi(line).length <= maxW) return [line];
   const words = line.split(' ');
   const result: string[] = [];
   let cur = '';
   for (const word of words) {
-    const curVisible = stripAnsi(cur).length;
-    const wordVisible = stripAnsi(word).length;
-    if (cur && curVisible + 1 + wordVisible <= maxW) {
+    const curVis = stripAnsi(cur).length;
+    const wordVis = stripAnsi(word).length;
+    if (cur && curVis + 1 + wordVis <= maxW) {
       cur += ' ' + word;
     } else {
       if (cur) result.push(cur);
       cur = word;
-      while (stripAnsi(cur).length > maxW) {
-        result.push(cur);
-        cur = '';
-      }
     }
   }
   if (cur) result.push(cur);
   return result;
 }
 
-export function formatMarkdownLine(line: string): string {
-  if (line.startsWith('# ')) return pc.bold(pc.cyan(line.substring(2)));
-  if (line.startsWith('## ')) return pc.bold(pc.cyan(line.substring(3)));
-  if (line.startsWith('### ')) return pc.bold(pc.cyan(line.substring(4)));
-  if (line.startsWith('> ')) return `${pc.gray('│')} ${pc.italic(line.substring(2))}`;
+// ── User message ───────────────────────────────────────────────
 
-  let prefix = '';
-  let content = line;
-  const listMatch = line.match(/^(\s*)([\*\-\+•])\s+(.*)$/);
-  if (listMatch) {
-    prefix = `${listMatch[1]}${pc.gray('•')} `;
-    content = listMatch[3];
+export function printUserTurn(userMessage: string): void {
+  const lines = userMessage.split('\n');
+  const wrapped: string[] = [];
+  for (const line of lines) wrapped.push(...wrapLine(line, termW));
+
+  const contentW = wrapped.reduce((m, l) => Math.max(m, stripAnsi(l).length), 0);
+  const boxW = Math.max(20, contentW) + 2;
+
+  const boxColor = (s: string) => pc.dim(pc.yellow(s));
+  const sep = `  ${boxColor('╭─')} ${pc.yellow(pc.bold('You'))} ${boxColor('─'.repeat(Math.max(0, boxW - 6)))}${boxColor('╮')}`;
+  console.log(`\n${sep}`);
+  for (const part of wrapped) {
+    const pad = ' '.repeat(Math.max(0, boxW - stripAnsi(part).length));
+    console.log(`  ${boxColor('│')} ${pc.white(part)}${pad}${boxColor('│')}`);
   }
-  content = content.replace(/\`(.*?)\`/g, (_, p1) => pc.yellow(p1));
-  content = content.replace(/\*\*(.*?)\*\*/g, (_, p1) => pc.bold(p1));
-  content = content.replace(/\*(.*?)\*/g, (_, p1) => pc.italic(p1));
-  content = content.replace(/_(.*?)_/g, (_, p1) => pc.italic(p1));
-  return prefix + content;
+  console.log(`  ${boxColor('╰')}${boxColor('─'.repeat(boxW + 1))}${boxColor('╯')}`);
 }
 
+// ── Assistant message ──────────────────────────────────────────
+
+let _buf = '';
+let _inCode = false;
+let _codeLang = '';
+let _codeLines: string[] = [];
+
 export function openAssistantBlock(): void {
-  console.log(`\n  ${pc.cyan(pc.bold('◇ Daedalus'))}`);
+  console.log(`\n  ${pc.cyan(pc.bold('Daedalus'))}`);
+}
+
+function emitCodeBlock(): void {
+  if (_codeLines.length === 0) return;
+  const lineDigits = String(_codeLines.length).length;
+  for (let i = 0; i < _codeLines.length; i++) {
+    const lineNo = String(i + 1).padStart(lineDigits);
+    const gutter = pc.dim(` ${lineNo} │`);
+    const content = _codeLines[i];
+    for (const part of wrapLine(content, termW - lineDigits - 3)) {
+      console.log(`  ${gutter} ${part}`);
+    }
+  }
+  _codeLines = [];
 }
 
 export function writeAssistantChunk(chunk: string): void {
-  _assistantLineBuf += chunk;
-  const lines = _assistantLineBuf.split('\n');
-  _assistantLineBuf = lines.pop() || '';
-  for (const line of lines) {
-    const isCodeBlockDelimiter = line.trim().startsWith('```');
-    if (isCodeBlockDelimiter) _inCodeBlock = !_inCodeBlock;
-    if (_inCodeBlock || isCodeBlockDelimiter) {
-      for (const part of wrapLine(line, termW)) {
-        console.log(`  ${pc.gray(part)}`);
+  _buf += chunk;
+  const completeLines = _buf.split('\n');
+  _buf = completeLines.pop() || '';
+
+  for (const raw of completeLines) {
+    const line = raw.trimEnd();
+
+    // Code block fences
+    if (line.startsWith('```')) {
+      if (_inCode) {
+        emitCodeBlock();
+        _inCode = false;
+        _codeLang = '';
+      } else {
+        _inCode = true;
+        _codeLang = line.slice(3).trim();
       }
-    } else {
-      const formatted = formatMarkdownLine(line);
-      for (const part of wrapAnsiLine(formatted, termW)) {
-        console.log(`  ${part}`);
-      }
+      continue;
+    }
+
+    if (_inCode) {
+      _codeLines.push(line);
+      continue;
+    }
+
+    // Inline markdown rendering
+    const formatted = formatMarkdownLine(line);
+    for (const part of wrapLine(formatted, termW)) {
+      console.log(`  ${part}`);
     }
   }
 }
@@ -128,34 +113,124 @@ export function closeAssistantBlock(
   toolCount?: number,
   modelName?: string,
 ): void {
-  if (_assistantLineBuf) {
-    const isCodeBlockDelimiter = _assistantLineBuf.trim().startsWith('```');
-    if (isCodeBlockDelimiter) _inCodeBlock = !_inCodeBlock;
-    if (_inCodeBlock || isCodeBlockDelimiter) {
-      for (const part of wrapLine(_assistantLineBuf, termW)) {
-        console.log(`  ${pc.gray(part)}`);
-      }
+  // Flush remaining buffer
+  if (_buf) {
+    const line = _buf.trimEnd();
+    if (_inCode) {
+      _codeLines.push(line);
     } else {
-      const formatted = formatMarkdownLine(_assistantLineBuf);
-      for (const part of wrapAnsiLine(formatted, termW)) {
-        console.log(`  ${part}`);
+      if (line.startsWith('```')) {
+        emitCodeBlock();
+      } else {
+        const formatted = formatMarkdownLine(line);
+        for (const part of wrapLine(formatted, termW)) {
+          console.log(`  ${part}`);
+        }
       }
     }
   }
-  _assistantLineBuf = '';
-  _inCodeBlock = false;
+  emitCodeBlock();
+  _inCode = false;
+  _codeLang = '';
+  _buf = '';
 
-  const modelStr = modelName ? `${modelName}  ·  ` : '';
-  const meta = toolCount !== undefined
-    ? `${modelStr}${toolCount} tool(s)  ·  ~${Math.round(tokens / 4)}t out  ·  ${elapsedMs}ms`
-    : `${modelStr}~${Math.round(tokens / 4)}t out  ·  ${elapsedMs}ms`;
-  console.log(`  ${pc.dim(meta)}\n`);
+  // Compact metadata line — single dim line, no wrapping
+  const parts: string[] = [];
+  if (modelName) parts.push(pc.dim(modelName));
+  if (toolCount !== undefined) parts.push(pc.dim(`${toolCount} tool(s)`));
+  const tokenStr = tokens >= 4000 ? `${(tokens / 4 / 1000).toFixed(1)}k out` : `${Math.round(tokens / 4)} out`;
+  parts.push(pc.dim(tokenStr));
+  const elapsed = elapsedMs >= 1000 ? `${(elapsedMs / 1000).toFixed(1)}s` : `${elapsedMs}ms`;
+  parts.push(pc.dim(elapsed));
+  console.log(`  ${parts.join(' · ')}\n`);
 }
+
+// ── Inline markdown ────────────────────────────────────────────
+
+export function formatMarkdownLine(line: string): string {
+  // Headings
+  if (line.startsWith('### ')) return pc.bold(pc.cyan(line.slice(4)));
+  if (line.startsWith('## ')) return pc.bold(pc.cyan(line.slice(3)));
+  if (line.startsWith('# ')) return pc.bold(pc.cyan(line.slice(2)));
+
+  // Blockquotes
+  if (line.startsWith('> ')) return `${pc.gray('│')} ${pc.italic(line.slice(2))}`;
+
+  let indent = '';
+  let body = line;
+  const list = line.match(/^(\s*)([-*•])\s+(.*)/);
+  if (list) {
+    indent = list[1];
+    body = list[3];
+  }
+
+  // Horizontal rules
+  if (/^[-*_]{3,}$/.test(body.trim())) return pc.dim('─'.repeat(termW));
+
+  body = body
+    .replace(/`([^`]+)`/g, (_, p) => pc.yellow(p))
+    .replace(/\*\*([^*]+)\*\*/g, (_, p) => pc.bold(p))
+    .replace(/\*([^*]+)\*/g, (_, p) => pc.italic(p))
+    .replace(/_([^_]+)_/g, (_, p) => pc.italic(p));
+
+  return indent + (list ? `${pc.dim('•')} ${body}` : body);
+}
+
+// ── Separator ──────────────────────────────────────────────────
 
 export function turnSeparator(): void {
   const ts = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
-  console.log(`  ${pc.dim('─'.repeat(58))} ${pc.dim(ts)}`);
+  console.log(`  ${pc.dim('─'.repeat(50))} ${pc.dim(ts)}`);
 }
+
+// ── Context warning ────────────────────────────────────────────
+
+export function printContextWarning(pct: number): void {
+  console.log(`  ${pc.dim('Context')} ${pc.yellow(pct.toString().padStart(3))}% ${pc.dim('— summarizing older turns')}`);
+}
+
+export function printContextResult(summarized: number, savedKt: number): void {
+  console.log(`  ${pc.green('✔')} ${pc.dim(`Summarized ${summarized} older turns, saved ~${savedKt}kt`)}`);
+}
+
+export function printContextPrune(pruned: number, truncated: number, savedKt: number): void {
+  const parts: string[] = [];
+  if (pruned > 0) parts.push(`removed ${pruned} cycles`);
+  if (truncated > 0) parts.push(`truncated ${truncated} tool outputs`);
+  parts.push(`saved ~${savedKt}kt`);
+  console.log(`  ${pc.dim('┃')} ${pc.dim(`Hard pruning: ${parts.join(', ')}`)}`);
+}
+
+// ── Tool execution ─────────────────────────────────────────────
+
+export function printToolStart(count: number, names: string[], spinnerDim: (s: string) => string): string {
+  const label = count === 1 ? names[0] : `${names.join(', ')}`;
+  const msg = `  ${pc.dim('▸')} ${pc.dim(label)}`;
+  return msg;
+}
+
+export function printToolResult(name: string, success: boolean, error?: string): void {
+  if (success) {
+    console.log(`  ${pc.green('✔')} ${pc.dim(name)}`);
+  } else {
+    console.log(`  ${pc.red('✗')} ${pc.dim(name)}${error ? `  ${pc.red(error)}` : ''}`);
+  }
+}
+
+export function printToolContentPreview(content: string): void {
+  if (!content) return;
+  const lines = content.split('\n').filter(l => l.trim());
+  const preview = lines.slice(0, 1).map(l => l.length > 100 ? l.slice(0, 100) + '…' : l).join('\n');
+  if (preview) console.log(`  ${pc.dim('  ')}${pc.gray(preview)}`);
+}
+
+// ── Turn gate prompt ───────────────────────────────────────────
+
+export function turnGatePrompt(): string {
+  return `\n  ${pc.dim('?')} Next turn? ${pc.dim('[y/n/e]')} `;
+}
+
+// ── Parsed tool calls ──────────────────────────────────────────
 
 export function parseTextToolCalls(text: string): ToolCall[] {
   const toolCalls: ToolCall[] = [];

@@ -4,6 +4,10 @@
 ### Features
 
 * display documentation repository link in help output and startup banner ([e904f55](https://github.com/bgill55/daedalus/commit/e904f55f6d0ffddb61fa81c5090da25da66a3e1f))
+* **context:** LLM-based conversation summarization before hard pruning
+* **startup:** fire-and-forget health checks and MCP connections for instant REPL prompt
+* **patching:** chunk-based hash pre-filter for faster Levenshtein in findClosestBlock
+* **ui:** compact aligned CLI output with subtle metadata and consistent indentation
 
 # [1.15.0](https://github.com/bgill55/daedalus/compare/v1.14.1...v1.15.0) (2026-06-21)
 

@@ -186,7 +186,7 @@ describe('Single Agent Loop', () => {
 
     const result = await callModelWithTools('read foo.ts');
 
-    expect(askLine).toHaveBeenCalledWith(expect.stringContaining('Proceed to next agent turn?'));
+    expect(askLine).toHaveBeenCalledWith(expect.stringContaining('Next turn?'));
     expect(chatStreamMock).toHaveBeenCalledTimes(1);
     expect(result.content).toBe('');
   });

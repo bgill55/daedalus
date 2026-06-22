@@ -37,7 +37,7 @@ This guide describes all configuration options available in Daedalus. You can vi
 ## Context Settings
 
 *   **`context.maxTokens`**: Maximum context window limit allowed for model prompts (default: `128000`).
-*   **`context.summarizeAt`**: Percentage threshold of context window consumption at which to summarize history (default: `0.8`).
+*   **`context.summarizeAt`**: Percentage threshold of context window consumption at which to summarize history (default: `0.8`). When exceeded, Daedalus first attempts an LLM-based summarization of older turns into a compressed system message, preserving key decisions and files changed. If still over budget after summarization, hard pruning removes the oldest cycles and truncates oversized tool outputs.
 *   **`context.includeGitDiff`**: Include/exclude the current active git diff in model context prompts (default: `true`).
 *   **`context.includeIndex`**: Include/exclude codebase search index context in prompts (default: `true`).
 

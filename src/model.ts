@@ -4,7 +4,7 @@ import { executeToolCalls } from './tools/executor.js';
 import { mcpRegistry } from './tools/mcp/registry.js';
 import { DaedalusSpinner } from './tools/daedalus-spinner.js';
 import { calculateSessionTokens, pruneMessages } from './session/tokens.js';
-import { parseTextToolCalls, openAssistantBlock, writeAssistantChunk, closeAssistantBlock } from './formatting.js';
+import { parseTextToolCalls, openAssistantBlock, writeAssistantChunk, closeAssistantBlock, printContextWarning, printContextResult, printContextPrune, printToolStart, printToolResult, printToolContentPreview, turnGatePrompt } from './formatting.js';
 import type { ToolContext, ToolCall, ChatMessage } from './types.js';
 import type { LocalRouter, ChatResponse } from './router/index.js';
 
@@ -96,11 +96,40 @@ export function createModelFunctions(deps: ModelDeps) {
     const fileCtx = buildFileContext();
     const tokens = calculateSessionTokens(messages, fileCtx);
     if (tokens.total > threshold) {
-      console.log(pc.yellow(`\n  ${pc.bold('[WARN]')} Context budget threshold exceeded (${Math.round(summarizeAt * 100)}%). Auto-pruning older turns...`));
+      printContextWarning(Math.round(summarizeAt * 100));
       const target = Math.floor(maxT * 0.6);
-      const pruneResult = pruneMessages(messages, fileCtx, target);
-      if (pruneResult.prunedTurns > 0 || pruneResult.truncatedTools > 0) {
-        console.log(`  ${pc.green('✔')} Pruned ${pruneResult.prunedTurns} older cycles and truncated ${pruneResult.truncatedTools} tool outputs (saved ~${Math.round(pruneResult.savedTokens / 1000)}kt).`);
+
+      // Step 1: Try LLM-based summarization before hard pruning
+      const { summarizeMessages } = await import('./session/summarize.js');
+      const summarizeFn = async (sysPrompt: string, userContent: string): Promise<string> => {
+        try {
+          const resp = await router.chat.completions.create({
+            model: 'auto',
+            messages: [
+              { role: 'system', content: sysPrompt },
+              { role: 'user', content: userContent },
+            ],
+            temperature: 0.3,
+            max_tokens: 600,
+          });
+          return resp.choices[0]?.message?.content || '';
+        } catch {
+          return '';
+        }
+      };
+
+      const summaryResult = await summarizeMessages(messages, target, summarizeFn);
+      if (summaryResult.summarizedTurns > 0) {
+        printContextResult(summaryResult.summarizedTurns, Math.round(summaryResult.savedTokens / 1000));
+      }
+
+      // Step 2: If still over budget, hard prune the rest
+      const tokensAfterSummary = calculateSessionTokens(messages, fileCtx);
+      if (tokensAfterSummary.total > target) {
+        const pruneResult = pruneMessages(messages, fileCtx, target);
+        if (pruneResult.prunedTurns > 0 || pruneResult.truncatedTools > 0) {
+          printContextPrune(pruneResult.prunedTurns, pruneResult.truncatedTools, Math.round(pruneResult.savedTokens / 1000));
+        }
       }
     }
 
@@ -254,33 +283,18 @@ export function createModelFunctions(deps: ModelDeps) {
 
       const approvedCalls = toolCallArray.filter((_, i) => approvedCallIndices.has(i));
 
-      console.log(`\n  ${pc.dim('[TOOL]')} ${pc.dim(`Executing ${approvedCalls.length} tool call(s)...`)}`);
-      
       const toolNames = approvedCalls.map(c => c.function.name);
-      const spinnerLabel = approvedCalls.length === 1
-        ? `Executing ${toolNames[0]}`
-        : `Executing ${approvedCalls.length} tool calls (${toolNames.join(', ')})`;
-
-      const toolSpinner = new DaedalusSpinner({
-        text: spinnerLabel,
-        color: (s) => pc.dim(s)
-      });
-      toolSpinner.start();
-
-      toolContext.pauseSpinner = () => {
-        toolSpinner.stop();
-      };
-      toolContext.resumeSpinner = () => {
-        toolSpinner.start();
-      };
+      printToolStart(approvedCalls.length, toolNames, (s) => pc.dim(s));
 
       let results;
       try {
         results = await executeToolCalls(approvedCalls, toolContext);
-      } finally {
-        toolSpinner.stop();
+      } catch (err: any) {
         toolContext.pauseSpinner = () => {};
         toolContext.resumeSpinner = () => {};
+        results = approvedCalls.map(tc => ({
+          toolCallId: tc.id, name: tc.function.name, success: false, content: '', error: err.message,
+        }));
       }
 
       for (const result of results) {
@@ -290,22 +304,9 @@ export function createModelFunctions(deps: ModelDeps) {
           tool_call_id: result.toolCallId,
         } as ChatMessage);
 
-        const status = result.success ? pc.green('✔') : pc.red('✗');
-        console.log(`  ${status} ${result.name}`);
-        if (!result.success && result.error) {
-          console.log(pc.red(`     Error: ${result.error}`));
-        }
+        printToolResult(result.name, result.success, result.error);
         if (result.success && result.content) {
-          const contentStr = result.content;
-          const lines = contentStr.split('\n');
-          const previewLines = lines.slice(0, 3);
-          for (const line of previewLines) {
-            const truncated = line.length > 120 ? line.slice(0, 120) + '…' : line;
-            if (truncated.trim()) console.log(`  ${pc.dim('┃')} ${pc.gray(truncated)}`);
-          }
-          if (lines.length > 3) {
-            console.log(`  ${pc.dim('┃')} ${pc.dim(`… ${lines.length - 3} more line${lines.length - 3 > 1 ? 's' : ''}`)}`);
-          }
+          printToolContentPreview(result.content);
         }
         if (result.success && result.name === 'screenshot_page') {
           try {
@@ -335,7 +336,7 @@ export function createModelFunctions(deps: ModelDeps) {
       // Single-agent turn checkpoint gate
       if (turn < MAX_TOOL_TURNS - 1 && process.env.DAEDALUS_AUTO_APPROVE !== 'true') {
         const ask = toolContext.askLine || askLine;
-        const answer = await ask(`\n  ${pc.yellow('?')} Proceed to next agent turn? [y]es / [n]o / [e]dit feedback: `);
+        const answer = await ask(turnGatePrompt());
         const norm = answer.trim().toLowerCase();
 
         if (norm === 'n' || norm === 'no') {

@@ -302,25 +302,31 @@ async function main() {
   const enabledCount = config.router.chain.filter(m => m.enabled).length;
   printConfigInfo(enabledCount, config.router.strategy, configDir + '/config.json');
   
-  try {
-    await router.startHealthChecks();
-    console.log(pc.green('\n[OK] Router started. Health checks running every 30s.'));
-  } catch (err: any) {
-    console.error(pc.yellow(`\n[WARN] Router health checks failed: ${err.message}`));
-  }
+  // Start health checks and MCP in background — REPL starts immediately
+  const postStartPromises: Promise<void>[] = [];
 
-  // Initialize MCP registry
-  try {
-    await mcpRegistry.connectAll();
-    const servers = mcpRegistry.getConnectedServers();
-    if (servers.length > 0) {
-      const mcpToolCount = mcpRegistry.getToolDefinitions().length;
-      console.log(pc.green(`\n[OK] MCP connected: ${servers.join(', ')}`));
-      console.log(pc.dim(`  ${mcpToolCount} MCP tool(s) registered — I'll ask before using them on your behalf.`));
+  postStartPromises.push((async () => {
+    try {
+      await router.startHealthChecks();
+      console.log(pc.green('\n[OK] Router started. Health checks running every 30s.'));
+    } catch (err: any) {
+      console.error(pc.yellow(`\n[WARN] Router health checks failed: ${err.message}`));
     }
-  } catch (err: any) {
-    console.error(pc.yellow(`\n[WARN] MCP initialization failed: ${err.message}`));
-  }
+  })());
+
+  postStartPromises.push((async () => {
+    try {
+      await mcpRegistry.connectAll();
+      const servers = mcpRegistry.getConnectedServers();
+      if (servers.length > 0) {
+        const mcpToolCount = mcpRegistry.getToolDefinitions().length;
+        console.log(pc.green(`\n[OK] MCP connected: ${servers.join(', ')}`));
+        console.log(pc.dim(`  ${mcpToolCount} MCP tool(s) registered — I'll ask before using them on your behalf.`));
+      }
+    } catch (err: any) {
+      console.error(pc.yellow(`\n[WARN] MCP initialization failed: ${err.message}`));
+    }
+  })());
 
   // Check for updates — non-blocking
   if (config.updateCheck !== false) {

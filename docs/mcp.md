@@ -46,6 +46,6 @@ For each server entry, the configuration schema supports:
 
 ## Tool Capabilities & Routing
 
-*   **Registration**: On startup, Daedalus connects to all enabled MCP servers, discovers their tools, and registers them as native agent tools.
+*   **Registration**: On startup, Daedalus connects to all enabled MCP servers in parallel, discovers their tools, and registers them as native agent tools. Connections are fire-and-forget — the REPL prompt appears immediately without waiting for MCP initialization to complete.
 *   **Trust Guardrail**: Registered MCP tools are subject to the same user consent gate as built-in tools. The CLI will output a permission request and require user approval before executing any MCP tool call on your behalf.
 *   **Capability Filtering**: If a sub-agent requires MCP tools, the router automatically filters and delegates tasks to model endpoints configured with `"supportsTools": true`.

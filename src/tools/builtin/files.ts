@@ -52,6 +52,63 @@ function findClosestBlock(content: string, target: string): { snippet: string; l
   const normalTarget = normalizeWhitespace(target);
   const threshold = Math.ceil(normalTarget.length * 0.30);
 
+  // Fast path: for files under 100 lines, scan everything
+  if (contentLines.length <= 100) {
+    return findClosestBlockScan(contentLines, windowSize, searchLimit, normalTarget, threshold);
+  }
+
+  // Chunk-based pre-filter: hash each chunk and compare to target hash
+  const targetHash = simpleHash(normalTarget);
+  const chunkSize = Math.max(windowSize, 5);
+  const candidates: number[] = [];
+
+  for (let i = 0; i <= searchLimit - chunkSize; i += Math.max(1, Math.floor(chunkSize / 2))) {
+    const chunk = contentLines.slice(i, i + chunkSize).join('\n');
+    const chunkNorm = normalizeWhitespace(chunk);
+    if (simpleHash(chunkNorm) === targetHash) {
+      candidates.push(i);
+    }
+  }
+
+  // Also check exact overlap around each candidate
+  const refinedCandidates = new Set<number>();
+  for (const start of candidates) {
+    for (let di = -2; di <= 2; di++) {
+      const idx = start + di;
+      if (idx >= 0 && idx <= searchLimit - windowSize) refinedCandidates.add(idx);
+    }
+  }
+
+  // Run Levenshtein on refined candidates only, plus fall back to full scan if none found
+  let bestDist = Infinity;
+  let bestLineNo = -1;
+  let bestSnippet = '';
+
+  const scanSet = refinedCandidates.size > 0 ? refinedCandidates : new Set(Array.from({ length: searchLimit - windowSize + 1 }, (_, i) => i));
+
+  for (const i of scanSet) {
+    const window = contentLines.slice(i, i + windowSize).join('\n');
+    const dist = levenshtein(normalizeWhitespace(window), normalTarget);
+    if (dist < bestDist) {
+      bestDist = dist;
+      bestLineNo = i + 1;
+      bestSnippet = window;
+    }
+  }
+
+  if (bestDist <= threshold) {
+    return { snippet: bestSnippet, lineNo: bestLineNo };
+  }
+  return null;
+}
+
+function findClosestBlockScan(
+  contentLines: string[],
+  windowSize: number,
+  searchLimit: number,
+  normalTarget: string,
+  threshold: number,
+): { snippet: string; lineNo: number } | null {
   let bestDist = Infinity;
   let bestLineNo = -1;
   let bestSnippet = '';
@@ -70,6 +127,16 @@ function findClosestBlock(content: string, target: string): { snippet: string; l
     return { snippet: bestSnippet, lineNo: bestLineNo };
   }
   return null;
+}
+
+function simpleHash(s: string): number {
+  let hash = 0;
+  for (let i = 0; i < s.length; i++) {
+    const char = s.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash |= 0;
+  }
+  return hash;
 }
 
 interface FuzzyResult {
