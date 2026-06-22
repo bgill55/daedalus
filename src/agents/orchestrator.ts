@@ -486,6 +486,26 @@ export class Orchestrator {
     return { success: false, summary: currentSummary, evidence: 'no artifacts' };
   }
 
+  private hasRealWrites(result: string): boolean {
+    if (/(created|wrote|added|updated)\s+[A-Za-z0-9_\-./]+/.test(result)) return true;
+    return this.extractPendingWrites(result).length > 0;
+  }
+
+  private hasRelevantPatchHistory(task: DelegationTask): boolean {
+    if (!this.toolContext.patchHistory || this.toolContext.patchHistory.length === 0) return false;
+    const goalLower = task.goal.toLowerCase();
+    return this.toolContext.patchHistory.some((entry) => {
+      const p = entry.filePath.toLowerCase();
+      return p.includes(goalLower) || goalLower.includes((p.split('/').pop() || ''));
+    });
+  }
+
+  private verifyArtifactsThoroughly(role: string, goal: string, result: string): boolean {
+    if (!this.requiresRealArtifacts(role, goal)) return true;
+    if (this.hasRealWrites(result)) return true;
+    return !result.toLowerCase().includes('implemented the full');
+  }
+
   private async delegateTask(task: DelegationTask): Promise<void> {
     const role = getAgentRole(task.role);
     console.log(`\n[SPAWN] Delegating to ${role.name}: ${task.goal}`);
@@ -521,7 +541,7 @@ export class Orchestrator {
       evidence = repaired.evidence || '';
     }
 
-    const success = verified && !this.isDeclaredError(result);
+    const success = verified && !this.isDeclaredError(result) && this.verifyArtifactsThoroughly(task.role, task.goal, result) && (this.hasRealWrites(result) || this.hasRelevantPatchHistory(task));
     task.status = success ? 'completed' : 'failed';
     if (!success) {
       task.error = result.split('\n')[0] || 'Unknown failure';
