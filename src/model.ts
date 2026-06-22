@@ -334,7 +334,13 @@ export function createModelFunctions(deps: ModelDeps) {
       }
 
       // Single-agent turn checkpoint gate
-      if (turn < MAX_TOOL_TURNS - 1 && process.env.DAEDALUS_AUTO_APPROVE !== 'true') {
+      let shouldPromptGate = true;
+      if (results.some(r => !r.success)) {
+        shouldPromptGate = false;
+        console.log(pc.cyan('\n  [AUTO] Tool execution failed. Agent will attempt to fix it...'));
+      }
+
+      if (turn < MAX_TOOL_TURNS - 1 && process.env.DAEDALUS_AUTO_APPROVE !== 'true' && shouldPromptGate) {
         const ask = toolContext.askLine || askLine;
         const answer = await ask(turnGatePrompt());
         const norm = answer.trim().toLowerCase();
