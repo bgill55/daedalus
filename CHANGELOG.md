@@ -1,3 +1,10 @@
+# [1.20.0](https://github.com/bgill55/daedalus/compare/v1.19.0...v1.20.0) (2026-06-22)
+
+
+### Features
+
+* **prompts:** restore and sharpen dry humor and wit in system prompts ([f996641](https://github.com/bgill55/daedalus/commit/f996641db1dfac20b1609bc218976be45ad0a255))
+
 # [1.19.0](https://github.com/bgill55/daedalus/compare/v1.18.1...v1.19.0) (2026-06-22)
 
 
