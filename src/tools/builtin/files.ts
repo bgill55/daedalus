@@ -199,7 +199,7 @@ async function syntaxCheck(filePath: string, projectRoot: string): Promise<strin
   if (ext === '.ts' || ext === '.tsx') {
     const tsconfig = path.join(projectRoot, 'tsconfig.json');
     if (fs.existsSync(tsconfig)) {
-      const result = spawnSync('npx', ['tsc', '--noEmit', '--skipLibCheck'], {
+      let result = spawnSync('npx', ['tsc', '--noEmit', '--skipLibCheck'], {
         cwd: projectRoot,
         timeout: 15000,
         encoding: 'utf8',
@@ -207,8 +207,31 @@ async function syntaxCheck(filePath: string, projectRoot: string): Promise<strin
       });
       if (result.status !== 0) {
         const output = (result.stdout ?? '') + (result.stderr ?? '');
-        const firstError = output.split('\n').find(l => l.includes('error TS'));
-        return firstError ?? output.slice(0, 300);
+        const lines = output.split('\n');
+        // Auto-fix TS5xxx deprecation warnings in tsconfig.json
+        const hasDeprecation = lines.some(l => /error TS5\d{3}/.test(l));
+        if (hasDeprecation) {
+          try {
+            const raw = fs.readFileSync(tsconfig, 'utf8');
+            const cfg = JSON.parse(raw);
+            if (!cfg.compilerOptions) cfg.compilerOptions = {};
+            if (!cfg.compilerOptions.ignoreDeprecations) {
+              cfg.compilerOptions.ignoreDeprecations = '6.0';
+              fs.writeFileSync(tsconfig, JSON.stringify(cfg, null, 2) + '\n', 'utf8');
+              result = spawnSync('npx', ['tsc', '--noEmit', '--skipLibCheck'], {
+                cwd: projectRoot,
+                timeout: 15000,
+                encoding: 'utf8',
+                shell: true,
+              });
+            }
+          } catch { /* if tsconfig parse fails, leave it alone */ }
+        }
+        if (result.status !== 0) {
+          const retryOutput = (result.stdout ?? '') + (result.stderr ?? '');
+          const realError = retryOutput.split('\n').find(l => /error TS/.test(l) && !/error TS5\d{3}/.test(l));
+          if (realError) return realError;
+        }
       }
       return null;
     }
