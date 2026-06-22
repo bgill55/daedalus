@@ -1,3 +1,10 @@
+## [1.21.1](https://github.com/bgill55/daedalus/compare/v1.21.0...v1.21.1) (2026-06-22)
+
+
+### Bug Fixes
+
+* **index:** treat direct action requests as execute, not outline ([14c0ea3](https://github.com/bgill55/daedalus/commit/14c0ea3b1e99430719af89c08849ca4418eec8eb))
+
 # [1.21.0](https://github.com/bgill55/daedalus/compare/v1.20.0...v1.21.0) (2026-06-22)
 
 
