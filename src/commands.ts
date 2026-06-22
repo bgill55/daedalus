@@ -1430,13 +1430,13 @@ Once you have finished making changes, I will automatically re-run the command t
   },
   {
     name: '/mcp',
-    description: 'Manage MCP servers: search, install, list, remove, info',
+    description: 'Manage MCP servers: explore, search, install, list, remove, info',
     execute: async (args, ctx) => {
       const parts = args.trim().split(/\s+/);
       const sub = parts[0]?.toLowerCase();
       const rest = parts.slice(1).join(' ').trim();
 
-      const { searchRegistry, fetchServerByName, registryEntryToConfig, addServerToConfig, removeServerFromConfig, listInstalledServers, toggleServer } = await import('./tools/mcp/manager.js');
+      const { searchRegistry, fetchServerByName, fetchAllServers, registryEntryToConfig, addServerToConfig, removeServerFromConfig, listInstalledServers, toggleServer } = await import('./tools/mcp/manager.js');
       const { mcpRegistry } = await import('./tools/mcp/registry.js');
 
       switch (sub) {
@@ -1504,12 +1504,48 @@ Once you have finished making changes, I will automatically re-run the command t
           return;
         }
 
+        case 'explore':
+        case 'ex': {
+          console.log(pc.dim('  Browsing the MCP registry...\n'));
+          try {
+            const all = await fetchAllServers(100);
+            const local = all.filter(s => s.packages && s.packages.length > 0);
+            const remote = all.filter(s => s.remotes && s.remotes.length > 0);
+            console.log(`  ${pc.bold(`Found ${all.length} servers in registry`)}`);
+
+            const showSample = (list: any[], label: string, max = 5) => {
+              if (list.length === 0) return;
+              console.log(`\n  ${pc.underline(label)} (${list.length} available)`);
+              for (const s of list.slice(0, max)) {
+                const pkg = s.packages?.[0]?.identifier || '';
+                const url = s.remotes?.[0]?.url || '';
+                const source = pkg || url;
+                const info = s.description.length > 55 ? s.description.slice(0, 53) + '…' : s.description;
+                const showName = s.name.length > 28 ? s.name.slice(0, 26) + '…' : s.name;
+                console.log(`  ${pc.cyan(showName.padEnd(30))} ${pc.dim(info)}`);
+                console.log(`  ${' '.repeat(30)}  ${pc.gray('→')} ${pc.dim(source)}`);
+              }
+              if (list.length > max) {
+                console.log(`  ${' '.repeat(30)} ${pc.dim(`… and ${list.length - max} more`)}`);
+              }
+            };
+
+            showSample(local, 'Local (stdio — install & run)', 6);
+            showSample(remote, 'Remote (HTTP — cloud API)', 6);
+            console.log(`\n  ${pc.dim('Tip: /mcp search <query> to find specific servers')}`);
+          } catch (err: any) {
+            console.log(pc.red(`  Explore failed: ${err.message}`));
+          }
+          return;
+        }
+
         case 'list':
         case 'ls':
         case 'l': {
           const servers = listInstalledServers();
           if (servers.length === 0) {
-            console.log(pc.yellow('  No MCP servers installed. Use /mcp search to find some.'));
+            console.log(pc.yellow('  No MCP servers installed.'));
+            console.log(pc.dim('  Try /mcp explore to see what\'s available.'));
             return;
           }
           const connected = mcpRegistry.getConnectedServers();
@@ -1622,6 +1658,7 @@ Once you have finished making changes, I will automatically re-run the command t
 
         default:
           console.log(pc.bold('\n  MCP Server Manager'));
+          console.log(`  ${pc.cyan('/mcp explore')}           ${pc.dim('Browse available servers in the registry')}`);
           console.log(`  ${pc.cyan('/mcp search <query>')}    ${pc.dim('Search the official MCP registry')}`);
           console.log(`  ${pc.cyan('/mcp install <name>')}   ${pc.dim('Install a server from the registry')}`);
           console.log(`  ${pc.cyan('/mcp list')}             ${pc.dim('List installed servers')}`);
@@ -1629,6 +1666,14 @@ Once you have finished making changes, I will automatically re-run the command t
           console.log(`  ${pc.cyan('/mcp info <name>')}      ${pc.dim('Show server details')}`);
           console.log(`  ${pc.cyan('/mcp enable <name>')}    ${pc.dim('Enable a disabled server')}`);
           console.log(`  ${pc.cyan('/mcp disable <name>')}   ${pc.dim('Disable a server without removing it')}`);
+          console.log(`\n  ${pc.bold('Zero-config starters (no API keys needed):')}`);
+          console.log(`  ${pc.gray('→')} ${pc.cyan('io.github/modelcontextprotocol/sequential-thinking')}  ${pc.dim('Step-by-step reasoning')}`);
+          console.log(`  ${pc.gray('→')} ${pc.cyan('io.github/modelcontextprotocol/filesystem')}           ${pc.dim('Read/write files in allowed dirs')}`);
+          console.log(`  ${pc.gray('→')} ${pc.cyan('io.github/modelcontextprotocol/memory')}               ${pc.dim('Persistent key-value store')}`);
+          console.log(`  ${pc.gray('→')} ${pc.cyan('io.github/modelcontextprotocol/fetch')}                ${pc.dim('Fetch URLs and extract content')}`);
+          console.log(`  ${pc.gray('→')} ${pc.cyan('io.github/modelcontextprotocol/puppeteer')}            ${pc.dim('Browser automation')}`);
+          console.log(`  ${pc.gray('→')} ${pc.cyan('ai.ankimcp/anki-mcp-server')}                         ${pc.dim('Anki flashcard management')}`);
+          console.log(`  ${pc.dim('  /mcp install <name> to install any of the above')}`);
           console.log();
       }
     }

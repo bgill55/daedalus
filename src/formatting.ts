@@ -39,7 +39,7 @@ export function printUserTurn(userMessage: string): void {
   const boxW = Math.max(20, contentW) + 2;
 
   const boxColor = (s: string) => pc.dim(pc.yellow(s));
-  const sep = `  ${boxColor('╭─')} ${pc.yellow(pc.bold('You'))} ${boxColor('─'.repeat(Math.max(0, boxW - 6)))}${boxColor('╮')}`;
+  const sep = `  ${boxColor('╭─')} ${pc.yellow(pc.bold('You'))} ${boxColor('─'.repeat(Math.max(0, boxW - 5)))}${boxColor('╮')}`;
   console.log(`\n${sep}`);
   for (const part of wrapped) {
     const pad = ' '.repeat(Math.max(0, boxW - stripAnsi(part).length));
