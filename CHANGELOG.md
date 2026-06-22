@@ -1,3 +1,10 @@
+## [1.21.2](https://github.com/bgill55/daedalus/compare/v1.21.1...v1.21.2) (2026-06-22)
+
+
+### Bug Fixes
+
+* **patch:** only flag TS errors in the patched file, not the whole project ([e73fac3](https://github.com/bgill55/daedalus/commit/e73fac3ec425cdbbebbbd4c565c036ae012f912a))
+
 ## [1.21.1](https://github.com/bgill55/daedalus/compare/v1.21.0...v1.21.1) (2026-06-22)
 
 
