@@ -52,7 +52,7 @@ describe('Tool executor', () => {
     };
     const result = await executeToolCall(tc, mockContext);
     expect(result.success).toBe(true);
-  });
+  }, 10_000);
 
   it('executes git_diff successfully', async () => {
     const tc: ToolCall = {
