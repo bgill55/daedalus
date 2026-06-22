@@ -1,3 +1,10 @@
+# [1.18.0](https://github.com/bgill55/daedalus/compare/v1.17.0...v1.18.0) (2026-06-22)
+
+
+### Features
+
+* /mcp command — discover, install, and manage MCP servers from the REPL ([60eb672](https://github.com/bgill55/daedalus/commit/60eb67262bdbd7056e8adc714cbfcb11f5bce563))
+
 # [1.17.0](https://github.com/bgill55/daedalus/compare/v1.16.0...v1.17.0) (2026-06-22)
 
 
