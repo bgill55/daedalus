@@ -573,6 +573,7 @@ export class Orchestrator {
 
     let turns = 0;
     const maxTurns = role.maxTurns ?? 10;
+    const patchFailures = new Map<string, number>();
 
     while (turns < maxTurns) {
       if (this.toolContext.abortSignal.aborted) {
@@ -609,6 +610,29 @@ export class Orchestrator {
           })),
           this.toolContext
         );
+
+        // Track patch failures per file to break retry spirals
+        let hadPatchFailure = false;
+        let patchFailureFile: string | undefined;
+        for (const result of results) {
+          if (/patch.*Syntax error introduced|error TS\d+/.test(result.content || '')) {
+            hadPatchFailure = true;
+            const fileMatch = (result.content || '').match(/src\/([^\s(]+)/);
+            patchFailureFile = fileMatch ? fileMatch[1] : undefined;
+          }
+        }
+
+        if (hadPatchFailure && patchFailureFile) {
+          const prev = patchFailures.get(patchFailureFile) || 0;
+          patchFailures.set(patchFailureFile, prev + 1);
+          if (prev + 1 >= 3) {
+            return `Agent aborted: too many patch failures on ${patchFailureFile}.\nLast error from patch tool: ${results.find(r => /patch.*Syntax error/.test(r.content || ''))?.content || 'unknown'}\nFix the TypeScript error in that file before retrying.`;
+          }
+        } else if (!hadPatchFailure) {
+          for (const [file] of patchFailures) {
+            patchFailures.set(file, 0);
+          }
+        }
 
         for (const result of results) {
           messages.push({
