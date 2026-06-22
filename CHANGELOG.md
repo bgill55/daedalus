@@ -1,3 +1,10 @@
+## [1.18.1](https://github.com/bgill55/daedalus/compare/v1.18.0...v1.18.1) (2026-06-22)
+
+
+### Bug Fixes
+
+* parse raw JSON first during fact extraction to avoid cleaning corruption ([5c94fde](https://github.com/bgill55/daedalus/commit/5c94fdef70bf7a18d26feb14332cdbaab508e86c))
+
 # [1.18.0](https://github.com/bgill55/daedalus/compare/v1.17.0...v1.18.0) (2026-06-22)
 
 
