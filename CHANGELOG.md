@@ -1,3 +1,10 @@
+# [1.17.0](https://github.com/bgill55/daedalus/compare/v1.16.0...v1.17.0) (2026-06-22)
+
+
+### Features
+
+* context summarization, faster startup, faster patching, cleaner UI ([62df67a](https://github.com/bgill55/daedalus/commit/62df67a56c4f520ece2fd1488ffbb8ec192c77a2))
+
 # [1.16.0](https://github.com/bgill55/daedalus/compare/v1.15.0...v1.16.0) (2026-06-21)
 
 
