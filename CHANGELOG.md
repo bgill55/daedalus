@@ -1,3 +1,10 @@
+# [1.19.0](https://github.com/bgill55/daedalus/compare/v1.18.1...v1.19.0) (2026-06-22)
+
+
+### Features
+
+* bypass proceed gate on tool execution failure to enable autonomous error recovery ([e23d3e9](https://github.com/bgill55/daedalus/commit/e23d3e9d4d5d375e917344eb069803d3e8b917cc))
+
 ## [1.18.1](https://github.com/bgill55/daedalus/compare/v1.18.0...v1.18.1) (2026-06-22)
 
 
