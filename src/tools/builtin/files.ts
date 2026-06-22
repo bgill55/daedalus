@@ -236,7 +236,10 @@ async function syntaxCheck(filePath: string, projectRoot: string): Promise<strin
       }
       if (result.status !== 0) {
         const retryOutput = (result.stdout ?? '') + (result.stderr ?? '');
-        const realError = retryOutput.split('\n').find(l => /error TS/.test(l) && !/error TS5\d{3}/.test(l));
+        const targetBase = path.basename(filePath);
+        const realError = retryOutput
+          .split('\n')
+          .find(l => /error TS/.test(l) && !/error TS5\d{3}/.test(l) && l.includes(targetBase));
         if (realError) return realError;
       }
     }
