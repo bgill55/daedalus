@@ -121,8 +121,13 @@ export async function extractAndSave(
     const jsonMatch = text.match(/\[[\s\S]*?\]/);
     if (!jsonMatch) return;
 
-    const cleanedJson = cleanJson(jsonMatch[0]);
-    const parsed: { key: string; value: string }[] = JSON.parse(cleanedJson);
+    let parsed: any;
+    try {
+      parsed = JSON.parse(jsonMatch[0]);
+    } catch {
+      const cleanedJson = cleanJson(jsonMatch[0]);
+      parsed = JSON.parse(cleanedJson);
+    }
     if (!Array.isArray(parsed)) return;
 
     const existingKeyValues = new Set(existingFacts.map(f => `${f.key}::${f.value}`));
