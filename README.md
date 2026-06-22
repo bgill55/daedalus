@@ -124,7 +124,7 @@ AI assistance without:
 | `/config [set <key> = <val>]` | Show current configuration |
 | `/doctor` | Diagnose connection and discovery |
 | `/help` / `?` / `help` | Show available commands |
-| `/mcp` | Manage MCP servers: search, install, list, remove, info |
+| `/mcp` | Manage MCP servers: explore, search, install, list, remove, info |
 | `exit` / `quit` | Save session and exit |
 <!-- END_COMMANDS_TABLE -->
 
