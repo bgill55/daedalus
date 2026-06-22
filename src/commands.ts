@@ -1429,6 +1429,211 @@ Once you have finished making changes, I will automatically re-run the command t
     }
   },
   {
+    name: '/mcp',
+    description: 'Manage MCP servers: search, install, list, remove, info',
+    execute: async (args, ctx) => {
+      const parts = args.trim().split(/\s+/);
+      const sub = parts[0]?.toLowerCase();
+      const rest = parts.slice(1).join(' ').trim();
+
+      const { searchRegistry, fetchServerByName, registryEntryToConfig, addServerToConfig, removeServerFromConfig, listInstalledServers, toggleServer } = await import('./tools/mcp/manager.js');
+      const { mcpRegistry } = await import('./tools/mcp/registry.js');
+
+      switch (sub) {
+        case 'search':
+        case 's': {
+          if (!rest) {
+            console.log(pc.yellow('  Usage: /mcp search <query>'));
+            return;
+          }
+          console.log(pc.dim(`  Searching registry for "${rest}"...`));
+          try {
+            const results = await searchRegistry(rest, 15);
+            if (results.length === 0) {
+              console.log(pc.yellow('  No servers found. Try a broader search.'));
+              return;
+            }
+            console.log(`\n  ${pc.bold(`Found ${results.length} server(s):`)}`);
+            for (const s of results) {
+              const label = s.title || s.name;
+              const desc = s.description.length > 80 ? s.description.slice(0, 80) + '…' : s.description;
+              const remote = s.remotes?.[0]?.url || '';
+              const pkg = s.packages?.[0]?.identifier || '';
+              const source = remote || pkg || '(no install info)';
+              const installType = s.packages ? 'stdio' : s.remotes ? 'http' : '?';
+              console.log(`  ${pc.cyan(label)}`);
+              console.log(`    ${pc.dim(desc)}`);
+              console.log(`    ${pc.gray('Install:')} ${pc.dim(source)} (${installType})`);
+              console.log();
+            }
+          } catch (err: any) {
+            console.log(pc.red(`  Search failed: ${err.message}`));
+          }
+          return;
+        }
+
+        case 'install':
+        case 'i': {
+          if (!rest) {
+            console.log(pc.yellow('  Usage: /mcp install <server-name>'));
+            console.log(pc.dim('  First search for a server with: /mcp search <query>'));
+            return;
+          }
+          console.log(pc.dim(`  Fetching "${rest}" from registry...`));
+          try {
+            const entry = await fetchServerByName(rest);
+            if (!entry) {
+              console.log(pc.yellow(`  Server "${rest}" not found in registry. Try /mcp search first.`));
+              return;
+            }
+            const config = registryEntryToConfig(entry);
+            if (!config) {
+              console.log(pc.yellow(`  Cannot install "${rest}": no stdio package or remote URL found.`));
+              return;
+            }
+            const result = addServerToConfig(config);
+            if (result.success) {
+              console.log(pc.green(`  ${result.message}`));
+              console.log(pc.dim('  Restart Daedalus or reconnect to load the new server.'));
+            } else {
+              console.log(pc.yellow(`  ${result.message}`));
+            }
+          } catch (err: any) {
+            console.log(pc.red(`  Install failed: ${err.message}`));
+          }
+          return;
+        }
+
+        case 'list':
+        case 'ls':
+        case 'l': {
+          const servers = listInstalledServers();
+          if (servers.length === 0) {
+            console.log(pc.yellow('  No MCP servers installed. Use /mcp search to find some.'));
+            return;
+          }
+          const connected = mcpRegistry.getConnectedServers();
+          console.log(`\n  ${pc.bold('Installed MCP Servers:')}`);
+          for (const s of servers) {
+            const status = connected.includes(s.name) ? pc.green('●') : s.enabled ? pc.yellow('○') : pc.red('○');
+            const state = connected.includes(s.name) ? pc.green('connected')
+              : s.enabled ? pc.yellow('pending')
+              : pc.red('disabled');
+            console.log(`  ${status} ${pc.cyan(s.name.padEnd(20))} ${pc.dim(s.transport.padEnd(6))} ${state}`);
+          }
+          console.log();
+          return;
+        }
+
+        case 'remove':
+        case 'rm':
+        case 'r': {
+          if (!rest) {
+            console.log(pc.yellow('  Usage: /mcp remove <server-name>'));
+            return;
+          }
+          const result = removeServerFromConfig(rest);
+          if (result.success) {
+            console.log(pc.green(`  ${result.message}`));
+          } else {
+            console.log(pc.yellow(`  ${result.message}`));
+          }
+          return;
+        }
+
+        case 'info': {
+          if (!rest) {
+            console.log(pc.yellow('  Usage: /mcp info <server-name>'));
+            return;
+          }
+          try {
+            console.log(pc.dim(`  Fetching "${rest}" from registry...`));
+            const entry = await fetchServerByName(rest);
+            if (!entry) {
+              console.log(pc.yellow(`  Server "${rest}" not found.`));
+              return;
+            }
+            console.log(`\n  ${pc.bold(entry.title || entry.name)}`);
+            console.log(`  ${pc.dim(entry.description)}`);
+            console.log(`  ${pc.gray('Name:')}    ${entry.name}`);
+            console.log(`  ${pc.gray('Version:')} ${entry.version}`);
+            if (entry.websiteUrl) console.log(`  ${pc.gray('Website:')} ${entry.websiteUrl}`);
+            if (entry.repository?.url) console.log(`  ${pc.gray('Source:')}  ${entry.repository.url}`);
+
+            if (entry.remotes && entry.remotes.length > 0) {
+              console.log(`\n  ${pc.bold('Remote endpoints:')}`);
+              for (const r of entry.remotes) {
+                console.log(`    ${pc.cyan(r.type)} ${pc.dim(r.url)}`);
+                if (r.headers) {
+                  for (const h of r.headers) {
+                    const req = h.isRequired ? pc.yellow(' (required)') : '';
+                    const secret = h.isSecret ? pc.dim(' [secret]') : '';
+                    console.log(`      ${pc.gray('Header:')} ${h.name}${req}${secret}`);
+                  }
+                }
+              }
+            }
+
+            if (entry.packages && entry.packages.length > 0) {
+              console.log(`\n  ${pc.bold('Packages:')}`);
+              for (const p of entry.packages) {
+                const [cmd, ...args] = p.registryType === 'npm' ? ['npx', '-y', p.identifier]
+                  : p.registryType === 'pypi' ? ['uvx', p.identifier]
+                  : [p.identifier];
+                console.log(`    ${pc.cyan(p.registryType)} ${pc.dim(`${cmd} ${args.join(' ')}`)}`);
+                if (p.environmentVariables) {
+                  for (const env of p.environmentVariables) {
+                    const req = env.isRequired ? pc.yellow(' (required)') : '';
+                    const secret = env.isSecret ? pc.dim(' [secret]') : '';
+                    console.log(`      ${pc.gray('Env:')} ${env.name}${req}${secret}`);
+                    if (env.description) console.log(`      ${pc.dim(env.description)}`);
+                  }
+                }
+              }
+            }
+            console.log();
+          } catch (err: any) {
+            console.log(pc.red(`  Info fetch failed: ${err.message}`));
+          }
+          return;
+        }
+
+        case 'enable':
+        case 'e': {
+          if (!rest) {
+            console.log(pc.yellow('  Usage: /mcp enable <server-name>'));
+            return;
+          }
+          const enableResult = toggleServer(rest, true);
+          console.log(enableResult.success ? pc.green(`  ${enableResult.message}`) : pc.yellow(`  ${enableResult.message}`));
+          return;
+        }
+
+        case 'disable':
+        case 'd': {
+          if (!rest) {
+            console.log(pc.yellow('  Usage: /mcp disable <server-name>'));
+            return;
+          }
+          const disableResult = toggleServer(rest, false);
+          console.log(disableResult.success ? pc.green(`  ${disableResult.message}`) : pc.yellow(`  ${disableResult.message}`));
+          return;
+        }
+
+        default:
+          console.log(pc.bold('\n  MCP Server Manager'));
+          console.log(`  ${pc.cyan('/mcp search <query>')}    ${pc.dim('Search the official MCP registry')}`);
+          console.log(`  ${pc.cyan('/mcp install <name>')}   ${pc.dim('Install a server from the registry')}`);
+          console.log(`  ${pc.cyan('/mcp list')}             ${pc.dim('List installed servers')}`);
+          console.log(`  ${pc.cyan('/mcp remove <name>')}    ${pc.dim('Remove an installed server')}`);
+          console.log(`  ${pc.cyan('/mcp info <name>')}      ${pc.dim('Show server details')}`);
+          console.log(`  ${pc.cyan('/mcp enable <name>')}    ${pc.dim('Enable a disabled server')}`);
+          console.log(`  ${pc.cyan('/mcp disable <name>')}   ${pc.dim('Disable a server without removing it')}`);
+          console.log();
+      }
+    }
+  },
+  {
     name: 'exit',
     aliases: ['quit'],
     description: 'Save session and exit',
