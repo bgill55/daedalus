@@ -1,3 +1,10 @@
+# [1.21.0](https://github.com/bgill55/daedalus/compare/v1.20.0...v1.21.0) (2026-06-22)
+
+
+### Features
+
+* **orchestrator:** harden artifact verification against fake agent reports; tighten success checks and update system prompt persona ([aa2fc6d](https://github.com/bgill55/daedalus/commit/aa2fc6d646a6c3d9e78a39c2e6d064b0720d628e))
+
 # [1.20.0](https://github.com/bgill55/daedalus/compare/v1.19.0...v1.20.0) (2026-06-22)
 
 
