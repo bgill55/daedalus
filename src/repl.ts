@@ -145,6 +145,7 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
       if (!trimmedInput) continue;
 
       resetTurnAborted();
+      toolContext.autoApproveTools = false;
 
       // Construct CommandContext
       const cmdContext: CommandContext = {

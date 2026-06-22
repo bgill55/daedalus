@@ -50,6 +50,7 @@ export interface ToolContext {
   agentRole: string;
   abortSignal: AbortSignal;
   autoApplyEdits?: 'prompt' | 'all' | 'skip';
+  autoApproveTools?: boolean;
   pauseSpinner?: () => void;
   resumeSpinner?: () => void;
   patchHistory?: PatchEntry[];    // for /undo support

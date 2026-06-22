@@ -263,22 +263,30 @@ export function createModelFunctions(deps: ModelDeps) {
       const approvedCallIndices = new Set<number>();
       const rejectedCalls: ToolCall[] = [];
 
-      for (let i = 0; i < toolCallArray.length; i++) {
-        const tc = toolCallArray[i];
-        if (dangerousTools.includes(tc.function.name) && !turnApproved) {
-          const args = tc.function.arguments;
-          const preview = args.length > 120 ? args.slice(0, 120) + '...' : args;
-          process.stdout.write(`\n  ${pc.yellow('[WARN]')} ${pc.bold(tc.function.name)} ${pc.dim(preview)}\n`);
-          const line = await (toolContext.askLine || askLine)(`  ${pc.dim('Allow? [y]es / [n]o / [a]ll for this turn: ')}`);
-          const char = line.trim().toLowerCase().slice(0, 1);
-          if (char === 'a') turnApproved = true;
-          if (char === 'n') {
-            console.log(`  ${pc.red('[FAIL]')} ${tc.function.name} ${pc.red(' — rejected')}`);
-            rejectedCalls.push(tc);
-            continue;
+      // Skip approval if task-level auto-approve is active
+      if (toolContext.autoApproveTools) {
+        for (let i = 0; i < toolCallArray.length; i++) approvedCallIndices.add(i);
+      } else {
+        for (let i = 0; i < toolCallArray.length; i++) {
+          const tc = toolCallArray[i];
+          if (dangerousTools.includes(tc.function.name) && !turnApproved) {
+            const args = tc.function.arguments;
+            const preview = args.length > 120 ? args.slice(0, 120) + '...' : args;
+            process.stdout.write(`\n  ${pc.yellow('[WARN]')} ${pc.bold(tc.function.name)} ${pc.dim(preview)}\n`);
+            const line = await (toolContext.askLine || askLine)(`  ${pc.dim('Allow? [y]es / [n]o / [a]ll for this task: ')}`);
+            const char = line.trim().toLowerCase().slice(0, 1);
+            if (char === 'a') {
+              turnApproved = true;
+              toolContext.autoApproveTools = true;
+            }
+            if (char === 'n') {
+              console.log(`  ${pc.red('[FAIL]')} ${tc.function.name} ${pc.red(' — rejected')}`);
+              rejectedCalls.push(tc);
+              continue;
+            }
           }
+          approvedCallIndices.add(i);
         }
-        approvedCallIndices.add(i);
       }
 
       const approvedCalls = toolCallArray.filter((_, i) => approvedCallIndices.has(i));

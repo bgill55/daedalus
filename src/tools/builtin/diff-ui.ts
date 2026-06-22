@@ -123,6 +123,25 @@ export async function promptDiffDecision(
   // Show the diff
   const diffOutput = generateUnifiedDiff(options.oldContent, options.newContent, options.filePath);
   process.stdout.write(diffOutput);
+
+  // Use line-based input when available (avoids raw-mode/PTY hangs)
+  const askLine = context?.askLine;
+  if (askLine) {
+    const answer = await askLine(`\n${pc.bold('Apply this masterpiece? [y]es / [n]o / [c]hunks / [a]ll / [s]kip / [d]iff / [e]dit: ')}`);
+    const char = answer.trim().toLowerCase().slice(0, 1);
+    switch (char) {
+      case 'y': return { decision: 'yes' };
+      case 'n': return { decision: 'no' };
+      case 'c': return { decision: 'chunks' };
+      case 'a': return { decision: 'all' };
+      case 's': return { decision: 'skip' };
+      case 'd': return { decision: 'diff' };
+      case 'e': return { decision: 'edit' };
+      default: return { decision: 'no' };
+    }
+  }
+
+  // Fallback: raw keypress mode
   process.stdout.write(pc.bold(`\nApply this masterpiece? [y]es / [n]o / [c]hunks / [a]ll / [s]kip / [d]iff / [e]dit: `));
 
   return new Promise((resolve) => {
