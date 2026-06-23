@@ -253,6 +253,23 @@ export class Orchestrator {
           });
         });
 
+        if (process.env.DAEDALUS_AUTO_APPROVE === 'true') {
+          console.log(pc.cyan(`\n[auto] Retrying task: ${task.goal}`));
+          task.status = 'in_progress';
+          task.error = undefined;
+          this.printTaskList(tasks);
+          this.results.pop();
+          await this.delegateTask(task);
+          this.printTaskList(tasks);
+          if ((task.status as any) !== 'failed') {
+            continue;
+          }
+          console.log(pc.yellow(`\n[auto] Skipping failed task after retry: ${task.goal}`));
+          task.status = 'skipped';
+          this.printTaskList(tasks);
+          continue;
+        }
+
         let resolved = false;
         while (!resolved) {
           const answer = await ask(`\nTask failed. Choose action: [r]etry / [e]dit / [s]kip / [a]bort: `);
@@ -680,8 +697,20 @@ export class Orchestrator {
         continue;
       }
 
-      // No tool calls - agent is done
-      return message.content || 'Agent completed without response';
+      // No tool calls on this turn
+      const responseText = message.content || '';
+
+      // If tools were provided but the model refused to use them, give it a firm nudge
+      if (tools.length > 0 && turns === 0 && /sorry|can'?t|cannot|don'?t have|not (able|capable)|lack(|ing) (the )?(necessary |required )?(tools|capabilities)|unable|apologize/i.test(responseText)) {
+        messages.push({
+          role: 'user',
+          content: 'You have tools available to complete this task. Use read_file, write_file, search_files, terminal, and other tools as needed. Do not apologize or refuse — just use the tools to accomplish the task.',
+        });
+        turns++;
+        continue;
+      }
+
+      return responseText || 'Agent completed without response';
     }
 
     return 'Agent reached max turns';
