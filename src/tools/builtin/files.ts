@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { execSync, spawnSync, spawn } from 'child_process';
 import { ToolContext, ToolResult } from '../../types.js';
-import { runDiffWorkflow } from './diff-ui.js';
+import { runDiffWorkflow, type DiffOptions } from './diff-ui.js';
 
 function normalizeWhitespace(str: string): string {
   return str
