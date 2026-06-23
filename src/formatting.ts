@@ -52,7 +52,6 @@ export function printUserTurn(userMessage: string): void {
 
 let _buf = '';
 let _inCode = false;
-let _codeLang = '';
 let _codeLines: string[] = [];
 
 export function openAssistantBlock(): void {
@@ -86,10 +85,8 @@ export function writeAssistantChunk(chunk: string): void {
       if (_inCode) {
         emitCodeBlock();
         _inCode = false;
-        _codeLang = '';
       } else {
         _inCode = true;
-        _codeLang = line.slice(3).trim();
       }
       continue;
     }
@@ -131,7 +128,6 @@ export function closeAssistantBlock(
   }
   emitCodeBlock();
   _inCode = false;
-  _codeLang = '';
   _buf = '';
 
   // Compact metadata line — single dim line, no wrapping
@@ -203,7 +199,7 @@ export function printContextPrune(pruned: number, truncated: number, savedKt: nu
 
 // ── Tool execution ─────────────────────────────────────────────
 
-export function printToolStart(count: number, names: string[], spinnerDim: (s: string) => string): string {
+export function printToolStart(count: number, names: string[], _spinnerDim: (s: string) => string): string {
   const label = count === 1 ? names[0] : `${names.join(', ')}`;
   const msg = `  ${pc.dim('▸')} ${pc.dim(label)}`;
   return msg;

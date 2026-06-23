@@ -25,7 +25,7 @@ const state: {
 
 export function killAllWatchedProcesses(): void {
   for (const [, wp] of state.watched) {
-    try { wp.proc.kill(); } catch {}
+    try { wp.proc.kill(); } catch { /* ignored */ }
   }
   state.watched.clear();
 }

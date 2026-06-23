@@ -155,7 +155,7 @@ export async function execute(args: { command: string; timeout?: number; workdir
       }
 
       if (sandbox === 'wsl' && process.platform === 'win32') {
-        let wslWorkdir = '';
+        let wslWorkdir: string;
         try {
           wslWorkdir = execSync(`wsl wslpath -u "${workdir}"`, { encoding: 'utf8', stdio: 'pipe' }).trim();
         } catch {

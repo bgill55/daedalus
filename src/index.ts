@@ -9,11 +9,11 @@ import pc from 'picocolors';
 
 import { setRouterClient } from './tools/builtin/delegation.js';
 import { mcpRegistry } from './tools/mcp/registry.js';
-import { LocalRouter, createRouter, RouteResult, RouterConfig } from './router/index.js';
-import { loadConfig, saveConfig, getConfigDirPath } from './config/index.js';
+import { createRouter, RouterConfig } from './router/index.js';
+import { loadConfig, getConfigDirPath } from './config/index.js';
 import { getProjectHash } from './project-hash.js';
-import { ToolContext, ToolCall, ChatMessage } from './types.js';
-import { getSessionTodos, setSessionTodos } from './tools/builtin/todo.js';
+import { ToolContext, ChatMessage } from './types.js';
+import { setSessionTodos } from './tools/builtin/todo.js';
 import { SessionManager } from './session/manager.js';
 import { loadProfile, getProfilePrompt, UserProfile } from './profile.js';
 import { printBanner, printConfigInfo } from './banner.js';
@@ -52,7 +52,7 @@ const projectHash = getProjectHash(process.cwd());
 const sessionManager = new SessionManager();
 sessionManager.init();
 const initialSession = sessionManager.startSession();
-let sessionId = initialSession.sessionId;
+const sessionId = initialSession.sessionId;
 
 // If there are turns from the loaded session, restore them (skip system prompt ones)
 if (initialSession.turns.length > 0) {
@@ -221,7 +221,7 @@ function buildFileContext(): string {
   if (activeFiles.size === 0) return '';
   let ctx = '--- ACTIVE FILES CONTEXT ---\n';
   for (const [absPath, filename] of activeFiles) {
-    let content = '';
+    let content: string;
     if (fs.existsSync(absPath)) {
       content = fs.readFileSync(absPath, 'utf8');
     } else {

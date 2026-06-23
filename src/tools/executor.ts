@@ -2,7 +2,6 @@
 
 import { ToolContext, ToolResult, ToolCall } from '../types.js';
 import { TOOL_IMPLEMENTATIONS } from './definitions.js';
-import { mcpRegistry } from './mcp/registry.js';
 import { executeMCPTool } from './mcp/tool-executor.js';
 
 const implementationCache = new Map<string, any>();

@@ -35,7 +35,6 @@ const baseContext = (): ToolContext => ({
 
 describe('Orchestrator', () => {
   let router: LocalRouter;
-  let chatMock: ReturnType<typeof vi.fn>;
   let toolContext: ToolContext;
   let messages: ChatMessage[];
 
@@ -98,8 +97,6 @@ describe('Orchestrator', () => {
 });
 
 describe('Orchestrator artifact verification', () => {
-  let router: LocalRouter;
-  let chatMock: ReturnType<typeof vi.fn>;
   let toolContext: ToolContext;
   let messages: ChatMessage[];
 
@@ -155,8 +152,6 @@ describe('Orchestrator artifact verification', () => {
 });
 
 describe('Orchestrator delegateTask behavior', () => {
-  let router: LocalRouter;
-  let chatMock: ReturnType<typeof vi.fn>;
   let toolContext: ToolContext;
   let messages: ChatMessage[];
 
@@ -313,7 +308,6 @@ describe('Orchestrator repair attempts', () => {
 });
 
 describe('Orchestrator new workflow optimizations', () => {
-  let router: LocalRouter;
   let toolContext: ToolContext;
   let messages: ChatMessage[];
 

@@ -17,7 +17,7 @@ async function fetchWithTimeout(url: string, timeoutMs: number): Promise<Respons
   }
 }
 
-export async function search(args: { query: string; limit?: number }, context: ToolContext): Promise<ToolResult> {
+export async function search(args: { query: string; limit?: number }, _context: ToolContext): Promise<ToolResult> {
   // Use DuckDuckGo HTML scraping as a simple no-API-key search
   // In production, could use a proper search API
   const query = encodeURIComponent(args.query);
@@ -51,7 +51,7 @@ export async function search(args: { query: string; limit?: number }, context: T
   }
 }
 
-export async function fetchUrl(args: { url: string; timeout?: number }, context: ToolContext): Promise<ToolResult> {
+export async function fetchUrl(args: { url: string; timeout?: number }, _context: ToolContext): Promise<ToolResult> {
   const timeout = (args.timeout ?? 30) * 1000;
 
   try {

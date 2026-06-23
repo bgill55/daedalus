@@ -97,7 +97,7 @@ describe('JSONL import/export', () => {
     expect(turns[0].tokens_input).toBe(50);
 
     freshDb.close();
-    try { fs.unlinkSync(freshDb.name); } catch {}
+    try { fs.unlinkSync(freshDb.name); } catch { /* ignored */ }
   });
 
 });

@@ -34,7 +34,7 @@ if ($img) {
       const scriptPath = path.join(tempDir, `clip-img-${timestamp}-${random}.ps1`);
       fs.writeFileSync(scriptPath, psScript, 'utf8');
       const result = execSync(`powershell -noprofile -ExecutionPolicy Bypass -File "${scriptPath}"`, { timeout: 8000, encoding: 'utf8' }).trim();
-      try { fs.unlinkSync(scriptPath); } catch {}
+      try { fs.unlinkSync(scriptPath); } catch { /* ignored */ }
       if (result === 'ok' && fs.existsSync(outPath)) return outPath;
     } else if (process.platform === 'darwin') {
       execSync(`pngpaste "${outPath}"`, { timeout: 5000 });

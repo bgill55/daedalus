@@ -1,14 +1,12 @@
 // Daedalus First-Run Onboarding Wizard
 // Guides users through initial setup — local or remote LLM configuration
 
-import fs from 'fs';
-import path from 'path';
 import readline from 'readline';
 import pc from 'picocolors';
 import { loadConfig, saveConfig, discoverLocalServers } from '../config/index.js';
 import { DaedalusConfig } from '../config/index.js';
 import { checkModelHealth } from '../router/health.js';
-import type { ModelEntry, ModelHealth } from '../router/types.js';
+import type { ModelEntry } from '../router/types.js';
 
 // ── Utility: prompt for input ──
 
@@ -83,7 +81,7 @@ export async function runOnboarding(force = false): Promise<void> {
 
   // Flag to detect if user made changes
   let configChanged = false;
-  let config = loadConfig();
+  const config = loadConfig();
 
   const rl = readline.createInterface({
     input: process.stdin,
@@ -162,7 +160,6 @@ export async function runOnboarding(force = false): Promise<void> {
 // ── Options menu when no server is found ──
 
 async function showOptionsMenu(rl: readline.Interface, config: DaedalusConfig): Promise<void> {
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     console.log(pc.bold('\n  [CFG] What would you like to do?'));
     console.log();
@@ -232,8 +229,8 @@ async function configureRemoteProvider(rl: readline.Interface, config: DaedalusC
 
   const choice = await question(rl, pc.bold('  Select provider (1-5): '));
   const trimmed = choice.trim();
-  let baseUrl = '';
-  let providerName = '';
+  let baseUrl: string;
+  let providerName: string;
 
   if (presets[trimmed]) {
     baseUrl = presets[trimmed].endpoint;

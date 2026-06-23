@@ -21,7 +21,7 @@ describe('SessionManager', () => {
     manager = null!;
     process.chdir(os.tmpdir());
     for (let i = 0; i < 5; i++) {
-      try { fs.rmSync(tmpDir, { recursive: true, force: true }); break; } catch { }
+      try { fs.rmSync(tmpDir, { recursive: true, force: true }); break; } catch { /* ignored */ }
     }
     vi.unstubAllEnvs();
   });

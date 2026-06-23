@@ -1,8 +1,6 @@
 // MCP Server Manager — discover, install, and manage MCP servers via the official registry
 
 import { loadConfig, saveConfig } from '../../config/index.js';
-import type { DaedalusConfig } from '../../config/index.js';
-import pc from 'picocolors';
 
 const REGISTRY_BASE = 'https://registry.modelcontextprotocol.io';
 const REGISTRY_TIMEOUT = 10_000;

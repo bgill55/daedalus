@@ -8,7 +8,7 @@ function formatError(error: string): ToolResult {
 
 export async function screenshotPage(
   args: { url: string; selector?: string; width?: number; height?: number },
-  context: ToolContext
+  _context: ToolContext
 ): Promise<ToolResult> {
   let browser: any = null;
   try {

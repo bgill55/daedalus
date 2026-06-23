@@ -97,7 +97,7 @@ export class StdioTransport implements MCPTransport {
     });
 
     // List tools
-    const tools = await this.listTools();
+    await this.listTools();
     return;
   }
 
@@ -114,7 +114,7 @@ export class StdioTransport implements MCPTransport {
       try {
         const message = JSON.parse(line);
         this.handleMessage(message);
-      } catch (err) {
+      } catch {
         console.error(`[MCP:${this.config.name}] Failed to parse: ${line}`);
       }
     }

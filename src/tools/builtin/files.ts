@@ -1,25 +1,8 @@
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import { execSync, spawnSync, spawn } from 'child_process';
 import { ToolContext, ToolResult } from '../../types.js';
-import { runDiffWorkflow, DiffOptions } from './diff-ui.js';
-
-function askUser(question: string): Promise<string> {
-  return new Promise((resolve) => {
-    process.stdout.write(question);
-    const onData = (chunk: Buffer) => {
-      const text = chunk.toString('utf8');
-      const line = text.replace(/\r?\n/g, '').trim().toLowerCase();
-      if (line) {
-        process.stdin.off('data', onData);
-        resolve(line);
-      }
-    };
-    process.stdin.on('data', onData);
-    if (process.stdin.isPaused()) process.stdin.resume();
-  });
-}
+import { runDiffWorkflow } from './diff-ui.js';
 
 function normalizeWhitespace(str: string): string {
   return str
@@ -251,7 +234,6 @@ async function syntaxCheck(filePath: string, projectRoot: string, modifiedLines?
       if (result.status !== 0) {
         const retryOutput = (result.stdout ?? '') + (result.stderr ?? '');
         const targetBase = path.basename(filePath);
-        const targetDir = path.dirname(filePath);
         const filteredLines = retryOutput.split('\n').filter(l => {
           if (!/error TS/.test(l) || /error TS5\d{3}/.test(l)) return false;
           if (!l.includes(targetBase)) return false;
@@ -349,7 +331,7 @@ function validateImports(filePath: string, projectRoot: string): string[] {
               warnings.push(`npm package not in package.json: '${pkg}'`);
             }
           }
-        } catch {}
+        } catch { /* ignored */ }
       }
     }
   }
@@ -404,9 +386,6 @@ function buildPostWriteWarnings(filePath: string, projectRoot: string): string[]
   const exportWarnings = validateExports(filePath);
   return [...importWarnings, ...exportWarnings];
 }
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 function resolvePath(p: string, projectRoot: string): string {
   const resolved = path.isAbsolute(p) ? p : path.resolve(projectRoot, p);
@@ -709,10 +688,10 @@ function nativeGrep(dir: string, pattern: string, fileGlob?: string, limit = 50)
             for (let i = 0; i < lines.length; i++) {
               if (regex.test(lines[i])) results.push(`${full}:${i + 1}:${lines[i].trim().slice(0, 200)}`);
             }
-          } catch {}
+          } catch { /* ignored */ }
         }
       }
-    } catch {}
+    } catch { /* ignored */ }
   };
   walk(dir);
   return results.slice(0, limit);
@@ -743,10 +722,8 @@ export async function searchFiles(args: { pattern: string; target?: 'content' | 
       return new Promise((resolve) => {
         const child = spawn('rg', rgArgs, { cwd: context.projectRoot, stdio: ['ignore', 'pipe', 'pipe'] });
         let output = '';
-        let errorOutput = '';
-
         child.stdout?.on('data', (data: Buffer) => { output += data.toString(); });
-        child.stderr?.on('data', (data: Buffer) => { errorOutput += data.toString(); });
+        child.stderr?.on('data', () => { /* stderr implicitly collected */ });
 
         const killTimer = setTimeout(() => {
           child.kill('SIGTERM');

@@ -3,7 +3,6 @@ import path from 'path';
 import crypto from 'crypto';
 import Database from 'better-sqlite3';
 import {
-  initIndexDb,
   clearFileIndex,
   saveFileHash,
   getFileHash,

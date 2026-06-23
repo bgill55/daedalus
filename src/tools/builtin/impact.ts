@@ -22,13 +22,13 @@ function walkSourceFiles(dir: string, exclude: string[] = []): string[] {
           results.push(full);
         }
       }
-    } catch {}
+    } catch { /* ignored */ }
   };
   walk(dir);
   return results;
 }
 
-function buildImportGraph(files: string[], projectRoot: string): Map<string, Set<string>> {
+function buildImportGraph(files: string[], _projectRoot: string): Map<string, Set<string>> {
   const graph = new Map<string, Set<string>>();
   const importRe = /from\s+['"]([^'"]+)['"]/g;
   const requireRe = /require\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
@@ -132,7 +132,7 @@ export async function getImpact(
     }
 
     if (totalAffected > 5) {
-      lines.push(`\n[WARN] Large blast radius — consider lsp_diagnostics after making changes.`);
+      lines.push(`\n[WARN] Large blast radius ï¿½ consider lsp_diagnostics after making changes.`);
     }
 
     return { toolCallId: '', name: 'get_impact', success: true, content: lines.join('\n') };

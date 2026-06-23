@@ -68,7 +68,7 @@ export function watchCodebase(
           if (symbols.length > 0) insertSymbols(db, symbols);
           if (references.length > 0) insertReferences(db, references);
           saveFileHash(db, relPath, hash);
-        } catch {}
+        } catch { /* ignored */ }
       } else {
         try {
           const relPathNormalized = relPath.replace(/\\/g, '/');
@@ -80,7 +80,7 @@ export function watchCodebase(
               clearFileIndex(db, f.file_path, projectHash);
             }
           }
-        } catch {}
+        } catch { /* ignored */ }
       }
     }, 300);
 
@@ -125,13 +125,13 @@ export function watchCodebase(
               }
             }
           }
-        } catch {}
+        } catch { /* ignored */ }
 
         handleFileChange(relativeFile);
       });
       watcher.on('error', () => {});
       watchers.set(dirPath, watcher);
-    } catch {}
+    } catch { /* ignored */ }
 
     try {
       const files = fs.readdirSync(dirPath);
@@ -142,9 +142,9 @@ export function watchCodebase(
           if (stat.isDirectory()) {
             setupManualWatcher(fullPath);
           }
-        } catch {}
+        } catch { /* ignored */ }
       }
-    } catch {}
+    } catch { /* ignored */ }
   }
 
   return {

@@ -12,11 +12,8 @@ import type { SessionManager } from './session/manager.js';
 import type { UserProfile } from './profile.js';
 import type { SqliteTodo } from './session/sqlite.js';
 
-import { BUILTIN_TOOLS } from './tools/definitions.js';
 import { getSessionTodos } from './tools/builtin/todo.js';
-import { calculateSessionTokens, pruneMessages } from './session/tokens.js';
 import { saveProfile } from './profile.js';
-import { runOnboarding } from './onboarding/wizard.js';
 import { extractAndSave } from './extraction.js';
 import { printUserTurn, turnSeparator } from './formatting.js';
 import { getClipboardText, getClipboardImage } from './clipboard.js';
@@ -192,8 +189,7 @@ export const commandsList: Command[] = [
         const userContent = `${indexCtx}${filesContext}User Prompt: ${fullMessage}`;
         await ctx.callModelWithTools(userContent);
         ctx.sessionManager.saveSessionState(ctx.messages, ctx.activeFiles, getSessionTodos(ctx.toolContext.sessionId));
-      } catch {
-      }
+      } catch { /* ignored */ }
       turnSeparator();
     }
   },
@@ -285,7 +281,7 @@ export const commandsList: Command[] = [
   {
     name: '/tasks',
     description: 'List background agent tasks',
-    execute: async (args, ctx) => {
+    execute: async (_args, _ctx) => {
       const { backgroundJobs } = await import('./agents/background.js');
       if (backgroundJobs.size === 0) {
         console.log(pc.gray('No background tasks found.'));
@@ -298,7 +294,7 @@ export const commandsList: Command[] = [
           ? `${Math.round((job.finishedAt - job.startedAt) / 1000)}s`
           : `${Math.round((Date.now() - job.startedAt) / 1000)}s elapsed`;
 
-        let statusStr = '';
+        let statusStr: string;
         if (job.status === 'running') {
           statusStr = pc.blue('RUNNING');
         } else if (job.status === 'completed') {
@@ -317,7 +313,7 @@ export const commandsList: Command[] = [
   {
     name: '/task',
     description: 'Manage background task: /task <id> | /task kill <id>',
-    execute: async (args, ctx) => {
+    execute: async (args, _ctx) => {
       const { backgroundJobs, killBackgroundAgent } = await import('./agents/background.js');
       const trimmed = args.trim();
 
@@ -867,7 +863,7 @@ Once you have finished making changes, I will automatically re-run the command t
   {
     name: '/project',
     description: 'View or set project config settings',
-    execute: async (args, ctx) => {
+    execute: async (args, _ctx) => {
       const rest = args.trim();
       const { loadProjectConfig, saveProjectConfig } = await import('./tools/builtin/project-config.js');
       if (!rest) {
@@ -1228,7 +1224,7 @@ Once you have finished making changes, I will automatically re-run the command t
   {
     name: '/changelog',
     description: 'View the latest CLI changes',
-    execute: async (args, ctx) => {
+    execute: async (_args, _ctx) => {
       const { fileURLToPath } = await import('url');
       const __filename = fileURLToPath(import.meta.url);
       const __dirname = path.dirname(__filename);
@@ -1416,7 +1412,7 @@ Once you have finished making changes, I will automatically re-run the command t
     name: '/help',
     aliases: ['?', 'help'],
     description: 'Show available commands',
-    execute: async (args, ctx) => {
+    execute: async (_args, _ctx) => {
       console.log(pc.bold('\n--- Available Commands ---'));
       for (const cmd of commandsList) {
         const aliasList = cmd.aliases ? cmd.aliases.map(a => a.startsWith('/') ? a : `/${a}`) : [];
@@ -1431,7 +1427,7 @@ Once you have finished making changes, I will automatically re-run the command t
   {
     name: '/mcp',
     description: 'Manage MCP servers: explore, search, install, list, remove, info',
-    execute: async (args, ctx) => {
+    execute: async (args, _ctx) => {
       const parts = args.trim().split(/\s+/);
       const sub = parts[0]?.toLowerCase();
       const rest = parts.slice(1).join(' ').trim();

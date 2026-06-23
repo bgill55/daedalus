@@ -145,8 +145,6 @@ describe('HttpTransport', () => {
   });
 
   it('disconnect closes SSE client', async () => {
-    let sseController: ReadableStreamDefaultController | null = null;
-
     vi.stubGlobal('fetch', vi.fn());
 
     const transport = new HttpTransport(makeConfig());
@@ -154,8 +152,8 @@ describe('HttpTransport', () => {
     const sseResponse = {
       ok: true,
       body: new ReadableStream({
-        start(controller: ReadableStreamDefaultController) {
-          sseController = controller;
+        start(_controller: ReadableStreamDefaultController) {
+          // controller available but not used in this test
         },
       }),
     };

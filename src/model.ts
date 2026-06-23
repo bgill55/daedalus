@@ -6,7 +6,7 @@ import { DaedalusSpinner } from './tools/daedalus-spinner.js';
 import { calculateSessionTokens, pruneMessages } from './session/tokens.js';
 import { parseTextToolCalls, openAssistantBlock, writeAssistantChunk, closeAssistantBlock, printContextWarning, printContextResult, printContextPrune, printToolStart, printToolResult, printToolContentPreview, turnGatePrompt } from './formatting.js';
 import type { ToolContext, ToolCall, ChatMessage } from './types.js';
-import type { LocalRouter, ChatResponse } from './router/index.js';
+import type { LocalRouter } from './router/index.js';
 
 const TOOL_RESULT_MAX_CHARS = 32_000;
 const MAX_TOOL_TURNS = 40;
@@ -329,7 +329,7 @@ export function createModelFunctions(deps: ModelDeps) {
               } as ChatMessage);
               console.log(`  ${pc.cyan('[VISION]')} Screenshot injected into context (${Math.round(parsed.base64.length * 0.75 / 1024)}KB)`);
             }
-          } catch {}
+          } catch { /* ignored */ }
         }
       }
 

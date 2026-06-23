@@ -1,8 +1,6 @@
 import { spawnSync } from 'child_process';
-import path from 'path';
 import ts from 'typescript';
 import { ToolContext, ToolResult } from '../../types.js';
-import readline from 'readline';
 
 function formatError(error: string): ToolResult {
   return { toolCallId: '', name: 'eval_code', success: false, content: '', error };

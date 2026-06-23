@@ -1,7 +1,6 @@
 // Context summarization — compresses older conversation cycles into a single LLM-generated summary
 // before resorting to hard pruning.
 
-import pc from 'picocolors';
 import { estimateMessageTokens } from './tokens.js';
 import type { ChatMessage } from '../types.js';
 
@@ -77,7 +76,7 @@ export async function summarizeMessages(
 
 Keep the summary under 300 words. Write in past tense. Here is the conversation:\n\n${transcript}`;
 
-  let summaryText = '';
+  let summaryText: string;
   try {
     summaryText = await summarizeFn(
       'You are a precise technical summarizer. Output only the summary, no preamble.',
@@ -96,7 +95,7 @@ Keep the summary under 300 words. Write in past tense. Here is the conversation:
             const args = JSON.parse(tc.function.arguments);
             if (args.path) filesMentioned.add(args.path);
             if (args.filePath) filesMentioned.add(args.filePath);
-          } catch {}
+          } catch { /* ignored */ }
         }
       }
     }

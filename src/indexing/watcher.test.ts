@@ -49,7 +49,7 @@ describe.skipIf(process.platform === 'win32')('Watcher - Incremental Indexing', 
       await sleep(100);
       try {
         fs.rmSync(tmpDir, { recursive: true, force: true });
-      } catch {}
+      } catch { /* ignored */ }
     }
   });
 

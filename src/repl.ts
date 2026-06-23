@@ -1,5 +1,4 @@
 import fs from 'fs';
-import path from 'path';
 import readline from 'readline';
 import pc from 'picocolors';
 
@@ -186,7 +185,7 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
 
         sessionManager.saveSessionState(messages, activeFiles, getSessionTodos(sessionId));
         await extractAndSave(router, sessionManager, messages);
-      } catch (error: any) {
+      } catch {
         try {
           const filesContext = buildFileContext();
           const userContent = `${filesContext}User Prompt: ${trimmedInput}`;
@@ -210,7 +209,7 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
     if (activeFiles.size === 0) return '';
     let ctx = '--- ACTIVE FILES CONTEXT ---\n';
     for (const [absPath, filename] of activeFiles) {
-      let content = '';
+      let content: string;
       if (fs.existsSync(absPath)) {
         content = fs.readFileSync(absPath, 'utf8');
       } else {

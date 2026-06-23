@@ -3,7 +3,6 @@
 import { OpenAI } from 'openai';
 import type { 
   ModelEntry, 
-  ModelHealth, 
   RouterConfig, 
   RouteResult, 
   ChatRequest, 
@@ -138,7 +137,7 @@ export class LocalRouter {
       }
     }
 
-    let tierFilteredModels: ModelEntry[] = [];
+    let tierFilteredModels: ModelEntry[];
     if (isComplexTask) {
       tierFilteredModels = candidateModels.filter(m => m.tier === 'intelligence');
       if (tierFilteredModels.length === 0) {
@@ -155,7 +154,7 @@ export class LocalRouter {
       tierFilteredModels = candidateModels;
     }
 
-    let rankedCandidates: ModelEntry[] = [];
+    let rankedCandidates: ModelEntry[];
     switch (this.config.strategy) {
       case 'priority':
         rankedCandidates = [...tierFilteredModels].sort((a, b) => a.priority - b.priority);

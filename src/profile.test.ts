@@ -13,8 +13,8 @@ import type { UserProfile } from './profile.js';
 describe('User profile', () => {
 
   afterEach(() => {
-    try { fs.unlinkSync(process.env.DAEDALUS_PROFILE_PATH!); } catch {}
-    try { fs.rmdirSync(path.dirname(process.env.DAEDALUS_PROFILE_PATH!)); } catch {}
+    try { fs.unlinkSync(process.env.DAEDALUS_PROFILE_PATH!); } catch { /* ignored */ }
+    try { fs.rmdirSync(path.dirname(process.env.DAEDALUS_PROFILE_PATH!)); } catch { /* ignored */ }
   });
 
   it('loadProfile returns default when no file exists', () => {

@@ -72,7 +72,7 @@ export async function extractAndSave(
         sessionManager.updateSessionTitle(newTitle);
         console.log(`  ${pc.dim('[')} ${pc.dim('auto-named session:')} ${pc.cyan(newTitle)} ${pc.dim(']')}`);
       }
-    } catch (err) {
+    } catch {
       // Ignored
     }
   }

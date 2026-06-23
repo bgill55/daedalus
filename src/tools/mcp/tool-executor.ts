@@ -3,7 +3,7 @@
 import { ToolContext, ToolResult } from '../../types.js';
 import { mcpRegistry } from './registry.js';
 
-export async function executeMCPTool(prefixedName: string, args: any, context: ToolContext): Promise<ToolResult> {
+export async function executeMCPTool(prefixedName: string, args: any, _context: ToolContext): Promise<ToolResult> {
   try {
     const result = await mcpRegistry.callTool(prefixedName, args);
     return {

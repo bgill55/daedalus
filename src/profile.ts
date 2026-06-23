@@ -28,8 +28,7 @@ export function loadProfile(): UserProfile {
       const data = JSON.parse(fs.readFileSync(p, 'utf8'));
       return { ...DEFAULT_PROFILE, ...data };
     }
-  } catch {
-  }
+  } catch { /* ignored */ }
   return { ...DEFAULT_PROFILE };
 }
 
@@ -42,7 +41,7 @@ export function saveProfile(profile: UserProfile): void {
   profile.updatedAt = Date.now();
   fs.writeFileSync(p, JSON.stringify(profile, null, 2), 'utf8');
   if (process.platform !== 'win32') {
-    try { fs.chmodSync(p, 0o600); } catch {}
+    try { fs.chmodSync(p, 0o600); } catch { /* ignored */ }
   }
 }
 

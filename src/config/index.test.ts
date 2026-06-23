@@ -7,7 +7,6 @@ const TEST_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'daedalus-config-test-'))
 
 const {
   ConfigSchema,
-  RouterConfigSchema,
   ModelEntrySchema,
   loadConfig,
   saveConfig,
@@ -123,9 +122,6 @@ describe('ConfigSchema validation', () => {
 });
 
 describe('loadConfig', () => {
-  const origHome = process.env.HOME;
-  const origUserProfile = process.env.USERPROFILE;
-
   beforeEach(() => {
     vi.stubEnv('HOME', TEST_DIR);
     vi.stubEnv('USERPROFILE', TEST_DIR);
@@ -134,7 +130,7 @@ describe('loadConfig', () => {
   afterEach(() => {
     vi.unstubAllEnvs();
     const configDir = path.join(TEST_DIR, '.daedalus');
-    try { fs.rmSync(configDir, { recursive: true, force: true }); } catch {}
+    try { fs.rmSync(configDir, { recursive: true, force: true }); } catch { /* ignored */ }
   });
 
   it('creates default config when file does not exist', () => {
@@ -181,9 +177,6 @@ describe('loadConfig', () => {
 });
 
 describe('saveConfig', () => {
-  const origHome = process.env.HOME;
-  const origUserProfile = process.env.USERPROFILE;
-
   beforeEach(() => {
     vi.stubEnv('HOME', TEST_DIR);
     vi.stubEnv('USERPROFILE', TEST_DIR);
@@ -192,7 +185,7 @@ describe('saveConfig', () => {
   afterEach(() => {
     vi.unstubAllEnvs();
     const configDir = path.join(TEST_DIR, '.daedalus');
-    try { fs.rmSync(configDir, { recursive: true, force: true }); } catch {}
+    try { fs.rmSync(configDir, { recursive: true, force: true }); } catch { /* ignored */ }
   });
 
   it('persists config to disk and reads it back', () => {
@@ -235,9 +228,6 @@ describe('discoverLocalServers', () => {
 });
 
 describe('resetConfig', () => {
-  const origHome = process.env.HOME;
-  const origUserProfile = process.env.USERPROFILE;
-
   beforeEach(() => {
     vi.stubEnv('HOME', TEST_DIR);
     vi.stubEnv('USERPROFILE', TEST_DIR);
@@ -246,7 +236,7 @@ describe('resetConfig', () => {
   afterEach(() => {
     vi.unstubAllEnvs();
     const configDir = path.join(TEST_DIR, '.daedalus');
-    try { fs.rmSync(configDir, { recursive: true, force: true }); } catch {}
+    try { fs.rmSync(configDir, { recursive: true, force: true }); } catch { /* ignored */ }
   });
 
   it('resets and returns default config', () => {

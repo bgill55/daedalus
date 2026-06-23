@@ -26,8 +26,7 @@ export function exportToJsonl(db: Database.Database, jsonlPath: string): void {
     if (t.tool_calls) {
       try {
         toolCallsParsed = JSON.parse(t.tool_calls);
-      } catch {
-      }
+      } catch { /* ignored */ }
     }
 
     const tokens = (t.tokens_input || t.tokens_output) ? {

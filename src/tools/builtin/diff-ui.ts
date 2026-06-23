@@ -1,7 +1,6 @@
 // Interactive visual diff approval UI
 // Shows unified diff with colors and prompts for y/n/a/s/e/d
 
-import readline from 'readline';
 import pc from 'picocolors';
 import * as diff from 'diff';
 import { ToolContext } from '../../types.js';
@@ -27,7 +26,7 @@ export function generateUnifiedDiff(
   filePath: string
 ): string {
   const oldLines = oldContent.split('\n');
-  const newLines = newContent.split('\n');
+  newContent.split('\n');
 
   const patches = diff.diffLines(oldContent, newContent);
   const changedLines = patches.reduce((n, p) => n + (p.added || p.removed ? (p.value.split('\n').length - 1) : 0), 0);
@@ -353,7 +352,7 @@ export async function reviewChunksWorkflow(
       currentLine++;
     }
 
-    let accept = false;
+    let accept: boolean;
     if (autoApplyRemaining) {
       accept = true;
     } else if (quitRemaining) {

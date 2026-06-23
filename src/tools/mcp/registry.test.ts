@@ -1,6 +1,5 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { MCPRegistry } from './registry.js';
-import type { ToolDefinition } from '../../types.js';
 
 describe('MCP Registry', () => {
   let registry: MCPRegistry;

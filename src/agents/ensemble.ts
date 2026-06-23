@@ -81,7 +81,7 @@ function getGitChangesDiff(cwd: string): string {
   try {
     try {
       execSync('git add -N .', { cwd, stdio: 'ignore' });
-    } catch {}
+    } catch { /* ignored */ }
     return execSync('git diff', { cwd, encoding: 'utf8' });
   } catch (err: any) {
     return `Error getting git diff: ${err.message}`;
@@ -156,7 +156,7 @@ export async function runEnsembleWorkflow(
         try {
           execSync('git reset --hard HEAD', { cwd, stdio: 'ignore' });
           execSync('git clean -fd', { cwd, stdio: 'ignore' });
-        } catch {}
+        } catch { /* ignored */ }
 
         if (!diff.trim()) {
           console.log(pc.yellow(`[ENSEMBLE] Candidate ${i + 1} made no changes.`));
@@ -240,7 +240,7 @@ If the changes are perfect and ready to merge, also include the word "APPROVED" 
         try {
           execSync('git reset --hard HEAD', { cwd, stdio: 'ignore' });
           execSync('git clean -fd', { cwd, stdio: 'ignore' });
-        } catch {}
+        } catch { /* ignored */ }
       }
 
       const validCandidates = candidates.filter(c => c.score > 0);
@@ -259,7 +259,7 @@ If the changes are perfect and ready to merge, also include the word "APPROVED" 
       } catch {
         try {
           execSync('git apply --whitespace=fix', { input: bestCandidate.diff, cwd, stdio: 'ignore' });
-        } catch {}
+        } catch { /* ignored */ }
       }
 
       console.log(pc.gray(`\nReviewer Feedback for chosen candidate:\n${bestCandidate.critique.trim()}\n`));
@@ -276,7 +276,7 @@ If the changes are perfect and ready to merge, also include the word "APPROVED" 
     if (baselineCreated) {
       try {
         execSync('git reset --soft HEAD~1', { cwd, stdio: 'ignore' });
-      } catch {}
+      } catch { /* ignored */ }
     }
   }
 

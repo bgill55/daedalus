@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { manage, getSessionTodos, setSessionTodos } from './todo.js';
 import type { ToolContext } from '../../types.js';
 
