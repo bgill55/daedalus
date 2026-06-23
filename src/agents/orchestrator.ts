@@ -112,7 +112,9 @@ export class Orchestrator {
           `${goal}\n\nYour previous plan had ${tasks.length} steps which is too many. Create a simpler plan with at most ${this.MAX_INITIAL_TASKS} focused steps. Merge related steps together. Each step must produce real output.`,
           projectContext
         );
-        tasks = this.parseDelegationTasks(plan, goal);
+        tasks = Orchestrator.filterValidTasks(this.parseDelegationTasks(plan, goal));
+      } else {
+        tasks = Orchestrator.filterValidTasks(tasks);
       }
 
       if (this.sessionManager) {
@@ -502,13 +504,28 @@ export class Orchestrator {
     }
 
     // Add new tasks from re-plan
-    const newTasks = this.parseDelegationTasks(subPlan, originalGoal);
+    let newTasks = this.parseDelegationTasks(subPlan, originalGoal);
+
+    // Enforce task cap and filter out non-actionable tasks
+    newTasks = Orchestrator.filterValidTasks(newTasks).slice(0, this.MAX_INITIAL_TASKS);
+
     for (const nt of newTasks) {
       nt.splitDepth = 0;
       tasks.push(nt);
     }
 
     this.printTaskList(tasks);
+  }
+
+  private static filterValidTasks(tasks: DelegationTask[]): DelegationTask[] {
+    const doneRe = /\b(open|launch|start|run|execute)\b.*\b(file|editor|IDE|app|application|browser|window)\b|\b(commit|push)\b.*\b(git|github|gitlab)\b|\b(use|press|click|type)\b.*\b(mouse|keyboard|key|button)\b/i;
+    const metaSaveRe = /\b(save|write)\s+(the\s+)?(changes|file)\b(?!.*\b(to|with|containing|including|featuring)\b)/i;
+    return tasks.filter(t => {
+      if (doneRe.test(t.goal)) return false;
+      if (metaSaveRe.test(t.goal)) return false;
+      if (t.goal.length < 5) return false;
+      return true;
+    });
   }
 
   private static stripCodeBlocks(text: string): string {
@@ -549,9 +566,20 @@ export class Orchestrator {
       seenGoals.add(goalKey);
       tasks.push({ goal: this.truncateGoal(clean || goalText), context: ctx, role, status: 'pending', splitDepth: depth });
     };
-    
+
+    const guessRole = (text: string): string => {
+      const lower = text.toLowerCase();
+      const verifyRe = /\b(verify|check|test|review|inspect|validate|confirm|browser)\b/i;
+      const createRe = /\b(create|add|build|implement|write|generate|make|new)\b/i;
+      if (verifyRe.test(lower)) return 'reviewer';
+      if (createRe.test(lower)) return 'coder';
+      if (/\b(fix|debug|resolve|repair|patch)\b/i.test(lower)) return 'debugger';
+      return 'coder';
+    };
+
+    // Primary: explicit "delegate to" / role-prefixed lines
     for (const line of lines) {
-      const roleMatch = line.match(/^\s*(?:-|\*|\d+\.)?\s*(?:delegate to|assign to|have|assign|role|agent:)?\s*(planner|coder|reviewer|debugger|researcher)\b/i);
+      const roleMatch = line.match(/^\s*(?:-|\*|\d+\.?)?\s*(?:delegate to|assign to|have|assign|role|agent:)?\s*(planner|coder|reviewer|debugger|researcher)\b/i);
       if (roleMatch) {
         if (currentRole && currentGoal) {
           pushTask(currentRole, currentGoal, baseCtx, 0);
@@ -568,6 +596,24 @@ export class Orchestrator {
     
     if (currentRole && currentGoal) {
       pushTask(currentRole, currentGoal, baseCtx, 0);
+    }
+    
+    // Fallback: plain numbered/bulleted list without explicit roles
+    if (tasks.length === 0) {
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        const itemMatch = trimmed.match(/^(?:-|\*|\d+\.)\s+(.+)$/);
+        if (itemMatch) {
+          const body = itemMatch[1];
+          if (body.length < 3) continue;
+          const role = guessRole(body);
+          pushTask(role, body, baseCtx, 0);
+        } else if (trimmed.length > 5) {
+          // Unformatted line — treat as a single coder task
+          pushTask('coder', trimmed, baseCtx, 0);
+        }
+      }
     }
 
     if (tasks.length === 0) {
@@ -782,7 +828,7 @@ export class Orchestrator {
     if (!projectContext) return '';
     const ctx = projectContext;
     if (/\bNext\.js\b/i.test(ctx)) {
-      return '\n\nIMPORTANT FRAMEWORK NOTE: Next.js uses file-based routing. Any .tsx or .js file added to pages/ or src/pages/ is automatically available as a web page. No edits to next.config.js or any other config file are needed when adding new pages. Do NOT create tasks for modifying config files.\n';
+      return '\n\nIMPORTANT FRAMEWORK NOTE: Next.js uses file-based routing. Any .tsx or .js file added to pages/ or src/pages/ is automatically available as a web page. No edits to next.config.js or any other config file are needed when adding new pages. Do NOT create tasks for modifying config files.\nROUTING: Use next/link for client-side navigation. Do NOT use react-router-dom, vue-router, or any other router library.\n';
     }
     if (/\b(Vue|Nuxt)\b/i.test(ctx)) {
       return '\n\nFRAMEWORK NOTE: This project uses Vue/Vue Router. New pages typically need route entries added to the router config, not config files like vue.config.js.\n';

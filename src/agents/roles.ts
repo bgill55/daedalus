@@ -57,6 +57,7 @@ Guidelines:
 - Do not format the delegation plan as a markdown table. Use the "delegate to" lines directly.
 - When planning dependencies or libraries, instruct the coder/researcher to identify and use the latest stable versions instead of archaic ones from your training data.
 - PATH PRESERVATION: If the original goal includes explicit file paths (e.g. src/pages/about.tsx), you MUST preserve those exact paths in your subtask descriptions. Do not strip paths or refer to files by basename alone. The coder will be scoped to those exact paths.
+- ACTION ONLY: Every task must be a concrete coding action the agent can perform directly with its tools. Allowed actions: create file, write file, patch file, run command, search code, read file. FORBIDDEN actions: open file in editor, open IDE, use mouse/keyboard, commit to git manually, run GUI apps, or any task that requires human interaction. If a task cannot be completed by an autonomous coding agent, do not include it.
 
 Use the todo tool. Do not write the code yourself — that's what the coder is for. You plan, they build, everyone pretends it was easy.`,
     allowedTools: ['todo', 'read_file', 'search_files', 'list_files', 'terminal', 'web_search', 'find_symbol', 'get_definition', 'get_references'],

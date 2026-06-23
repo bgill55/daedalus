@@ -18,15 +18,16 @@ child.stderr.on('data', (d) => stderrChunks.push(d));
 
 child.stdin.write(`/orchestrate ${goal}\n`);
 
-// Fallback: send /exit after 5 minutes
+// Fallback: send /exit after 90 seconds (orchestration should finish well before this)
 const timeout = setTimeout(() => {
   console.log('\n[watchdog] timeout reached, sending /exit');
   child.stdin.write('/exit\n');
-}, 5 * 60 * 1000);
+}, 90 * 1000);
 
 child.on('close', (code) => {
   clearTimeout(timeout);
   const err = Buffer.concat(stderrChunks).toString();
   if (code !== 0) console.error('Process exited with code', code, err);
   else console.log('Process exited cleanly');
+  process.exit(code);
 });
