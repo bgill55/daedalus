@@ -86,7 +86,7 @@ function findClosestBlock(content: string, target: string): { snippet: string; l
 
   const scanSet = refinedCandidates.size > 0 ? refinedCandidates : new Set(Array.from({ length: searchLimit - windowSize + 1 }, (_, i) => i));
 
-  for (const i of scanSet) {
+  for (const i of Array.from(scanSet)) {
     const window = contentLines.slice(i, i + windowSize).join('\n');
     const dist = levenshtein(normalizeWhitespace(window), normalTarget);
     if (dist < bestDist) {
@@ -177,7 +177,21 @@ function fuzzyWhitespacePatch(content: string, oldStr: string, newStr: string, r
   return { patched: content.slice(0, start) + newStr + content.slice(end) };
 }
 
-async function syntaxCheck(filePath: string, projectRoot: string): Promise<string | null> {
+function computeChangedLines(oldContent: string, newContent: string): number[] {
+  const oldLines = oldContent.split('\n');
+  const newLines = newContent.split('\n');
+  const maxLen = Math.max(oldLines.length, newLines.length);
+  const changed: number[] = [];
+
+  for (let i = 0; i < maxLen; i++) {
+    if ((oldLines[i] ?? '') !== (newLines[i] ?? '')) {
+      changed.push(i + 1); // 1-indexed line numbers
+    }
+  }
+  return changed;
+}
+
+async function syntaxCheck(filePath: string, projectRoot: string, modifiedLines?: number[]): Promise<string | null> {
   const ext = path.extname(filePath).toLowerCase();
 
   if (ext === '.json') {
@@ -237,10 +251,23 @@ async function syntaxCheck(filePath: string, projectRoot: string): Promise<strin
       if (result.status !== 0) {
         const retryOutput = (result.stdout ?? '') + (result.stderr ?? '');
         const targetBase = path.basename(filePath);
-        const realError = retryOutput
-          .split('\n')
-          .find(l => /error TS/.test(l) && !/error TS5\d{3}/.test(l) && l.includes(targetBase));
-        if (realError) return realError;
+        const targetDir = path.dirname(filePath);
+        const filteredLines = retryOutput.split('\n').filter(l => {
+          if (!/error TS/.test(l) || /error TS5\d{3}/.test(l)) return false;
+          if (!l.includes(targetBase)) return false;
+          if (modifiedLines && modifiedLines.length > 0) {
+            const lineMatch = l.match(/\((\d+),\d+\)/);
+            if (lineMatch) {
+              const errLine = parseInt(lineMatch[1], 10);
+              if (!modifiedLines.includes(errLine)) {
+                return false; // pre-existing error on untouched line
+              }
+            }
+          }
+          return true;
+        });
+        const firstFiltered = filteredLines.find(l => /error TS/.test(l) && !/error TS5\d{3}/.test(l));
+        if (firstFiltered) return firstFiltered;
       }
     }
     return null;
@@ -465,9 +492,10 @@ export async function writeFile(args: { path: string; content: string }, context
       fs.mkdirSync(dir, { recursive: true });
     }
     const previousContent = fs.existsSync(targetPath) ? fs.readFileSync(targetPath, 'utf8') : null;
+    const changedLines = previousContent ? computeChangedLines(previousContent, args.content) : [];
     fs.writeFileSync(targetPath, args.content, 'utf8');
 
-    const syntaxError = await syntaxCheck(targetPath, context.projectRoot);
+    const syntaxError = await syntaxCheck(targetPath, context.projectRoot, changedLines.length > 0 ? changedLines : undefined);
     if (syntaxError) {
       if (previousContent !== null) {
         fs.writeFileSync(targetPath, previousContent, 'utf8');
@@ -572,8 +600,9 @@ export async function patchFile(args: { path: string; old_string: string; new_st
     }
 
     if (autoApply === 'all') {
+      const changedLines = computeChangedLines(content, finalNormalized);
       fs.writeFileSync(targetPath, finalNormalized, 'utf8');
-      const syntaxError = await syntaxCheck(targetPath, context.projectRoot);
+      const syntaxError = await syntaxCheck(targetPath, context.projectRoot, changedLines.length > 0 ? changedLines : undefined);
       if (syntaxError) {
         fs.writeFileSync(targetPath, rawContent, 'utf8');
         return formatError(`Syntax error introduced by patch — reverted.\n${syntaxError}\nFix the patch and retry.`);
@@ -623,7 +652,8 @@ export async function patchFile(args: { path: string; old_string: string; new_st
 
     fs.writeFileSync(targetPath, writeContent, 'utf8');
 
-    const syntaxError = await syntaxCheck(targetPath, context.projectRoot);
+    const changedLinesInteractive = computeChangedLines(content, writeContent);
+    const syntaxError = await syntaxCheck(targetPath, context.projectRoot, changedLinesInteractive.length > 0 ? changedLinesInteractive : undefined);
     if (syntaxError) {
       fs.writeFileSync(targetPath, rawContent, 'utf8');
       return formatError(`Syntax error introduced by patch — reverted.\n${syntaxError}\nFix the patch and retry.`);
