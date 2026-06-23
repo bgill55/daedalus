@@ -127,6 +127,25 @@ export function initSessionDb(dbPath: string): Database.Database {
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS project_status (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      build_status TEXT,
+      test_status TEXT,
+      key_concerns TEXT,
+      last_reviewed_at INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS failure_lessons (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      task_role TEXT,
+      goal_keywords TEXT,
+      error_snippet TEXT,
+      resolution TEXT,
+      created_at INTEGER DEFAULT (strftime('%s','now')*1000),
+      used_count INTEGER DEFAULT 0
+    );
+    CREATE INDEX IF NOT EXISTS idx_failure_lessons_role ON failure_lessons(task_role);
   `);
   return db;
 }
@@ -169,7 +188,7 @@ export function saveActiveFiles(db: Database.Database, files: Map<string, string
     db.prepare('DELETE FROM active_files').run();
     const insert = db.prepare('INSERT INTO active_files (path, alias, added_at) VALUES (?, ?, ?)');
     const now = Date.now();
-    for (const [absPath, alias] of files.entries()) {
+    for (const [absPath, alias] of Array.from(files.entries())) {
       insert.run(absPath, alias, now);
     }
   })();
@@ -227,4 +246,51 @@ export function getState(db: Database.Database, key: string): any | null {
   } catch {
     return null;
   }
+}
+
+export interface FailureLesson {
+  id?: number;
+  task_role: string;
+  goal_keywords: string;
+  error_snippet: string;
+  resolution: string;
+  created_at?: number;
+  used_count?: number;
+}
+
+export interface ProjectStatus {
+  build_status?: string;
+  test_status?: string;
+  key_concerns?: string;
+  last_reviewed_at?: number;
+}
+
+export function saveFailureLesson(db: Database.Database, lesson: FailureLesson): void {
+  db.prepare(`INSERT INTO failure_lessons (task_role, goal_keywords, error_snippet, resolution) VALUES (?, ?, ?, ?)`).run(
+    lesson.task_role, lesson.goal_keywords, lesson.error_snippet, lesson.resolution
+  );
+}
+
+export function getFailureLessons(db: Database.Database, role?: string): FailureLesson[] {
+  if (role) {
+    return db.prepare('SELECT * FROM failure_lessons WHERE task_role = ? ORDER BY used_count ASC, created_at DESC LIMIT 5').all(role) as FailureLesson[];
+  }
+  return db.prepare('SELECT * FROM failure_lessons ORDER BY used_count ASC, created_at DESC LIMIT 10').all() as FailureLesson[];
+}
+
+export function incrementLessonUsed(db: Database.Database, lessonId: number): void {
+  db.prepare('UPDATE failure_lessons SET used_count = used_count + 1 WHERE id = ?').run(lessonId);
+}
+
+export function saveProjectStatus(db: Database.Database, status: ProjectStatus): void {
+  db.prepare(`INSERT INTO project_status (id, build_status, test_status, key_concerns, last_reviewed_at) VALUES (1, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET build_status = excluded.build_status, test_status = excluded.test_status,
+    key_concerns = excluded.key_concerns, last_reviewed_at = excluded.last_reviewed_at`).run(
+    status.build_status || null, status.test_status || null, status.key_concerns || null, status.last_reviewed_at || Date.now()
+  );
+}
+
+export function getProjectStatus(db: Database.Database): ProjectStatus | null {
+  const row = db.prepare('SELECT * FROM project_status WHERE id = 1').get() as ProjectStatus | undefined;
+  return row || null;
 }

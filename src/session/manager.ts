@@ -21,8 +21,15 @@ import {
   getTodos,
   saveState,
   getState,
+  saveFailureLesson,
+  getFailureLessons,
+  incrementLessonUsed,
+  saveProjectStatus,
+  getProjectStatus,
   SqliteTurn,
   SqliteTodo,
+  FailureLesson,
+  ProjectStatus,
   SessionMeta
 } from './sqlite.js';
 import { exportToJsonl, importFromJsonl } from './jsonl.js';
@@ -257,6 +264,31 @@ export class SessionManager {
   public getState(key: string): any | null {
     if (!this.sessionDb) return null;
     return getState(this.sessionDb, key);
+  }
+
+  public saveFailureLesson(lesson: FailureLesson): void {
+    if (!this.sessionDb) return;
+    saveFailureLesson(this.sessionDb, lesson);
+  }
+
+  public getFailureLessons(role?: string): FailureLesson[] {
+    if (!this.sessionDb) return [];
+    return getFailureLessons(this.sessionDb, role);
+  }
+
+  public incrementLessonUsed(lessonId: number): void {
+    if (!this.sessionDb) return;
+    incrementLessonUsed(this.sessionDb, lessonId);
+  }
+
+  public saveProjectStatus(status: ProjectStatus): void {
+    if (!this.sessionDb) return;
+    saveProjectStatus(this.sessionDb, status);
+  }
+
+  public getProjectStatus(): ProjectStatus | null {
+    if (!this.sessionDb) return null;
+    return getProjectStatus(this.sessionDb);
   }
 
   /** Close database connections */

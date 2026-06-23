@@ -512,7 +512,18 @@ export class Orchestrator {
 
     const tools = filterToolsForRole(BUILTIN_TOOLS, task.role);
     const historyStartIndex = this.toolContext.patchHistory?.length || 0;
-    let result = await this.runAgent(role, task.goal, task.context, tools);
+
+    // Surface relevant past lessons as context
+    const lessons = this.sessionManager ? this.sessionManager.getFailureLessons(task.role) : [];
+    let enrichedContext = task.context;
+    if (lessons.length > 0) {
+      const lessonBlock = lessons.map(l =>
+        `[LESSON] Previously failed on: "${l.error_snippet}" -> resolution: ${l.resolution} (occurred ${l.used_count}x)`
+      ).join('\n');
+      enrichedContext = `${lessonBlock}\n\n${task.context}`;
+    }
+
+    let result = await this.runAgent(role, task.goal, enrichedContext, tools);
 
     if (this.toolContext.abortSignal.aborted) {
       this.results.push({
@@ -545,6 +556,18 @@ export class Orchestrator {
     task.status = success ? 'completed' : 'failed';
     if (!success) {
       task.error = result.split('\n')[0] || 'Unknown failure';
+
+      // Log failure as a lesson for self-improvement
+      if (this.sessionManager) {
+        try {
+          this.sessionManager.saveFailureLesson({
+            task_role: task.role,
+            goal_keywords: task.goal.split(' ').slice(0, 5).join(' '),
+            error_snippet: task.error.slice(0, 200),
+            resolution: 'Pending — retry may succeed with different approach',
+          });
+        } catch { /* session not available */ }
+      }
     }
 
     this.results.push({
@@ -556,6 +579,28 @@ export class Orchestrator {
     });
 
     console.log(`[OK] ${role.name} completed`);
+
+    // Post-task review if task touched files
+    if (success && this.sessionManager && task.role !== 'reviewer') {
+      try {
+        const reviewerRole = getAgentRole('reviewer');
+        if (reviewerRole && !reviewerRole.canDelegate) {
+          const reviewContext = `TASK: ${task.goal}\n\nAgent result:\n${result}\n\nReview the files that were touched for this task. Use git_diff or list files modified recently. Check for syntax errors, correctness, and project health.`;
+          const reviewTools = filterToolsForRole(BUILTIN_TOOLS, 'reviewer');
+          const review = await this.runAgent(reviewerRole, `Review files from task: ${task.goal}`, reviewContext, reviewTools);
+          // Update project status from review
+          try {
+            const buildStatus = /build.*pass|no errors|pass/i.test(review) ? 'passing' : 'needs_attention';
+            this.sessionManager.saveProjectStatus({
+              build_status: buildStatus,
+              test_status: /test.*pass|no failures/i.test(review) ? 'passing' : 'unknown',
+              key_concerns: review.split('\n').filter(l => /ERROR|FAIL|STOP|needs_fix/i.test(l)).slice(0, 3).join('; '),
+              last_reviewed_at: Date.now(),
+            });
+          } catch { /* status save failed, non-critical */ }
+        }
+      } catch { /* review failed, non-critical */ }
+    }
   }
 
   private async runAgent(
@@ -629,7 +674,7 @@ export class Orchestrator {
             return `Agent aborted: too many patch failures on ${patchFailureFile}.\nLast error from patch tool: ${results.find(r => /patch.*Syntax error/.test(r.content || ''))?.content || 'unknown'}\nFix the TypeScript error in that file before retrying.`;
           }
         } else if (!hadPatchFailure) {
-          for (const [file] of patchFailures) {
+          for (const [file] of Array.from(patchFailures)) {
             patchFailures.set(file, 0);
           }
         }
