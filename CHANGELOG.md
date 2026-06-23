@@ -1,3 +1,10 @@
+## [1.22.6](https://github.com/bgill55/daedalus/compare/v1.22.5...v1.22.6) (2026-06-23)
+
+
+### Bug Fixes
+
+* deduplicate coder tasks by file path and block GUI test runners from plans ([3c156c3](https://github.com/bgill55/daedalus/commit/3c156c3baccc617e5075dbbf668fb71a20bab703))
+
 ## [1.22.5](https://github.com/bgill55/daedalus/compare/v1.22.4...v1.22.5) (2026-06-23)
 
 
