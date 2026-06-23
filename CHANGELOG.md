@@ -1,3 +1,10 @@
+## [1.22.4](https://github.com/bgill55/daedalus/compare/v1.22.3...v1.22.4) (2026-06-23)
+
+
+### Bug Fixes
+
+* improve orchestrate planner reliability and watchdog behavior ([81de52e](https://github.com/bgill55/daedalus/commit/81de52e5266a7a2737c9278cefb41dea9e2c740e))
+
 ## [1.22.3](https://github.com/bgill55/daedalus/compare/v1.22.2...v1.22.3) (2026-06-23)
 
 
