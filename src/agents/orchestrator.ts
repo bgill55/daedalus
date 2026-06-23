@@ -811,8 +811,11 @@ export class Orchestrator {
   }
 
   private hasRealWrites(result: string): boolean {
-    if (/(created|wrote|added|updated)\s+[A-Za-z0-9_\-./]+/i.test(result)) return true;
-    return this.extractPendingWrites(result).length > 0;
+    const claimed = this.extractPendingWrites(result);
+    if (claimed.length === 0) return false;
+    const history = this.toolContext.patchHistory || [];
+    const historyPaths = new Set(history.map(h => (h.filePath || '').replace(/\\/g, '/')));
+    return claimed.some(p => historyPaths.has(p.replace(/\\/g, '/')) || fs.existsSync(p));
   }
 
   private verifyArtifactsThoroughly(role: string, goal: string, result: string): boolean {
