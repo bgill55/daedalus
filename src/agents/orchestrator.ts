@@ -520,12 +520,33 @@ export class Orchestrator {
   private static filterValidTasks(tasks: DelegationTask[]): DelegationTask[] {
     const doneRe = /\b(open|launch|start|run|execute)\b.*\b(file|editor|IDE|app|application|browser|window)\b|\b(commit|push)\b.*\b(git|github|gitlab)\b|\b(use|press|click|type)\b.*\b(mouse|keyboard|key|button)\b/i;
     const metaSaveRe = /\b(save|write)\s+(the\s+)?(changes|file)\b(?!.*\b(to|with|containing|including|featuring)\b)/i;
-    return tasks.filter(t => {
-      if (doneRe.test(t.goal)) return false;
-      if (metaSaveRe.test(t.goal)) return false;
-      if (t.goal.length < 5) return false;
-      return true;
-    });
+    const guiTestRe = /\b(cypress|playwright|puppeteer|selenium)\b/i;
+
+    const seen = new Map<string, DelegationTask>();
+    const out: DelegationTask[] = [];
+
+    for (const t of tasks) {
+      if (doneRe.test(t.goal)) continue;
+      if (metaSaveRe.test(t.goal)) continue;
+      if (t.goal.length < 5) continue;
+      if (guiTestRe.test(t.goal)) continue;
+
+      const lower = t.goal.toLowerCase();
+      if (t.role === 'coder') {
+        const pathMatch = lower.match(/([a-z0-9_\-./\\:]+\.[a-z0-9]+)/i);
+        const key = pathMatch ? `${t.role}:${pathMatch[1]}` : `${t.role}:${lower}`;
+        if (seen.has(key)) {
+          const existing = seen.get(key)!;
+          if (t.goal.length > existing.goal.length) existing.goal = t.goal;
+          continue;
+        }
+        seen.set(key, t);
+      }
+
+      out.push(t);
+    }
+
+    return out;
   }
 
   private static stripCodeBlocks(text: string): string {
