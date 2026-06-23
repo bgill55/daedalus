@@ -22,6 +22,9 @@ const BLOCKED_ENV_KEYS = new Set([
 // Commands that install third-party packages — requires DAEDALUS_ALLOW_INSTALL=true
 const INSTALL_COMMAND_RE = /(?:^|\s)(?:npm\s+(?:install|i|ci|add)|npx\s|pip\d?\s+install|cargo\s+install|go\s+install|gem\s+install|brew\s+install|choco\s+install|winget\s+install|yarn\s+(?:add|install)|pnpm\s+(?:add|install|i|ci)|bun\s+(?:add|install))(?:\s|$)/i;
 
+// Commands that open GUI / interactive apps that should not run unattended
+const GUI_LAUNCH_RE = /(?:^|\s)(?:cypress\s+open|cypress\s+run\s+--headed|playwright\s+test\s+--headed)(?:\s|$)/i;
+
 function sanitizeEnv(): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = {};
   for (const [key, value] of Object.entries(process.env)) {
@@ -81,6 +84,17 @@ export async function execute(args: { command: string; timeout?: number; workdir
       success: false,
       content: '',
       error: `Install command blocked. Set DAEDALUS_ALLOW_INSTALL=true to allow: ${command.slice(0, 200)}`,
+    });
+  }
+
+  // Gate: GUI/interactive app launchers are blocked in non-interactive orchestration
+  if (GUI_LAUNCH_RE.test(command)) {
+    return Promise.resolve({
+      toolCallId: '',
+      name: 'terminal',
+      success: false,
+      content: '',
+      error: `GUI launch blocked: ${command.slice(0, 200)}`,
     });
   }
 
