@@ -1,3 +1,10 @@
+## [1.22.5](https://github.com/bgill55/daedalus/compare/v1.22.4...v1.22.5) (2026-06-23)
+
+
+### Bug Fixes
+
+* block GUI app launchers (cypress/playwright) from terminal tool ([de02e1e](https://github.com/bgill55/daedalus/commit/de02e1e0bec9fc8e445cd755edeb7e32d80dc7c1))
+
 ## [1.22.4](https://github.com/bgill55/daedalus/compare/v1.22.3...v1.22.4) (2026-06-23)
 
 
