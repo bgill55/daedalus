@@ -1,3 +1,10 @@
+## [1.21.5](https://github.com/bgill55/daedalus/compare/v1.21.4...v1.21.5) (2026-06-23)
+
+
+### Bug Fixes
+
+* **patch:** add line-level error attribution so pre-existing TS errors don't block edits ([6437331](https://github.com/bgill55/daedalus/commit/64373312239318a6f9dcfa165a319ebb47c069d0))
+
 ## [1.21.4](https://github.com/bgill55/daedalus/compare/v1.21.3...v1.21.4) (2026-06-22)
 
 
