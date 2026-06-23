@@ -1,3 +1,10 @@
+## [1.22.7](https://github.com/bgill55/daedalus/compare/v1.22.6...v1.22.7) (2026-06-23)
+
+
+### Bug Fixes
+
+* require real patch evidence for artifact verification ([453d47f](https://github.com/bgill55/daedalus/commit/453d47fc117f1a96f7c2044e22dfacbddc0133d2))
+
 ## [1.22.6](https://github.com/bgill55/daedalus/compare/v1.22.5...v1.22.6) (2026-06-23)
 
 
