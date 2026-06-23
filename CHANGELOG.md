@@ -1,3 +1,11 @@
+## [1.22.1](https://github.com/bgill55/daedalus/compare/v1.22.0...v1.22.1) (2026-06-23)
+
+
+### Bug Fixes
+
+* resolve orchestrator delegateTask test failure and clean up all lint warnings ([9c6ed59](https://github.com/bgill55/daedalus/commit/9c6ed59012283e40da97209dd6f6376fd1220fca))
+* restore DiffOptions type import in files.ts ([3243f31](https://github.com/bgill55/daedalus/commit/3243f31e86998878d9f241e5555c03214f676e72))
+
 # [1.22.0](https://github.com/bgill55/daedalus/compare/v1.21.5...v1.22.0) (2026-06-23)
 
 
