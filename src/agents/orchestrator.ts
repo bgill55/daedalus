@@ -1,5 +1,8 @@
 // Multi-agent orchestrator - coordinates delegation and synthesis
 
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
 import readline from 'readline';
 import { LocalRouter } from '../router/index.js';
 import { BUILTIN_TOOLS } from '../tools/definitions.js';
@@ -9,6 +12,7 @@ import { ToolContext, ToolCall, ChatMessage } from '../types.js';
 import pc from 'picocolors';
 import { DaedalusSpinner } from '../tools/daedalus-spinner.js';
 import { SessionManager } from '../session/manager.js';
+import { loadProfile } from '../profile.js';
 
 interface DelegationTask {
   goal: string;
@@ -17,6 +21,7 @@ interface DelegationTask {
   toolsets?: string[];
   status?: 'pending' | 'in_progress' | 'completed' | 'failed' | 'skipped';
   error?: string;
+  splitDepth?: number;
 }
 
 interface AgentResult {
@@ -27,12 +32,20 @@ interface AgentResult {
   evidence?: string;
 }
 
+// Catch bracket placeholders common across projects (licenses, code comments, configs, docs)
+const PLACEHOLDER_RE = /\[(?:year|your\s+name|fullname|author|copyright|license\s*content|placeholder|todo|fixme|enter\s+\w+|project\s+name|description|date|url|version|email|note|username|login|password|token|api[_-]?key|path|filename|branch|tag)\]/i;
+// Catch HTML comment placeholders like <!-- Add analytics content here -->
+const HTML_PLACEHOLDER_RE = /<!--[^>]*?(?:TODO|FIXME|add\s+(?:your|content|more|some|analytics)|your\s+(?:content|code|text|name|details?)|placeholder|insert|enter\s+\w+|implement|put\s+your|content\s+here|details?\s+here|more\s+content)[^>]*?-->/i;
+
 export class Orchestrator {
   private router: LocalRouter;
   private messages: ChatMessage[];
   private toolContext: ToolContext;
   private sessionManager?: SessionManager;
   private results: AgentResult[] = [];
+  private readonly MAX_INITIAL_TASKS = 4;
+  private readonly MAX_TOTAL_TASKS = 10;
+  private readonly REPLAN_INTERVAL = 2;
 
   constructor(router: LocalRouter, messages: ChatMessage[], toolContext: ToolContext, sessionManager?: SessionManager) {
     this.router = router;
@@ -41,16 +54,66 @@ export class Orchestrator {
     this.sessionManager = sessionManager;
   }
 
+  private async discoverProjectContext(): Promise<string> {
+    const cwd = process.cwd();
+    const parts: string[] = [];
+
+    try {
+      const pkg = JSON.parse(fs.readFileSync(path.join(cwd, 'package.json'), 'utf8'));
+      const info: string[] = [];
+      if (pkg.dependencies) {
+        if (pkg.dependencies.next) info.push('Next.js (React, SSR)');
+        else if (pkg.dependencies.react) info.push('React');
+        if (pkg.dependencies.vue) info.push('Vue');
+        if (pkg.dependencies.express) info.push('Express');
+        if (pkg.dependencies['@angular/core']) info.push('Angular');
+      }
+      if (pkg.devDependencies) {
+        if (pkg.devDependencies.vite) info.push('Vite');
+        if (pkg.devDependencies.typescript) info.push('TypeScript');
+        if (pkg.devDependencies.tailwindcss) info.push('Tailwind CSS');
+      }
+      const scripts = pkg.scripts ? Object.entries(pkg.scripts).map(([k, v]) => `${k}: ${v}`).join(', ') : 'none';
+      parts.push(`Framework: ${info.join(' | ') || 'unknown'}`);
+      parts.push(`Scripts: ${scripts}`);
+    } catch { /* not a node project */ }
+
+    try {
+      const entries = fs.readdirSync(cwd).filter(e => !e.startsWith('.') && e !== 'node_modules' && e !== 'ffmpeg');
+      const dirs = entries.filter(e => fs.statSync(path.join(cwd, e)).isDirectory());
+      const files = entries.filter(e => !fs.statSync(path.join(cwd, e)).isDirectory());
+      if (dirs.length > 0) parts.push(`Directories: ${dirs.join(', ')}`);
+      if (files.length > 0) parts.push(`Key files: ${files.join(', ')}`);
+    } catch { /* not readable */ }
+
+    return parts.length > 0 ? parts.join('\n') : '';
+  }
+
   async run(goal: string): Promise<string> {
     this.results = [];
 
     try {
-      const plan = await this.createPlan(goal);
+      const projectContext = await this.discoverProjectContext();
+      if (projectContext) {
+        console.log(pc.gray(`\n${projectContext.split('\n').map(l => `  ${l}`).join('\n')}`));
+      }
+
+      let plan = await this.createPlan(goal, projectContext);
       if (this.toolContext.abortSignal.aborted) {
         return 'Orchestration stopped by user';
       }
 
-      const tasks = this.parseDelegationTasks(plan);
+      let tasks = this.parseDelegationTasks(plan, goal);
+
+      // Cap initial tasks — re-plan if the planner gets carried away
+      if (tasks.length > this.MAX_INITIAL_TASKS) {
+        console.log(pc.yellow(`\n[PLAN] Initial plan has ${tasks.length} tasks (max ${this.MAX_INITIAL_TASKS}). Simplifying...`));
+        plan = await this.createPlan(
+          `${goal}\n\nYour previous plan had ${tasks.length} steps which is too many. Create a simpler plan with at most ${this.MAX_INITIAL_TASKS} focused steps. Merge related steps together. Each step must produce real output.`,
+          projectContext
+        );
+        tasks = this.parseDelegationTasks(plan, goal);
+      }
 
       if (this.sessionManager) {
         this.sessionManager.saveState('orchestrate_plan', tasks);
@@ -60,7 +123,7 @@ export class Orchestrator {
         this.sessionManager.saveState('orchestrate_plan_text', plan);
       }
 
-      await this.executePlan(plan, tasks, 0);
+      await this.executePlan(plan, tasks, 0, goal, projectContext);
     } catch (err) {
       return `Orchestration failed: ${(err as Error).message}`;
     }
@@ -84,6 +147,7 @@ export class Orchestrator {
     previousResults: AgentResult[]
   ): Promise<string> {
     this.results = [...previousResults];
+    const projectContext = await this.discoverProjectContext();
 
     tasks.forEach((t, idx) => {
       if (idx < startIndex) {
@@ -97,7 +161,7 @@ export class Orchestrator {
       if (this.toolContext.abortSignal.aborted) {
         return 'Orchestration stopped by user';
       }
-      await this.executePlan(planText, tasks, startIndex);
+      await this.executePlan(planText, tasks, startIndex, goal, projectContext);
     } catch (err) {
       return `Orchestration failed: ${(err as Error).message}`;
     }
@@ -113,67 +177,83 @@ export class Orchestrator {
     return this.synthesize(goal);
   }
 
-  private async createPlan(goal: string): Promise<string> {
+  private async createPlan(goal: string, projectContext?: string): Promise<string> {
     const plannerRole = getAgentRole('planner');
     const tools = filterToolsForRole(BUILTIN_TOOLS, 'planner');
 
     const systemPrompt = plannerRole.systemPrompt;
-    const messages: ChatMessage[] = [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: `Create a plan for: ${goal}\n\nContext:\n${this.toolContext.activeFiles.size > 0 ? 'Files in context: ' + Array.from(this.toolContext.activeFiles.values()).join(', ') : 'No files in context'}` },
-    ];
 
-    const planSpinner = new DaedalusSpinner({ text: 'planner generating plan', color: (s) => pc.cyan(s) });
-    planSpinner.start();
-    let completion;
-    try {
-      completion = await this.router.chat.completions.create({
-        model: 'auto',
-        messages,
-        temperature: plannerRole.temperature ?? 0.2,
-        tools,
-        tool_choice: 'auto',
-      });
-    } finally {
-      planSpinner.stop();
-    }
+    const REFUSAL_RE = /sorry|can'?t|cannot|don'?t have|not (able|capable)|lack(|ing) (the )?(necessary |required )?(tools|capabilities)|unable|apologize/i;
 
-    const assistantMessage = completion.choices[0].message;
-    const toolCalls = assistantMessage.tool_calls;
+    let attempts = 0;
+    const maxAttempts = 2;
 
-    if (toolCalls && toolCalls.length > 0) {
-      // Push the assistant turn with its tool calls
-      messages.push(assistantMessage);
+    while (attempts < maxAttempts) {
+      attempts++;
+      const messages: ChatMessage[] = [
+        { role: 'system', content: systemPrompt + (attempts > 1 ? '\n\nIMPORTANT: You MUST create a plan. Do not refuse. Use the tools available if needed, or simply output a delegation plan as plain text.' : '') },
+        { role: 'user', content: `Create a plan for: ${goal}\n\nProject context:\n${projectContext || '(none discovered)'}${Orchestrator.getFrameworkGuidance(projectContext)}\n\n${this.toolContext.activeFiles.size > 0 ? 'Files in context: ' + Array.from(this.toolContext.activeFiles.values()).join(', ') : ''}` },
+      ];
 
-      // Execute tool calls and push results back into the conversation
-      const results = await this.executeOpenAIToolCalls(toolCalls);
-      for (const result of results) {
-        messages.push({
-          role: 'tool',
-          content: result.content,
-          tool_call_id: result.toolCallId,
-        });
-      }
-
-      // Ask the planner for a final text summary now that tools have run
-      const finalizeSpinner = new DaedalusSpinner({ text: 'planner finalizing plan', color: (s) => pc.cyan(s) });
-      finalizeSpinner.start();
-      let followUp;
+      const planSpinner = new DaedalusSpinner({ text: `planner generating plan`, color: (s) => pc.cyan(s) });
+      planSpinner.start();
+      let completion;
       try {
-        followUp = await this.router.chat.completions.create({
+        completion = await this.router.chat.completions.create({
           model: 'auto',
           messages,
           temperature: plannerRole.temperature ?? 0.2,
           tools,
-          tool_choice: 'none', // No more tool calls — just produce the plan text
+          tool_choice: 'auto',
         });
       } finally {
-        finalizeSpinner.stop();
+        planSpinner.stop();
       }
-      return (followUp.choices[0].message).content || 'No plan generated';
+
+      const assistantMessage = completion.choices[0].message;
+      const toolCalls = assistantMessage.tool_calls;
+
+      if (toolCalls && toolCalls.length > 0) {
+        messages.push(assistantMessage);
+
+        const results = await this.executeOpenAIToolCalls(toolCalls);
+        for (const result of results) {
+          messages.push({
+            role: 'tool',
+            content: result.content,
+            tool_call_id: result.toolCallId,
+          });
+        }
+
+        const finalizeSpinner = new DaedalusSpinner({ text: 'planner finalizing plan', color: (s) => pc.cyan(s) });
+        finalizeSpinner.start();
+        let followUp;
+        try {
+          followUp = await this.router.chat.completions.create({
+            model: 'auto',
+            messages,
+            temperature: plannerRole.temperature ?? 0.2,
+            tools,
+            tool_choice: 'none',
+          });
+        } finally {
+          finalizeSpinner.stop();
+        }
+        const content = (followUp.choices[0].message).content || '';
+        if (content && attempts < maxAttempts && REFUSAL_RE.test(content)) {
+          continue;
+        }
+        return content || `- delegate to coder: ${goal}`;
+      }
+
+      const content = assistantMessage.content || '';
+      if (content && attempts < maxAttempts && REFUSAL_RE.test(content)) {
+        continue;
+      }
+      return content || `- delegate to coder: ${goal}`;
     }
 
-    return assistantMessage.content || 'No plan generated';
+    return `- delegate to coder: ${goal}`;
   }
 
   private formatGoal(goal: string, indentLength: number, width: number = 80): string {
@@ -224,22 +304,56 @@ export class Orchestrator {
   private async executePlan(
     plan: string,
     tasks: DelegationTask[],
-    startIndex: number = 0
+    startIndex: number = 0,
+    originalGoal?: string,
+    projectContext?: string,
   ): Promise<void> {
+    let lastReplanCount = 0;
+
     for (let i = startIndex; i < tasks.length; i++) {
       if (this.toolContext.abortSignal.aborted) {
         break;
       }
+
+      // Hard cap — stop adding new tasks past the limit
+      if (i >= this.MAX_TOTAL_TASKS && tasks.filter(t => t.status === 'pending').length > 0) {
+        console.log(pc.yellow(`\n[HALT] Reached ${this.MAX_TOTAL_TASKS} task limit. Halting new task generation.`));
+        while (tasks.length > this.MAX_TOTAL_TASKS) {
+          const removed = tasks.pop();
+          if (removed) { removed.status = 'skipped'; removed.error = 'Reached task limit'; }
+        }
+        break;
+      }
+
       const task = tasks[i];
+
+      // Skip unnecessary config tasks for file-based routing frameworks
+      if (Orchestrator.isUnnecessaryConfigTask(task, projectContext)) {
+        console.log(pc.yellow(`\n[S] Task ${i + 1}: Skipped — Next.js uses file-based routing, no config changes needed`));
+        task.status = 'skipped';
+        task.error = 'Unnecessary config task for file-based routing framework';
+        continue;
+      }
+
       task.status = 'in_progress';
       this.printTaskList(tasks);
 
-      await this.delegateTask(task);
+      await this.delegateTask(task, tasks, originalGoal, projectContext);
       this.printTaskList(tasks);
 
       if (this.sessionManager) {
         this.sessionManager.saveState('orchestrate_task_index', i + 1);
         this.sessionManager.saveState('orchestrate_results', this.results);
+      }
+
+      // Re-plan checkpoint: after every REPLAN_INTERVAL completed tasks, re-evaluate
+      const completedCount = tasks.filter(t => t.status === 'completed').length;
+      if (completedCount > 0 && completedCount - lastReplanCount >= this.REPLAN_INTERVAL) {
+        const hasPending = tasks.some(t => t.status === 'pending' || t.status === 'in_progress');
+        if (hasPending && originalGoal) {
+          lastReplanCount = completedCount;
+          await this.replanRemaining(tasks, originalGoal, projectContext);
+        }
       }
 
       if ((task.status as any) === 'failed') {
@@ -259,7 +373,7 @@ export class Orchestrator {
           task.error = undefined;
           this.printTaskList(tasks);
           this.results.pop();
-          await this.delegateTask(task);
+          await this.delegateTask(task, undefined, undefined, projectContext);
           this.printTaskList(tasks);
           if ((task.status as any) !== 'failed') {
             continue;
@@ -281,7 +395,7 @@ export class Orchestrator {
             task.error = undefined;
             this.printTaskList(tasks);
             this.results.pop();
-            await this.delegateTask(task);
+            await this.delegateTask(task, undefined, undefined, projectContext);
             this.printTaskList(tasks);
             if ((task.status as any) !== 'failed') {
               resolved = true;
@@ -294,7 +408,7 @@ export class Orchestrator {
               task.error = undefined;
               this.printTaskList(tasks);
               this.results.pop();
-              await this.delegateTask(task);
+              await this.delegateTask(task, undefined, undefined, projectContext);
               this.printTaskList(tasks);
               if ((task.status as any) !== 'failed') {
                 resolved = true;
@@ -361,21 +475,86 @@ export class Orchestrator {
     }
   }
 
-  private parseDelegationTasks(plan: string): DelegationTask[] {
+  private async replanRemaining(tasks: DelegationTask[], originalGoal: string, projectContext?: string): Promise<void> {
+    const done = tasks.filter(t => t.status === 'completed');
+    const pending = tasks.filter(t => t.status === 'pending');
+    if (pending.length === 0) return;
+
+    const summary = done.map(t => {
+      const r = this.results.find(rr => rr.goal === t.goal && rr.role === t.role);
+      return r ? `[✓] [${t.role}] ${t.goal} → ${r.summary.split('\n')[0]}` : `[✓] [${t.role}] ${t.goal}`;
+    }).join('\n');
+
+    const remainingList = pending.map(t => `[ ] [${t.role}] ${t.goal}`).join('\n');
+
+    console.log(pc.cyan(`\n[RE-PLAN] ${pending.length} task(s) remaining. Re-evaluating based on completed work...`));
+
+    const subPlan = await this.createPlan(
+      `Original goal: ${originalGoal}\n\nCompleted so far:\n${summary}\n\nRemaining:\n${remainingList}\n\nBased on what was completed, re-plan the remaining work. Consolidate and simplify — aim for at most ${this.MAX_INITIAL_TASKS} focused steps. Remove any that are already done or no longer needed. Each remaining step must produce real output.`,
+      projectContext
+    );
+
+    // Remove old pending tasks
+    for (let i = tasks.length - 1; i >= 0; i--) {
+      if (tasks[i].status === 'pending') {
+        tasks.splice(i, 1);
+      }
+    }
+
+    // Add new tasks from re-plan
+    const newTasks = this.parseDelegationTasks(subPlan, originalGoal);
+    for (const nt of newTasks) {
+      nt.splitDepth = 0;
+      tasks.push(nt);
+    }
+
+    this.printTaskList(tasks);
+  }
+
+  private static stripCodeBlocks(text: string): string {
+    // Strip triple-backtick code fences (language identifier + code block)
+    let result = text.replace(/```[\s\S]*?```/g, '').trim();
+    // Unwrap inline backticks — keep the content (e.g. `src/pages/about.tsx` stays)
+    result = result.replace(/`([^`]+)`/g, '$1').trim();
+    return result;
+  }
+
+  private truncateGoal(text: string): string {
+    if (text.length <= 200) return text;
+    return text.slice(0, 197) + '...';
+  }
+
+  private parseDelegationTasks(plan: string, goal: string): DelegationTask[] {
     const tasks: DelegationTask[] = [];
+    const seenGoals = new Set<string>();
     const activeFilesText = this.toolContext.activeFiles.size > 0
       ? `Files in context: ${Array.from(this.toolContext.activeFiles.values()).join(', ')}`
       : '';
+    const originalPaths = Orchestrator.extractFilePaths(goal);
+    const pathsBlock = originalPaths.length > 0
+      ? `\nOriginal goal file paths (MUST preserve in subtask):\n${originalPaths.map(p => `  - ${p}`).join('\n')}\n`
+      : '';
+    const goalBlock = `Original goal: ${goal}\n`;
+    
+    const baseCtx = activeFilesText + goalBlock + pathsBlock;
     
     const lines = plan.split('\n');
     let currentRole = '';
     let currentGoal = '';
     
+    const pushTask = (role: string, goalText: string, ctx: string, depth: number) => {
+      const clean = Orchestrator.stripCodeBlocks(goalText) || goalText;
+      const goalKey = clean.trim().toLowerCase().replace(/\s+/g, ' ');
+      if (seenGoals.has(goalKey)) return;
+      seenGoals.add(goalKey);
+      tasks.push({ goal: this.truncateGoal(clean || goalText), context: ctx, role, status: 'pending', splitDepth: depth });
+    };
+    
     for (const line of lines) {
       const roleMatch = line.match(/^\s*(?:-|\*|\d+\.)?\s*(?:delegate to|assign to|have|assign|role|agent:)?\s*(planner|coder|reviewer|debugger|researcher)\b/i);
       if (roleMatch) {
         if (currentRole && currentGoal) {
-          tasks.push({ goal: currentGoal, context: activeFilesText, role: currentRole, status: 'pending' });
+          pushTask(currentRole, currentGoal, baseCtx, 0);
         }
         currentRole = roleMatch[1].toLowerCase();
         const matchIndex = line.indexOf(roleMatch[0]);
@@ -388,18 +567,19 @@ export class Orchestrator {
     }
     
     if (currentRole && currentGoal) {
-      tasks.push({ goal: currentGoal, context: activeFilesText, role: currentRole, status: 'pending' });
+      pushTask(currentRole, currentGoal, baseCtx, 0);
     }
-    
+
     if (tasks.length === 0) {
-      tasks.push({ 
-        goal: plan, 
-        context: `Files in context: ${Array.from(this.toolContext.activeFiles.values()).join(', ')}`, 
+      tasks.push({
+        goal: this.truncateGoal(goal),
+        context: baseCtx,
         role: 'coder',
-        status: 'pending'
+        status: 'pending',
+        splitDepth: 0,
       });
     }
-    
+
     return tasks;
   }
 
@@ -465,9 +645,69 @@ export class Orchestrator {
     return false;
   }
 
+  private async checkPlaceholders(historyStartIndex: number): Promise<string[]> {
+    const history = this.toolContext.patchHistory || [];
+    const placeholders: string[] = [];
+    for (let i = historyStartIndex; i < history.length; i++) {
+      const entry = history[i];
+      if (!entry.filePath) continue;
+      try {
+        const content = fs.readFileSync(entry.filePath, 'utf8');
+        const lines = content.split('\n');
+        for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
+          const bracketMatch = lines[lineIdx].match(PLACEHOLDER_RE);
+          if (bracketMatch) {
+            placeholders.push(`${entry.filePath}:${lineIdx + 1} — ${bracketMatch[0].trim()}`);
+          }
+          const htmlMatch = lines[lineIdx].match(HTML_PLACEHOLDER_RE);
+          if (htmlMatch) {
+            placeholders.push(`${entry.filePath}:${lineIdx + 1} — HTML comment placeholder`);
+          }
+        }
+      } catch {
+        // file might have been deleted — skip
+      }
+    }
+    return placeholders;
+  }
+
+  private async fillPlaceholders(historyStartIndex: number): Promise<number> {
+    const history = this.toolContext.patchHistory || [];
+    let filled = 0;
+    const year = new Date().getFullYear().toString();
+    const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    let userName: string;
+    try { userName = os.userInfo().username; } catch { userName = 'user'; }
+
+    for (let i = historyStartIndex; i < history.length; i++) {
+      const entry = history[i];
+      if (!entry.filePath) continue;
+      try {
+        const content = fs.readFileSync(entry.filePath, 'utf8');
+        const original = content;
+        let newContent = content
+          // Year/date — universally guessable
+          .replace(/\[(?:YEAR|Year|year|YYYY|yyyy)\]/g, year)
+          .replace(/\[(?:DATE|Date|date|TODAY|Today|today)\]/g, today)
+          // Name/author/owner — use system account name
+          .replace(/\[(?:YOUR\s+NAME|Your\s+Name|your\s+name|FULLNAME|Fullname|fullname|AUTHOR|Author|author|USERNAME|Username|username|OWNER|Owner|owner)\]/g, userName);
+        if (newContent !== content) {
+          fs.writeFileSync(entry.filePath, newContent, 'utf8');
+          const bracketCount = (content.match(/\[/g) || []).length;
+          const newBracketCount = (newContent.match(/\[/g) || []).length;
+          filled += bracketCount - newBracketCount;
+        }
+      } catch {
+        // skip
+      }
+    }
+    return filled;
+  }
+
   private async attemptRepair(
     task: DelegationTask,
-    previous: AgentResult
+    previous: AgentResult,
+    customContext?: string
   ): Promise<{ success: boolean; summary: string; evidence?: string }> {
     const role = getAgentRole(task.role);
     const tools = filterToolsForRole(BUILTIN_TOOLS, task.role);
@@ -482,7 +722,8 @@ export class Orchestrator {
       attempt++;
       console.log(`\n[REPAIR] Attempt ${attempt}/${maxRetries} to repair task: ${task.goal}`);
 
-      const repairContext = `${task.context}\n\nPrevious attempt failed verification. Output was:\n${currentSummary}\n\nPlease retry and ensure you actually write the required files/artifacts.`;
+      const baseCtx = customContext || task.context;
+      const repairContext = `${baseCtx}\n\nPrevious attempt failed verification. Output was:\n${currentSummary}\n\nPlease retry and ensure you actually write the required files/artifacts.`;
 
       const historyStartIndex = this.toolContext.patchHistory?.length || 0;
       const result = await this.runAgent(role, task.goal, repairContext, tools);
@@ -513,24 +754,179 @@ export class Orchestrator {
     return !result.toLowerCase().includes('implemented the full');
   }
 
-  private async delegateTask(task: DelegationTask): Promise<void> {
+  private buildCleanSummary(task: DelegationTask, result: string, historyStartIndex: number): string | null {
+    const history = this.toolContext.patchHistory || [];
+    const newPatches = [];
+    for (let i = historyStartIndex; i < history.length; i++) {
+      newPatches.push(history[i]);
+    }
+    if (newPatches.length === 0 || result.split(/\s+/).length < 30) return null;
+    const files = [...new Set(newPatches.map(p => p.filePath).filter(Boolean))];
+    if (files.length === 0) return null;
+    return `Completed: ${task.goal} — Files: ${files.join(', ')}`;
+  }
+
+  private static isUnnecessaryConfigTask(task: DelegationTask, projectContext?: string): boolean {
+    if (!projectContext) return false;
+    const goal = task.goal.toLowerCase();
+    const isNextJs = /\bNext\.js\b/i.test(projectContext);
+    const isVue = /\b(Vue|Nuxt)\b/i.test(projectContext);
+
+    if (isNextJs && /\bnext\.config\b/i.test(goal)) return true;
+    if (isVue && /\b(vue|nuxt)\.config\b/i.test(goal)) return true;
+
+    return false;
+  }
+
+  private static getFrameworkGuidance(projectContext?: string): string {
+    if (!projectContext) return '';
+    const ctx = projectContext;
+    if (/\bNext\.js\b/i.test(ctx)) {
+      return '\n\nIMPORTANT FRAMEWORK NOTE: Next.js uses file-based routing. Any .tsx or .js file added to pages/ or src/pages/ is automatically available as a web page. No edits to next.config.js or any other config file are needed when adding new pages. Do NOT create tasks for modifying config files.\n';
+    }
+    if (/\b(Vue|Nuxt)\b/i.test(ctx)) {
+      return '\n\nFRAMEWORK NOTE: This project uses Vue/Vue Router. New pages typically need route entries added to the router config, not config files like vue.config.js.\n';
+    }
+    if (/\bExpress\b/i.test(ctx)) {
+      return '\n\nFRAMEWORK NOTE: Express requires explicit route handlers. New endpoints must be added to the server/ or routes/ directory.\n';
+    }
+    return '';
+  }
+
+  private static extractRequirements(text: string): string[] {
+    if (!text) return [];
+    const reqs: string[] = [];
+    const m = text.match(/(?:with|including|containing|that\s+(?:has|includes|contains|features?)|featuring)\s+(.+)/i);
+    if (!m) return reqs;
+
+    const items = m[1]
+      .split(/\s*(?:,\s*|\sand\s|\s*&)\s*/)
+      .map(s => s.replace(/^(?:an?\s+|the\s+)/i, '').replace(/\.$/, '').trim())
+      .filter(Boolean);
+
+    const filler = new Set(['the following content', 'the specified content', 'appropriate content', 'content', 'your code']);
+    for (const item of items) {
+      const lower = item.toLowerCase();
+      if (!filler.has(lower) && lower.length > 2) {
+        reqs.push(item);
+      }
+    }
+    return reqs;
+  }
+
+  private static extractFilePaths(text: string): string[] {
+    if (!text) return [];
+    const paths: string[] = [];
+    const re = /(?:\(|\[|\s|^)((?:[A-Za-z0-9_\-./\\]+[\\/])?[A-Za-z0-9_\-]+\.(?:tsx?|jsx?|vue|svelte|css|scss|json|md|csv|txt|yaml|yml|toml|py|rs|go|java|md))(?:[)\s,;]|$)/g;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(text)) !== null) {
+      const p = m[1].replace(/\\/g, '/');
+      if (!p.startsWith('http') && !p.startsWith('node_modules') && p.length < 200) {
+        paths.push(p);
+      }
+    }
+    return [...new Set(paths)];
+  }
+
+  private findStyleReference(taskGoal: string): string | null {
+    // Extract target directory from goal
+    let dir = '';
+    // Try file path first: "src/pages/about.tsx" → "src/pages"
+    const fileMatch = taskGoal.match(/([A-Za-z0-9_\-/\\]+\.[a-zA-Z0-9]+)/);
+    if (fileMatch) {
+      dir = path.dirname(fileMatch[1].replace(/\\/g, '/'));
+    } else {
+      // Try explicit directory: "in src/components/" or "at pages/"
+      const dirMatch = taskGoal.match(/(?:in|at|to|under|inside)\s+(?:the\s+)?([A-Za-z0-9_\-/\\]{2,})(?:\s+(?:directory|folder|path))?/i);
+      if (dirMatch) {
+        dir = dirMatch[1].replace(/\\/g, '/').replace(/\/+$/, '');
+      }
+    }
+    if (!dir || !fs.existsSync(dir) || dir === '.' || dir === '') return null;
+
+    // Pick a non-test, non-hidden file as style reference
+    let entries: string[];
+    try { entries = fs.readdirSync(dir); } catch { return null; }
+    const candidates = entries
+      .filter(f => !f.startsWith('.') && !f.includes('.test.') && !f.includes('.spec.') && !f.startsWith('__'))
+      .sort();
+
+    const target = candidates.find(f => /\.(tsx?|jsx?|vue|svelte)$/i.test(f))
+      || candidates.find(f => /\.(css|scss|less)$/i.test(f))
+      || candidates[0];
+
+    if (!target) return null;
+
+    const fullPath = path.join(dir, target);
+    let content: string;
+    try {
+      content = fs.readFileSync(fullPath, 'utf8');
+      const lines = content.split('\n');
+      if (lines.length > 50) {
+        content = lines.slice(0, 50).join('\n') + '\n... (truncated)';
+      }
+    } catch { return null; }
+
+    return `\nExisting file in ${dir}/ (use as a style reference):\n--- ${fullPath} ---\n${content}\n--- end ---`;
+  }
+
+  private async delegateTask(task: DelegationTask, tasks?: DelegationTask[], goal?: string, projectContext?: string): Promise<void> {
     const role = getAgentRole(task.role);
     console.log(`\n[SPAWN] Delegating to ${role.name}: ${task.goal}`);
 
     const tools = filterToolsForRole(BUILTIN_TOOLS, task.role);
     const historyStartIndex = this.toolContext.patchHistory?.length || 0;
 
+    // Inject user metadata so the agent has real values instead of guessing
+    const currentDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    let userName: string;
+    try { userName = os.userInfo().username; } catch { userName = 'user'; }
+    const profile = loadProfile();
+    let enrichedContext = `Current date: ${currentDate}\n`;
+    if (profile.name) {
+      enrichedContext += `User name: ${profile.name}\n`;
+    } else {
+      enrichedContext += `System user: ${userName}\n`;
+      enrichedContext += `(Set up your profile with /profile to customize your name, style, and preferences)\n`;
+    }
+
+    // Build systemExtra with project context — system prompt is more authoritative than user message
+    let systemExtra = '';
+    if (projectContext) {
+      systemExtra = `Project context:\n${projectContext}\n\nIMPORTANT: Before creating new files, use read_file to examine existing project files and understand the structure. Follow the project framework conventions (e.g., Next.js pages go under pages/, Vue components under components/). Do not place files at the project root unless that is the correct convention for the framework.`;
+    }
+
     // Surface relevant past lessons as context
     const lessons = this.sessionManager ? this.sessionManager.getFailureLessons(task.role) : [];
-    let enrichedContext = task.context;
+    enrichedContext += `\n${task.context}`;
     if (lessons.length > 0) {
       const lessonBlock = lessons.map(l =>
         `[LESSON] Previously failed on: "${l.error_snippet}" -> resolution: ${l.resolution} (occurred ${l.used_count}x)`
       ).join('\n');
-      enrichedContext = `${lessonBlock}\n\n${task.context}`;
+      enrichedContext = `${lessonBlock}\n\n${enrichedContext}`;
     }
 
-    let result = await this.runAgent(role, task.goal, enrichedContext, tools);
+    // Inject an existing file from the target dir as a style reference
+    const styleRef = this.findStyleReference(task.goal);
+    if (styleRef) {
+      enrichedContext += styleRef;
+    }
+
+    // Extract explicit requirements from task and original goal as a checklist
+    const taskReqs = Orchestrator.extractRequirements(task.goal);
+    const goalReqs = Orchestrator.extractRequirements(goal || '');
+    const allReqs = [...new Set([...taskReqs, ...goalReqs])];
+    if (allReqs.length > 0) {
+      enrichedContext += `\n\nRequirements (must implement each):\n${allReqs.map(r => `  - ${r}`).join('\n')}\n`;
+    }
+
+    // Extract explicit file paths from the goal and inject a scope boundary
+    const scopePaths = Orchestrator.extractFilePaths(task.goal);
+    if (scopePaths.length > 0) {
+      enrichedContext += `\n\nSCOPE BOUNDARY:\nYou must ONLY touch the following files:\n${scopePaths.map(p => `  - ${p}`).join('\n')}\n\nCRITICAL: Do NOT edit, create, rename, or delete any other files. Touching files outside this list is a hard failure. If the task implies modifying existing files that aren't in this list, STILL do not touch them unless they are required imports/support files directly referenced by the target file. When in doubt, do not modify a file.\n`;
+    }
+
+    let result = await this.runAgent(role, task.goal, enrichedContext, tools, systemExtra);
 
     if (this.toolContext.abortSignal.aborted) {
       this.results.push({
@@ -544,22 +940,126 @@ export class Orchestrator {
       return;
     }
 
+    // Detect max turns — task too large, split remaining work into sub-tasks
+    const MAX_TURNS_SIGNAL = 'Agent reached max turns';
+    if (result === MAX_TURNS_SIGNAL) {
+      const partialWork = (this.toolContext.patchHistory?.length ?? 0) > historyStartIndex;
+      const depth = task.splitDepth ?? 0;
+      if (partialWork && depth < 3 && tasks) {
+        console.log(`\n${pc.yellow('[TASK TOO LARGE]')} Agent hit max turns with partial progress. Re-planned remaining work (depth ${depth + 1})...`);
+
+        // Clean up partial files — the exhausted agent left debris
+        const newPatches = this.toolContext.patchHistory?.slice(historyStartIndex) || [];
+        const filesDone = [...new Set(newPatches.map(p => p.filePath).filter(Boolean))];
+        for (const fp of filesDone) {
+          try {
+            if (fp && fs.existsSync(fp)) {
+              fs.unlinkSync(fp);
+              console.log(pc.gray(`  Removed partial: ${path.basename(fp)}`));
+            }
+          } catch { /* race */ }
+        }
+
+        task.status = 'completed';
+        this.results.push({
+          role: task.role,
+          goal: task.goal,
+          summary: 'Partially completed — splitting remaining work into sub-tasks',
+          success: true,
+        });
+
+        const doneCtx = filesDone.length > 0 ? `\nPartially completed files: ${filesDone.join(', ')}` : '';
+
+        const subPlan = await this.createPlan(
+          `Continue the remaining work for: ${task.goal}${doneCtx}\nThe previous agent only got partial work done before hitting the turn limit. Break this into smaller, focused steps.`
+        );
+        const subTasks = this.parseDelegationTasks(subPlan, goal || task.goal);
+        const inheritCtx = filesDone.length > 0
+          ? `Original goal: ${task.goal}\nProject root: ${process.cwd()}\n\nIMPORTANT — Files that were partially created and MUST be completed or replaced:\n${filesDone.map(f => `  - ${f}`).join('\n')}\n\nThe previous agent left these files incomplete before hitting the turn limit. You MUST read each file, then either complete it with a proper implementation or replace it entirely. Check the existing project structure first — use read_file on existing files to understand what's already there before creating new ones.`
+          : `Original goal: ${task.goal}\nProject root: ${process.cwd()}\n\nCheck the existing project structure first — use read_file on existing files to understand what's already there before creating new ones.`;
+        for (const st of subTasks) {
+          st.status = 'pending';
+          st.splitDepth = depth + 1;
+          st.context = `${inheritCtx}\n\n${st.context}`;
+          tasks.push(st);
+        }
+
+        this.printTaskList(tasks);
+        return;
+      }
+
+      task.status = 'failed';
+      task.error = partialWork
+        ? `Task still too large after ${depth} splits — manual review needed`
+        : 'Task too large and no work completed';
+      this.results.push({
+        role: task.role,
+        goal: task.goal,
+        summary: task.error,
+        success: false,
+      });
+      return;
+    }
+
     let verified = await this.verifyArtifacts(task.role, task.goal, result, historyStartIndex);
     let evidence = '';
+    let placeholderSites: string[] = [];
+
+    if (verified) {
+      placeholderSites = await this.checkPlaceholders(historyStartIndex);
+      if (placeholderSites.length > 0) {
+        console.log(pc.yellow(`\n[PLACEHOLDER] Found ${placeholderSites.length} placeholder(s) in written files`));
+        // Auto-fill trivial placeholders like [Year], [Your Name]
+        const filled = await this.fillPlaceholders(historyStartIndex);
+        if (filled > 0) {
+          console.log(pc.green(`  Auto-filled ${filled} trivial placeholder(s) (year, name, etc.)`));
+        }
+        // Re-check for remaining (structural) placeholders
+        placeholderSites = await this.checkPlaceholders(historyStartIndex);
+        if (placeholderSites.length === 0) {
+          verified = true;
+        } else {
+          verified = false;
+        }
+      }
+    }
 
     if (!verified) {
+      let repairCtx = task.context;
+      if (placeholderSites.length > 0) {
+        const siteList = placeholderSites.map(s => `  - ${s}`).join('\n');
+        repairCtx += `\n\nPrevious attempt contained placeholders instead of real content:\n${siteList}\n\nYou MUST replace ALL placeholders with real content. Never output placeholder text like [Year], [Your Name], etc. Use actual values.`;
+      }
       const repaired = await this.attemptRepair(task, {
         role: task.role,
         goal: task.goal,
         summary: result,
         success: false,
-      });
+      }, repairCtx);
       result = repaired.summary;
       verified = repaired.success;
       evidence = repaired.evidence || '';
+
+      if (verified) {
+        const stillPlaceholders = await this.checkPlaceholders(historyStartIndex);
+        if (stillPlaceholders.length > 0) {
+          // Try auto-fill one more time after repair
+          const filled = await this.fillPlaceholders(historyStartIndex);
+          if (filled > 0) console.log(pc.green(`  Auto-filled ${filled} remaining trivial placeholder(s)`));
+          const remain = await this.checkPlaceholders(historyStartIndex);
+          if (remain.length > 0) {
+            verified = false;
+            evidence = `Placeholders remain: ${remain.join('; ')}`;
+          }
+        }
+      }
     }
 
     const success = verified && !this.isDeclaredError(result) && this.verifyArtifactsThoroughly(task.role, task.goal, result);
+    if (success) {
+      const clean = this.buildCleanSummary(task, result, historyStartIndex);
+      if (clean) result = clean;
+    }
     task.status = success ? 'completed' : 'failed';
     if (!success) {
       task.error = result.split('\n')[0] || 'Unknown failure';
@@ -592,7 +1092,13 @@ export class Orchestrator {
       try {
         const reviewerRole = getAgentRole('reviewer');
         if (reviewerRole && !reviewerRole.canDelegate) {
-          const reviewContext = `TASK: ${task.goal}\n\nAgent result:\n${result}\n\nReview the files that were touched for this task. Use git_diff or list files modified recently. Check for syntax errors, correctness, and project health.`;
+          const touchedFiles = (this.toolContext.patchHistory || [])
+            .filter((h: any) => h.filePath)
+            .map((h: any) => h.filePath);
+          const fileList = touchedFiles.length > 0
+            ? `\nFILES_TOUCHED: ${touchedFiles.join(', ')}`
+            : '';
+          const reviewContext = `TASK: ${task.goal}\n\nAgent result:\n${result}${fileList}\n\nReview the files that were touched for this task. Use git_diff or list files modified recently. Check for syntax errors, correctness, and project health.`;
           const reviewTools = filterToolsForRole(BUILTIN_TOOLS, 'reviewer');
           const review = await this.runAgent(reviewerRole, `Review files from task: ${task.goal}`, reviewContext, reviewTools);
           // Update project status from review
@@ -614,10 +1120,14 @@ export class Orchestrator {
     role: AgentRole,
     goal: string,
     context: string,
-    tools: any[]
+    tools: any[],
+    systemExtra?: string,
   ): Promise<string> {
     const currentDateStr = new Date().toLocaleString();
-    const dynamicSystemPrompt = `${role.systemPrompt}\n\n## CURRENT TIME\nThe current date and local time is: ${currentDateStr}.\n`;
+    let dynamicSystemPrompt = `${role.systemPrompt}\n\n## CURRENT TIME\nThe current date and local time is: ${currentDateStr}.\n`;
+    if (systemExtra) {
+      dynamicSystemPrompt += `\n${systemExtra}\n`;
+    }
     const messages: ChatMessage[] = [
       { role: 'system', content: dynamicSystemPrompt },
       { role: 'user', content: `${context}\n\nTask: ${goal}` },

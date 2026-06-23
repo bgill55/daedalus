@@ -72,6 +72,14 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
 
       const onLine = (line: string) => {
         if (resolved) return;
+        // Non-interactive (piped): return single line immediately
+        // so "/orchestrate ...\n/exit" doesn't get joined into one input
+        if (!process.stdin.isTTY) {
+          resolved = true;
+          rl.off('line', onLine);
+          resolve(line);
+          return;
+        }
         lines.push(line);
         if (timer) clearTimeout(timer);
         timer = setTimeout(() => {

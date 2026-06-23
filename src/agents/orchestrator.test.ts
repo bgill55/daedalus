@@ -325,13 +325,13 @@ delegate to debugger fix tsconfig deprecations
     `;
     const { router: localRouter } = createMockRouter([]);
     const orch = new Orchestrator(localRouter, messages, toolContext);
-    const tasks = (orch as any).parseDelegationTasks(plan);
+    const tasks = (orch as any).parseDelegationTasks(plan, 'implement API');
 
     expect(tasks).toHaveLength(4);
-    expect(tasks[0]).toEqual({ role: 'coder', goal: 'Implement new API endpoint', context: '', status: 'pending' });
-    expect(tasks[1]).toEqual({ role: 'researcher', goal: 'Research credentials config', context: '', status: 'pending' });
-    expect(tasks[2]).toEqual({ role: 'reviewer', goal: 'Code quality check', context: '', status: 'pending' });
-    expect(tasks[3]).toEqual({ role: 'debugger', goal: 'fix tsconfig deprecations', context: '', status: 'pending' });
+    expect(tasks[0]).toEqual({ role: 'coder', goal: 'Implement new API endpoint', context: 'Original goal: implement API\n', status: 'pending', splitDepth: 0 });
+    expect(tasks[1]).toEqual({ role: 'researcher', goal: 'Research credentials config', context: 'Original goal: implement API\n', status: 'pending', splitDepth: 0 });
+    expect(tasks[2]).toEqual({ role: 'reviewer', goal: 'Code quality check', context: 'Original goal: implement API\n', status: 'pending', splitDepth: 0 });
+    expect(tasks[3]).toEqual({ role: 'debugger', goal: 'fix tsconfig deprecations', context: 'Original goal: implement API\n', status: 'pending', splitDepth: 0 });
   });
 
   it('parseDelegationTasks extracts prefix-less and bulleted role goals correctly', () => {
@@ -343,13 +343,13 @@ Debugger: fix deprecations
     `;
     const { router: localRouter } = createMockRouter([]);
     const orch = new Orchestrator(localRouter, messages, toolContext);
-    const tasks = (orch as any).parseDelegationTasks(plan);
+    const tasks = (orch as any).parseDelegationTasks(plan, 'implement OAuth');
 
     expect(tasks).toHaveLength(4);
-    expect(tasks[0]).toEqual({ role: 'coder', goal: 'Implement OAuth flow', context: '', status: 'pending' });
-    expect(tasks[1]).toEqual({ role: 'researcher', goal: 'check YouTube API', context: '', status: 'pending' });
-    expect(tasks[2]).toEqual({ role: 'debugger', goal: 'fix deprecations', context: '', status: 'pending' });
-    expect(tasks[3]).toEqual({ role: 'reviewer', goal: 'inspect code quality', context: '', status: 'pending' });
+    expect(tasks[0]).toEqual({ role: 'coder', goal: 'Implement OAuth flow', context: 'Original goal: implement OAuth\n', status: 'pending', splitDepth: 0 });
+    expect(tasks[1]).toEqual({ role: 'researcher', goal: 'check YouTube API', context: 'Original goal: implement OAuth\n', status: 'pending', splitDepth: 0 });
+    expect(tasks[2]).toEqual({ role: 'debugger', goal: 'fix deprecations', context: 'Original goal: implement OAuth\n', status: 'pending', splitDepth: 0 });
+    expect(tasks[3]).toEqual({ role: 'reviewer', goal: 'inspect code quality', context: 'Original goal: implement OAuth\n', status: 'pending', splitDepth: 0 });
   });
 
   it('parseDelegationTasks includes active files list in task context', () => {
@@ -357,7 +357,7 @@ Debugger: fix deprecations
     const plan = `delegate to coder: modify foo.ts`;
     const { router: localRouter } = createMockRouter([]);
     const orch = new Orchestrator(localRouter, messages, toolContext);
-    const tasks = (orch as any).parseDelegationTasks(plan);
+    const tasks = (orch as any).parseDelegationTasks(plan, 'modify foo.ts');
 
     expect(tasks).toHaveLength(1);
     expect(tasks[0].context).toContain('Files in context: /path/foo.ts');
@@ -389,7 +389,7 @@ Debugger: fix deprecations
     const result = await orch.resume('goal', 'planText', tasks, 1, prevResults);
 
     expect(result).toBe('Synthesized Result');
-    expect(executePlanSpy).toHaveBeenCalledWith('planText', tasks, 1);
+    expect(executePlanSpy).toHaveBeenCalledWith('planText', tasks, 1, 'goal', expect.any(String));
     expect(synthesizeSpy).toHaveBeenCalledWith('goal');
   });
 

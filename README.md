@@ -125,7 +125,7 @@ AI assistance without:
 | `/doctor` | Diagnose connection and discovery |
 | `/help` / `?` / `help` | Show available commands |
 | `/mcp` | Manage MCP servers: explore, search, install, list, remove, info |
-| `exit` / `quit` | Save session and exit |
+| `exit` / `/exit` / `/quit` / `quit` | Save session and exit |
 <!-- END_COMMANDS_TABLE -->
 
 Tab completion works on all commands.

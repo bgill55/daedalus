@@ -1676,7 +1676,7 @@ Once you have finished making changes, I will automatically re-run the command t
   },
   {
     name: 'exit',
-    aliases: ['quit'],
+    aliases: ['/exit', '/quit', 'quit'],
     description: 'Save session and exit',
     execute: async (args, ctx) => {
       const todos = getSessionTodos(ctx.toolContext.sessionId);

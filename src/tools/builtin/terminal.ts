@@ -19,6 +19,9 @@ const BLOCKED_ENV_KEYS = new Set([
   'NODE_OPTIONS', 'LD_PRELOAD', 'LD_LIBRARY_PATH', 'DYLD_INSERT_LIBRARIES',
 ]);
 
+// Commands that install third-party packages — requires DAEDALUS_ALLOW_INSTALL=true
+const INSTALL_COMMAND_RE = /(?:^|\s)(?:npm\s+(?:install|i|ci|add)|npx\s|pip\d?\s+install|cargo\s+install|go\s+install|gem\s+install|brew\s+install|choco\s+install|winget\s+install|yarn\s+(?:add|install)|pnpm\s+(?:add|install|i|ci)|bun\s+(?:add|install))(?:\s|$)/i;
+
 function sanitizeEnv(): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = {};
   for (const [key, value] of Object.entries(process.env)) {
@@ -69,6 +72,17 @@ export async function execute(args: { command: string; timeout?: number; workdir
   const timeout = args.timeout ?? 180;
   const workdir = args.workdir ?? context.projectRoot;
   const command = args.command;
+
+  // Gate: third-party install commands require explicit opt-in
+  if (INSTALL_COMMAND_RE.test(command) && process.env.DAEDALUS_ALLOW_INSTALL !== 'true') {
+    return Promise.resolve({
+      toolCallId: '',
+      name: 'terminal',
+      success: false,
+      content: '',
+      error: `Install command blocked. Set DAEDALUS_ALLOW_INSTALL=true to allow: ${command.slice(0, 200)}`,
+    });
+  }
 
   return new Promise((resolve) => {
     let output = '';
