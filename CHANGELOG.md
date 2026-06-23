@@ -1,3 +1,10 @@
+# [1.22.0](https://github.com/bgill55/daedalus/compare/v1.21.5...v1.22.0) (2026-06-23)
+
+
+### Features
+
+* add self-improvement via failure lessons and reviewer role ([9c1ad7f](https://github.com/bgill55/daedalus/commit/9c1ad7fe8e792bef92bd51d57a7124adef40df32))
+
 ## [1.21.5](https://github.com/bgill55/daedalus/compare/v1.21.4...v1.21.5) (2026-06-23)
 
 
