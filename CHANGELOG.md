@@ -1,3 +1,10 @@
+## [1.22.3](https://github.com/bgill55/daedalus/compare/v1.22.2...v1.22.3) (2026-06-23)
+
+
+### Bug Fixes
+
+* enforce file-scope boundaries in orchestration, add /exit aliases, gate npm install commands ([744e035](https://github.com/bgill55/daedalus/commit/744e0358075aaeb3833923cdce491ddecce99c4e))
+
 ## [1.22.2](https://github.com/bgill55/daedalus/compare/v1.22.1...v1.22.2) (2026-06-23)
 
 
