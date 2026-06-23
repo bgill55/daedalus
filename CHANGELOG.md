@@ -1,3 +1,10 @@
+## [1.22.2](https://github.com/bgill55/daedalus/compare/v1.22.1...v1.22.2) (2026-06-23)
+
+
+### Bug Fixes
+
+* handle model refusal in agent tool calls and auto-retry in failure checkpoint ([3e3f6ae](https://github.com/bgill55/daedalus/commit/3e3f6aea8e4fd5770eed195501a080ff30c4fd11))
+
 ## [1.22.1](https://github.com/bgill55/daedalus/compare/v1.22.0...v1.22.1) (2026-06-23)
 
 
