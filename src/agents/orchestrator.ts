@@ -637,6 +637,11 @@ export class Orchestrator {
       return paths;
     });
 
+    // Save original pending tasks as fallback in case replan fails
+    const originalPending = tasks
+      .filter(t => t.status === 'pending')
+      .map(t => ({ ...t }));
+
     console.log(pc.cyan(`\n[RE-PLAN] ${pending.length} task(s) remaining. Re-evaluating based on completed work...`));
 
     const subPlan = await this.createPlan(
@@ -667,6 +672,16 @@ export class Orchestrator {
 
     // Enforce task cap and filter out non-actionable tasks
     newTasks = Orchestrator.filterValidTasks(newTasks).slice(0, this.MAX_INITIAL_TASKS);
+
+    // Fallback: if replan produced no valid tasks, restore original pending tasks
+    if (newTasks.length === 0 && originalPending.length > 0) {
+      for (const t of originalPending) {
+        t.status = 'pending';
+        tasks.push(t);
+      }
+      this.printTaskList(tasks);
+      return;
+    }
 
     for (const nt of newTasks) {
       nt.splitDepth = 0;
