@@ -1,3 +1,10 @@
+# [1.25.0](https://github.com/bgill55/daedalus/compare/v1.24.1...v1.25.0) (2026-06-24)
+
+
+### Features
+
+* planner prompt rewrite, plan validation with retry, stronger coder content requirements ([e695858](https://github.com/bgill55/daedalus/commit/e695858d7175cc96d4bdbc7125809e461676c0f5))
+
 ## [1.24.1](https://github.com/bgill55/daedalus/compare/v1.24.0...v1.24.1) (2026-06-24)
 
 
