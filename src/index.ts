@@ -8,7 +8,6 @@ import os from 'os';
 import pc from 'picocolors';
 
 import { setRouterClient } from './tools/builtin/delegation.js';
-import { mcpRegistry } from './tools/mcp/registry.js';
 import { createRouter, RouterConfig } from './router/index.js';
 import { loadConfig, getConfigDirPath } from './config/index.js';
 import { getProjectHash } from './project-hash.js';
@@ -187,11 +186,43 @@ Terminal execution runs inside an isolated Docker container or WSL environment i
 ## DEPENDENCY FRESHNESS
 - When adding or updating project dependencies (e.g. in package.json, requirements.txt, Cargo.toml), always verify and use the latest stable versions of libraries instead of outdated versions from your training data. Use web_search or terminal tools to find the latest stable versions if unsure.`;
 
+// MCP registry singleton ref — set after connectAll(), used by getSystemPromptWithMemory
+let mcpRegistryRef: { getConnectedServers: () => string[]; getToolDefinitions: () => any[] } | null = null;
+
 // Build system prompt with project memory and user profile
 function getSystemPromptWithMemory(): string {
   let prompt = systemPrompt;
   const currentDateStr = new Date().toLocaleString();
   prompt += `\n\n## CURRENT TIME\nThe current date and local time is: ${currentDateStr}.\n`;
+
+  // MCP tool awareness — inject descriptions of currently connected MCP servers
+  if (mcpRegistryRef) {
+    try {
+      const servers = mcpRegistryRef.getConnectedServers();
+      const toolDefs = mcpRegistryRef.getToolDefinitions();
+      if (servers.length > 0 && toolDefs.length > 0) {
+        prompt += '\n## EXTERNAL TOOLS (MCP — Model Context Protocol)\n';
+        prompt += 'The following external tool servers are connected. Each tool is prefixed with `mcp_<server>_<tool>` and works like any other function-call tool:\n\n';
+        for (const server of servers) {
+          const serverTools = toolDefs.filter(d => d.function.name.startsWith(`mcp_${server}_`));
+          prompt += `### ${server} (${serverTools.length} tool(s))\n`;
+          for (const t of serverTools) {
+            const desc = (t.function.description || '').replace(/\[MCP:[^\]]+\]\s*/g, '').trim();
+            prompt += `- \`${t.function.name}\` — ${desc.slice(0, 120)}\n`;
+          }
+          prompt += '\n';
+        }
+        prompt += 'You can also suggest installing MCP servers from the registry when they would help the user\'s project:\n';
+        prompt += '- /mcp explore — browse available MCP servers\n';
+        prompt += '- /mcp search <query> — search for a server\n';
+        prompt += '- /mcp install <name> — install a server\n';
+        prompt += '- /mcp reconnect — connect newly installed servers\n';
+      }
+    } catch {
+      // MCP tools unavailable — skip
+    }
+  }
+
   const profilePrompt = getProfilePrompt(userProfile);
   if (profilePrompt) {
     prompt += '\n' + profilePrompt;
@@ -255,25 +286,9 @@ const { callModelWithTools, callModelWithFallback } = createModelFunctions({
   askLine,
 });
 
-// Create REPL loop
-const chatLoop = createRepl({
-  config,
-  configDir,
-  cliTempDir,
-  router,
-  sessionManager,
-  userProfile,
-  projectHash,
-  messages,
-  activeFiles,
-  toolContext,
-  getSystemPromptWithMemory,
-  callModelWithTools,
-  callModelWithFallback,
-  getIndexDbPath,
-});
+// Lazy repl — created inside main() after MCP connects, so piped stdin isn't consumed early
+let chatLoop: () => Promise<void>;
 
-// Start health checks and REPL
 async function main() {
   process.on('SIGINT', () => {
     if (indexWatcher) {
@@ -333,31 +348,57 @@ async function main() {
     }
   }
   
-  // Start health checks and MCP in background — REPL starts immediately
-  const postStartPromises: Promise<void>[] = [];
+  // Start health checks in background
+  router.startHealthChecks().catch(err =>
+    console.error(pc.yellow(`\n[WARN] Router health checks failed: ${err.message}`))
+  );
 
-  postStartPromises.push((async () => {
-    try {
-      await router.startHealthChecks();
-      console.log(pc.green('\n[OK] Router started. Health checks running every 30s.'));
-    } catch (err: any) {
-      console.error(pc.yellow(`\n[WARN] Router health checks failed: ${err.message}`));
-    }
-  })());
-
-  postStartPromises.push((async () => {
-    try {
+  // MCP connects before chat loop starts so tools are available from turn 1
+  try {
+    const mcpConfigs = Object.entries(config.tools.mcpServers)
+      .filter(([_, s]) => s.enabled)
+      .map(([name, s]) => ({
+        name,
+        transport: s.transport,
+        command: s.command,
+        args: s.args,
+        url: s.url,
+        headers: s.headers,
+        enabled: s.enabled,
+      }));
+    if (mcpConfigs.length > 0) {
+      const { mcpRegistry } = await import('./tools/mcp/registry.js');
+      mcpRegistry.setConfigs(mcpConfigs);
       await mcpRegistry.connectAll();
+      mcpRegistryRef = mcpRegistry;
       const servers = mcpRegistry.getConnectedServers();
       if (servers.length > 0) {
         const mcpToolCount = mcpRegistry.getToolDefinitions().length;
-        console.log(pc.green(`\n[OK] MCP connected: ${servers.join(', ')}`));
-        console.log(pc.dim(`  ${mcpToolCount} MCP tool(s) registered — I'll ask before using them on your behalf.`));
+        console.log(pc.green(`\nMCP connected: ${servers.join(', ')}`));
+        console.log(pc.dim(`  ${mcpToolCount} MCP tool(s) registered`));
       }
-    } catch (err: any) {
-      console.error(pc.yellow(`\n[WARN] MCP initialization failed: ${err.message}`));
     }
-  })());
+  } catch (err: any) {
+    console.error(pc.yellow(`\nMCP initialization failed: ${err.message}`));
+  }
+
+  // Create REPL loop here — after MCP connects, so piped stdin isn't consumed before 'line' listener attaches
+  chatLoop = createRepl({
+    config,
+    configDir,
+    cliTempDir,
+    router,
+    sessionManager,
+    userProfile,
+    projectHash,
+    messages,
+    activeFiles,
+    toolContext,
+    getSystemPromptWithMemory,
+    callModelWithTools,
+    callModelWithFallback,
+    getIndexDbPath,
+  });
 
   // Check for updates — non-blocking
   if (config.updateCheck !== false) {

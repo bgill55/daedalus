@@ -7,7 +7,7 @@ import { ToolDefinition } from '../../tools/definitions.js';
 
 export class MCPRegistry {
   private transports = new Map<string, MCPTransport>();
-  private tools = new Map<string, MCPTool>(); // prefixedName -> tool
+  private tools = new Map<string, MCPTool>();
   private serverConfigs: MCPServerConfig[] = [];
 
   setConfigs(configs: MCPServerConfig[]): void {
@@ -19,15 +19,20 @@ export class MCPRegistry {
       try {
         await this.connectServer(config);
       } catch (err: any) {
-        console.error(`[MCP] Failed to connect to ${config.name}: ${err.message}`);
+        console.error(`Failed to connect MCP server ${config.name}: ${err.message}`);
       }
     });
     await Promise.all(connections);
   }
 
-  private async connectServer(config: MCPServerConfig): Promise<void> {
+  async connectServer(config: MCPServerConfig): Promise<void> {
+    if (this.transports.has(config.name)) {
+      console.log(`MCP server ${config.name} is already connected`);
+      return;
+    }
+
     let transport: MCPTransport;
-    
+
     if (config.transport === 'stdio') {
       transport = new StdioTransport(config);
     } else if (config.transport === 'http') {
@@ -39,26 +44,38 @@ export class MCPRegistry {
     await transport.connect();
     this.transports.set(config.name, transport);
 
-    // Discover tools
     const tools = await transport.listTools();
     for (const tool of tools) {
       const prefixedName = `mcp_${config.name}_${tool.name}`;
       this.tools.set(prefixedName, { ...tool, name: prefixedName });
     }
 
-    console.log(`[MCP] Connected to ${config.name} (${tools.length} tools)`);
+    console.log(`Connected to MCP server: ${config.name} (${tools.length} tools)`);
+  }
+
+  disconnectServer(name: string): void {
+    const transport = this.transports.get(name);
+    if (transport) {
+      transport.disconnect();
+      this.transports.delete(name);
+      // Remove all tools for this server
+      for (const [prefixedName] of this.tools) {
+        if (prefixedName.startsWith(`mcp_${name}_`)) {
+          this.tools.delete(prefixedName);
+        }
+      }
+    }
   }
 
   async callTool(prefixedName: string, args: any): Promise<any> {
-    // Extract server name from prefix: mcp_<server>_<tool>
     const match = prefixedName.match(/^mcp_([^_]+)_(.+)$/);
     if (!match) {
       throw new Error(`Invalid MCP tool name: ${prefixedName}`);
     }
-    
+
     const [, serverName, toolName] = match;
     const transport = this.transports.get(serverName);
-    
+
     if (!transport) {
       throw new Error(`MCP server not connected: ${serverName}`);
     }
@@ -90,7 +107,7 @@ export class MCPRegistry {
       try {
         await transport.disconnect();
       } catch (err) {
-        console.error(`[MCP] Error disconnecting ${name}:`, err);
+        console.error(`Error disconnecting MCP server ${name}:`, err);
       }
     }
     this.transports.clear();
@@ -98,5 +115,4 @@ export class MCPRegistry {
   }
 }
 
-// Singleton instance
 export const mcpRegistry = new MCPRegistry();

@@ -3,6 +3,7 @@
 import { spawn, ChildProcess } from 'child_process';
 import { MCPTransport, MCPServerConfig } from './types.js';
 import { createRequire } from 'module';
+import os from 'os';
 const _req = createRequire(import.meta.url);
 const { version: CLI_VERSION } = _req('../../../package.json');
 
@@ -56,6 +57,7 @@ export class StdioTransport implements MCPTransport {
     this.process = spawn(this.config.command, this.config.args || [], {
       env: sanitizeEnv(),
       stdio: ['pipe', 'pipe', 'pipe'],
+      shell: os.platform() === 'win32',
     });
 
     this.process.stdout?.on('data', (data: Buffer) => {
@@ -138,7 +140,7 @@ export class StdioTransport implements MCPTransport {
       const timeout = setTimeout(() => {
         this.messageHandler = originalHandler;
         reject(new Error(`Timeout waiting for ${method}`));
-      }, 10000);
+      }, 30000);
 
       const originalHandler = this.messageHandler;
       this.messageHandler = (msg: any) => {

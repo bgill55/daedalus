@@ -1673,6 +1673,57 @@ Once you have finished making changes, I will automatically re-run the command t
           return;
         }
 
+        case 'reconnect':
+        case 'rc': {
+          const { loadConfig } = await import('./config/index.js');
+          const config = loadConfig();
+          const mcpConfigs = Object.entries(config.tools.mcpServers)
+            .filter(([_, s]) => s.enabled)
+            .map(([name, s]) => ({
+              name,
+              transport: s.transport,
+              command: s.command,
+              args: s.args,
+              url: s.url,
+              headers: s.headers,
+              enabled: s.enabled,
+            }));
+
+          const already = mcpRegistry.getConnectedServers();
+          const newServers = mcpConfigs.filter(c => !already.includes(c.name));
+
+          if (newServers.length === 0) {
+            if (mcpConfigs.length === 0) {
+              console.log(pc.yellow('  No enabled MCP servers configured. Install one with /mcp install'));
+            } else {
+              console.log(pc.dim('  All enabled MCP servers are already connected.'));
+            }
+            return;
+          }
+
+          mcpRegistry.setConfigs(mcpConfigs);
+          const connected: string[] = [];
+          const failed: string[] = [];
+
+          for (const s of newServers) {
+            try {
+              await mcpRegistry.connectServer(s);
+              connected.push(s.name);
+            } catch (err: any) {
+              failed.push(`${s.name} (${err.message})`);
+            }
+          }
+
+          if (connected.length > 0) {
+            const totalTools = mcpRegistry.getToolDefinitions().length;
+            console.log(pc.green(`  Connected: ${connected.join(', ')} (${totalTools} MCP tools total)`));
+          }
+          if (failed.length > 0) {
+            console.log(pc.yellow(`  Failed: ${failed.join(', ')}`));
+          }
+          return;
+        }
+
         case 'enable':
         case 'e': {
           if (!rest) {
@@ -1703,6 +1754,7 @@ Once you have finished making changes, I will automatically re-run the command t
           console.log(`  ${pc.cyan('/mcp list')}             ${pc.dim('List installed servers')}`);
           console.log(`  ${pc.cyan('/mcp remove <name>')}    ${pc.dim('Remove an installed server')}`);
           console.log(`  ${pc.cyan('/mcp info <name>')}      ${pc.dim('Show server details')}`);
+          console.log(`  ${pc.cyan('/mcp reconnect')}        ${pc.dim('Reconnect all enabled servers')}`);
           console.log(`  ${pc.cyan('/mcp enable <name>')}    ${pc.dim('Enable a disabled server')}`);
           console.log(`  ${pc.cyan('/mcp disable <name>')}   ${pc.dim('Disable a server without removing it')}`);
           console.log(`\n  ${pc.bold('Zero-config starters (no API keys needed):')}`);
