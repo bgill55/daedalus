@@ -11,6 +11,22 @@ const LEARNING_TOOLS = new Set([
 let extractionTurnCount = 0;
 const EXTRACTION_INTERVAL = 5;
 
+function isValidTitle(title: string): boolean {
+  if (!title || title.length < 3 || title.length > 50) return false;
+  if (/^Session on/i.test(title)) return false;
+  const lowered = title.toLowerCase();
+  if (
+    lowered.includes('generate a very short') ||
+    lowered.includes('return only the') ||
+    lowered.includes('descriptive title') ||
+    lowered.includes('do not say') ||
+    /^(title|generate|create|write a?\s)/i.test(lowered)
+  ) {
+    return false;
+  }
+  return true;
+}
+
 function recentTurnHasLearningSignal(messages: ChatMessage[]): boolean {
   const lastMsgs = messages.slice(-10);
   for (const msg of lastMsgs) {
@@ -51,24 +67,35 @@ export async function extractAndSave(
       .join('\n');
 
     try {
+      const NAMING_PROMPT = 'Generate a very short, concise, and descriptive title (3 to 5 words) for this conversation based on the messages. Return ONLY the plain text title, no quotes, no markdown, no punctuation, and no meta-text (do not say "Title:").';
+      const FALLBACK_PROMPT = 'Write a 3-5 word title for this conversation. Output only the title, nothing else.';
+
       const titleResponse = await router.chat.completions.create({
         model: 'auto',
         messages: [
-          {
-            role: 'system',
-            content: 'Generate a very short, concise, and descriptive title (3 to 5 words) for this conversation based on the messages. Return ONLY the plain text title, no quotes, no markdown, no punctuation, and no meta-text (do not say "Title:").'
-          },
-          {
-            role: 'user',
-            content: conversationBrief
-          }
+          { role: 'system', content: NAMING_PROMPT },
+          { role: 'user', content: conversationBrief }
         ],
         temperature: 0.3,
-        max_tokens: 20
+        max_tokens: 20,
       });
 
-      const newTitle = (titleResponse.choices[0]?.message?.content || '').trim().replace(/^["']|["']$/g, '');
-      if (newTitle && newTitle.length > 2 && !/^Session on/i.test(newTitle)) {
+      let newTitle = (titleResponse.choices[0]?.message?.content || '').trim().replace(/^["']|["']$/g, '');
+
+      if (!isValidTitle(newTitle)) {
+        const retryResponse = await router.chat.completions.create({
+          model: 'auto',
+          messages: [
+            { role: 'system', content: FALLBACK_PROMPT },
+            { role: 'user', content: conversationBrief }
+          ],
+          temperature: 0.3,
+          max_tokens: 20,
+        });
+        newTitle = (retryResponse.choices[0]?.message?.content || '').trim().replace(/^["']|["']$/g, '');
+      }
+
+      if (isValidTitle(newTitle)) {
         sessionManager.updateSessionTitle(newTitle);
         console.log(`  ${pc.dim('[')} ${pc.dim('auto-named session:')} ${pc.cyan(newTitle)} ${pc.dim(']')}`);
       }

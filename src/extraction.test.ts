@@ -154,4 +154,116 @@ describe('Fact extraction', () => {
     expect(mockSessionManager.addFact).toHaveBeenCalledWith('framework', 'vitest', 'agent');
   });
 
+  it('auto-names session with valid title from model', async () => {
+    const messages: ChatMessage[] = [
+      { role: 'user', content: 'fix the bug' },
+      { role: 'assistant', content: 'I have successfully patched the file and the bug is now fixed.' },
+    ];
+
+    const mockRouter = {
+      chat: {
+        completions: {
+          create: vi.fn().mockResolvedValue({
+            choices: [{ message: { content: 'Bug Fix Session' } }],
+          }),
+        },
+      },
+    };
+
+    const mockSessionManager = {
+      sessionTitle: 'New Session',
+      loadMemory: vi.fn().mockReturnValue({ facts: [] }),
+      addFact: vi.fn(),
+      updateSessionTitle: vi.fn(),
+    };
+
+    await extractAndSave(mockRouter as any, mockSessionManager as any, messages);
+    expect(mockRouter.chat.completions.create).toHaveBeenCalledTimes(1);
+    expect(mockSessionManager.updateSessionTitle).toHaveBeenCalledWith('Bug Fix Session');
+  });
+
+  it('skips invalid titles and does not rename session', async () => {
+    const messages: ChatMessage[] = [
+      { role: 'user', content: 'hello' },
+      { role: 'assistant', content: 'Hello! How can I help you today? I am ready to assist with your coding tasks and answer any questions you might have.' },
+    ];
+
+    const mockRouter = {
+      chat: {
+        completions: {
+          create: vi
+            .fn()
+            .mockResolvedValueOnce({
+              choices: [{ message: { content: 'Generate a very short, concise title for this conversation' } }],
+            })
+            .mockResolvedValueOnce({
+              choices: [{ message: { content: 'Descriptive Title Here' } }],
+            }),
+        },
+      },
+    };
+
+    const mockSessionManager = {
+      sessionTitle: 'New Session',
+      loadMemory: vi.fn().mockReturnValue({ facts: [] }),
+      addFact: vi.fn(),
+      updateSessionTitle: vi.fn(),
+    };
+
+    await extractAndSave(mockRouter as any, mockSessionManager as any, messages);
+    expect(mockRouter.chat.completions.create).toHaveBeenCalledTimes(2);
+    expect(mockSessionManager.updateSessionTitle).not.toHaveBeenCalled();
+  });
+
+  it('does not auto-name when there are no user messages', async () => {
+    const messages: ChatMessage[] = [
+      { role: 'assistant', content: 'hi' },
+    ];
+
+    const mockRouter = {
+      chat: {
+        completions: {
+          create: vi.fn(),
+        },
+      },
+    };
+
+    const mockSessionManager = {
+      sessionTitle: 'New Session',
+      loadMemory: vi.fn().mockReturnValue({ facts: [] }),
+      addFact: vi.fn(),
+      updateSessionTitle: vi.fn(),
+    };
+
+    await extractAndSave(mockRouter as any, mockSessionManager as any, messages);
+    expect(mockRouter.chat.completions.create).not.toHaveBeenCalled();
+    expect(mockSessionManager.updateSessionTitle).not.toHaveBeenCalled();
+  });
+
+  it('does not auto-name custom-titled sessions', async () => {
+    const messages: ChatMessage[] = [
+      { role: 'user', content: 'hello' },
+      { role: 'assistant', content: 'hi' },
+    ];
+
+    const mockRouter = {
+      chat: {
+        completions: {
+          create: vi.fn(),
+        },
+      },
+    };
+
+    const mockSessionManager = {
+      sessionTitle: 'My Custom Title',
+      loadMemory: vi.fn().mockReturnValue({ facts: [] }),
+      addFact: vi.fn(),
+      updateSessionTitle: vi.fn(),
+    };
+
+    await extractAndSave(mockRouter as any, mockSessionManager as any, messages);
+    expect(mockRouter.chat.completions.create).not.toHaveBeenCalled();
+    expect(mockSessionManager.updateSessionTitle).not.toHaveBeenCalled();
+  });
+
 });
