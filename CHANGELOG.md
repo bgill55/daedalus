@@ -1,3 +1,10 @@
+# [1.27.0](https://github.com/bgill55/daedalus/compare/v1.26.2...v1.27.0) (2026-06-24)
+
+
+### Features
+
+* cleaner CLI formatting — user box, assistant header, tool start fix, shorter separator ([4e23d5b](https://github.com/bgill55/daedalus/commit/4e23d5be18eeae4abda35e8f00ef6bdf0a20c260))
+
 ## [1.26.2](https://github.com/bgill55/daedalus/compare/v1.26.1...v1.26.2) (2026-06-24)
 
 
