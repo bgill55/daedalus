@@ -412,8 +412,8 @@ Debugger: fix deprecations
     await (orch as any).executePlan('plan', tasks, 0);
     delete process.env.DAEDALUS_AUTO_APPROVE;
 
-    expect(mockSessionManager.saveState).toHaveBeenCalledWith('orchestrate_task_index', 1);
     expect(mockSessionManager.saveState).toHaveBeenCalledWith('orchestrate_task_index', 2);
+    expect(mockSessionManager.saveState).toHaveBeenCalledWith('orchestrate_results', []);
   });
 
   it('runAgent dynamically injects date and time into system prompt', async () => {

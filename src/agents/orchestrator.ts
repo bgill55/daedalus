@@ -12,7 +12,6 @@ import { ToolContext, ToolCall, ChatMessage } from '../types.js';
 import pc from 'picocolors';
 import { DaedalusSpinner } from '../tools/daedalus-spinner.js';
 import { SessionManager } from '../session/manager.js';
-import { loadProfile } from '../profile.js';
 import { parseTextToolCalls } from '../formatting.js';
 
 interface DelegationTask {
@@ -20,6 +19,7 @@ interface DelegationTask {
   context: string;
   role: string;
   toolsets?: string[];
+  dependencies?: string[];  // file paths this task depends on (auto-detected)
   status?: 'pending' | 'in_progress' | 'completed' | 'failed' | 'skipped';
   error?: string;
   splitDepth?: number;
@@ -53,6 +53,23 @@ export class Orchestrator {
     this.messages = messages;
     this.toolContext = toolContext;
     this.sessionManager = sessionManager;
+  }
+
+  private async retryApiCall<T>(fn: () => Promise<T>, label: string, maxRetries = 2): Promise<T> {
+    let lastErr: Error | undefined;
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await fn();
+      } catch (err: any) {
+        lastErr = err;
+        if (attempt < maxRetries) {
+          const delay = Math.min(1000 * Math.pow(2, attempt), 8000);
+          console.log(pc.yellow(`\n[RETRY] ${label} failed (${err.message}). Retrying in ${delay}ms (${attempt + 1}/${maxRetries})...`));
+          await new Promise(r => setTimeout(r, delay));
+        }
+      }
+    }
+    throw lastErr;
   }
 
   private async discoverProjectContext(): Promise<string> {
@@ -152,6 +169,9 @@ export class Orchestrator {
     this.results = [...previousResults];
     const projectContext = await this.discoverProjectContext();
 
+    // Reset abort signal so resume works after a pause/crash
+    Object.defineProperty(this.toolContext.abortSignal, 'aborted', { value: false, writable: true });
+
     tasks.forEach((t, idx) => {
       if (idx < startIndex) {
         t.status = 'completed';
@@ -161,9 +181,6 @@ export class Orchestrator {
     });
 
     try {
-      if (this.toolContext.abortSignal.aborted) {
-        return 'Orchestration stopped by user';
-      }
       await this.executePlan(planText, tasks, startIndex, goal, projectContext);
     } catch (err) {
       return `Orchestration failed: ${(err as Error).message}`;
@@ -204,13 +221,16 @@ export class Orchestrator {
       planSpinner.start();
       let completion;
       try {
-        completion = await this.router.chat.completions.create({
-          model: 'auto',
-          messages,
-          temperature: plannerRole.temperature ?? 0.2,
-          tools,
-          tool_choice: 'auto',
-        });
+        completion = await this.retryApiCall(
+          () => this.router.chat.completions.create({
+            model: 'auto',
+            messages,
+            temperature: plannerRole.temperature ?? 0.2,
+            tools,
+            tool_choice: 'auto',
+          }),
+          'planner API call'
+        );
       } finally {
         planSpinner.stop();
       }
@@ -236,13 +256,16 @@ export class Orchestrator {
         finalizeSpinner.start();
         let followUp;
         try {
-          followUp = await this.router.chat.completions.create({
-            model: 'auto',
-            messages,
-            temperature: plannerRole.temperature ?? 0.2,
-            tools,
-            tool_choice: 'none',
-          });
+          followUp = await this.retryApiCall(
+            () => this.router.chat.completions.create({
+              model: 'auto',
+              messages,
+              temperature: plannerRole.temperature ?? 0.2,
+              tools,
+              tool_choice: 'none',
+            }),
+            'planner finalize API call'
+          );
         } finally {
           finalizeSpinner.stop();
         }
@@ -318,6 +341,150 @@ export class Orchestrator {
     console.log(pc.bold(pc.cyan('--------------------------------')));
   }
 
+  private hasPendingTasks(tasks: DelegationTask[], startIndex: number): boolean {
+    return tasks.some((t, i) => i >= startIndex && (t.status === 'pending' || t.status === 'in_progress'));
+  }
+
+  private getNextBatch(tasks: DelegationTask[], startIndex: number): DelegationTask[] {
+    const batch: DelegationTask[] = [];
+    for (let i = startIndex; i < tasks.length; i++) {
+      const t = tasks[i];
+      const isPending = t.status === undefined || t.status === 'pending';
+      if (!isPending) continue;
+      // Dependencies satisfied = all dependency goals are completed
+      if (t.dependencies && t.dependencies.length > 0) {
+        const allDone = t.dependencies.every(dep => tasks.some(other => other.goal === dep && (other.status === 'completed' || other.status === 'skipped')));
+        if (!allDone) continue;
+      }
+      batch.push(t);
+      // In auto-approve, batch all runnable tasks
+      if (process.env.DAEDALUS_AUTO_APPROVE === 'true') {
+        continue; // gather as many as possible
+      } else {
+        break; // sequential — one at a time
+      }
+    }
+    return batch;
+  }
+
+  private static getTaskFilePaths(task: DelegationTask): string[] {
+    return Orchestrator.extractFilePaths(task.goal);
+  }
+
+  private static hasFileConflict(a: DelegationTask, b: DelegationTask): boolean {
+    const aPaths = Orchestrator.getTaskFilePaths(a);
+    const bPaths = Orchestrator.getTaskFilePaths(b);
+    // If either has no detected paths, assume conflict (conservative)
+    if (aPaths.length === 0 || bPaths.length === 0) return true;
+    return aPaths.some(ap => bPaths.includes(ap));
+  }
+
+  private static groupIndependent(tasks: DelegationTask[]): DelegationTask[][] {
+    const groups: DelegationTask[][] = [];
+    for (const t of tasks) {
+      let placed = false;
+      for (const group of groups) {
+        const noConflict = group.every(g => !Orchestrator.hasFileConflict(g, t));
+        if (noConflict) {
+          group.push(t);
+          placed = true;
+          break;
+        }
+      }
+      if (!placed) {
+        groups.push([t]);
+      }
+    }
+    return groups;
+  }
+
+  private async executeSingleTask(
+    task: DelegationTask,
+    tasks: DelegationTask[],
+    originalGoal?: string,
+    projectContext?: string,
+  ): Promise<void> {
+    task.status = 'in_progress';
+    this.printTaskList(tasks);
+
+    await this.delegateTask(task, tasks, originalGoal, projectContext);
+    this.printTaskList(tasks);
+
+    // Handle task failure with auto-retry in auto-approve mode
+    if ((task.status as any) === 'failed') {
+      console.log(`\n${pc.bold(pc.red('--- Task Failure Checkpoint ---'))}`);
+      console.log(`${pc.red('[ERROR] Task failed:')} ${task.role} - ${task.goal}`);
+
+      if (process.env.DAEDALUS_AUTO_APPROVE === 'true') {
+        console.log(pc.cyan(`\n[auto] Retrying task: ${task.goal}`));
+        task.status = 'in_progress';
+        task.error = undefined;
+        this.printTaskList(tasks);
+        this.results.pop();
+        await this.delegateTask(task, undefined, undefined, projectContext);
+        this.printTaskList(tasks);
+        if ((task.status as any) !== 'failed') {
+          return;
+        }
+        console.log(pc.yellow(`\n[auto] Skipping failed task after retry: ${task.goal}`));
+        task.status = 'skipped';
+        this.printTaskList(tasks);
+        return;
+      }
+
+      const ask = this.toolContext.askLine || (async (p: string) => {
+        return new Promise<string>((resolve) => {
+          const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+          rl.question(p, (ans) => { rl.close(); resolve(ans); });
+        });
+      });
+
+      let resolved = false;
+      while (!resolved) {
+        const answer = await ask(`\nTask failed. Choose action: [r]etry / [e]dit / [s]kip / [a]bort: `);
+        const norm = answer.trim().toLowerCase();
+
+        if (norm === 'r' || norm === 'retry') {
+          console.log(pc.cyan(`\nRetrying task: ${task.goal}`));
+          task.status = 'in_progress';
+          task.error = undefined;
+          this.printTaskList(tasks);
+          this.results.pop();
+          await this.delegateTask(task, undefined, undefined, projectContext);
+          this.printTaskList(tasks);
+          if ((task.status as any) !== 'failed') {
+            resolved = true;
+          }
+        } else if (norm === 'e' || norm === 'edit') {
+          const editGoal = await ask(`Enter new goal for task: `);
+          if (editGoal.trim()) {
+            task.goal = editGoal.trim();
+            task.status = 'in_progress';
+            task.error = undefined;
+            this.printTaskList(tasks);
+            this.results.pop();
+            await this.delegateTask(task, undefined, undefined, projectContext);
+            this.printTaskList(tasks);
+            if ((task.status as any) !== 'failed') {
+              resolved = true;
+            }
+          }
+        } else if (norm === 's' || norm === 'skip') {
+          console.log(pc.yellow(`\nSkipping failed task: ${task.goal}`));
+          task.status = 'skipped';
+          this.printTaskList(tasks);
+          resolved = true;
+        } else if (norm === 'a' || norm === 'abort') {
+          console.log(pc.yellow('\nOrchestration aborted on task failure. You can resume it later.'));
+          if (this.toolContext.abortSignal) {
+            Object.defineProperty(this.toolContext.abortSignal, 'aborted', { value: true, writable: true });
+          }
+          resolved = true;
+        }
+      }
+    }
+  }
+
   private async executePlan(
     plan: string,
     tasks: DelegationTask[],
@@ -327,7 +494,10 @@ export class Orchestrator {
   ): Promise<void> {
     let lastReplanCount = 0;
 
-    for (let i = startIndex; i < tasks.length; i++) {
+    // Build dependency graph from file paths
+    Orchestrator.buildDependencyGraph(tasks);
+
+    for (let i = startIndex; i < tasks.length; /* increment inside */) {
       if (this.toolContext.abortSignal.aborted) {
         break;
       }
@@ -344,22 +514,52 @@ export class Orchestrator {
 
       const task = tasks[i];
 
+      // Skip already completed/skipped tasks
+      if (task.status === 'completed' || task.status === 'skipped') {
+        i++;
+        continue;
+      }
+
       // Skip unnecessary config tasks for file-based routing frameworks
       if (Orchestrator.isUnnecessaryConfigTask(task, projectContext)) {
         console.log(pc.yellow(`\n[S] Task ${i + 1}: Skipped — Next.js uses file-based routing, no config changes needed`));
         task.status = 'skipped';
         task.error = 'Unnecessary config task for file-based routing framework';
+        i++;
         continue;
       }
 
-      task.status = 'in_progress';
-      this.printTaskList(tasks);
+      // Get the next batch of runnable tasks
+      const batch = this.getNextBatch(tasks, i);
+      if (batch.length === 0) {
+        // Deadlock or no pending tasks — advance past completed/skipped
+        i++;
+        continue;
+      }
 
-      await this.delegateTask(task, tasks, originalGoal, projectContext);
-      this.printTaskList(tasks);
+      // In auto-approve mode, run independent tasks concurrently
+      if (process.env.DAEDALUS_AUTO_APPROVE === 'true') {
+        const groups = Orchestrator.groupIndependent(batch);
+        for (const group of groups) {
+          await Promise.all(
+            group.map(t => this.executeSingleTask(t, tasks, originalGoal, projectContext))
+          );
+        }
+      } else {
+        // Interactive mode: sequential only
+        for (const t of batch) {
+          await this.executeSingleTask(t, tasks, originalGoal, projectContext);
+        }
+      }
 
+      // Advance past all tasks that were just processed (no longer pending)
+      while (i < tasks.length && tasks[i].status !== 'pending') {
+        i++;
+      }
+
+      // Save state after completing tasks
       if (this.sessionManager) {
-        this.sessionManager.saveState('orchestrate_task_index', i + 1);
+        this.sessionManager.saveState('orchestrate_task_index', i);
         this.sessionManager.saveState('orchestrate_results', this.results);
       }
 
@@ -370,122 +570,49 @@ export class Orchestrator {
         if (hasPending && originalGoal) {
           lastReplanCount = completedCount;
           await this.replanRemaining(tasks, originalGoal, projectContext);
+          // Rebuild dependency graph after replan
+          Orchestrator.buildDependencyGraph(tasks);
         }
       }
 
-      if ((task.status as any) === 'failed') {
-        console.log(`\n${pc.bold(pc.red('--- Task Failure Checkpoint ---'))}`);
-        console.log(`${pc.red('[ERROR] Task failed:')} ${task.role} - ${task.goal}`);
+      // Interactive checkpoint: ask user before next task
+      if (process.env.DAEDALUS_AUTO_APPROVE !== 'true' && i < tasks.length) {
+        const prevTask = tasks[i - 1];
+        if (prevTask && prevTask.status === 'completed') {
+          const nextTask = tasks[i];
+          console.log(`\n${pc.bold(pc.yellow('--- Task Checkpoint ---'))}`);
+          console.log(`${pc.green('[OK] Completed task:')} ${prevTask.goal}`);
+          console.log(`${pc.cyan('Next task:')} [${nextTask.role}] ${nextTask.goal}`);
 
-        const ask = this.toolContext.askLine || (async (p: string) => {
-          return new Promise<string>((resolve) => {
-            const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-            rl.question(p, (ans) => { rl.close(); resolve(ans); });
+          const ask = this.toolContext.askLine || (async (p: string) => {
+            return new Promise<string>((resolve) => {
+              const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+              rl.question(p, (ans) => { rl.close(); resolve(ans); });
+            });
           });
-        });
 
-        if (process.env.DAEDALUS_AUTO_APPROVE === 'true') {
-          console.log(pc.cyan(`\n[auto] Retrying task: ${task.goal}`));
-          task.status = 'in_progress';
-          task.error = undefined;
-          this.printTaskList(tasks);
-          this.results.pop();
-          await this.delegateTask(task, undefined, undefined, projectContext);
-          this.printTaskList(tasks);
-          if ((task.status as any) !== 'failed') {
-            continue;
-          }
-          console.log(pc.yellow(`\n[auto] Skipping failed task after retry: ${task.goal}`));
-          task.status = 'skipped';
-          this.printTaskList(tasks);
-          continue;
-        }
-
-        let resolved = false;
-        while (!resolved) {
-          const answer = await ask(`\nTask failed. Choose action: [r]etry / [e]dit / [s]kip / [a]bort: `);
+          const answer = await ask(`\nProceed to next task? [y]es / [n]o / [s]kip / [e]dit: `);
           const norm = answer.trim().toLowerCase();
 
-          if (norm === 'r' || norm === 'retry') {
-            console.log(pc.cyan(`\nRetrying task: ${task.goal}`));
-            task.status = 'in_progress';
-            task.error = undefined;
-            this.printTaskList(tasks);
-            this.results.pop();
-            await this.delegateTask(task, undefined, undefined, projectContext);
-            this.printTaskList(tasks);
-            if ((task.status as any) !== 'failed') {
-              resolved = true;
-            }
-          } else if (norm === 'e' || norm === 'edit') {
-            const editGoal = await ask(`Enter new goal for task: `);
-            if (editGoal.trim()) {
-              task.goal = editGoal.trim();
-              task.status = 'in_progress';
-              task.error = undefined;
-              this.printTaskList(tasks);
-              this.results.pop();
-              await this.delegateTask(task, undefined, undefined, projectContext);
-              this.printTaskList(tasks);
-              if ((task.status as any) !== 'failed') {
-                resolved = true;
-              }
-            }
-          } else if (norm === 's' || norm === 'skip') {
-            console.log(pc.yellow(`\nSkipping failed task: ${task.goal}`));
-            task.status = 'skipped';
-            this.printTaskList(tasks);
-            resolved = true;
-          } else if (norm === 'a' || norm === 'abort') {
-            console.log(pc.yellow('\nOrchestration aborted on task failure. You can resume it later.'));
+          if (norm === 'n' || norm === 'no') {
+            console.log(pc.yellow('\n[INFO] Orchestration paused. You can resume it later.'));
             if (this.toolContext.abortSignal) {
               Object.defineProperty(this.toolContext.abortSignal, 'aborted', { value: true, writable: true });
             }
             break;
-          }
-        }
-
-        if (this.toolContext.abortSignal.aborted) {
-          break;
-        }
-      }
-
-      if (i < tasks.length - 1 && process.env.DAEDALUS_AUTO_APPROVE !== 'true') {
-        console.log(`\n${pc.bold(pc.yellow('--- Task Checkpoint ---'))}`);
-        console.log(`${pc.green('[OK] Completed task:')} ${task.goal}`);
-        const nextTask = tasks[i + 1];
-        console.log(`${pc.cyan('Next task:')} [${nextTask.role}] ${nextTask.goal}`);
-
-        const ask = this.toolContext.askLine || (async (p: string) => {
-          return new Promise<string>((resolve) => {
-            const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-            rl.question(p, (ans) => { rl.close(); resolve(ans); });
-          });
-        });
-
-        const answer = await ask(`\nProceed to next task? [y]es / [n]o / [s]kip / [e]dit: `);
-        const norm = answer.trim().toLowerCase();
-
-        if (norm === 'n' || norm === 'no') {
-          console.log(pc.yellow('\n[INFO] Orchestration paused. You can resume it later.'));
-          if (this.toolContext.abortSignal) {
-            Object.defineProperty(this.toolContext.abortSignal, 'aborted', { value: true, writable: true });
-          }
-          break;
-        } else if (norm === 's' || norm === 'skip') {
-          console.log(pc.yellow(`\n[INFO] Skipping task: ${nextTask.goal}`));
-          if (this.sessionManager) {
-            this.sessionManager.saveState('orchestrate_task_index', i + 2);
-          }
-          i++;
-        } else if (norm === 'e' || norm === 'edit') {
-          const editGoal = await ask(`Enter new goal for next task: `);
-          if (editGoal.trim()) {
-            nextTask.goal = editGoal.trim();
-            if (this.sessionManager) {
-              this.sessionManager.saveState('orchestrate_plan', tasks);
+          } else if (norm === 's' || norm === 'skip') {
+            console.log(pc.yellow(`\n[INFO] Skipping task: ${nextTask.goal}`));
+            nextTask.status = 'skipped';
+            i++;
+          } else if (norm === 'e' || norm === 'edit') {
+            const editGoal = await ask(`Enter new goal for next task: `);
+            if (editGoal.trim()) {
+              nextTask.goal = editGoal.trim();
+              if (this.sessionManager) {
+                this.sessionManager.saveState('orchestrate_plan', tasks);
+              }
+              console.log(pc.green(`[OK] Task goal updated.`));
             }
-            console.log(pc.green(`[OK] Task goal updated.`));
           }
         }
       }
@@ -526,22 +653,17 @@ export class Orchestrator {
 
     // Add new tasks from re-plan, dropping duplicates against completed work
     let newTasks = this.parseDelegationTasks(subPlan, originalGoal);
-    console.log(`[DEDUPE] Parsed ${newTasks.length} new tasks from re-plan`);
     newTasks = newTasks.filter(nt => {
       if (done.length === 0 || nt.role !== 'coder') return true;
       const newPaths = Orchestrator.extractFilePaths(nt.goal).map(p => p.toLowerCase());
-      console.log(`[DEDUPE] Checking task: ${nt.goal.slice(0,60)}... paths=${JSON.stringify(newPaths)}`);
       if (newPaths.length === 0) return true;
       const keep = !done.some(d => {
         if (d.role !== 'coder') return false;
         const donePaths = Orchestrator.extractFilePaths(d.goal).map(p => p.toLowerCase());
-        console.log(`[DEDUPE] vs done: ${d.goal.slice(0,60)}... paths=${JSON.stringify(donePaths)}`);
         return donePaths.some(dp => newPaths.includes(dp));
       });
-      if (!keep) console.log(`[DEDUPE] Dropping duplicate`);
       return keep;
     });
-    console.log(`[DEDUPE] ${newTasks.length} tasks after dedup`);
 
     // Enforce task cap and filter out non-actionable tasks
     newTasks = Orchestrator.filterValidTasks(newTasks).slice(0, this.MAX_INITIAL_TASKS);
@@ -556,7 +678,7 @@ export class Orchestrator {
 
   private static filterValidTasks(tasks: DelegationTask[]): DelegationTask[] {
     const doneRe = /\b(open|launch|start|run|execute)\b.*\b(file|editor|IDE|app|application|browser|window)\b|\b(commit|push|pull|merge)\b|\b(researcher)\b.*\b(identify and install)\b/i;
-    let filtered = tasks.filter(t => !doneRe.test(t.goal));
+    const filtered = tasks.filter(t => !doneRe.test(t.goal));
     const metaRe = /\b(save changes|save the file|ensure that|ensure the)\b/i;
     const metaSaveRe = /(?:save|write)\s+the\s+(?:changes|file)/i;
     const guiTestRe = /\b(cypress|playwright|puppeteer|selenium)\b/i;
@@ -847,8 +969,7 @@ export class Orchestrator {
       if (!entry.filePath) continue;
       try {
         const content = fs.readFileSync(entry.filePath, 'utf8');
-        const original = content;
-        let newContent = content
+        const newContent = content
           // Year/date — universally guessable
           .replace(/\[(?:YEAR|Year|year|YYYY|yyyy)\]/g, year)
           .replace(/\[(?:DATE|Date|date|TODAY|Today|today)\]/g, today)
@@ -998,6 +1119,25 @@ export class Orchestrator {
     return [...new Set(paths)];
   }
 
+  private static buildDependencyGraph(tasks: DelegationTask[]): void {
+    // Auto-detect dependencies: if task B mentions a file path that is the
+    // primary target file of an earlier task A, then B depends on A.
+    for (let i = 0; i < tasks.length; i++) {
+      const laterPaths = Orchestrator.extractFilePaths(tasks[i].goal);
+      for (let j = 0; j < i; j++) {
+        const earlierPaths = Orchestrator.extractFilePaths(tasks[j].goal);
+        const shared = earlierPaths.some(ep => laterPaths.includes(ep));
+        if (shared) {
+          if (!tasks[i].dependencies) tasks[i].dependencies = [];
+          // Only add if not already present
+          if (!tasks[i].dependencies!.includes(tasks[j].goal)) {
+            tasks[i].dependencies!.push(tasks[j].goal);
+          }
+        }
+      }
+    }
+  }
+
   private findStyleReference(taskGoal: string): string | null {
     // Extract target directory from goal
     let dir = '';
@@ -1091,6 +1231,28 @@ export class Orchestrator {
     const systemExtra = `Project context:\n${projectContext || '(none discovered)'}${Orchestrator.getFrameworkGuidance(projectContext)}\n`;
 
     let result = await this.runAgent(role, task.goal, enrichedContext, tools, systemExtra);
+
+    // Lightweight ensemble: in ensemble mode, run a second coder at higher temp and pick the best
+    if (process.env.DAEDALUS_ENSEMBLE === 'true' && task.role === 'coder' && !this.toolContext.abortSignal.aborted) {
+      const firstPatches = this.toolContext.patchHistory?.slice(historyStartIndex) || [];
+      const firstCount = firstPatches.length;
+
+      const secondRole = { ...role, temperature: 0.5 };
+      const secondResult = await this.runAgent(secondRole, task.goal, enrichedContext, tools, systemExtra);
+
+      const secondPatches = this.toolContext.patchHistory?.slice(historyStartIndex) || [];
+      const secondCount = secondPatches.length;
+
+      if (secondCount > firstCount) {
+        // Second candidate produced more artifacts — use its result
+        result = secondResult;
+      } else {
+        // First candidate was better — revert second candidate's patches
+        if (this.toolContext.patchHistory) {
+          this.toolContext.patchHistory.length = historyStartIndex + firstCount;
+        }
+      }
+    }
 
     if (this.toolContext.abortSignal.aborted) {
       this.results.push({
@@ -1312,13 +1474,16 @@ export class Orchestrator {
       agentSpinner.start();
       let completion;
       try {
-        completion = await this.router.chat.completions.create({
-          model: 'auto',
-          messages,
-          temperature: role.temperature ?? 0.1,
-          tools,
-          tool_choice: role.name === 'planner' ? 'auto' : 'required',
-        });
+        completion = await this.retryApiCall(
+          () => this.router.chat.completions.create({
+            model: 'auto',
+            messages,
+            temperature: role.temperature ?? 0.1,
+            tools,
+            tool_choice: role.name === 'planner' ? 'auto' : 'required',
+          }),
+          `${role.name} API call`
+        );
       } finally {
         agentSpinner.stop();
       }
@@ -1347,11 +1512,6 @@ export class Orchestrator {
           })),
           this.toolContext
         );
-        if (role.name === 'coder') {
-          console.log(`[DEBUG runAgent] executed ${effectiveToolCalls.length} tool call(s), ${results.length} result(s)`);
-          for (const r of results) console.log(`[DEBUG runAgent] tool result: ${(r.content || '').slice(0, 200)}`);
-        }
-
         // Track patch failures per file to break retry spirals
         let hadPatchFailure = false;
         let patchFailureFile: string | undefined;
@@ -1402,10 +1562,6 @@ export class Orchestrator {
 
       // No tool calls on this turn
       const responseText = message.content || '';
-
-      if (role.name === 'coder') {
-        console.log(`[DEBUG runAgent] turn ${turns + 1} no tool calls, content: ${JSON.stringify(responseText.slice(0, 300))}`);
-      }
 
       // If tools were provided but the model refused to use them, give it a firm nudge
       if (tools.length > 0 && turns === 0 && /sorry|can'?t|cannot|don'?t have|not (able|capable)|lack(|ing) (the )?(necessary |required )?(tools|capabilities)|unable|apologize/i.test(responseText)) {

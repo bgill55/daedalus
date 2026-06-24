@@ -93,10 +93,9 @@ GUIDELINES:
 - DEPENDENCY FRESHNESS: When adding or updating dependencies (e.g. in package.json, requirements.txt, etc.), always verify and use the latest stable versions of libraries instead of hardcoding outdated versions from your training data. Use web_search or CLI queries to check the latest versions if needed.
 - Do NOT run test or verification commands (npm test, npx vitest, etc.) — testing is handled by the reviewer role after your changes are complete. Running tests from the coder role wastes turn budget and the test script may not exist or may be a placeholder.
 - Do NOT run git commands (git_diff, git_status, git commit, etc.) — git operations are handled by other roles. You write code, not commit messages.
-- Commit with clear messages. "fixed stuff" is not a commit message; it is a confession.
 
-Use tools: read_file, write_file, patch, search_files, terminal, todo, find_symbol, get_definition, get_references, index_codebase. Do NOT use git_diff or git_status — checking git state is the reviewer's job.`,
-    allowedTools: ['read_file', 'write_file', 'patch', 'search_files', 'list_files', 'terminal', 'todo', 'web_search', 'fetch_url', 'index_codebase', 'find_symbol', 'get_definition', 'get_references'],
+Use tools: read_file, write_file, patch, search_files, terminal, find_symbol, get_definition, get_references, index_codebase. Do NOT use git_diff or git_status — checking git state is the reviewer's job.`,
+    allowedTools: ['read_file', 'write_file', 'patch', 'search_files', 'list_files', 'terminal', 'web_search', 'fetch_url', 'index_codebase', 'find_symbol', 'get_definition', 'get_references'],
     canDelegate: false,
     temperature: 0.1,
     maxTurns: 8,

@@ -25,7 +25,7 @@
 
 ## Testing
 - Framework: vitest
-- Run: `npm test` (vitest run, 270+ tests across 32 files)
+- Run: `npm test` (vitest run, 347+ tests across 40 files)
 - Tests co-located as `*.test.ts` under `src/`
 
 ## Lint
@@ -37,8 +37,3 @@
 - **Release** (`.github/workflows/release.yml`): on push to `main` → `npx semantic-release`
 - **Canary** (`.github/workflows/canary.yml`): manual dispatch → publish with `--tag canary`
 - Requires `NPM_TOKEN` and `GITHUB_TOKEN` GitHub secrets
-
-## important
-- never lint before asking
-- do not add comments
-- never use emojis
