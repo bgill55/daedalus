@@ -189,13 +189,15 @@ export class Orchestrator {
     const REFUSAL_RE = /sorry|can'?t|cannot|don'?t have|not (able|capable)|lack(|ing) (the )?(necessary |required )?(tools|capabilities)|unable|apologize/i;
 
     let attempts = 0;
-    const maxAttempts = 2;
+    const maxAttempts = 3;
+    let lastValidationError = '';
 
     while (attempts < maxAttempts) {
       attempts++;
+      const retryHint = lastValidationError ? `\n\nPREVIOUS PLAN REJECTED: ${lastValidationError}\nFix the issues and output a corrected plan.` : '';
       const messages: ChatMessage[] = [
-        { role: 'system', content: systemPrompt + (attempts > 1 ? '\n\nIMPORTANT: You MUST create a plan. Do not refuse. Use the tools available if needed, or simply output a delegation plan as plain text.' : '') },
-        { role: 'user', content: `Create a plan for: ${goal}\n\nProject context:\n${projectContext || '(none discovered)'}${Orchestrator.getFrameworkGuidance(projectContext)}\n\n${this.toolContext.activeFiles.size > 0 ? 'Files in context: ' + Array.from(this.toolContext.activeFiles.values()).join(', ') : ''}` },
+        { role: 'system', content: systemPrompt + (attempts > 1 ? `\n\nIMPORTANT: You MUST create a valid plan. Each subtask needs an explicit file path and concrete wording.${retryHint}` : '') },
+        { role: 'user', content: `Create a step-by-step plan with one subtask per file for: ${goal}\n\nProject context:\n${projectContext || '(none discovered)'}${Orchestrator.getFrameworkGuidance(projectContext)}\n\n${this.toolContext.activeFiles.size > 0 ? 'Files in context: ' + Array.from(this.toolContext.activeFiles.values()).join(', ') : ''}\n\nRemember: one subtask per file, include the exact file path in each subtask, order by dependencies.` },
       ];
 
       const planSpinner = new DaedalusSpinner({ text: `planner generating plan`, color: (s) => pc.cyan(s) });
@@ -215,6 +217,8 @@ export class Orchestrator {
 
       const assistantMessage = completion.choices[0].message;
       const toolCalls = assistantMessage.tool_calls;
+
+      let planText: string;
 
       if (toolCalls && toolCalls.length > 0) {
         messages.push(assistantMessage);
@@ -243,19 +247,29 @@ export class Orchestrator {
           finalizeSpinner.stop();
         }
         const content = (followUp.choices[0].message).content || '';
-        if (content && attempts < maxAttempts && REFUSAL_RE.test(content)) {
+        if (content && REFUSAL_RE.test(content)) {
           continue;
         }
-        return content || `- delegate to coder: ${goal}`;
+        planText = content;
+      } else {
+        const content = assistantMessage.content || '';
+        if (content && REFUSAL_RE.test(content)) {
+          continue;
+        }
+        planText = content;
       }
 
-      const content = assistantMessage.content || '';
-      if (content && attempts < maxAttempts && REFUSAL_RE.test(content)) {
-        continue;
+      // Validate the plan
+      const testTasks = this.parseDelegationTasks(planText || `- delegate to coder: ${goal}`, goal);
+      const validationError = Orchestrator.validateTasks(testTasks, goal);
+      if (!validationError) {
+        return planText || `- delegate to coder: ${goal}`;
       }
-      return content || `- delegate to coder: ${goal}`;
+      lastValidationError = validationError;
+      console.log(pc.yellow(`\n[PLAN] Rejected: ${validationError} — retrying (${attempts}/${maxAttempts})...`));
     }
 
+    console.log(pc.yellow(`\n[PLAN] Using fallback after ${maxAttempts} attempts`));
     return `- delegate to coder: ${goal}`;
   }
 
@@ -606,6 +620,25 @@ export class Orchestrator {
     // Remove trailing whitespace / stray colons left behind
     result = result.replace(/[:\s]+$/g, '').trim();
     return result;
+  }
+
+  private static VAGUE_GOAL_RE = /\b(appropriate|proper|correct|necessary|relevant|required|suitable|generic|placeholder|implement the|add the necessary|add the required)\b/i;
+
+  private static validateTasks(tasks: DelegationTask[], goal: string): string | null {
+    if (tasks.length === 0) return 'No tasks generated';
+    if (tasks.length === 1 && Orchestrator.extractFilePaths(goal).length > 1) {
+      return `Expected multiple tasks (one per file) but got only 1 task for goal with multiple file paths: ${goal}`;
+    }
+    for (const t of tasks) {
+      if (Orchestrator.VAGUE_GOAL_RE.test(t.goal)) {
+        return `Task "${t.goal.slice(0, 80)}" contains vague wording — be concrete`;
+      }
+      const paths = Orchestrator.extractFilePaths(t.goal);
+      if (paths.length === 0) {
+        return `Task "${t.goal.slice(0, 80)}" has no file path — each task must target a specific file`;
+      }
+    }
+    return null;
   }
 
   private static cleanTaskText(text: string): string {
@@ -1042,6 +1075,10 @@ export class Orchestrator {
     const taskReqs = Orchestrator.extractRequirements(task.goal);
     if (taskReqs.length > 0) {
       enrichedContext += `\nRequirements:\n${taskReqs.slice(0, 4).map(r => `  - ${r}`).join('\n')}\n`;
+    }
+    // NO FILLER CONTENT — the requirements above must be implemented with real content
+    if (taskReqs.length > 0 && task.role === 'coder') {
+      enrichedContext += `\nCRITICAL: You MUST implement every requirement above with real, specific content. Do NOT use generic filler like "Welcome to our platform", "We provide services", "Learn more about us", or placeholder text. Each requirement needs actual concrete content that a real business would publish.\n`;
     }
 
     // Extract explicit file paths from the goal and inject a concise scope boundary
