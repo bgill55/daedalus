@@ -292,7 +292,7 @@ export function createModelFunctions(deps: ModelDeps) {
       const approvedCalls = toolCallArray.filter((_, i) => approvedCallIndices.has(i));
 
       const toolNames = approvedCalls.map(c => c.function.name);
-      printToolStart(approvedCalls.length, toolNames, (s) => pc.dim(s));
+      printToolStart(approvedCalls.length, toolNames);
 
       let results;
       try {

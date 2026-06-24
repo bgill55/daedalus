@@ -2,9 +2,14 @@ import pc from 'picocolors';
 import type { ToolCall } from './types.js';
 
 export const termW = Math.max(50, (process.stdout.columns ?? 80) - 5);
+const bar = pc.dim('│');
 
 function stripAnsi(str: string): string {
   return str.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
+}
+
+function sepLine(char = '─', len = 40): string {
+  return pc.dim(char.repeat(len));
 }
 
 // ── Line wrapping ──────────────────────────────────────────────
@@ -38,14 +43,12 @@ export function printUserTurn(userMessage: string): void {
   const contentW = wrapped.reduce((m, l) => Math.max(m, stripAnsi(l).length), 0);
   const boxW = Math.max(20, contentW) + 2;
 
-  const boxColor = (s: string) => pc.dim(pc.yellow(s));
-  const sep = `  ${boxColor('╭─')} ${pc.yellow(pc.bold('You'))} ${boxColor('─'.repeat(Math.max(0, boxW - 5)))}${boxColor('╮')}`;
-  console.log(`\n${sep}`);
+  console.log(`\n  ${pc.dim('╭─')} ${pc.bold('You')} ${pc.dim(`─${'─'.repeat(Math.max(0, boxW - 4))}╮`)}`);
   for (const part of wrapped) {
     const pad = ' '.repeat(Math.max(0, boxW - stripAnsi(part).length));
-    console.log(`  ${boxColor('│')} ${pc.white(part)}${pad}${boxColor('│')}`);
+    console.log(`  ${bar} ${pc.white(part)}${pad} ${bar}`);
   }
-  console.log(`  ${boxColor('╰')}${boxColor('─'.repeat(boxW + 1))}${boxColor('╯')}`);
+  console.log(`  ${pc.dim('╰')}${pc.dim('─'.repeat(boxW + 2))}${pc.dim('╯')}`);
 }
 
 // ── Assistant message ──────────────────────────────────────────
@@ -55,7 +58,7 @@ let _inCode = false;
 let _codeLines: string[] = [];
 
 export function openAssistantBlock(): void {
-  console.log(`\n  ${pc.cyan(pc.bold('Daedalus'))}`);
+  console.log(`\n  ${pc.cyan(pc.bold('Daedalus'))} ${sepLine('─', 40)}`);
 }
 
 function emitCodeBlock(): void {
@@ -63,10 +66,9 @@ function emitCodeBlock(): void {
   const lineDigits = String(_codeLines.length).length;
   for (let i = 0; i < _codeLines.length; i++) {
     const lineNo = String(i + 1).padStart(lineDigits);
-    const gutter = pc.dim(` ${lineNo} │`);
     const content = _codeLines[i];
     for (const part of wrapLine(content, termW - lineDigits - 3)) {
-      console.log(`  ${gutter} ${part}`);
+      console.log(`  ${bar} ${pc.dim(`${lineNo} │`)} ${part}`);
     }
   }
   _codeLines = [];
@@ -80,7 +82,6 @@ export function writeAssistantChunk(chunk: string): void {
   for (const raw of completeLines) {
     const line = raw.trimEnd();
 
-    // Code block fences
     if (line.startsWith('```')) {
       if (_inCode) {
         emitCodeBlock();
@@ -96,7 +97,6 @@ export function writeAssistantChunk(chunk: string): void {
       continue;
     }
 
-    // Inline markdown rendering
     const formatted = formatMarkdownLine(line);
     for (const part of wrapLine(formatted, termW)) {
       console.log(`  ${part}`);
@@ -138,7 +138,7 @@ export function closeAssistantBlock(
   parts.push(pc.dim(tokenStr));
   const elapsed = elapsedMs >= 1000 ? `${(elapsedMs / 1000).toFixed(1)}s` : `${elapsedMs}ms`;
   parts.push(pc.dim(elapsed));
-  console.log(`  ${parts.join(' · ')}\n`);
+  console.log(`  ${pc.dim('└')} ${parts.join(` ${pc.dim('·')} `)}`);
 }
 
 // ── Inline markdown ────────────────────────────────────────────
@@ -176,7 +176,7 @@ export function formatMarkdownLine(line: string): string {
 
 export function turnSeparator(): void {
   const ts = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
-  console.log(`  ${pc.dim('─'.repeat(50))} ${pc.dim(ts)}`);
+  console.log(`\n  ${sepLine('─', 40)} ${pc.dim(ts)}`);
 }
 
 // ── Context warning ────────────────────────────────────────────
@@ -199,10 +199,9 @@ export function printContextPrune(pruned: number, truncated: number, savedKt: nu
 
 // ── Tool execution ─────────────────────────────────────────────
 
-export function printToolStart(count: number, names: string[], _spinnerDim: (s: string) => string): string {
+export function printToolStart(count: number, names: string[]): void {
   const label = count === 1 ? names[0] : `${names.join(', ')}`;
-  const msg = `  ${pc.dim('▸')} ${pc.dim(label)}`;
-  return msg;
+  console.log(`  ${pc.dim('▸')} ${pc.dim(label)}`);
 }
 
 export function printToolResult(name: string, success: boolean, error?: string): void {
