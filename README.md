@@ -29,7 +29,7 @@ Daedalus connects to local LLM servers (LM Studio, Ollama, llama.cpp, vLLM) or r
 ║  o  local-first · embedded router · multi-agent · not sentient o  ║
 ╚═══════════════════════════════════════════════════════════════════╝
 
-DAEDALUS  v1.22.6 · bgill55_dev
+DAEDALUS  v1.23.0 · bgill55_dev
 
 ┌─ router ──────────────────────────────────────────────────────────┐
 │ strategy  priority    models  2    config  ~/.daedalus/config.json│
