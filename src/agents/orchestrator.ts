@@ -1074,17 +1074,8 @@ export class Orchestrator {
       if (partialWork && depth < 3 && tasks) {
         console.log(`\n${pc.yellow('[TASK TOO LARGE]')} Agent hit max turns with partial progress. Re-planned remaining work (depth ${depth + 1})...`);
 
-        // Clean up partial files — the exhausted agent left debris
         const newPatches = this.toolContext.patchHistory?.slice(historyStartIndex) || [];
         const filesDone = [...new Set(newPatches.map(p => p.filePath).filter(Boolean))];
-        for (const fp of filesDone) {
-          try {
-            if (fp && fs.existsSync(fp)) {
-              fs.unlinkSync(fp);
-              console.log(pc.gray(`  Removed partial: ${path.basename(fp)}`));
-            }
-          } catch { /* race */ }
-        }
 
         task.status = 'completed';
         this.results.push({
@@ -1273,6 +1264,8 @@ export class Orchestrator {
     let turns = 0;
     const maxTurns = role.maxTurns ?? 10;
     const patchFailures = new Map<string, number>();
+    const taskStartHistoryLength = this.toolContext.patchHistory?.length || 0;
+    let idleReadTurn = -1;
 
     while (turns < maxTurns) {
       if (this.toolContext.abortSignal.aborted) {
@@ -1351,6 +1344,20 @@ export class Orchestrator {
             content: result.content,
             tool_call_id: result.toolCallId,
           });
+        }
+
+        // Early-exit: after artifacts exist, if agent spends 2+ turns on read-only tools, it's done
+        const hasArtifacts = this.toolContext.patchHistory && this.toolContext.patchHistory.length > taskStartHistoryLength;
+        const hasArtifactTool = effectiveToolCalls.some((tc: any) =>
+          /^(write_file|patch|terminal)$/i.test(tc.function.name)
+        );
+        if (hasArtifacts && hasArtifactTool) {
+          idleReadTurn = -1;
+        } else if (hasArtifacts && !hasArtifactTool) {
+          if (idleReadTurn === -1) idleReadTurn = turns;
+          else if (turns - idleReadTurn >= 1) {
+            return 'Agent completed';
+          }
         }
         turns++;
         continue;

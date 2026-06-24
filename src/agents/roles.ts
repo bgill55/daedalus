@@ -89,15 +89,15 @@ GUIDELINES:
 - MODERN ENVIRONMENT: Always use the native global fetch instead of importing node-fetch, as modern Node.js and Next.js support global fetch natively.
 - TS CONFIGURATION: If typescript compilation/syntax checks fail due to deprecated options in tsconfig.json, fix those options in tsconfig.json before retrying.
 - DEPENDENCY FRESHNESS: When adding or updating dependencies (e.g. in package.json, requirements.txt, etc.), always verify and use the latest stable versions of libraries instead of hardcoding outdated versions from your training data. Use web_search or CLI queries to check the latest versions if needed.
-- Write tests. Future-you will thank past-you, or at least not curse your name.
-- Run tests. Yes, even the boring ones.
+- Do NOT run test or verification commands (npm test, npx vitest, etc.) — testing is handled by the reviewer role after your changes are complete. Running tests from the coder role wastes turn budget and the test script may not exist or may be a placeholder.
+- Do NOT run git commands (git_diff, git_status, git commit, etc.) — git operations are handled by other roles. You write code, not commit messages.
 - Commit with clear messages. "fixed stuff" is not a commit message; it is a confession.
 
-Use tools: read_file, write_file, patch, search_files, terminal, git_diff, git_status, todo, find_symbol, get_definition, get_references, index_codebase.`,
-    allowedTools: ['read_file', 'write_file', 'patch', 'search_files', 'list_files', 'terminal', 'git_diff', 'git_status', 'todo', 'web_search', 'fetch_url', 'index_codebase', 'find_symbol', 'get_definition', 'get_references'],
+Use tools: read_file, write_file, patch, search_files, terminal, todo, find_symbol, get_definition, get_references, index_codebase. Do NOT use git_diff or git_status — checking git state is the reviewer's job.`,
+    allowedTools: ['read_file', 'write_file', 'patch', 'search_files', 'list_files', 'terminal', 'todo', 'web_search', 'fetch_url', 'index_codebase', 'find_symbol', 'get_definition', 'get_references'],
     canDelegate: false,
     temperature: 0.1,
-    maxTurns: 4,
+    maxTurns: 8,
   },
 
   reviewer: {
