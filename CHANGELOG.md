@@ -1,3 +1,10 @@
+# [1.23.0](https://github.com/bgill55/daedalus/compare/v1.22.7...v1.23.0) (2026-06-24)
+
+
+### Features
+
+* improve orchestration reliability and model tool handling ([414cfd6](https://github.com/bgill55/daedalus/commit/414cfd64ecdb21d4371ac352c6cf7126fe783fca))
+
 ## [1.22.7](https://github.com/bgill55/daedalus/compare/v1.22.6...v1.22.7) (2026-06-23)
 
 ### Bug Fixes
