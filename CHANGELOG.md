@@ -1,3 +1,10 @@
+## [1.27.1](https://github.com/bgill55/daedalus/compare/v1.27.0...v1.27.1) (2026-06-24)
+
+
+### Bug Fixes
+
+* prevent session auto-naming from using leaked system prompt text ([f06a493](https://github.com/bgill55/daedalus/commit/f06a493d4ac9956a91999573fcb73ecb82988535))
+
 # [1.27.0](https://github.com/bgill55/daedalus/compare/v1.26.2...v1.27.0) (2026-06-24)
 
 
