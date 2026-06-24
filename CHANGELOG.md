@@ -1,3 +1,10 @@
+## [1.26.1](https://github.com/bgill55/daedalus/compare/v1.26.0...v1.26.1) (2026-06-24)
+
+
+### Bug Fixes
+
+* preserve pending tasks when replan validation fails ([e744f5e](https://github.com/bgill55/daedalus/commit/e744f5e1c57ba7fe7e970964569ac01e2cf9e6a1))
+
 # [1.26.0](https://github.com/bgill55/daedalus/compare/v1.25.0...v1.26.0) (2026-06-24)
 
 
