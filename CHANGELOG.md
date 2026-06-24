@@ -1,3 +1,10 @@
+# [1.26.0](https://github.com/bgill55/daedalus/compare/v1.25.0...v1.26.0) (2026-06-24)
+
+
+### Features
+
+* Sprint 2-4 — retry, resume, concurrency, debug cleanup ([d795479](https://github.com/bgill55/daedalus/commit/d7954794b6a13f3e9f63407eea33cf92c3874a61))
+
 # [1.25.0](https://github.com/bgill55/daedalus/compare/v1.24.1...v1.25.0) (2026-06-24)
 
 
