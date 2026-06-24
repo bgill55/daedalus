@@ -1,3 +1,10 @@
+## [1.26.2](https://github.com/bgill55/daedalus/compare/v1.26.1...v1.26.2) (2026-06-24)
+
+
+### Bug Fixes
+
+* MCP on Windows, startup ordering, piped stdin race, tool awareness in system prompt ([cd34b43](https://github.com/bgill55/daedalus/commit/cd34b4372f292a192cea07322a7012ece799438a))
+
 ## [1.26.1](https://github.com/bgill55/daedalus/compare/v1.26.0...v1.26.1) (2026-06-24)
 
 
