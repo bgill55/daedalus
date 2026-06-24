@@ -43,7 +43,7 @@ export function printUserTurn(userMessage: string): void {
   const contentW = wrapped.reduce((m, l) => Math.max(m, stripAnsi(l).length), 0);
   const boxW = Math.max(20, contentW) + 2;
 
-  console.log(`\n  ${pc.dim('╭─')} ${pc.bold('You')} ${pc.dim(`─${'─'.repeat(Math.max(0, boxW - 4))}╮`)}`);
+  console.log(`\n  ${pc.dim('╭─')} ${pc.bold('You')} ${pc.dim(`─${'─'.repeat(Math.max(0, boxW - 5))}╮`)}`);
   for (const part of wrapped) {
     const pad = ' '.repeat(Math.max(0, boxW - stripAnsi(part).length));
     console.log(`  ${bar} ${pc.white(part)}${pad} ${bar}`);
