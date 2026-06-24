@@ -5,7 +5,7 @@ import readline from 'readline';
 import pc from 'picocolors';
 
 import { executeToolCalls } from './tools/executor.js';
-import { discoverLocalServers } from './config/index.js';
+import { discoverLocalServers, saveConfig } from './config/index.js';
 import type { ToolContext, ToolCall, ChatMessage } from './types.js';
 import type { LocalRouter } from './router/index.js';
 import type { SessionManager } from './session/manager.js';
@@ -862,16 +862,30 @@ Once you have finished making changes, I will automatically re-run the command t
   },
   {
     name: '/project',
-    description: 'View or set project config settings',
+    description: 'View or set project config settings (.daedalusrc)',
     execute: async (args, _ctx) => {
       const rest = args.trim();
-      const { loadProjectConfig, saveProjectConfig } = await import('./tools/builtin/project-config.js');
+      const { loadProjectConfig, saveProjectConfig, hasLocalConfig } = await import('./tools/builtin/project-config.js');
       if (!rest) {
         const cfg = loadProjectConfig(process.cwd());
-        console.log(pc.bold('\n--- Project Config (.daedalus) ---'));
+        const isLocal = hasLocalConfig(process.cwd());
+        console.log(pc.bold(`\n--- Project Config (${isLocal ? '.daedalusrc' : 'global'}) ---`));
         console.log(JSON.stringify(cfg, null, 2));
         console.log(pc.bold('----------------------------------'));
         console.log(pc.gray('Use /project set <key> = <value> to update'));
+        console.log(pc.gray('Use /project init to create a .daedalusrc in this project'));
+        return;
+      }
+
+      if (rest === 'init') {
+        const localPath = path.join(process.cwd(), '.daedalusrc');
+        if (fs.existsSync(localPath)) {
+          console.log(pc.yellow('.daedalusrc already exists in this project'));
+          return;
+        }
+        const cfg = loadProjectConfig(process.cwd());
+        saveProjectConfig(cfg, true);
+        console.log(pc.green('Created .daedalusrc — project config is now local to this repo'));
         return;
       }
 
@@ -888,7 +902,7 @@ Once you have finished making changes, I will automatically re-run the command t
           value = parts.slice(1).join(' ');
         }
         if (!key || !value) {
-          console.log(pc.red('[WARN] Usage: /project set <key> = <value>'));
+          console.log(pc.red('Usage: /project set <key> = <value>'));
         } else {
           const cfg = loadProjectConfig(process.cwd());
           let parsedVal: any = value;
@@ -897,11 +911,12 @@ Once you have finished making changes, I will automatically re-run the command t
           else if (!isNaN(Number(value))) parsedVal = Number(value);
 
           (cfg as Record<string, any>)[key] = parsedVal;
-          saveProjectConfig(cfg);
-          console.log(pc.green(`[OK] Set ${key} = ${value}`));
+          const isLocal = hasLocalConfig(process.cwd());
+          saveProjectConfig(cfg, isLocal);
+          console.log(pc.green(`Set ${key} = ${value} (${isLocal ? '.daedalusrc' : 'global'})`));
         }
       } else {
-        console.log(pc.red('[WARN] Usage: /project | /project set <key> = <value>'));
+        console.log(pc.red(`Unknown subcommand: ${rest}. Try: /project, /project set <key> = <value>, /project init`));
       }
     }
   },
@@ -928,22 +943,50 @@ Once you have finished making changes, I will automatically re-run the command t
           });
         }
         console.log(pc.bold('---------------------\n'));
-        console.log(pc.gray('Use `/session load <id>` to switch to a past session.'));
+        console.log(pc.gray('Use `/session load <id>` to resume a past session.'));
+        console.log(pc.gray('Use `/session search <query>` to search sessions.'));
         console.log(pc.gray('Use `/session new [title]` to start a new session.'));
         console.log(pc.gray('Use `/session rename <title>` to rename the current session.'));
         console.log(pc.gray('Use `/session delete <id>` to delete a session.'));
         return;
       }
 
+      if (subcommand === 'search') {
+        if (!subcommandArg) {
+          console.log(pc.red('Usage: /session search <query>'));
+          return;
+        }
+        const query = subcommandArg.toLowerCase();
+        const sessions = ctx.sessionManager.getSessionsForProject();
+        const matches = sessions.filter(s =>
+          s.title.toLowerCase().includes(query) ||
+          s.id.toLowerCase().includes(query)
+        );
+        if (matches.length === 0) {
+          console.log(pc.yellow(`No sessions matching "${subcommandArg}"`));
+        } else {
+          console.log(pc.bold(`\n--- Matching Sessions (${matches.length}) ---`));
+          matches.forEach(s => {
+            const currentTag = s.id === ctx.sessionManager.sessionId ? pc.green(' (current)') : '';
+            const dateStr = new Date(s.updated_at).toLocaleString();
+            console.log(`  • ${pc.cyan(s.id)}${currentTag}`);
+            console.log(`    Title: ${pc.white(s.title)}`);
+            console.log(`    Updated: ${pc.dim(dateStr)}`);
+          });
+          console.log(pc.bold('----------------------------------\n'));
+        }
+        return;
+      }
+
       if (subcommand === 'load') {
         if (!subcommandArg) {
-          console.log(pc.red('[WARN] Usage: /session load <session-id>'));
+          console.log(pc.red('Usage: /session load <session-id>'));
           return;
         }
         const sessions = ctx.sessionManager.getSessionsForProject();
         const found = sessions.find(s => s.id === subcommandArg || s.id.startsWith(subcommandArg));
         if (!found) {
-          console.log(pc.red(`[WARN] Session "${subcommandArg}" not found.`));
+          console.log(pc.red(`Session "${subcommandArg}" not found.`));
           return;
         }
         const currentTodos = getSessionTodos(ctx.toolContext.sessionId);
@@ -951,7 +994,7 @@ Once you have finished making changes, I will automatically re-run the command t
 
         const loaded = ctx.sessionManager.startSession(found.id, found.title);
         ctx.initializeSessionState(loaded);
-        console.log(pc.green(`[OK] Loaded session: ${pc.bold(found.id)} ("${found.title}")`));
+        console.log(pc.green(`Loaded session: ${pc.bold(found.id)} ("${found.title}")`));
         return;
       }
 
@@ -962,42 +1005,42 @@ Once you have finished making changes, I will automatically re-run the command t
         const title = subcommandArg || `Session on ${new Date().toLocaleDateString()}`;
         const loaded = ctx.sessionManager.startSession(undefined, title);
         ctx.initializeSessionState(loaded);
-        console.log(pc.green(`[OK] Started new session: ${pc.bold(loaded.sessionId)}`));
+        console.log(pc.green(`Started new session: ${pc.bold(loaded.sessionId)}`));
         return;
       }
 
       if (subcommand === 'rename') {
         if (!subcommandArg) {
-          console.log(pc.red('[WARN] Usage: /session rename <new-title>'));
+          console.log(pc.red('Usage: /session rename <new-title>'));
           return;
         }
         ctx.sessionManager.updateSessionTitle(subcommandArg);
-        console.log(pc.green(`[OK] Session renamed to: "${subcommandArg}"`));
+        console.log(pc.green(`Session renamed to: "${subcommandArg}"`));
         return;
       }
 
       if (subcommand === 'delete') {
         if (!subcommandArg) {
-          console.log(pc.red('[WARN] Usage: /session delete <session-id>'));
+          console.log(pc.red('Usage: /session delete <session-id>'));
           return;
         }
         if (subcommandArg === ctx.sessionManager.sessionId) {
-          console.log(pc.red('[WARN] Cannot delete the current active session.'));
+          console.log(pc.red('Cannot delete the current active session.'));
           return;
         }
         const sessions = ctx.sessionManager.getSessionsForProject();
         const found = sessions.find(s => s.id === subcommandArg || s.id.startsWith(subcommandArg));
         if (!found) {
-          console.log(pc.red(`[WARN] Session "${subcommandArg}" not found.`));
+          console.log(pc.red(`Session "${subcommandArg}" not found.`));
           return;
         }
 
         ctx.sessionManager.deleteSession(found.id);
-        console.log(pc.green(`[OK] Deleted session: ${pc.bold(found.id)}`));
+        console.log(pc.green(`Deleted session: ${pc.bold(found.id)}`));
         return;
       }
 
-      console.log(pc.red(`[WARN] Unknown subcommand: ${subcommand}`));
+      console.log(pc.red(`Unknown subcommand: ${subcommand}. Try: list, search, load, new, rename, delete`));
     }
   },
   {
@@ -1672,6 +1715,119 @@ Once you have finished making changes, I will automatically re-run the command t
           console.log(`  ${pc.dim('  /mcp install <name> to install any of the above')}`);
           console.log();
       }
+    }
+  },
+  {
+    name: '/onboard',
+    description: 'First-time setup — discover local models, configure, and test',
+    execute: async (_args, ctx) => {
+      const config = ctx.config;
+
+      console.log(pc.bold(pc.cyan('\n╔══════════════════════════════════════╗')));
+      console.log(pc.bold(pc.cyan('║        Daedalus Onboarding          ║')));
+      console.log(pc.bold(pc.cyan('╚══════════════════════════════════════╝')));
+      console.log();
+      console.log('Daedalus runs AI models locally on your machine.');
+      console.log('First, I need to know which model server to use.');
+      console.log();
+
+      // Step 1: Discover local model servers
+      console.log(pc.bold('🔍 Scanning for local model servers...'));
+      const discovered = await discoverLocalServers();
+
+      let chosenEndpoint = '';
+      let chosenModel = '';
+
+      if (discovered.length > 0) {
+        console.log(pc.green(`\n  Found ${discovered.length} running server(s):\n`));
+        for (let i = 0; i < discovered.length; i++) {
+          const s = discovered[i];
+          console.log(`  ${i + 1}. ${pc.cyan(s.name)} at ${s.endpoint}`);
+          for (const m of s.models.slice(0, 3)) {
+            console.log(`     - ${m}`);
+          }
+          if (s.models.length > 3) {
+            console.log(pc.gray(`     ... and ${s.models.length - 3} more`));
+          }
+        }
+
+        console.log();
+        const serverChoice = await ctx.askLine(`Select a server (1-${discovered.length}) or press Enter to add manually: `);
+        const idx = parseInt(serverChoice) - 1;
+        if (idx >= 0 && idx < discovered.length) {
+          const server = discovered[idx];
+          chosenEndpoint = server.endpoint;
+          if (server.models.length === 1) {
+            chosenModel = server.models[0];
+          } else {
+            console.log(`\nModels on ${pc.cyan(server.name)}:`);
+            for (let i = 0; i < server.models.length; i++) {
+              console.log(`  ${i + 1}. ${server.models[i]}`);
+            }
+            const modelChoice = await ctx.askLine(`Select a model (1-${server.models.length}): `);
+            const midx = parseInt(modelChoice) - 1;
+            if (midx >= 0 && midx < server.models.length) {
+              chosenModel = server.models[midx];
+            }
+          }
+        }
+      }
+
+      if (!chosenEndpoint) {
+        console.log(`\nEnter your model server details manually.`);
+        chosenEndpoint = await ctx.askLine('API endpoint (e.g. http://localhost:1234/v1): ');
+        if (!chosenEndpoint) chosenEndpoint = 'http://localhost:1234/v1';
+        chosenModel = await ctx.askLine('Model name (e.g. qwen2.5-coder-7b-instruct): ');
+        if (!chosenModel) chosenModel = 'auto';
+      }
+
+      if (!chosenModel) chosenModel = 'auto';
+
+      // Step 2: Add to config
+      const entry = {
+        name: chosenModel,
+        endpoint: chosenEndpoint,
+        model: chosenModel,
+        priority: 1,
+        enabled: true,
+      };
+
+      // Replace any existing chain or add to it
+      config.router.chain = [entry, ...config.router.chain.filter((e: any) => e.endpoint !== chosenEndpoint)];
+      saveConfig(config as any);
+
+      console.log(pc.green(`\n✓ Added model "${pc.bold(chosenModel)}" at ${chosenEndpoint}`));
+
+      // Step 3: Test the model
+      const testPrompt = await ctx.askLine('\nRun a quick test? (Y/n): ');
+      if (testPrompt.toLowerCase() !== 'n') {
+        console.log(pc.dim('\nSending test request...'));
+        try {
+          const start = Date.now();
+          const testMessages: ChatMessage[] = [
+            { role: 'system', content: 'You are a helpful assistant. Respond in 1-2 sentences.' },
+            { role: 'user', content: 'Say hello and confirm you are working.' },
+          ];
+          const testRouter = ctx.router;
+          const completion = await testRouter.chat.completions.create({
+            model: chosenModel,
+            messages: testMessages,
+            temperature: 0.1,
+          });
+          const elapsed = Date.now() - start;
+          const text = completion.choices?.[0]?.message?.content || '(no response)';
+          console.log(pc.green(`\n✓ Response received in ${elapsed}ms:`));
+          console.log(`  ${pc.white(text)}`);
+        } catch (err: any) {
+          console.log(pc.yellow(`\n⚠ Test failed: ${err.message}`));
+          console.log('  The model is configured but may need troubleshooting.');
+          console.log(`  Check ${pc.cyan(ctx.configDir + '/config.json')} and verify the endpoint.`);
+        }
+      }
+
+      console.log(pc.green(`\n✓ Onboarding complete! Configuration saved to:`));
+      console.log(`  ${pc.cyan(ctx.configDir + '/config.json')}`);
+      console.log(`\nType ${pc.cyan('?')} to see all available commands, or just start typing.`);
     }
   },
   {

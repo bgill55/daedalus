@@ -112,7 +112,7 @@ AI assistance without:
 | `/debug <command>` | Run command and autonomously debug failures |
 | `/ensemble <goal>` | Ensemble model drafting pipeline |
 | `/commit [msg]` | Stage and commit changes |
-| `/project [set <key> = <val>]` | View or set project config settings |
+| `/project [set <key> = <val>]` | View or set project config settings (.daedalusrc) |
 | `/session [name]` | Manage chat sessions |
 | `/test [n]` | Run test loop and fix failures |
 | `/index` | Index codebase for symbol search |
@@ -125,6 +125,7 @@ AI assistance without:
 | `/doctor` | Diagnose connection and discovery |
 | `/help` / `?` / `help` | Show available commands |
 | `/mcp` | Manage MCP servers: explore, search, install, list, remove, info |
+| `/onboard` | First-time setup — discover local models, configure, and test |
 | `exit` / `/exit` / `/quit` / `quit` | Save session and exit |
 <!-- END_COMMANDS_TABLE -->
 

@@ -14,7 +14,8 @@
     "CONTRIBUTING.md",
     "CODE_OF_CONDUCT.md",
     "SECURITY.md",
-    "AGENTS.md"
+    "AGENTS.md",
+    "scripts/postinstall.js"
   ],
   "scripts": {
     "start": "tsx src/index.ts",
@@ -23,7 +24,8 @@
     "prepublishOnly": "npm run build",
     "test": "vitest run",
     "lint": "eslint src --ext .ts",
-    "sync-docs": "tsx scripts/sync-docs.ts"
+    "sync-docs": "tsx scripts/sync-docs.ts",
+    "postinstall": "node scripts/postinstall.js"
   },
   "engines": {
     "node": ">=20.0.0"

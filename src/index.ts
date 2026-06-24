@@ -302,6 +302,36 @@ async function main() {
   printBanner(APP_VERSION);
   const enabledCount = config.router.chain.filter(m => m.enabled).length;
   printConfigInfo(enabledCount, config.router.strategy, configDir + '/config.json');
+
+  // First-run detection: if no models configured, auto-trigger onboarding
+  if (enabledCount === 0 && process.stdin.isTTY && !process.env.DAEDALUS_AUTO_APPROVE) {
+    console.log(pc.yellow('\n  No models configured yet. Starting onboarding...\n'));
+    const { commandsList } = await import('./commands.js');
+    const onboardCmd = commandsList.find(c => c.name === '/onboard');
+    if (onboardCmd) {
+      await onboardCmd.execute('', {
+        config,
+        configDir,
+        cliTempDir,
+        router,
+        sessionManager,
+        userProfile,
+        projectHash,
+        messages,
+        activeFiles,
+        toolContext,
+        getSystemPromptWithMemory,
+        callModelWithTools,
+        callModelWithFallback,
+        rl: null as any,
+        initializeSessionState: () => {},
+        buildFileContext,
+        askLine,
+        buildIndexContext: async () => '',
+        getIndexDbPath,
+      });
+    }
+  }
   
   // Start health checks and MCP in background — REPL starts immediately
   const postStartPromises: Promise<void>[] = [];

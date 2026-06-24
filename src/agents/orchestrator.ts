@@ -64,7 +64,7 @@ export class Orchestrator {
         lastErr = err;
         if (attempt < maxRetries) {
           const delay = Math.min(1000 * Math.pow(2, attempt), 8000);
-          console.log(pc.yellow(`\n[RETRY] ${label} failed (${err.message}). Retrying in ${delay}ms (${attempt + 1}/${maxRetries})...`));
+          console.log(pc.yellow(`\nModel request failed — ${err.message}. Retrying in ${delay / 1000}s (attempt ${attempt + 1}/${maxRetries})...`));
           await new Promise(r => setTimeout(r, delay));
         }
       }
@@ -125,7 +125,7 @@ export class Orchestrator {
 
       // Cap initial tasks — re-plan if the planner gets carried away
       if (tasks.length > this.MAX_INITIAL_TASKS) {
-        console.log(pc.yellow(`\n[PLAN] Initial plan has ${tasks.length} tasks (max ${this.MAX_INITIAL_TASKS}). Simplifying...`));
+        console.log(pc.yellow(`\nPlan has ${tasks.length} steps (max ${this.MAX_INITIAL_TASKS}). Asking planner to simplify...`));
         plan = await this.createPlan(
           `${goal}\n\nYour previous plan had ${tasks.length} steps which is too many. Create a simpler plan with at most ${this.MAX_INITIAL_TASKS} focused steps. Merge related steps together. Each step must produce real output.`,
           projectContext
@@ -289,10 +289,10 @@ export class Orchestrator {
         return planText || `- delegate to coder: ${goal}`;
       }
       lastValidationError = validationError;
-      console.log(pc.yellow(`\n[PLAN] Rejected: ${validationError} — retrying (${attempts}/${maxAttempts})...`));
+      console.log(pc.yellow(`\nPlan didn't pass validation — re-planning (attempt ${attempts}/${maxAttempts})...`));
     }
 
-    console.log(pc.yellow(`\n[PLAN] Using fallback after ${maxAttempts} attempts`));
+    console.log(pc.yellow(`\nUsing fallback plan after ${maxAttempts} failed re-planning attempts`));
     return `- delegate to coder: ${goal}`;
   }
 
@@ -504,7 +504,7 @@ export class Orchestrator {
 
       // Hard cap — stop adding new tasks past the limit
       if (i >= this.MAX_TOTAL_TASKS && tasks.filter(t => t.status === 'pending').length > 0) {
-        console.log(pc.yellow(`\n[HALT] Reached ${this.MAX_TOTAL_TASKS} task limit. Halting new task generation.`));
+        console.log(pc.yellow(`\nReached task limit (${this.MAX_TOTAL_TASKS}). Halting new task generation.`));
         while (tasks.length > this.MAX_TOTAL_TASKS) {
           const removed = tasks.pop();
           if (removed) { removed.status = 'skipped'; removed.error = 'Reached task limit'; }
@@ -522,7 +522,7 @@ export class Orchestrator {
 
       // Skip unnecessary config tasks for file-based routing frameworks
       if (Orchestrator.isUnnecessaryConfigTask(task, projectContext)) {
-        console.log(pc.yellow(`\n[S] Task ${i + 1}: Skipped — Next.js uses file-based routing, no config changes needed`));
+        console.log(pc.yellow(`\nSkipping task ${i + 1}: Next.js uses file-based routing — no config changes needed`));
         task.status = 'skipped';
         task.error = 'Unnecessary config task for file-based routing framework';
         i++;
@@ -1286,7 +1286,7 @@ export class Orchestrator {
       const partialWork = (this.toolContext.patchHistory?.length ?? 0) > historyStartIndex;
       const depth = task.splitDepth ?? 0;
       if (partialWork && depth < 3 && tasks) {
-        console.log(`\n${pc.yellow('[TASK TOO LARGE]')} Agent hit max turns with partial progress. Re-planned remaining work (depth ${depth + 1})...`);
+        console.log(`\n${pc.yellow('Task exceeded turn limit with partial progress.')} Splitting remaining work (depth ${depth + 1})...`);
 
         const newPatches = this.toolContext.patchHistory?.slice(historyStartIndex) || [];
         const filesDone = [...new Set(newPatches.map(p => p.filePath).filter(Boolean))];
@@ -1350,7 +1350,7 @@ export class Orchestrator {
     if (verified) {
       placeholderSites = await this.checkPlaceholders(historyStartIndex);
       if (placeholderSites.length > 0) {
-        console.log(pc.yellow(`\n[PLACEHOLDER] Found ${placeholderSites.length} placeholder(s) in written files`));
+        console.log(pc.yellow(`\nFound ${placeholderSites.length} placeholder(s) in written files`));
         // Auto-fill trivial placeholders like [Year], [Your Name]
         const filled = await this.fillPlaceholders(historyStartIndex);
         if (filled > 0) {
