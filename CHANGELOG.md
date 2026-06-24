@@ -1,3 +1,10 @@
+## [1.24.1](https://github.com/bgill55/daedalus/compare/v1.24.0...v1.24.1) (2026-06-24)
+
+
+### Bug Fixes
+
+* prompt for install commands, block coder from running tests/git, early-exit on idle turns ([2ce178a](https://github.com/bgill55/daedalus/commit/2ce178a8c158cfc733f00b4bba28f80cbd75bffc))
+
 # [1.24.0](https://github.com/bgill55/daedalus/compare/v1.23.0...v1.24.0) (2026-06-24)
 
 
