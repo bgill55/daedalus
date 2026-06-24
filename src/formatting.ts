@@ -267,5 +267,95 @@ export function parseTextToolCalls(text: string): ToolCall[] {
       function: { name: toolName, arguments: JSON.stringify(args) },
     });
   }
+
+  // LM Studio `tool` block fallback: ```tool\nfunc_name(key="value", ...)\n```
+  if (toolCalls.length === 0) {
+    const toolBlockRe = /```tool\s*\n(\w+)\(([\s\S]*?)\)\s*\n```/;
+    const blockMatch = text.match(toolBlockRe);
+    if (blockMatch) {
+      const funcName = blockMatch[1].toLowerCase();
+      const rawArgs = blockMatch[2].trim();
+      const args: Record<string, any> = {};
+      if (funcName === 'write_file' || funcName === 'patch') {
+        const keyValueRe = /(\w+)=["']([\s\S]*?)["']/g;
+        let km;
+        while ((km = keyValueRe.exec(rawArgs)) !== null) {
+          args[km[1]] = km[2].replace(/\\n/g, '\n').replace(/\\"/g, '"');
+        }
+        if (funcName === 'write_file' && args.file_path && !args.path) {
+          args.path = args.file_path;
+          delete args.file_path;
+        }
+      }
+      if (Object.keys(args).length > 0 || (funcName === 'terminal' && rawArgs)) {
+        toolCalls.push({
+          id: `call_parsed_ls_${Date.now()}`,
+          type: 'function',
+          function: { name: funcName, arguments: JSON.stringify(args) },
+        });
+      }
+    }
+  }
+
+  // Natural-language fallback: detect model saying "use the `write_file` tool" + code block
+  const toolNameRe = /\buse\s+(?:the\s+)?`?(\w+)`?\s+(?:tool|function|command)\b/i;
+  const bodyMatch = text.match(toolNameRe);
+  if (bodyMatch && toolCalls.length === 0) {
+    const tool = bodyMatch[1].toLowerCase();
+    if (['write_file','patch','search_files','terminal','read_file','git_diff','git_status'].includes(tool)) {
+      const args: Record<string, any> = {};
+      if (tool === 'write_file') {
+        const cleanText = text.replace(/`/g, '');
+        const pathMatch = cleanText.match(/(?:create|write|add|created|creating)\s+(?:a\s+|the\s+)?(?:file\s+(?:named\s+)?)?([A-Za-z0-9_\-./\\:]+\.[A-Za-z0-9]+)/i) ||
+                          cleanText.match(/(?:in|at)\s+(?:the\s+)?([A-Za-z0-9_\-./\\:]+\.[A-Za-z0-9]+)/i);
+        const path = pathMatch ? pathMatch[1].replace(/\\/g,'/') : null;
+        if (path) {
+          const codeMatch = text.match(/```[\s\S]*?```/);
+          if (codeMatch) {
+            const codeContent = codeMatch[0].replace(/^```\w*\n?/,'').replace(/\n?```$/,'');
+            args.path = path;
+            args.content = codeContent;
+          } else {
+            args.path = path;
+          }
+        }
+      }
+      if (args.path) {
+        toolCalls.push({
+          id: `call_parsed_nl_${Date.now()}`,
+          type: 'function',
+          function: { name: tool, arguments: JSON.stringify(args) },
+        });
+      }
+    }
+  }
+
+  // Code-block fallback: if the text contains a TS/TSX/JS code block and mentions a .ts/.tsx/.js file path without any tool call
+  if (toolCalls.length === 0) {
+    const cleanText = text.replace(/`/g, '');
+    const hasCodeBlock = /```(?:tsx?|jsx?|javascript|typescript)[\s\S]*?```/i.test(text) || /```[\s\S]*?\b(import|export|const|function|return)\b[\s\S]*?```/i.test(text);
+    const fileMention = cleanText.match(/(?:in|at|file)[\s:]*([A-Za-z0-9_\-./\\:]+\.[A-Za-z0-9]+)/i) ||
+                        cleanText.match(/([A-Za-z0-9_\-./\\:]+\.[a-zA-Z0-9]+)/);
+    if (hasCodeBlock && fileMention) {
+      const path = fileMention[1].replace(/\\/g,'/');
+      const codeMatch = text.match(/```[\s\S]*?```/);
+      if (codeMatch) {
+        const codeContent = codeMatch[0].replace(/^```\w*\n?/,'').replace(/\n?```$/,'');
+        toolCalls.push({
+          id: `call_parsed_code_${Date.now()}`,
+          type: 'function',
+          function: { name: 'write_file', arguments: JSON.stringify({ path, content: codeContent }) },
+        });
+      } else {
+        toolCalls.push({
+          id: `call_parsed_code_${Date.now()}`,
+          type: 'function',
+          function: { name: 'write_file', arguments: JSON.stringify({ path }) },
+        });
+      }
+    }
+  }
+
   return toolCalls;
 }
+

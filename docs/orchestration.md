@@ -59,8 +59,9 @@ If an orchestration is aborted or paused, the plan and its task progress are sto
 ## Granular Task Planning
 
 To ensure local models do not exhaust their context or turn budgets, the planner follows strict constraints:
-*   Tasks are sized to fit within a **10-turn limit** for the coder agent.
+*   Tasks are sized to fit within a **4-turn limit** for the coder agent.
 *   Goals are broken down into discrete, file-scoped or function-scoped tasks rather than broad assignments (e.g., "Implement the video generator service in backend/video_service.py" instead of "Implement the backend").
+*   Re-planning automatically dedupes completed file targets to prevent duplicate or circular task generation.
 
 ---
 

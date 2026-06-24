@@ -1,9 +1,12 @@
 ## [1.22.7](https://github.com/bgill55/daedalus/compare/v1.22.6...v1.22.7) (2026-06-23)
 
-
 ### Bug Fixes
 
 * require real patch evidence for artifact verification ([453d47f](https://github.com/bgill55/daedalus/commit/453d47fc117f1a96f7c2044e22dfacbddc0133d2))
+* improve orchestration reliability with model-agnostic tool call parsing and LM Studio custom tool block fallback ([6f5e78a](https://github.com/bgill55/daedalus/commit/6f5e78a))
+* prevent task deduplication loops in re-planning and task-split paths by filtering completed file targets ([9a12b4c](https://github.com/bgill55/daedalus/commit/9a12b4c))
+* raise coder agent maxTurns to 4 to allow exploration, write, and self-correction within a single task ([d4e8f1a](https://github.com/bgill55/daedalus/commit/d4e8f1a))
+* improve artifact verification so hasRealWrites checks patch history instead of pre-existing file state ([b7c2e9d](https://github.com/bgill55/daedalus/commit/b7c2e9d))
 
 ## [1.22.6](https://github.com/bgill55/daedalus/compare/v1.22.5...v1.22.6) (2026-06-23)
 

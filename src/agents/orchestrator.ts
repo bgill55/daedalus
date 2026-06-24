@@ -13,6 +13,7 @@ import pc from 'picocolors';
 import { DaedalusSpinner } from '../tools/daedalus-spinner.js';
 import { SessionManager } from '../session/manager.js';
 import { loadProfile } from '../profile.js';
+import { parseTextToolCalls } from '../formatting.js';
 
 interface DelegationTask {
   goal: string;
@@ -484,15 +485,21 @@ export class Orchestrator {
 
     const summary = done.map(t => {
       const r = this.results.find(rr => rr.goal === t.goal && rr.role === t.role);
-      return r ? `[✓] [${t.role}] ${t.goal} → ${r.summary.split('\n')[0]}` : `[✓] [${t.role}] ${t.goal}`;
+      return r ? `[✓] [${t.role}] ${t.goal} → ${r.summary.split('\n').slice(0,2).join(' | ')}` : `[✓] [${t.role}] ${t.goal}`;
     }).join('\n');
 
     const remainingList = pending.map(t => `[ ] [${t.role}] ${t.goal}`).join('\n');
+    const completedFiles = done.flatMap(t => {
+      const r = this.results.find(rr => rr.goal === t.goal && rr.role === t.role);
+      if (!r) return [];
+      const paths = Orchestrator.extractFilePaths(r.summary);
+      return paths;
+    });
 
     console.log(pc.cyan(`\n[RE-PLAN] ${pending.length} task(s) remaining. Re-evaluating based on completed work...`));
 
     const subPlan = await this.createPlan(
-      `Original goal: ${originalGoal}\n\nCompleted so far:\n${summary}\n\nRemaining:\n${remainingList}\n\nBased on what was completed, re-plan the remaining work. Consolidate and simplify — aim for at most ${this.MAX_INITIAL_TASKS} focused steps. Remove any that are already done or no longer needed. Each remaining step must produce real output.`,
+      `Original goal: ${originalGoal}\n\nCompleted so far:\n${summary}\n\nFiles already written: ${completedFiles.length > 0 ? completedFiles.join(', ') : '(none)'}\n\nRemaining:\n${remainingList}\n\nBased on what was completed, re-plan the remaining work. Consolidate and simplify — aim for at most ${this.MAX_INITIAL_TASKS} focused steps. Do NOT repeat tasks that are already done. Do NOT re-create files that already exist. Each remaining step must produce real output that has not been created yet.`,
       projectContext
     );
 
@@ -503,8 +510,24 @@ export class Orchestrator {
       }
     }
 
-    // Add new tasks from re-plan
+    // Add new tasks from re-plan, dropping duplicates against completed work
     let newTasks = this.parseDelegationTasks(subPlan, originalGoal);
+    console.log(`[DEDUPE] Parsed ${newTasks.length} new tasks from re-plan`);
+    newTasks = newTasks.filter(nt => {
+      if (done.length === 0 || nt.role !== 'coder') return true;
+      const newPaths = Orchestrator.extractFilePaths(nt.goal).map(p => p.toLowerCase());
+      console.log(`[DEDUPE] Checking task: ${nt.goal.slice(0,60)}... paths=${JSON.stringify(newPaths)}`);
+      if (newPaths.length === 0) return true;
+      const keep = !done.some(d => {
+        if (d.role !== 'coder') return false;
+        const donePaths = Orchestrator.extractFilePaths(d.goal).map(p => p.toLowerCase());
+        console.log(`[DEDUPE] vs done: ${d.goal.slice(0,60)}... paths=${JSON.stringify(donePaths)}`);
+        return donePaths.some(dp => newPaths.includes(dp));
+      });
+      if (!keep) console.log(`[DEDUPE] Dropping duplicate`);
+      return keep;
+    });
+    console.log(`[DEDUPE] ${newTasks.length} tasks after dedup`);
 
     // Enforce task cap and filter out non-actionable tasks
     newTasks = Orchestrator.filterValidTasks(newTasks).slice(0, this.MAX_INITIAL_TASKS);
@@ -518,31 +541,51 @@ export class Orchestrator {
   }
 
   private static filterValidTasks(tasks: DelegationTask[]): DelegationTask[] {
-    const doneRe = /\b(open|launch|start|run|execute)\b.*\b(file|editor|IDE|app|application|browser|window)\b|\b(commit|push)\b.*\b(git|github|gitlab)\b|\b(use|press|click|type)\b.*\b(mouse|keyboard|key|button)\b/i;
-    const metaSaveRe = /\b(save|write)\s+(the\s+)?(changes|file)\b(?!.*\b(to|with|containing|including|featuring)\b)/i;
+    const doneRe = /\b(open|launch|start|run|execute)\b.*\b(file|editor|IDE|app|application|browser|window)\b|\b(commit|push|pull|merge)\b|\b(researcher)\b.*\b(identify and install)\b/i;
+    let filtered = tasks.filter(t => !doneRe.test(t.goal));
+    const metaRe = /\b(save changes|save the file|ensure that|ensure the)\b/i;
+    const metaSaveRe = /(?:save|write)\s+the\s+(?:changes|file)/i;
     const guiTestRe = /\b(cypress|playwright|puppeteer|selenium)\b/i;
+    const fileSimpleRe = /\b(create|write|build|make|generate|add)\b.*\b(file|component|page|layout|module|function|class|route)\b/i;
+    const pathRe = /([a-z0-9_\-./\\:]+\\.[a-z0-9]+)/i;
 
     const seen = new Map<string, DelegationTask>();
     const out: DelegationTask[] = [];
 
-    for (const t of tasks) {
-      if (doneRe.test(t.goal)) continue;
-      if (metaSaveRe.test(t.goal)) continue;
-      if (t.goal.length < 5) continue;
-      if (guiTestRe.test(t.goal)) continue;
+    for (const t of filtered) {
+      const rawGoal = t.goal;
+      const cleanedGoal = Orchestrator.cleanTaskText(rawGoal) || rawGoal;
 
-      const lower = t.goal.toLowerCase();
+      if (doneRe.test(cleanedGoal)) continue;
+      if (metaRe.test(cleanedGoal)) continue;
+      if (metaSaveRe.test(cleanedGoal)) continue;
+      if (guiTestRe.test(cleanedGoal)) continue;
+      if (/\b(open|view|check)\b/i.test(cleanedGoal) && cleanedGoal.length < 25) continue;
+
+      const lower = cleanedGoal.toLowerCase();
       if (t.role === 'coder') {
-        const pathMatch = lower.match(/([a-z0-9_\-./\\:]+\.[a-z0-9]+)/i);
+        const pathMatch = lower.match(pathRe);
         const key = pathMatch ? `${t.role}:${pathMatch[1]}` : `${t.role}:${lower}`;
+
         if (seen.has(key)) {
           const existing = seen.get(key)!;
-          if (t.goal.length > existing.goal.length) existing.goal = t.goal;
+          if (cleanedGoal.length > existing.goal.length) existing.goal = cleanedGoal;
           continue;
         }
         seen.set(key, t);
+
+        const isSimpleFileTask = fileSimpleRe.test(lower);
+        if (isSimpleFileTask) {
+          const simpleFileCount = out.filter(o => {
+            if (o.role !== 'coder') return false;
+            const p = o.goal.toLowerCase().match(pathRe);
+            return p && pathMatch && p[1] === pathMatch[1];
+          }).length;
+          if (simpleFileCount >= 2) continue;
+        }
       }
 
+      t.goal = cleanedGoal;
       out.push(t);
     }
 
@@ -557,12 +600,32 @@ export class Orchestrator {
     return result;
   }
 
+  private static stripToolRequestArtifacts(text: string): string {
+    // Remove [TOOL_REQUEST]...[END_TOOL_REQUEST] blocks (including trailing JSON)
+    let result = text.replace(/\[TOOL_REQUEST\][\s\S]*?\[END_TOOL_REQUEST\]/gi, '').trim();
+    // Remove trailing whitespace / stray colons left behind
+    result = result.replace(/[:\s]+$/g, '').trim();
+    return result;
+  }
+
+  private static cleanTaskText(text: string): string {
+    const withoutBlocks = Orchestrator.stripCodeBlocks(text);
+    const withoutToolRequests = Orchestrator.stripToolRequestArtifacts(withoutBlocks);
+    return withoutToolRequests || withoutBlocks || text;
+  }
+
+  private static cleanPlanOutput(text: string): string {
+    // Clean the entire planner output before parsing to remove all tool request clutter
+    return Orchestrator.stripToolRequestArtifacts(text);
+  }
+
   private truncateGoal(text: string): string {
     if (text.length <= 200) return text;
     return text.slice(0, 197) + '...';
   }
 
   private parseDelegationTasks(plan: string, goal: string): DelegationTask[] {
+    const cleanedPlan = Orchestrator.cleanPlanOutput(plan);
     const tasks: DelegationTask[] = [];
     const seenGoals = new Set<string>();
     const activeFilesText = this.toolContext.activeFiles.size > 0
@@ -576,12 +639,12 @@ export class Orchestrator {
     
     const baseCtx = activeFilesText + goalBlock + pathsBlock;
     
-    const lines = plan.split('\n');
+    const lines = cleanedPlan.split('\n');
     let currentRole = '';
     let currentGoal = '';
     
     const pushTask = (role: string, goalText: string, ctx: string, depth: number) => {
-      const clean = Orchestrator.stripCodeBlocks(goalText) || goalText;
+      const clean = Orchestrator.cleanTaskText(goalText) || goalText;
       const goalKey = clean.trim().toLowerCase().replace(/\s+/g, ' ');
       if (seenGoals.has(goalKey)) return;
       seenGoals.add(goalKey);
@@ -790,7 +853,11 @@ export class Orchestrator {
       console.log(`\n[REPAIR] Attempt ${attempt}/${maxRetries} to repair task: ${task.goal}`);
 
       const baseCtx = customContext || task.context;
-      const repairContext = `${baseCtx}\n\nPrevious attempt failed verification. Output was:\n${currentSummary}\n\nPlease retry and ensure you actually write the required files/artifacts.`;
+      let repairHint = '';
+      if (currentSummary && currentSummary.toLowerCase().includes('i will') && !currentSummary.includes('`write_file`') && !currentSummary.includes('`patch`') && !currentSummary.includes('`terminal`')) {
+        repairHint = `\n\nCRITICAL: Your previous response described the work as text but did not actually call any tools. Do not describe WHAT you will do — directly EXECUTE the write_file or patch tool now. Your response must contain a tool call, not a plan or explanation.`;
+      }
+      const repairContext = `${baseCtx}\n\nPrevious attempt failed verification. Output was:\n${currentSummary}\n\nPlease retry and ensure you actually write the required files/artifacts.${repairHint}`;
 
       const historyStartIndex = this.toolContext.patchHistory?.length || 0;
       const result = await this.runAgent(role, task.goal, repairContext, tools);
@@ -815,7 +882,7 @@ export class Orchestrator {
     if (claimed.length === 0) return false;
     const history = this.toolContext.patchHistory || [];
     const historyPaths = new Set(history.map(h => (h.filePath || '').replace(/\\/g, '/')));
-    return claimed.some(p => historyPaths.has(p.replace(/\\/g, '/')) || fs.existsSync(p));
+    return claimed.some(p => historyPaths.has(p.replace(/\\/g, '/')));
   }
 
   private verifyArtifactsThoroughly(role: string, goal: string, result: string): boolean {
@@ -949,52 +1016,42 @@ export class Orchestrator {
 
     // Inject user metadata so the agent has real values instead of guessing
     const currentDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-    let userName: string;
-    try { userName = os.userInfo().username; } catch { userName = 'user'; }
-    const profile = loadProfile();
     let enrichedContext = `Current date: ${currentDate}\n`;
-    if (profile.name) {
-      enrichedContext += `User name: ${profile.name}\n`;
-    } else {
-      enrichedContext += `System user: ${userName}\n`;
-      enrichedContext += `(Set up your profile with /profile to customize your name, style, and preferences)\n`;
-    }
 
     // Build systemExtra with project context — system prompt is more authoritative than user message
-    let systemExtra = '';
-    if (projectContext) {
-      systemExtra = `Project context:\n${projectContext}\n\nIMPORTANT: Before creating new files, use read_file to examine existing project files and understand the structure. Follow the project framework conventions (e.g., Next.js pages go under pages/, Vue components under components/). Do not place files at the project root unless that is the correct convention for the framework.`;
-    }
+    const frameworkBlock = projectContext
+      ? `Follow the project framework conventions (e.g., Next.js pages go under pages/, Vue components under components/).\n`
+      : '';
 
-    // Surface relevant past lessons as context
+    // Surface relevant past lessons as context (cap to most-used to save tokens)
     const lessons = this.sessionManager ? this.sessionManager.getFailureLessons(task.role) : [];
-    enrichedContext += `\n${task.context}`;
-    if (lessons.length > 0) {
-      const lessonBlock = lessons.map(l =>
-        `[LESSON] Previously failed on: "${l.error_snippet}" -> resolution: ${l.resolution} (occurred ${l.used_count}x)`
-      ).join('\n');
-      enrichedContext = `${lessonBlock}\n\n${enrichedContext}`;
+    const topLesson = lessons.length > 0 ? lessons.sort((a, b) => ((b.used_count || 0) - (a.used_count || 0)))[0] : null;
+    if (topLesson) {
+      enrichedContext += `[LESSON] Previously failed on: "${topLesson.error_snippet}" -> resolution: ${topLesson.resolution} (occurred ${topLesson.used_count}x)\n`;
     }
 
-    // Inject an existing file from the target dir as a style reference
-    const styleRef = this.findStyleReference(task.goal);
+    // Inject an existing file from the target dir as a style reference only for non-trivial tasks
+    const simpleFileRe = /\b(create|write|build|make|generate|add)\b.*\b(file|component|page|layout|module|function|class|route)\b/i;
+    const isSimpleFileTask = simpleFileRe.test(task.goal.toLowerCase());
+    const styleRef = !isSimpleFileTask ? this.findStyleReference(task.goal) : null;
     if (styleRef) {
       enrichedContext += styleRef;
     }
 
-    // Extract explicit requirements from task and original goal as a checklist
+    // Extract explicit requirements from the task goal only
     const taskReqs = Orchestrator.extractRequirements(task.goal);
-    const goalReqs = Orchestrator.extractRequirements(goal || '');
-    const allReqs = [...new Set([...taskReqs, ...goalReqs])];
-    if (allReqs.length > 0) {
-      enrichedContext += `\n\nRequirements (must implement each):\n${allReqs.map(r => `  - ${r}`).join('\n')}\n`;
+    if (taskReqs.length > 0) {
+      enrichedContext += `\nRequirements:\n${taskReqs.slice(0, 4).map(r => `  - ${r}`).join('\n')}\n`;
     }
 
-    // Extract explicit file paths from the goal and inject a scope boundary
+    // Extract explicit file paths from the goal and inject a concise scope boundary
     const scopePaths = Orchestrator.extractFilePaths(task.goal);
     if (scopePaths.length > 0) {
-      enrichedContext += `\n\nSCOPE BOUNDARY:\nYou must ONLY touch the following files:\n${scopePaths.map(p => `  - ${p}`).join('\n')}\n\nCRITICAL: Do NOT edit, create, rename, or delete any other files. Touching files outside this list is a hard failure. If the task implies modifying existing files that aren't in this list, STILL do not touch them unless they are required imports/support files directly referenced by the target file. When in doubt, do not modify a file.\n`;
+      enrichedContext += `\nSCOPE: only touch ${scopePaths.join(', ')}\n`;
     }
+
+    enrichedContext += `\n${frameworkBlock}${task.context}`;
+    const systemExtra = `Project context:\n${projectContext || '(none discovered)'}${Orchestrator.getFrameworkGuidance(projectContext)}\n`;
 
     let result = await this.runAgent(role, task.goal, enrichedContext, tools, systemExtra);
 
@@ -1010,7 +1067,6 @@ export class Orchestrator {
       return;
     }
 
-    // Detect max turns — task too large, split remaining work into sub-tasks
     const MAX_TURNS_SIGNAL = 'Agent reached max turns';
     if (result === MAX_TURNS_SIGNAL) {
       const partialWork = (this.toolContext.patchHistory?.length ?? 0) > historyStartIndex;
@@ -1044,10 +1100,21 @@ export class Orchestrator {
           `Continue the remaining work for: ${task.goal}${doneCtx}\nThe previous agent only got partial work done before hitting the turn limit. Break this into smaller, focused steps.`
         );
         const subTasks = this.parseDelegationTasks(subPlan, goal || task.goal);
+        const doneInTasks = (tasks || []).filter(t => t.status === 'completed');
+        const deduped = subTasks.filter(st => {
+          if (doneInTasks.length === 0 || st.role !== 'coder') return true;
+          const newPaths = Orchestrator.extractFilePaths(st.goal).map(p => p.toLowerCase());
+          if (newPaths.length === 0) return true;
+          return !doneInTasks.some(d => {
+            if (d.role !== 'coder') return false;
+            const donePaths = Orchestrator.extractFilePaths(d.goal).map(p => p.toLowerCase());
+            return donePaths.some(dp => newPaths.includes(dp));
+          });
+        });
         const inheritCtx = filesDone.length > 0
           ? `Original goal: ${task.goal}\nProject root: ${process.cwd()}\n\nIMPORTANT — Files that were partially created and MUST be completed or replaced:\n${filesDone.map(f => `  - ${f}`).join('\n')}\n\nThe previous agent left these files incomplete before hitting the turn limit. You MUST read each file, then either complete it with a proper implementation or replace it entirely. Check the existing project structure first — use read_file on existing files to understand what's already there before creating new ones.`
           : `Original goal: ${task.goal}\nProject root: ${process.cwd()}\n\nCheck the existing project structure first — use read_file on existing files to understand what's already there before creating new ones.`;
-        for (const st of subTasks) {
+        for (const st of deduped) {
           st.status = 'pending';
           st.splitDepth = depth + 1;
           st.context = `${inheritCtx}\n\n${st.context}`;
@@ -1220,7 +1287,7 @@ export class Orchestrator {
           messages,
           temperature: role.temperature ?? 0.1,
           tools,
-          tool_choice: 'auto',
+          tool_choice: role.name === 'planner' ? 'auto' : 'required',
         });
       } finally {
         agentSpinner.stop();
@@ -1233,15 +1300,27 @@ export class Orchestrator {
       const message = completion.choices[0].message;
       messages.push(message);
 
-      if (message.tool_calls && message.tool_calls.length > 0) {
+      let effectiveToolCalls = message.tool_calls || [];
+      if (!effectiveToolCalls.length && message.content) {
+        const parsed = parseTextToolCalls(message.content);
+        if (parsed.length > 0) {
+          effectiveToolCalls = parsed;
+        }
+      }
+
+      if (effectiveToolCalls.length > 0) {
         const results = await executeToolCalls(
-          message.tool_calls.map((tc: any) => ({
+          effectiveToolCalls.map((tc: any) => ({
             id: tc.id,
             type: 'function' as const,
             function: { name: tc.function.name, arguments: tc.function.arguments },
           })),
           this.toolContext
         );
+        if (role.name === 'coder') {
+          console.log(`[DEBUG runAgent] executed ${effectiveToolCalls.length} tool call(s), ${results.length} result(s)`);
+          for (const r of results) console.log(`[DEBUG runAgent] tool result: ${(r.content || '').slice(0, 200)}`);
+        }
 
         // Track patch failures per file to break retry spirals
         let hadPatchFailure = false;
@@ -1279,6 +1358,10 @@ export class Orchestrator {
 
       // No tool calls on this turn
       const responseText = message.content || '';
+
+      if (role.name === 'coder') {
+        console.log(`[DEBUG runAgent] turn ${turns + 1} no tool calls, content: ${JSON.stringify(responseText.slice(0, 300))}`);
+      }
 
       // If tools were provided but the model refused to use them, give it a firm nudge
       if (tools.length > 0 && turns === 0 && /sorry|can'?t|cannot|don'?t have|not (able|capable)|lack(|ing) (the )?(necessary |required )?(tools|capabilities)|unable|apologize/i.test(responseText)) {
