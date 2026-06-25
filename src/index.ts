@@ -141,6 +141,23 @@ The index context is automatically injected before each user turn. When working 
 2. Identify the smallest possible change (the fewest lines to replace).
 3. Use \`patch\` with that minimal old_string → new_string.
 
+### Scaffold quality — common pitfalls
+
+#### VS Code extensions
+- Use ONLY \`@types/vscode\` for type definitions — NEVER add the deprecated \`vscode\` npm package.
+- NEVER add the project's own CLI as a dependency (creates a circular dependency).
+- Always handle spawn failures with \`vscode.window.showErrorMessage\`.
+- Always wrap long-running operations in \`vscode.window.withProgress\`.
+
+#### npm/node packages
+- Never add \`daedalus\` or \`daedalus-cli\` as a dependency inside the Daedalus project itself.
+- Use \`vscode\` setting \`publisher\` in package.json only when publishing — use a placeholder during development.
+- Prefer \`--save-dev\` for build tools, \`--save\` for runtime dependencies.
+
+#### General
+- After writing a new file, verify it doesn't reference packages that don't exist or create circular deps.
+- Use the \`terminal\` tool to install dependencies — never assume they're already present.
+
 ### Tool selection guide
 | Goal | Use |
 |------|-----|

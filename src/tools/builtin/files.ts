@@ -381,10 +381,43 @@ async function runColocatedTests(filePath: string, projectRoot: string): Promise
   return null;
 }
 
+function checkPackageJsonAntiPatterns(filePath: string, projectRoot: string): string[] {
+  if (!filePath.endsWith('package.json')) return [];
+  try {
+    const pkg = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    const warnings: string[] = [];
+    const pkgName = pkg.name || '';
+    const allDeps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) };
+
+    // Deprecated `vscode` package (not @types/vscode)
+    if (allDeps['vscode']) {
+      warnings.push('Deprecated `vscode` npm package found in dependencies. Use only `@types/vscode` for type definitions.');
+    }
+
+    // Circular self-dependency
+    if (allDeps[pkgName]) {
+      warnings.push(`Circular dependency: package "${pkgName}" depends on itself. Remove "${pkgName}" from dependencies.`);
+    }
+    if (allDeps['daedalus-cli'] && !pkgName?.includes('daedalus-cli')) {
+      warnings.push('Project should not depend on "daedalus-cli" — the CLI is spawned externally, not imported as a library.');
+    }
+
+    // Mismatched @types/vscode vs engines.vscode
+    const vsCodeTypes = pkg.devDependencies?.['@types/vscode'];
+    const vsCodeEngine = pkg.engines?.vscode;
+    if (vsCodeTypes && vsCodeEngine && vsCodeTypes.replace(/^\^|\~/, '') !== vsCodeEngine.replace(/^\^|\~/, '')) {
+      warnings.push(`@types/vscode version (${vsCodeTypes}) should match engines.vscode (${vsCodeEngine}) exactly.`);
+    }
+
+    return warnings;
+  } catch { return []; }
+}
+
 function buildPostWriteWarnings(filePath: string, projectRoot: string): string[] {
   const importWarnings = validateImports(filePath, projectRoot);
   const exportWarnings = validateExports(filePath);
-  return [...importWarnings, ...exportWarnings];
+  const antiPatterns = checkPackageJsonAntiPatterns(filePath, projectRoot);
+  return [...importWarnings, ...exportWarnings, ...antiPatterns];
 }
 
 function resolvePath(p: string, projectRoot: string): string {
