@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Daedalus — AI Coding Assistant</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔱</text></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'><path d='M24 4L28 16H40L30 24L34 36L24 28L14 36L18 24L8 16H20L24 4Z' fill='%2300d4aa'/></svg>">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/docsify@4/lib/themes/dark.min.css">
   <style>
     :root {
@@ -108,6 +108,14 @@
       font-size: 4em;
       margin-bottom: 0.3em;
     }
+    .cover-main .logo svg {
+      filter: drop-shadow(0 0 20px rgba(0, 212, 170, 0.4));
+      animation: float 3s ease-in-out infinite;
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
+    }
     .cover-main h1 {
       color: var(--daedalus-cyan) !important;
       font-size: 3.2em;
@@ -150,6 +158,7 @@
     .cover-main .buttons a.primary:hover {
       background: #00ffcc;
       transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 212, 170, 0.25);
     }
     .cover-main .buttons a.secondary {
       border: 2px solid var(--daedalus-cyan);
@@ -173,10 +182,18 @@
       border-radius: 12px;
       padding: 1.5em;
       text-align: center;
+      transition: all 0.25s ease;
+    }
+    .feature-card:hover {
+      border-color: var(--daedalus-cyan);
+      transform: translateY(-4px);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0, 212, 170, 0.1);
     }
     .feature-card .icon {
-      font-size: 2em;
       margin-bottom: 0.4em;
+    }
+    .feature-card .icon svg {
+      display: inline-block;
     }
     .feature-card h3 {
       color: var(--daedalus-cyan) !important;
@@ -199,6 +216,7 @@
     .search input:focus {
       border-color: var(--daedalus-cyan) !important;
       outline: none;
+      box-shadow: 0 0 0 2px rgba(0, 212, 170, 0.2);
     }
     /* Pagination */
     .pagination {
@@ -243,7 +261,9 @@
     // Daedalus logo as SVG
     document.addEventListener('DOMContentLoaded', () => {
       const logo = document.querySelector('.sidebar .app-name-link');
-      if (logo) logo.innerHTML = '🔱 Daedalus';
+      if (logo) {
+        logo.innerHTML = '<svg width="20" height="20" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="vertical-align:middle;margin-right:8px"><path d="M24 4L28 16H40L30 24L34 36L24 28L14 36L18 24L8 16H20L24 4Z" fill="#00d4aa"/></svg>Daedalus';
+      }
     });
   </script>
 </body>
