@@ -1,3 +1,10 @@
+# [1.30.0](https://github.com/bgill55/daedalus/compare/v1.29.0...v1.30.0) (2026-06-25)
+
+
+### Features
+
+* add git safety guard to prevent accidental deletion of git tracking data ([8828487](https://github.com/bgill55/daedalus/commit/88284872736a61a08c7736e3654c8352a31deaaf))
+
 # [1.29.0](https://github.com/bgill55/daedalus/compare/v1.28.0...v1.29.0) (2026-06-25)
 
 
