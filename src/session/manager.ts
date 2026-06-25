@@ -46,8 +46,8 @@ export class SessionManager {
   private indexDb!: Database.Database;
   private sessionDb?: Database.Database;
 
-  projectRoot: string;
-  projectHash: string;
+  projectRoot!: string;
+  projectHash!: string;
   public sessionId!: string;
   public sessionTitle: string = 'New Session';
 
