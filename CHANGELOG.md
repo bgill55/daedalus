@@ -1,3 +1,10 @@
+# [1.29.0](https://github.com/bgill55/daedalus/compare/v1.28.0...v1.29.0) (2026-06-25)
+
+
+### Features
+
+* auto-detect scaffold anti-patterns and verify work after patches ([981531a](https://github.com/bgill55/daedalus/commit/981531ae161c4b44060da38f627ec2af9c20bfa5))
+
 # [1.28.0](https://github.com/bgill55/daedalus/compare/v1.27.1...v1.28.0) (2026-06-25)
 
 
