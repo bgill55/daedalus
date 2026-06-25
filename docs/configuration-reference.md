@@ -70,6 +70,12 @@ This guide describes all configuration options available in Daedalus. You can vi
 
 ---
 
+## Safety Settings
+
+*   **`safety.protectGit`**: Protect `.git/` directory and tracked git files from accidental deletion via file and terminal tools (default: `true`). Set to `false` in `~/.daedalus/config.json` to disable.
+
+---
+
 ## Update Settings
 
 *   **`updateCheck`**: Check the npm registry for new versions of `daedalus-cli` on startup (default: `true`).

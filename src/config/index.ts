@@ -141,6 +141,11 @@ export const ConfigSchema = z.object({
     diffStyle: 'unified',
     theme: 'dark',
   }),
+  safety: z.object({
+    protectGit: z.boolean().default(true),
+  }).default({
+    protectGit: true,
+  }),
 });
 
 export type DaedalusConfig = z.infer<typeof ConfigSchema>;
@@ -206,6 +211,9 @@ const DEFAULT_CONFIG: DaedalusConfig = {
     showCost: true,
     diffStyle: 'unified',
     theme: 'dark',
+  },
+  safety: {
+    protectGit: true,
   },
 };
 

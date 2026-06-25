@@ -5,6 +5,7 @@ import fs from 'fs';
 import path from 'path';
 import { ToolContext, ToolResult } from '../../types.js';
 import { loadConfig } from '../../config/index.js';
+import { guardGitCommand } from '../git-guard.js';
 
 const SENSITIVE_ENV_KEYS = new Set([
   'AWS_SECRET_ACCESS_KEY', 'AWS_ACCESS_KEY_ID', 'AWS_SESSION_TOKEN',
@@ -75,6 +76,25 @@ export async function execute(args: { command: string; timeout?: number; workdir
   const timeout = args.timeout ?? 180;
   const workdir = args.workdir ?? context.projectRoot;
   const command = args.command;
+
+  // Gate: destructive git commands are blocked (configurable via safety.protectGit)
+  let protectGit = true;
+  try {
+    const config = loadConfig();
+    protectGit = config.safety?.protectGit !== false;
+  } catch { /* use default */ }
+  if (protectGit) {
+    const gitGuardError = guardGitCommand(command);
+    if (gitGuardError) {
+      return Promise.resolve({
+        toolCallId: '',
+        name: 'terminal',
+        success: false,
+        content: '',
+        error: gitGuardError,
+      });
+    }
+  }
 
   // Gate: third-party install commands require user confirmation
   if (INSTALL_COMMAND_RE.test(command)) {

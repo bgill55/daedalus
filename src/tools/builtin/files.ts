@@ -1,7 +1,9 @@
 import fs from 'fs';
 import path from 'path';
-import { execSync, spawnSync, spawn } from 'child_process';
+import { execSync, spawn, spawnSync } from 'child_process';
+import os from 'os';
 import { ToolContext, ToolResult } from '../../types.js';
+import { guardGitPath } from '../git-guard.js';
 import { runDiffWorkflow, type DiffOptions } from './diff-ui.js';
 
 function normalizeWhitespace(str: string): string {
@@ -428,6 +430,9 @@ function resolvePath(p: string, projectRoot: string): string {
   if (relative.startsWith('..') || path.isAbsolute(relative)) {
     throw new Error(`Path traversal blocked: ${p} is outside the project directory`);
   }
+  // Block direct access to .git/ internals
+  const gitGuard = guardGitPath(resolved);
+  if (gitGuard) throw new Error(gitGuard);
   return resolved;
 }
 
