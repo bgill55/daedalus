@@ -148,6 +148,7 @@ export async function runOnboarding(force = false): Promise<void> {
   }
 
   console.log(pc.gray('\n  Tip: type /help or /commands anytime to see what I can do.'));
+  console.log(pc.gray('  Tip: use /session new <absolute-path> to switch project roots without restarting.'));
   console.log();
 
   rl.close();

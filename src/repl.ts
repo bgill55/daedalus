@@ -23,7 +23,6 @@ export interface ReplDeps {
   router: LocalRouter;
   sessionManager: SessionManager;
   userProfile: UserProfile;
-  projectHash: string;
   messages: ChatMessage[];
   activeFiles: Map<string, string>;
   toolContext: ToolContext;
@@ -35,7 +34,7 @@ export interface ReplDeps {
 
 export function createRepl(deps: ReplDeps): () => Promise<void> {
   const {
-    config, configDir, cliTempDir, router, sessionManager, userProfile, projectHash,
+    config, configDir, cliTempDir, router, sessionManager, userProfile,
     messages, activeFiles, toolContext,
     getSystemPromptWithMemory,
     callModelWithTools, callModelWithFallback, getIndexDbPath,
@@ -162,7 +161,7 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
         router,
         sessionManager,
         userProfile,
-        projectHash,
+        projectHash: sessionManager.projectHash,
         messages,
         activeFiles,
         toolContext,
@@ -246,7 +245,7 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
     try {
       for (const term of allTerms) {
         if (count >= 8) break;
-        const results = ftsSearch(indexDb, term, projectHash, 3);
+        const results = ftsSearch(indexDb, term, sessionManager.projectHash, 3);
         for (const s of results) {
           const key = `${s.name}:${s.file_path}`;
           if (seen.has(key)) continue;

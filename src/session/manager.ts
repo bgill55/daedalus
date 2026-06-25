@@ -46,14 +46,25 @@ export class SessionManager {
   private indexDb!: Database.Database;
   private sessionDb?: Database.Database;
 
-  public projectRoot: string;
-  public projectHash: string;
+  projectRoot: string;
+  projectHash: string;
   public sessionId!: string;
   public sessionTitle: string = 'New Session';
 
   constructor(projectRoot = process.cwd()) {
+    this.setProjectRoot(projectRoot);
+  }
+
+  public setProjectRoot(projectRoot: string): void {
     this.projectRoot = path.resolve(projectRoot);
     this.projectHash = getProjectHash(this.projectRoot);
+  }
+
+  public reopenIndexDb(): void {
+    if (this.indexDb) {
+      this.indexDb.close();
+      this.indexDb = initIndexDb(this.indexDbPath);
+    }
   }
 
   /** Initialize directories and the index database */

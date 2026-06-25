@@ -922,7 +922,7 @@ Once you have finished making changes, I will automatically re-run the command t
   },
   {
     name: '/session',
-    description: 'Manage chat sessions',
+    description: 'Manage chat sessions — /session new to start, /session new <path> to start in another project, /session load <id> to restore',
     execute: async (args, ctx) => {
       const parts = args.trim().split(/\s+/);
       const subcommand = parts[0].toLowerCase();
@@ -992,9 +992,17 @@ Once you have finished making changes, I will automatically re-run the command t
         const currentTodos = getSessionTodos(ctx.toolContext.sessionId);
         ctx.sessionManager.saveSessionState(ctx.messages, ctx.activeFiles, currentTodos);
 
+        if (found.project_path && found.project_path !== ctx.sessionManager.projectRoot) {
+          ctx.sessionManager.setProjectRoot(found.project_path);
+          ctx.sessionManager.reopenIndexDb();
+          ctx.projectHash = ctx.sessionManager.projectHash;
+          ctx.toolContext.projectRoot = ctx.sessionManager.projectRoot;
+          ctx.toolContext.projectHash = ctx.sessionManager.projectHash;
+        }
+
         const loaded = ctx.sessionManager.startSession(found.id, found.title);
         ctx.initializeSessionState(loaded);
-        console.log(pc.green(`Loaded session: ${pc.bold(found.id)} ("${found.title}")`));
+        console.log(pc.green(`Loaded session: ${pc.bold(found.id)} ("${found.title}") [${ctx.sessionManager.projectRoot}]`));
         return;
       }
 
@@ -1002,10 +1010,27 @@ Once you have finished making changes, I will automatically re-run the command t
         const currentTodos = getSessionTodos(ctx.toolContext.sessionId);
         ctx.sessionManager.saveSessionState(ctx.messages, ctx.activeFiles, currentTodos);
 
-        const title = subcommandArg || `Session on ${new Date().toLocaleDateString()}`;
+        let title: string;
+        let projectRoot: string | undefined;
+
+        if (path.isAbsolute(subcommandArg)) {
+          projectRoot = subcommandArg;
+          title = `Session on ${path.basename(subcommandArg.replace(/[\\/]$/, ''))} — ${new Date().toLocaleDateString()}`;
+        } else {
+          title = subcommandArg || `Session on ${new Date().toLocaleDateString()}`;
+        }
+
+        if (projectRoot && projectRoot !== ctx.sessionManager.projectRoot) {
+          ctx.sessionManager.setProjectRoot(projectRoot);
+          ctx.sessionManager.reopenIndexDb();
+          ctx.projectHash = ctx.sessionManager.projectHash;
+          ctx.toolContext.projectRoot = ctx.sessionManager.projectRoot;
+          ctx.toolContext.projectHash = ctx.sessionManager.projectHash;
+        }
+
         const loaded = ctx.sessionManager.startSession(undefined, title);
         ctx.initializeSessionState(loaded);
-        console.log(pc.green(`Started new session: ${pc.bold(loaded.sessionId)}`));
+        console.log(pc.green(`Started new session: ${pc.bold(loaded.sessionId)} [${ctx.sessionManager.projectRoot}]`));
         return;
       }
 

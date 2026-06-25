@@ -10,6 +10,7 @@
 
 ### Features
 
+* per-session project root switching — `/session new <path>` and `/session load` restore isolated project contexts in a single CLI instance; session-scoped projectRoot is now the source of truth for file access and codebase indexing
 * cleaner CLI formatting — user box, assistant header, tool start fix, shorter separator ([4e23d5b](https://github.com/bgill55/daedalus/commit/4e23d5be18eeae4abda35e8f00ef6bdf0a20c260))
 
 ## [1.26.2](https://github.com/bgill55/daedalus/compare/v1.26.1...v1.26.2) (2026-06-24)

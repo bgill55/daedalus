@@ -10,7 +10,6 @@ import pc from 'picocolors';
 import { setRouterClient } from './tools/builtin/delegation.js';
 import { createRouter, RouterConfig } from './router/index.js';
 import { loadConfig, getConfigDirPath } from './config/index.js';
-import { getProjectHash } from './project-hash.js';
 import { ToolContext, ChatMessage } from './types.js';
 import { setSessionTodos } from './tools/builtin/todo.js';
 import { SessionManager } from './session/manager.js';
@@ -36,14 +35,11 @@ checkChangelogOnUpgrade(APP_VERSION, configDir, changelogPath);
 // Load user profile
 const userProfile: UserProfile = loadProfile();
 
-// Session state
-const activeFiles = new Map<string, string>(); // Absolute path -> filename key
+// Session state — these are snapshots; the source of truth is sessionManager
+const activeFiles = new Map<string, string>();
 const messages: ChatMessage[] = [];
 
 let indexWatcher: { close: () => void } | null = null;
-
-// Compute stable projectHash once
-const projectHash = getProjectHash(process.cwd());
 
 
 
@@ -81,8 +77,8 @@ const router = createRouter(config.router as RouterConfig);
 // Tool context for executions
 const toolContext: ToolContext = {
   sessionId,
-  projectRoot: process.cwd(),
-  projectHash,
+  projectRoot: sessionManager.projectRoot,
+  projectHash: sessionManager.projectHash,
   activeFiles,
   agentRole: config.agents.default,
   get abortSignal() { return (currentAbortController as AbortController | null)?.signal ?? new AbortController().signal; },
@@ -274,7 +270,7 @@ function askLine(prompt: string): Promise<string> {
 }
 
 function getIndexDbPath(): string {
-  return path.join(os.homedir(), '.daedalus', 'indexing', `${projectHash}.sqlite`);
+  return path.join(os.homedir(), '.daedalus', 'indexing', `${sessionManager.projectHash}.sqlite`);
 }
 
 const { callModelWithTools, callModelWithFallback } = createModelFunctions({
@@ -331,7 +327,7 @@ async function main() {
         router,
         sessionManager,
         userProfile,
-        projectHash,
+        projectHash: sessionManager.projectHash,
         messages,
         activeFiles,
         toolContext,
@@ -390,7 +386,6 @@ async function main() {
     router,
     sessionManager,
     userProfile,
-    projectHash,
     messages,
     activeFiles,
     toolContext,
@@ -417,7 +412,7 @@ async function main() {
           const { initIndexDb } = await import('./indexing/fts.js');
           const { indexCodebase } = await import('./indexing/indexer.js');
           const db = initIndexDb(indexDbPath);
-          const result = await indexCodebase(db, process.cwd(), projectHash, {
+          const result = await indexCodebase(db, sessionManager.projectRoot, sessionManager.projectHash, {
             exclude: config.indexing.exclude,
           });
           if (result.indexedFiles > 0) {
@@ -430,7 +425,7 @@ async function main() {
 
           if (config.indexing.watch) {
             const { watchCodebase } = await import('./indexing/watcher.js');
-            indexWatcher = watchCodebase(db, process.cwd(), projectHash, {
+            indexWatcher = watchCodebase(db, sessionManager.projectRoot, sessionManager.projectHash, {
               exclude: config.indexing.exclude,
             });
           }
