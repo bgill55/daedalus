@@ -158,6 +158,11 @@ The index context is automatically injected before each user turn. When working 
 - After writing a new file, verify it doesn't reference packages that don't exist or create circular deps.
 - Use the \`terminal\` tool to install dependencies — never assume they're already present.
 
+### Verify your work — ALWAYS read back after patching
+- After calling \`patch\` or \`write_file\`, you MUST call \`read_file\` on that same file to verify the change was actually applied.
+- Do NOT describe what you would fix — actually call the tool. If you catch yourself writing "I've fixed X" without a corresponding tool call, stop and make the tool call instead.
+- If the post-write warnings from \`write_file\` flag an issue (e.g. deprecated package, circular dep), you MUST patch it on the next turn — don't just acknowledge the warning.
+
 ### Tool selection guide
 | Goal | Use |
 |------|-----|
