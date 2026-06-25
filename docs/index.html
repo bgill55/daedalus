@@ -3,9 +3,218 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Daedalus Docs</title>
+  <title>Daedalus — AI Coding Assistant</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔱</text></svg>">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/docsify@4/lib/themes/dark.min.css">
+  <style>
+    :root {
+      --daedalus-cyan: #00d4aa;
+      --daedalus-purple: #7c3aed;
+      --daedalus-bg: #0f0f1a;
+      --daedalus-surface: #1a1a2e;
+      --daedalus-border: #2a2a4a;
+      --daedalus-text: #e2e8f0;
+      --daedalus-muted: #94a3b8;
+      --cover-max-width: 60em;
+    }
+    /* Base */
+    body, .docsify-dark {
+      background: var(--daedalus-bg) !important;
+      color: var(--daedalus-text);
+    }
+    .app-nav, .sidebar, .content {
+      background: var(--daedalus-bg);
+    }
+    /* Sidebar */
+    .sidebar {
+      border-right: 1px solid var(--daedalus-border);
+      background: var(--daedalus-surface);
+    }
+    .sidebar ul li a {
+      color: var(--daedalus-muted);
+      border-left: 2px solid transparent;
+      transition: all 0.2s ease;
+    }
+    .sidebar ul li a:hover {
+      color: var(--daedalus-cyan);
+      border-left-color: var(--daedalus-cyan);
+    }
+    .sidebar ul li.active > a {
+      color: var(--daedalus-cyan);
+      border-left-color: var(--daedalus-cyan);
+    }
+    .sidebar .app-name-link {
+      color: var(--daedalus-cyan) !important;
+      font-weight: bold;
+      font-size: 1.3em;
+    }
+    /* Links */
+    a { color: var(--daedalus-cyan); }
+    a:hover { color: #00ffcc; }
+    /* Code blocks */
+    .markdown-section pre {
+      background: var(--daedalus-surface) !important;
+      border: 1px solid var(--daedalus-border);
+      border-radius: 8px;
+    }
+    .markdown-section code {
+      background: var(--daedalus-surface);
+      color: var(--daedalus-cyan);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    /* Headers */
+    .markdown-section h1, .markdown-section h2, .markdown-section h3 {
+      color: var(--daedalus-text);
+      border-bottom: 1px solid var(--daedalus-border);
+      padding-bottom: 0.3em;
+    }
+    .markdown-section h1 { color: var(--daedalus-cyan); }
+    .markdown-section h2 { color: #a78bfa; }
+    /* Tables */
+    .markdown-section table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+    .markdown-section th {
+      background: var(--daedalus-surface);
+      color: var(--daedalus-cyan);
+      border: 1px solid var(--daedalus-border);
+      padding: 10px 14px;
+    }
+    .markdown-section td {
+      border: 1px solid var(--daedalus-border);
+      padding: 8px 14px;
+    }
+    .markdown-section tr:nth-child(even) {
+      background: rgba(0, 212, 170, 0.03);
+    }
+    /* Blockquotes */
+    .markdown-section blockquote {
+      border-left: 4px solid var(--daedalus-cyan);
+      background: rgba(0, 212, 170, 0.05);
+      padding: 12px 20px;
+      border-radius: 0 8px 8px 0;
+    }
+    /* Cover page */
+    .cover {
+      background: linear-gradient(135deg, var(--daedalus-bg) 0%, var(--daedalus-surface) 50%, #0a0a1a 100%) !important;
+    }
+    .cover-main {
+      text-align: center;
+      padding: 4em 2em;
+    }
+    .cover-main .logo {
+      font-size: 4em;
+      margin-bottom: 0.3em;
+    }
+    .cover-main h1 {
+      color: var(--daedalus-cyan) !important;
+      font-size: 3.2em;
+      font-weight: 800;
+      margin: 0.2em 0;
+      letter-spacing: -0.02em;
+    }
+    .cover-main h1 small {
+      display: block;
+      color: var(--daedalus-muted);
+      font-size: 0.45em;
+      font-weight: 400;
+      letter-spacing: 0.1em;
+      margin-top: 0.3em;
+    }
+    .cover-main p {
+      color: var(--daedalus-text) !important;
+      font-size: 1.15em;
+      max-width: 32em;
+      margin: 1.5em auto;
+      line-height: 1.7;
+    }
+    .cover-main .buttons {
+      margin: 2.5em 0;
+    }
+    .cover-main .buttons a {
+      display: inline-block;
+      padding: 14px 36px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 1.05em;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      margin: 0 8px;
+    }
+    .cover-main .buttons a.primary {
+      background: var(--daedalus-cyan);
+      color: var(--daedalus-bg) !important;
+    }
+    .cover-main .buttons a.primary:hover {
+      background: #00ffcc;
+      transform: translateY(-2px);
+    }
+    .cover-main .buttons a.secondary {
+      border: 2px solid var(--daedalus-cyan);
+      color: var(--daedalus-cyan) !important;
+    }
+    .cover-main .buttons a.secondary:hover {
+      background: rgba(0, 212, 170, 0.1);
+      transform: translateY(-2px);
+    }
+    /* Feature grid */
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.5em;
+      max-width: 56em;
+      margin: 3em auto 0;
+    }
+    .feature-card {
+      background: var(--daedalus-surface);
+      border: 1px solid var(--daedalus-border);
+      border-radius: 12px;
+      padding: 1.5em;
+      text-align: center;
+    }
+    .feature-card .icon {
+      font-size: 2em;
+      margin-bottom: 0.4em;
+    }
+    .feature-card h3 {
+      color: var(--daedalus-cyan) !important;
+      margin: 0.5em 0 0.3em;
+      border: none !important;
+    }
+    .feature-card p {
+      color: var(--daedalus-muted);
+      font-size: 0.9em;
+      line-height: 1.5;
+      margin: 0;
+    }
+    /* Search */
+    .search input {
+      background: var(--daedalus-surface) !important;
+      border: 1px solid var(--daedalus-border) !important;
+      color: var(--daedalus-text) !important;
+      border-radius: 6px !important;
+    }
+    .search input:focus {
+      border-color: var(--daedalus-cyan) !important;
+      outline: none;
+    }
+    /* Pagination */
+    .pagination {
+      border-top: 1px solid var(--daedalus-border);
+      margin-top: 2em;
+      padding-top: 1em;
+    }
+    .pagination-item a {
+      color: var(--daedalus-cyan);
+    }
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: var(--daedalus-bg); }
+    ::-webkit-scrollbar-thumb { background: var(--daedalus-border); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--daedalus-muted); }
+  </style>
 </head>
 <body>
   <div id="app"></div>
@@ -17,10 +226,25 @@
       subMaxLevel: 3,
       search: 'auto',
       auto2top: true,
-      coverpage: false,
+      coverpage: true,
+      pagination: true,
+      copyCode: {
+        buttonText: 'Copy',
+        errorText: 'Error',
+        successText: 'Copied!'
+      },
     };
   </script>
   <script src="https://cdn.jsdelivr.net/npm/docsify@4/lib/docsify.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/docsify@4/lib/plugins/search.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docsify-copy-code@2/dist/docsify-copy-code.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docsify-pagination@2/dist/docsify-pagination.min.js"></script>
+  <script>
+    // Daedalus logo as SVG
+    document.addEventListener('DOMContentLoaded', () => {
+      const logo = document.querySelector('.sidebar .app-name-link');
+      if (logo) logo.innerHTML = '🔱 Daedalus';
+    });
+  </script>
 </body>
 </html>

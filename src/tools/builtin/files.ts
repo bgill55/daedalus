@@ -389,6 +389,8 @@ function buildPostWriteWarnings(filePath: string, projectRoot: string): string[]
 
 function resolvePath(p: string, projectRoot: string): string {
   const resolved = path.isAbsolute(p) ? p : path.resolve(projectRoot, p);
+  // Allow explicit absolute paths to existing locations (cross-project access)
+  if (path.isAbsolute(p) && fs.existsSync(resolved)) return resolved;
   const relative = path.relative(projectRoot, resolved);
   if (relative.startsWith('..') || path.isAbsolute(relative)) {
     throw new Error(`Path traversal blocked: ${p} is outside the project directory`);
