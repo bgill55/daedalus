@@ -1,3 +1,15 @@
+# [1.28.0](https://github.com/bgill55/daedalus/compare/v1.27.1...v1.28.0) (2026-06-25)
+
+
+### Bug Fixes
+
+* satisfy strictPropertyInitialization for per-session projectRoot/projectHash ([7d9f008](https://github.com/bgill55/daedalus/commit/7d9f008d41ed8f8e4b1850ed3e6373ce8e4a56f5))
+
+
+### Features
+
+* make projectRoot and projectHash per-session; switch project contexts without restarting ([424fd8b](https://github.com/bgill55/daedalus/commit/424fd8b0404fb8f5b64b6629093e9df236f9858e))
+
 ## [1.27.1](https://github.com/bgill55/daedalus/compare/v1.27.0...v1.27.1) (2026-06-24)
 
 
