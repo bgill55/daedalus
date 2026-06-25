@@ -73,3 +73,4 @@ This guide describes all configuration options available in Daedalus. You can vi
 ## Update Settings
 
 *   **`updateCheck`**: Check the npm registry for new versions of `daedalus-cli` on startup (default: `true`).
+<!-- redeploy-trigger -->
