@@ -1,3 +1,10 @@
+## [1.32.2](https://github.com/bgill55/daedalus/compare/v1.32.1...v1.32.2) (2026-06-27)
+
+
+### Bug Fixes
+
+* **orchestrator:** allow up to 4 consecutive read-only turns after file write before early exit ([3cc7f2b](https://github.com/bgill55/daedalus/commit/3cc7f2b010d8e9d1d0549362ab042263d6ec044e))
+
 ## [1.32.1](https://github.com/bgill55/daedalus/compare/v1.32.0...v1.32.1) (2026-06-27)
 
 
