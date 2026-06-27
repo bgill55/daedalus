@@ -1567,7 +1567,7 @@ export class Orchestrator {
           idleReadTurn = -1;
         } else if (hasArtifacts && !hasArtifactTool) {
           if (idleReadTurn === -1) idleReadTurn = turns;
-          else if (turns - idleReadTurn >= 1) {
+          else if (turns - idleReadTurn >= 3) {
             return 'Agent completed';
           }
         }
