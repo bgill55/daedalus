@@ -1,3 +1,10 @@
+# [1.32.0](https://github.com/bgill55/daedalus/compare/v1.31.0...v1.32.0) (2026-06-27)
+
+
+### Features
+
+* add tech stack auto-scanning, todo checklist context, and model tier routing ([8ad7656](https://github.com/bgill55/daedalus/commit/8ad765693f6106387fc7132c61485db353a6ff27))
+
 # [1.31.0](https://github.com/bgill55/daedalus/compare/v1.30.0...v1.31.0) (2026-06-27)
 
 
