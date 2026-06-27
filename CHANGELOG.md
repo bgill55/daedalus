@@ -1,3 +1,10 @@
+## [1.32.1](https://github.com/bgill55/daedalus/compare/v1.32.0...v1.32.1) (2026-06-27)
+
+
+### Bug Fixes
+
+* **orchestrator:** relax vague goal validation regex to support natural planning wording ([96ec6f2](https://github.com/bgill55/daedalus/commit/96ec6f2ccbd001f2650349cdc964d2a1674e6eb1))
+
 # [1.32.0](https://github.com/bgill55/daedalus/compare/v1.31.0...v1.32.0) (2026-06-27)
 
 
