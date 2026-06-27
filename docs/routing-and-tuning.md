@@ -55,6 +55,7 @@ Models can be classified into specific tiers in the configuration:
     *   Simple or quick requests automatically route to `"fast"` tier models.
     *   Large coding contexts (estimated tokens > 8k) or agent subtasks automatically target `"intelligence"` tier models.
 *   **Tool Filtering**: Sub-agents requiring tool use automatically filter and route to endpoints where `"supportsTools": true` is enabled.
+*   **Explicit Tier Keywords**: You can explicitly target a model tier by setting the request model to `"intelligence"`, `"fast"`, or `"standard"`. If specified, the router will filter healthy candidates to that tier and select the best candidate (e.g., Daedalus uses this keyword routing to run planning and context summarization on your `"intelligence"` tier model).
 
 ---
 
