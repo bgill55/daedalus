@@ -33,10 +33,10 @@ interface AgentResult {
   evidence?: string;
 }
 
-// Catch bracket placeholders common across projects (licenses, code comments, configs, docs)
-const PLACEHOLDER_RE = /\[(?:year|your\s+name|fullname|author|copyright|license\s*content|placeholder|todo|fixme|enter\s+\w+|project\s+name|description|date|url|version|email|note|username|login|password|token|api[_-]?key|path|filename|branch|tag)\]/i;
-// Catch HTML comment placeholders like <!-- Add analytics content here -->
-const HTML_PLACEHOLDER_RE = /<!--[^>]*?(?:TODO|FIXME|add\s+(?:your|content|more|some|analytics)|your\s+(?:content|code|text|name|details?)|placeholder|insert|enter\s+\w+|implement|put\s+your|content\s+here|details?\s+here|more\s+content)[^>]*?-->/i;
+// Simplified placeholder regexes for common auto-fill tokens only
+const PLACEHOLDER_RE = /\[(?:YEAR|Year|year|YYYY|yyyy|DATE|Date|date|TODAY|Today|today|YOUR\s+NAME|Your\s+Name|your\s+name|FULLNAME|Fullname|fullname|AUTHOR|Author|author|USERNAME|Username|username|OWNER|Owner|owner)\]/i;
+// Simplified HTML placeholder regex for same tokens inside comments
+const HTML_PLACEHOLDER_RE = /<!--[^>]*?(?:YEAR|Year|year|DATE|Date|date|YOUR\s+NAME|Your\s+Name|your\s+name)\s*-->/i;
 
 export class Orchestrator {
   private router: LocalRouter;

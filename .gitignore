@@ -5,3 +5,5 @@ dist/
 *.jsonl
 .env
 .DS_Store
+
+vscode-extension/
