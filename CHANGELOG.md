@@ -1,3 +1,10 @@
+## [1.32.3](https://github.com/bgill55/daedalus/compare/v1.32.2...v1.32.3) (2026-06-27)
+
+
+### Bug Fixes
+
+* **orchestrator:** filter think blocks from execution results before error parsing ([8a43c31](https://github.com/bgill55/daedalus/commit/8a43c3118035b1226f42ded35757069574a23a75))
+
 ## [1.32.2](https://github.com/bgill55/daedalus/compare/v1.32.1...v1.32.2) (2026-06-27)
 
 
