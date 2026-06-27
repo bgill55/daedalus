@@ -223,7 +223,7 @@ export class Orchestrator {
       try {
         completion = await this.retryApiCall(
           () => this.router.chat.completions.create({
-            model: 'auto',
+            model: 'intelligence',
             messages,
             temperature: plannerRole.temperature ?? 0.2,
             tools,
@@ -258,7 +258,7 @@ export class Orchestrator {
         try {
           followUp = await this.retryApiCall(
             () => this.router.chat.completions.create({
-              model: 'auto',
+              model: 'intelligence',
               messages,
               temperature: plannerRole.temperature ?? 0.2,
               tools,

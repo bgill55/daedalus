@@ -105,33 +105,41 @@ export class LocalRouter {
     }
 
     let selectedModel: ModelEntry | undefined;
+    let candidateModels = healthyModels;
 
     if (request.model && request.model !== 'auto') {
-      selectedModel = healthyModels.find(m => m.name === request.model || m.model === request.model);
-      if (!selectedModel) {
-        throw new Error(`Requested model ${request.model} is not healthy or enabled.`);
-      }
-      if (!isLocalEndpoint(selectedModel.endpoint)) {
-        const rateLimiter = this.rateLimiters.get(`${selectedModel.endpoint}|${selectedModel.model}`);
-        if (rateLimiter) {
-          const estimatedTokens = this.estimateTokens(request);
-          if (!consumeTokens(rateLimiter, estimatedTokens)) {
-            const waitMs = getWaitTime(rateLimiter, estimatedTokens);
-            throw new Error(`Rate limited. Wait ${waitMs}ms or try another model.`);
+      if (['intelligence', 'fast', 'standard'].includes(request.model)) {
+        const tierModels = healthyModels.filter(m => m.tier === request.model);
+        if (tierModels.length > 0) {
+          candidateModels = tierModels;
+        }
+        request.model = 'auto';
+      } else {
+        selectedModel = healthyModels.find(m => m.name === request.model || m.model === request.model);
+        if (!selectedModel) {
+          throw new Error(`Requested model ${request.model} is not healthy or enabled.`);
+        }
+        if (!isLocalEndpoint(selectedModel.endpoint)) {
+          const rateLimiter = this.rateLimiters.get(`${selectedModel.endpoint}|${selectedModel.model}`);
+          if (rateLimiter) {
+            const estimatedTokens = this.estimateTokens(request);
+            if (!consumeTokens(rateLimiter, estimatedTokens)) {
+              const waitMs = getWaitTime(rateLimiter, estimatedTokens);
+              throw new Error(`Rate limited. Wait ${waitMs}ms or try another model.`);
+            }
           }
         }
+        const health = getCachedHealth(selectedModel) ?? { healthy: true, lastCheck: Date.now(), consecutiveFailures: 0 };
+        return { model: selectedModel, health };
       }
-      const health = getCachedHealth(selectedModel) ?? { healthy: true, lastCheck: Date.now(), consecutiveFailures: 0 };
-      return { model: selectedModel, health };
     }
 
     const requiresTools = !!(request.tools && request.tools.length > 0);
     const estimatedTokens = this.estimateTokens(request);
     const isComplexTask = requiresTools || estimatedTokens > 8000;
 
-    let candidateModels = healthyModels;
     if (requiresTools) {
-      const toolSupporting = healthyModels.filter(m => m.supportsTools);
+      const toolSupporting = candidateModels.filter(m => m.supportsTools);
       if (toolSupporting.length > 0) {
         candidateModels = toolSupporting;
       }

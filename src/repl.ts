@@ -4,7 +4,7 @@ import pc from 'picocolors';
 
 import { pendingNotifications } from './agents/background.js';
 import { searchSymbols as ftsSearch } from './indexing/fts.js';
-import { getSessionTodos, setSessionTodos } from './tools/builtin/todo.js';
+import { getSessionTodos, setSessionTodos, buildTodoContext } from './tools/builtin/todo.js';
 import { calculateSessionTokens } from './session/tokens.js';
 import { printUserTurn, turnSeparator } from './formatting.js';
 import type { ToolContext, ToolCall, ChatMessage } from './types.js';
@@ -186,7 +186,8 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
       try {
         const filesContext = buildFileContext();
         const indexCtx = await buildIndexContext(trimmedInput);
-        const userContent = `${indexCtx}${filesContext}User Prompt: ${trimmedInput}`;
+        const todoCtx = buildTodoContext(sessionId);
+        const userContent = `${indexCtx}${todoCtx}${filesContext}User Prompt: ${trimmedInput}`;
         printUserTurn(trimmedInput);
         await callModelWithTools(userContent);
 
@@ -195,7 +196,8 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
       } catch {
         try {
           const filesContext = buildFileContext();
-          const userContent = `${filesContext}User Prompt: ${trimmedInput}`;
+          const todoCtx = buildTodoContext(sessionId);
+          const userContent = `${todoCtx}${filesContext}User Prompt: ${trimmedInput}`;
           console.log(pc.yellow('\n  [RETRY] Trying fallback mode...'));
           const fallbackResult = await callModelWithFallback(userContent);
           if (fallbackResult) {

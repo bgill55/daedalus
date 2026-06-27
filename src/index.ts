@@ -10,6 +10,7 @@ import pc from 'picocolors';
 import { setRouterClient } from './tools/builtin/delegation.js';
 import { createRouter, RouterConfig } from './router/index.js';
 import { loadConfig, getConfigDirPath } from './config/index.js';
+import { detectProjectStack } from './config/stack.js';
 import { ToolContext, ChatMessage } from './types.js';
 import { setSessionTodos } from './tools/builtin/todo.js';
 import { SessionManager } from './session/manager.js';
@@ -155,6 +156,8 @@ The index context is automatically injected before each user turn. When working 
 - Prefer \`--save-dev\` for build tools, \`--save\` for runtime dependencies.
 
 #### General
+- STACK AWARENESS: Before modifying or creating code, check the project's root files (like package.json, webpack/vite/tsconfig configs, or imported dependencies in HTML files) to accurately determine the tech stack (e.g. React/Vue/Vite vs Vanilla JS, Next.js vs Express). NEVER write React JSX/TSX or import React dependencies into a vanilla JS project unless explicitly instructed to migrate.
+- STATELESS/SERVERLESS RULES: Serverless environments (like Cloudflare Pages/Workers, AWS Lambda, Vercel edge/serverless routes) have read-only and stateless filesystems/environments at runtime. Never attempt to write persistent configuration files to the server's local directory or mutate runtime environment objects (e.g. process.env, context.env). Use client-side storage (e.g., LocalStorage) or database KV stores for persisting configuration.
 - After writing a new file, verify it doesn't reference packages that don't exist or create circular deps.
 - Use the \`terminal\` tool to install dependencies — never assume they're already present.
 
@@ -248,6 +251,10 @@ function getSystemPromptWithMemory(): string {
   const memPrompt = sessionManager.getMemoryPrompt();
   if (memPrompt) {
     prompt += '\n' + memPrompt;
+  }
+  const stackPrompt = detectProjectStack(sessionManager.projectRoot);
+  if (stackPrompt) {
+    prompt += '\n' + stackPrompt;
   }
   return prompt;
 }

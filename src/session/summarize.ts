@@ -87,7 +87,11 @@ Keep the summary under 300 words. Write in past tense. Here is the conversation:
     // Fallback: brief description-based summary
     const toolsCalled = new Set<string>();
     const filesMentioned = new Set<string>();
+    let originalUserGoal = '';
     for (const msg of olderMessages) {
+      if (msg.role === 'user' && !originalUserGoal) {
+        originalUserGoal = typeof msg.content === 'string' ? msg.content : '';
+      }
       if (msg.role === 'assistant' && msg.tool_calls) {
         for (const tc of msg.tool_calls) {
           toolsCalled.add(tc.function.name);
@@ -101,7 +105,8 @@ Keep the summary under 300 words. Write in past tense. Here is the conversation:
     }
     const toolList = [...toolsCalled].join(', ');
     const fileList = [...filesMentioned].slice(0, 5).join(', ');
-    summaryText = `Earlier conversation: used ${toolList || 'various tools'} on ${fileList || 'the codebase'}. Key context has been compressed to save tokens.`;
+    const goalCtx = originalUserGoal ? ` to achieve: "${originalUserGoal.slice(0, 150)}..."` : '';
+    summaryText = `Earlier conversation goal${goalCtx}. Used tools: ${toolList || 'various tools'} on files: ${fileList || 'the codebase'}. Key context has been compressed to save tokens.`;
   }
 
   const summaryMessage: ChatMessage = {

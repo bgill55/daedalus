@@ -71,8 +71,11 @@ AI assistance without:
 ### Core
 - **Local-first** — works entirely on your machine with local LLMs
 - **Embedded model router** — priority, round-robin, or fastest-response routing across multiple models
+- **Smart model tier routing** — routes planning, reviews, and context summarization calls to your configured `intelligence` tier model
 - **Multi-agent orchestration** — spawns planner, coder, reviewer, debugger, and researcher sub-agents
 - **Codebase indexing** — FTS5-powered symbol search, definitions, and call-graph references (TS/JS, Python, Go, Rust)
+- **Stack-aware prompting** — automatically scans your project tech stack on startup to prevent library and platform boundary hallucinations
+- **Dynamic task checklist** — injects the active todo list into each prompt turn to maintain execution context
 - **Session management** — SQLite-backed history with save, load, JSONL export
 - **Persistent memory** — facts and coding conventions auto-inject every turn; `/profile` and `/style` persist across sessions
 - **MCP support** — Model Context Protocol servers via stdio and HTTP/SSE

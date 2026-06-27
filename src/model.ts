@@ -104,7 +104,7 @@ export function createModelFunctions(deps: ModelDeps) {
       const summarizeFn = async (sysPrompt: string, userContent: string): Promise<string> => {
         try {
           const resp = await router.chat.completions.create({
-            model: 'auto',
+            model: 'intelligence',
             messages: [
               { role: 'system', content: sysPrompt },
               { role: 'user', content: userContent },

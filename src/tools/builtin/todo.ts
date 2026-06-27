@@ -15,6 +15,17 @@ export function setSessionTodos(sessionId: string, todos: Array<{ id: string; co
   state.store.set(sessionId, todos);
 }
 
+export function buildTodoContext(sessionId: string): string {
+  const todos = getSessionTodos(sessionId);
+  const activeTodos = todos.filter(t => t.status !== 'completed' && t.status !== 'cancelled');
+  if (activeTodos.length === 0) return '';
+  const lines = activeTodos.map(t => {
+    const icon = t.status === 'in_progress' ? '[/]' : '[ ]';
+    return `${icon} ${t.id}: ${t.content}`;
+  });
+  return `\n--- ACTIVE SESSION TODOS ---\n${lines.join('\n')}\n----------------------------\n`;
+}
+
 export async function manage(args: { todos: Array<{ id: string; content: string; status: string }>; merge?: boolean }, context: ToolContext): Promise<ToolResult> {
   const sessionKey = context.sessionId;
   const existing = state.store.get(sessionKey) ?? [];

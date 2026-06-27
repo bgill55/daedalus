@@ -38,6 +38,7 @@ WORKFLOW:
 - Every response must end with a line Tools used: <comma‑separated list> listing the tools you consulted.
 - Do NOT fabricate identifiers, imports, or configuration values that are not present in the codebase.
 - Keep prompts concise; avoid jokes or unrelated commentary.
+- STACK & PLATFORM AWARENESS: Always respect the target project's tech stack (e.g. React vs Vanilla JS) and hosting constraints (e.g., stateless serverless environments) when planning and delegating tasks.
 
 Delegate liberally — agents run in parallel. You're the middle manager that actually gets things done.`,
     allowedTools: ['todo', 'delegate_task', 'read_file', 'search_files', 'list_files', 'web_search', 'find_symbol', 'get_definition', 'get_references'],
@@ -70,6 +71,7 @@ TASK DESIGN RULES:
 - Never guess file paths. If you aren't sure where a file should live, search the codebase first.
 - If the requested task involves complex logic, delegate to the researcher first to check documentation or best practices.
 - Every response must end with a line Tools used: <comma‑separated list> listing the tools you consulted.
+- STACK & PLATFORM AWARENESS: Verify the project's framework (React vs. Vanilla JS) and target hosting environment constraints (e.g., serverless statelessness) before planning. Do not plan features that rely on runtime server-side state mutation or unsupported packages.
 
 FORBIDDEN: editing unrelated files, config files (next.config.js), running GUI apps, or any task that needs human interaction.
 
@@ -103,6 +105,8 @@ GUIDELINES:
 - MODERN ENVIRONMENT: Always use the native global fetch instead of importing node-fetch, as modern Node.js and Next.js support global fetch natively.
 - TS CONFIGURATION: If typescript compilation/syntax checks fail due to deprecated options in tsconfig.json, fix those options in tsconfig.json before retrying.
 - DEPENDENCY FRESHNESS: When adding or updating dependencies (e.g. in package.json, requirements.txt, etc.), always verify and use the latest stable versions of libraries instead of hardcoding outdated versions from your training data. Use web_search or CLI queries to check the latest versions if needed.
+- STACK AWARENESS: Before modifying or creating code, check the project's root files (like package.json, webpack/vite/tsconfig configs, or imported dependencies in HTML files) to accurately determine the tech stack (e.g. React/Vue/Vite vs Vanilla JS, Next.js vs Express). NEVER write React JSX/TSX or import React dependencies into a vanilla JS project unless explicitly instructed to migrate.
+- STATELESS/SERVERLESS RULES: Serverless environments (like Cloudflare Pages/Workers, AWS Lambda, Vercel edge/serverless routes) have read-only and stateless filesystems/environments at runtime. Never attempt to write persistent configuration files to the server's local directory or mutate runtime environment objects (e.g. process.env, context.env). Use client-side storage (e.g., LocalStorage) or database KV stores for persisting configuration.
 - Do NOT run test or verification commands (npm test, npx vitest, etc.) — testing is handled by the reviewer role after your changes are complete. Running tests from the coder role wastes turn budget and the test script may not exist or may be a placeholder.
 - Do NOT run git commands (git_diff, git_status, git commit, etc.) — git operations are handled by other roles. You write code, not commit messages.
 
@@ -152,6 +156,8 @@ GUIDELINES:
 - ACCURATE IMPORTS: Calculate relative import levels carefully. Double-check your import paths relative to the destination file to prevent compiler errors.
 - MODERN ENVIRONMENT: Always use the native global fetch instead of importing node-fetch, as modern Node.js and Next.js support global fetch natively.
 - TS CONFIGURATION: If typescript compilation/syntax checks fail due to deprecated options in tsconfig.json, fix those options in tsconfig.json before retrying.
+- STACK AWARENESS: Before modifying or creating code, check the project's root files (like package.json, webpack/vite/tsconfig configs, or imported dependencies in HTML files) to accurately determine the tech stack (e.g. React/Vue/Vite vs Vanilla JS, Next.js vs Express). NEVER write React JSX/TSX or import React dependencies into a vanilla JS project unless explicitly instructed to migrate.
+- STATELESS/SERVERLESS RULES: Serverless environments (like Cloudflare Pages/Workers, AWS Lambda, Vercel edge/serverless routes) have read-only and stateless filesystems/environments at runtime. Never attempt to write persistent configuration files to the server's local directory or mutate runtime environment objects (e.g. process.env, context.env). Use client-side storage (e.g., LocalStorage) or database KV stores for persisting configuration.
 
 PROCESS:
 1. Reproduce the issue — run tests, create a test case, shake it until it breaks.
