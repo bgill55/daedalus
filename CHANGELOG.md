@@ -1,3 +1,11 @@
+# [1.31.0](https://github.com/bgill55/daedalus/compare/v1.30.0...v1.31.0) (2026-06-27)
+
+
+### Features
+
+* add vscode-extension to .gitignore and fix guardrail backticks ([d48bb93](https://github.com/bgill55/daedalus/commit/d48bb9304549a3e2db96bc5434090058473b9655))
+* add vscode-extension to .gitignore and fix guardrail formatting ([a40a615](https://github.com/bgill55/daedalus/commit/a40a61534f5fb38a749abbcfd4c8f1639552ade5))
+
 # [1.30.0](https://github.com/bgill55/daedalus/compare/v1.29.0...v1.30.0) (2026-06-25)
 
 
