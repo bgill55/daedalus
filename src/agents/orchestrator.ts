@@ -284,7 +284,7 @@ export class Orchestrator {
 
       // Validate the plan
       const testTasks = this.parseDelegationTasks(planText || `- delegate to coder: ${goal}`, goal);
-      const validationError = Orchestrator.validateTasks(testTasks, goal);
+      const validationError = Orchestrator.validateTasks(testTasks, goal, this.toolContext.projectRoot);
       if (!validationError) {
         return planText || `- delegate to coder: ${goal}`;
       }
@@ -761,7 +761,7 @@ export class Orchestrator {
 
   private static VAGUE_GOAL_RE = /\b(appropriate|proper|correct|necessary|relevant|required|suitable|generic|placeholder|add the necessary|add the required)\b/i;
 
-  private static validateTasks(tasks: DelegationTask[], goal: string): string | null {
+  private static validateTasks(tasks: DelegationTask[], goal: string, projectRoot?: string): string | null {
     if (tasks.length === 0) return 'No tasks generated';
     if (tasks.length === 1 && Orchestrator.extractFilePaths(goal).length > 1) {
       return `Expected multiple tasks (one per file) but got only 1 task for goal with multiple file paths: ${goal}`;
@@ -773,6 +773,19 @@ export class Orchestrator {
       const paths = Orchestrator.extractFilePaths(t.goal);
       if (paths.length === 0) {
         return `Task "${t.goal.slice(0, 80)}" has no file path — each task must target a specific file`;
+      }
+      if (projectRoot) {
+        for (const p of paths) {
+          const basename = path.basename(p);
+          const normalizedP = p.replace(/\\/g, '/');
+          if (normalizedP.startsWith('src/') || normalizedP.startsWith('lib/')) {
+            const rootPath = path.join(projectRoot, basename);
+            const srcPath = path.join(projectRoot, p);
+            if (fs.existsSync(rootPath) && !fs.existsSync(srcPath)) {
+              return `Task "${t.goal.slice(0, 80)}" targets "${p}" but the file actually exists at the root level ("${basename}"). Correct the path.`;
+            }
+          }
+        }
       }
     }
     return null;
@@ -1397,14 +1410,15 @@ export class Orchestrator {
       }
     }
 
-    const success = verified && !this.isDeclaredError(result) && this.verifyArtifactsThoroughly(task.role, task.goal, result);
+    const resultForCheck = result.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+    const success = verified && !this.isDeclaredError(resultForCheck) && this.verifyArtifactsThoroughly(task.role, task.goal, resultForCheck);
     if (success) {
       const clean = this.buildCleanSummary(task, result, historyStartIndex);
       if (clean) result = clean;
     }
     task.status = success ? 'completed' : 'failed';
     if (!success) {
-      task.error = result.split('\n')[0] || 'Unknown failure';
+      task.error = resultForCheck.split('\n')[0] || result.split('\n')[0] || 'Unknown failure';
 
       // Log failure as a lesson for self-improvement
       if (this.sessionManager) {
