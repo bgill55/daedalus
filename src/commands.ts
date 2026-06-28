@@ -1908,6 +1908,17 @@ Once you have finished making changes, I will automatically re-run the command t
     }
   },
   {
+    name: '/tui',
+    description: 'Toggle the Terminal User Interface (TUI) dashboard',
+    execute: async (args, ctx) => {
+      if (!ctx.rl) {
+        throw new Error('SWITCH_MODE_CLI');
+      } else {
+        throw new Error('SWITCH_MODE_TUI');
+      }
+    }
+  },
+  {
     name: 'exit',
     aliases: ['/exit', '/quit', 'quit'],
     description: 'Save session and exit',
@@ -1943,6 +1954,10 @@ export async function executeCommand(input: string, ctx: CommandContext): Promis
   );
 
   if (command) {
+    if (command.name === '/tui') {
+      await command.execute(args, ctx);
+      return true;
+    }
     try {
       await command.execute(args, ctx);
     } catch (err: any) {

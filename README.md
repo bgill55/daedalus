@@ -136,6 +136,7 @@ AI assistance without:
 | `/help` / `?` / `help` | Show available commands |
 | `/mcp` | Manage MCP servers: explore, search, install, list, remove, info |
 | `/onboard` | First-time setup — discover local models, configure, and test |
+| `/tui` | Toggle the Terminal User Interface (TUI) dashboard |
 | `exit` / `/exit` / `/quit` / `quit` | Save session and exit |
 <!-- END_COMMANDS_TABLE -->
 

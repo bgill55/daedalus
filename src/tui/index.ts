@@ -293,10 +293,18 @@ export function createTuiRepl(deps: ReplDeps): () => Promise<void> {
       };
 
       // Try executing command
-      const wasCommand = await executeCommand(trimmedInput, cmdContext);
-      if (wasCommand) {
-        screen.render();
-        continue;
+      try {
+        const wasCommand = await executeCommand(trimmedInput, cmdContext);
+        if (wasCommand) {
+          screen.render();
+          continue;
+        }
+      } catch (err: any) {
+        if (err.message === 'SWITCH_MODE_CLI') {
+          restoreStreams();
+          screen.destroy();
+        }
+        throw err;
       }
 
       // User Message Processing

@@ -408,41 +408,7 @@ async function main() {
   }
 
   const isTui = process.argv.includes('--tui') || config.ui?.tui === true;
-
-  if (isTui) {
-    const { createTuiRepl } = await import('./tui/index.js');
-    chatLoop = createTuiRepl({
-      config,
-      configDir,
-      cliTempDir,
-      router,
-      sessionManager,
-      userProfile,
-      messages,
-      activeFiles,
-      toolContext,
-      getSystemPromptWithMemory,
-      callModelWithTools,
-      callModelWithFallback,
-      getIndexDbPath,
-    });
-  } else {
-    chatLoop = createRepl({
-      config,
-      configDir,
-      cliTempDir,
-      router,
-      sessionManager,
-      userProfile,
-      messages,
-      activeFiles,
-      toolContext,
-      getSystemPromptWithMemory,
-      callModelWithTools,
-      callModelWithFallback,
-      getIndexDbPath,
-    });
-  }
+  let currentMode: 'cli' | 'tui' = isTui ? 'tui' : 'cli';
 
   // Check for updates — non-blocking
   if (config.updateCheck !== false) {
@@ -485,7 +451,59 @@ async function main() {
     }, 100);
   }
 
-  await chatLoop();
+  while (true) {
+    if (currentMode === 'tui') {
+      const { createTuiRepl } = await import('./tui/index.js');
+      chatLoop = createTuiRepl({
+        config,
+        configDir,
+        cliTempDir,
+        router,
+        sessionManager,
+        userProfile,
+        messages,
+        activeFiles,
+        toolContext,
+        getSystemPromptWithMemory,
+        callModelWithTools,
+        callModelWithFallback,
+        getIndexDbPath,
+      });
+    } else {
+      chatLoop = createRepl({
+        config,
+        configDir,
+        cliTempDir,
+        router,
+        sessionManager,
+        userProfile,
+        messages,
+        activeFiles,
+        toolContext,
+        getSystemPromptWithMemory,
+        callModelWithTools,
+        callModelWithFallback,
+        getIndexDbPath,
+      });
+    }
+
+    try {
+      await chatLoop();
+      break;
+    } catch (err: any) {
+      if (err.message === 'SWITCH_MODE_CLI') {
+        currentMode = 'cli';
+        console.clear();
+        console.log(pc.cyan('\n  ⬡ Returned to CLI mode... Type ? for commands.'));
+        continue;
+      }
+      if (err.message === 'SWITCH_MODE_TUI') {
+        currentMode = 'tui';
+        continue;
+      }
+      throw err;
+    }
+  }
 }
 
 main().catch(console.error);
