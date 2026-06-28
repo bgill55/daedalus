@@ -30,7 +30,8 @@ export function createTuiRepl(deps: ReplDeps): () => Promise<void> {
 
   const customStdout = new Writable({
     write(chunk, encoding, callback) {
-      originalStdoutWrite.call(process.stdout, chunk, encoding, callback);
+      originalStdoutWrite.call(process.stdout, chunk, encoding);
+      callback();
     }
   });
 
