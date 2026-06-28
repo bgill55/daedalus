@@ -1,3 +1,10 @@
+## [1.34.4](https://github.com/bgill55/daedalus/compare/v1.34.3...v1.34.4) (2026-06-28)
+
+
+### Bug Fixes
+
+* restore original stdout/stderr on main process catch ([cf5dc1b](https://github.com/bgill55/daedalus/commit/cf5dc1b496c87a6899f05161312f21ca86fef0bf))
+
 ## [1.34.3](https://github.com/bgill55/daedalus/compare/v1.34.2...v1.34.3) (2026-06-28)
 
 
