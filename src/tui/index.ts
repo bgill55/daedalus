@@ -15,6 +15,7 @@ import { initModelSelect } from './widgets/model-select.js';
 import { initFileTree } from './widgets/file-tree.js';
 
 export function createTuiRepl(deps: ReplDeps): () => Promise<void> {
+  console.log(pc.yellow('  [DEBUG] Entering createTuiRepl factory...'));
   const {
     config, configDir, cliTempDir, router, sessionManager, userProfile,
     messages, activeFiles, toolContext,
@@ -30,6 +31,7 @@ export function createTuiRepl(deps: ReplDeps): () => Promise<void> {
     title: 'Daedalus TUI',
     fullUnicode: true,
   });
+  console.log(pc.yellow('  [DEBUG] Blessed screen constructed.'));
 
   // Create Log Box (Left Main Console)
   const logBox = blessed.log({
@@ -344,5 +346,6 @@ export function createTuiRepl(deps: ReplDeps): () => Promise<void> {
     }
   }
 
+  console.log(pc.yellow('  [DEBUG] Returning TUI chatLoop function...'));
   return chatLoop;
 }

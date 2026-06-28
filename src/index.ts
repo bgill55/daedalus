@@ -453,7 +453,9 @@ async function main() {
 
   while (true) {
     if (currentMode === 'tui') {
+      console.log(pc.yellow('\n  [DEBUG] Importing TUI module...'));
       const { createTuiRepl } = await import('./tui/index.js');
+      console.log(pc.yellow('  [DEBUG] TUI module imported. Constructing TUI REPL...'));
       chatLoop = createTuiRepl({
         config,
         configDir,
@@ -469,6 +471,7 @@ async function main() {
         callModelWithFallback,
         getIndexDbPath,
       });
+      console.log(pc.yellow('  [DEBUG] TUI REPL constructed.'));
     } else {
       chatLoop = createRepl({
         config,
@@ -488,6 +491,7 @@ async function main() {
     }
 
     try {
+      console.log(pc.yellow(`  [DEBUG] Starting chatLoop in mode: ${currentMode}...`));
       await chatLoop();
       break;
     } catch (err: any) {
@@ -498,6 +502,7 @@ async function main() {
         continue;
       }
       if (err.message === 'SWITCH_MODE_TUI') {
+        console.log(pc.yellow('\n  [DEBUG] Switch mode caught: SWITCH_MODE_TUI'));
         currentMode = 'tui';
         continue;
       }
