@@ -1,3 +1,10 @@
+# [1.34.0](https://github.com/bgill55/daedalus/compare/v1.33.1...v1.34.0) (2026-06-28)
+
+
+### Features
+
+* add /tui command to toggle between TUI and CLI modes dynamically ([1afde32](https://github.com/bgill55/daedalus/commit/1afde329fb61bf588e96a1bc27d80eec30dbd9b7))
+
 ## [1.33.1](https://github.com/bgill55/daedalus/compare/v1.33.0...v1.33.1) (2026-06-28)
 
 
