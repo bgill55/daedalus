@@ -1,3 +1,10 @@
+# [1.33.0](https://github.com/bgill55/daedalus/compare/v1.32.3...v1.33.0) (2026-06-28)
+
+
+### Features
+
+* implement interactive terminal dashboard TUI layout with system stats, model selection override, and codebase file explorer ([34cc593](https://github.com/bgill55/daedalus/commit/34cc593189a79831860663136ac30c6886e42116))
+
 ## [1.32.3](https://github.com/bgill55/daedalus/compare/v1.32.2...v1.32.3) (2026-06-27)
 
 
