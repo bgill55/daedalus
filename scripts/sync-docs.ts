@@ -101,6 +101,7 @@ const SECTIONS = [
   { prefix: 'indexing.', title: 'Codebase Indexing Settings' },
   { prefix: 'session.', title: 'Session Settings' },
   { prefix: 'ui.', title: 'UI Settings' },
+  { prefix: 'safety.', title: 'Safety Settings' },
   { prefix: 'updateCheck', title: 'Update Settings' },
 ];
 

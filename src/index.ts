@@ -407,7 +407,7 @@ async function main() {
     console.error(pc.yellow(`\nMCP initialization failed: ${err.message}`));
   }
 
-  const isTui = process.argv.includes('--tui') || (config as any).ui?.tui === true;
+  const isTui = process.argv.includes('--tui') || config.ui?.tui === true;
 
   if (isTui) {
     const { createTuiRepl } = await import('./tui/index.js');

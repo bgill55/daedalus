@@ -134,12 +134,14 @@ export const ConfigSchema = z.object({
     showCost: z.boolean().default(true),
     diffStyle: z.enum(['unified', 'side-by-side']).default('unified'),
     theme: z.enum(['dark', 'light', 'auto']).default('dark'),
+    tui: z.boolean().default(false),
   }).default({
     streaming: true,
     showTokens: true,
     showCost: true,
     diffStyle: 'unified',
     theme: 'dark',
+    tui: false,
   }),
   safety: z.object({
     protectGit: z.boolean().default(true),
@@ -211,6 +213,7 @@ const DEFAULT_CONFIG: DaedalusConfig = {
     showCost: true,
     diffStyle: 'unified',
     theme: 'dark',
+    tui: false,
   },
   safety: {
     protectGit: true,
