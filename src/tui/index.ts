@@ -40,7 +40,7 @@ export function createTuiRepl(deps: ReplDeps): () => Promise<void> {
     smartCSR: true,
     title: 'Daedalus TUI',
     fullUnicode: true,
-    output: customStdout,
+    output: customStdout as any,
   });
 
   // Create Log Box (Left Main Console)
