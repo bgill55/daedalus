@@ -1,3 +1,10 @@
+## [1.34.1](https://github.com/bgill55/daedalus/compare/v1.34.0...v1.34.1) (2026-06-28)
+
+
+### Bug Fixes
+
+* ensure readline interface is closed when exiting CLI REPL loop to prevent stdin lockups in TUI mode ([94da03c](https://github.com/bgill55/daedalus/commit/94da03c29e8e5bf8beda9bfa9574464ebfe64d40))
+
 # [1.34.0](https://github.com/bgill55/daedalus/compare/v1.33.1...v1.34.0) (2026-06-28)
 
 
