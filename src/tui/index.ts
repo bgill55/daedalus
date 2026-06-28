@@ -34,6 +34,7 @@ export function createTuiRepl(deps: ReplDeps): () => Promise<void> {
   console.log(pc.yellow('  [DEBUG] Blessed screen constructed.'));
 
   // Create Log Box (Left Main Console)
+  console.log(pc.yellow('  [DEBUG] Creating logBox...'));
   const logBox = blessed.log({
     parent: screen,
     top: 0,
@@ -53,8 +54,10 @@ export function createTuiRepl(deps: ReplDeps): () => Promise<void> {
     keys: true,
     ansi: true,
   });
+  console.log(pc.yellow('  [DEBUG] logBox created.'));
 
   // Create Input Box (Bottom Left)
+  console.log(pc.yellow('  [DEBUG] Creating inputField...'));
   const inputField = blessed.textbox({
     parent: screen,
     bottom: 0,
@@ -70,8 +73,10 @@ export function createTuiRepl(deps: ReplDeps): () => Promise<void> {
     keys: true,
     mouse: true,
   });
+  console.log(pc.yellow('  [DEBUG] inputField created.'));
 
   // Create Sidebar (Right Column)
+  console.log(pc.yellow('  [DEBUG] Creating sidebar...'));
   const sidebar = blessed.box({
     parent: screen,
     top: 0,
@@ -81,11 +86,20 @@ export function createTuiRepl(deps: ReplDeps): () => Promise<void> {
     border: { type: 'line' },
     style: { border: { fg: 'dim' } }
   });
+  console.log(pc.yellow('  [DEBUG] sidebar created.'));
 
   // Initialize sidebar widgets
+  console.log(pc.yellow('  [DEBUG] Initializing monitor widget...'));
   initMonitor(sidebar);
+  console.log(pc.yellow('  [DEBUG] monitor widget initialized.'));
+
+  console.log(pc.yellow('  [DEBUG] Initializing model select widget...'));
   const modelList = initModelSelect(sidebar, config, router);
+  console.log(pc.yellow('  [DEBUG] model select widget initialized.'));
+
+  console.log(pc.yellow('  [DEBUG] Initializing file tree widget...'));
   const fileList = initFileTree(sidebar, sessionManager.projectRoot, activeFiles);
+  console.log(pc.yellow('  [DEBUG] file tree widget initialized.'));
 
   // Focus cycling navigation
   const focusables = [inputField, modelList, fileList];
