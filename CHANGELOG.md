@@ -1,3 +1,10 @@
+## [1.33.1](https://github.com/bgill55/daedalus/compare/v1.33.0...v1.33.1) (2026-06-28)
+
+
+### Bug Fixes
+
+* resolve documentation out-of-sync test failures by updating sync script safety section and zod schema ([eeb137a](https://github.com/bgill55/daedalus/commit/eeb137a82f2961a4c02fd5e3e28aa2b7cd095d31))
+
 # [1.33.0](https://github.com/bgill55/daedalus/compare/v1.32.3...v1.33.0) (2026-06-28)
 
 
