@@ -1,3 +1,10 @@
+## [1.34.5](https://github.com/bgill55/daedalus/compare/v1.34.4...v1.34.5) (2026-06-28)
+
+
+### Bug Fixes
+
+* call customStdout write callback manually without passing to originalStdoutWrite to prevent buffering hangs on Windows ([871488e](https://github.com/bgill55/daedalus/commit/871488ec514583a2f74411a8607aef77a382c55b))
+
 ## [1.34.4](https://github.com/bgill55/daedalus/compare/v1.34.3...v1.34.4) (2026-06-28)
 
 
