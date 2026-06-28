@@ -1,3 +1,11 @@
+## [1.34.2](https://github.com/bgill55/daedalus/compare/v1.34.1...v1.34.2) (2026-06-28)
+
+
+### Bug Fixes
+
+* cast customStdout stream to any to resolve screen output type check error ([b241dd4](https://github.com/bgill55/daedalus/commit/b241dd40b22a38ac6f35a5d2cba45a842fbdb6d1))
+* resolve infinite stdout write loop by introducing custom output stream wrapper for Blessed screen ([31340c7](https://github.com/bgill55/daedalus/commit/31340c7931830a79056c3b34470bf2971baa7ce7))
+
 ## [1.34.1](https://github.com/bgill55/daedalus/compare/v1.34.0...v1.34.1) (2026-06-28)
 
 
