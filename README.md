@@ -7,6 +7,7 @@
 <p align="center">
   <a href="https://www.npmjs.com/package/daedalus-cli"><img src="https://img.shields.io/npm/v/daedalus-cli?color=blue" alt="npm version" /></a>
   <a href="https://www.npmjs.com/package/daedalus-cli"><img src="https://img.shields.io/npm/dw/daedalus-cli?color=blue" alt="npm weekly downloads" /></a>
+  <a href="https://www.npmjs.com/package/daedalus-cli"><img src="https://img.shields.io/npm/dt/daedalus-cli?color=blue" alt="npm total downloads" /></a>
   <a href="https://github.com/bgill55/daedalus/stargazers"><img src="https://img.shields.io/github/stars/bgill55/daedalus?color=blue" alt="GitHub stars" /></a>
   <a href="https://github.com/bgill55/daedalus/actions/workflows/ci.yml"><img src="https://github.com/bgill55/daedalus/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/bgill55/daedalus?color=blue" alt="License" /></a>
