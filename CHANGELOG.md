@@ -1,3 +1,10 @@
+## [1.34.3](https://github.com/bgill55/daedalus/compare/v1.34.2...v1.34.3) (2026-06-28)
+
+
+### Bug Fixes
+
+* remove manual callback invocation from customStdout stream to prevent ERR_MULTIPLE_CALLBACK crash ([ce083ab](https://github.com/bgill55/daedalus/commit/ce083ab28248ff26f4128fbf9e24fc3588a02612))
+
 ## [1.34.2](https://github.com/bgill55/daedalus/compare/v1.34.1...v1.34.2) (2026-06-28)
 
 
