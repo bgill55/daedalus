@@ -23,6 +23,10 @@ import { createRepl } from './repl.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Save true original stream writes to global context for crash recovery
+(globalThis as any).originalStdoutWrite = process.stdout.write;
+(globalThis as any).originalStderrWrite = process.stderr.write;
+
 const _require = createRequire(import.meta.url);
 const { version: APP_VERSION } = _require('../package.json');
 
@@ -506,4 +510,13 @@ async function main() {
   }
 }
 
-main().catch(console.error);
+main().catch((err) => {
+  if ((globalThis as any).originalStdoutWrite) {
+    process.stdout.write = (globalThis as any).originalStdoutWrite;
+  }
+  if ((globalThis as any).originalStderrWrite) {
+    process.stderr.write = (globalThis as any).originalStderrWrite;
+  }
+  console.error(err);
+  process.exit(1);
+});
