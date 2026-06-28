@@ -9,6 +9,16 @@ Jump straight to:
 - [MCP Integration](mcp.md)
 - [Sandboxing](sandboxing.md)
 
+---
+
+## Interactive CLI
+
+Daedalus provides a premium terminal-based user interface for orchestrating agents and model routing:
+
+![Daedalus Interactive CLI Mockup](images/terminal_ui.png)
+
+---
+
 ## Features
 
 <div class="features">
@@ -57,3 +67,11 @@ Jump straight to:
     <p>Instant startup, context-aware pruning, and compact terminal UI</p>
   </div>
 </div>
+
+---
+
+## System Architecture
+
+At its core, Daedalus coordinates specialized subagents through an embedded model router to solve coding tasks locally or via cloud models:
+
+![Daedalus System Architecture](images/architecture.png)
