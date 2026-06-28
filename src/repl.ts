@@ -126,91 +126,95 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
   }
 
   async function chatLoop(): Promise<void> {
-    while (true) {
-      if (pendingNotifications.length > 0) {
-        console.log();
-        while (pendingNotifications.length > 0) {
-          console.log(pc.yellow(pendingNotifications.shift()!));
+    try {
+      while (true) {
+        if (pendingNotifications.length > 0) {
+          console.log();
+          while (pendingNotifications.length > 0) {
+            console.log(pc.yellow(pendingNotifications.shift()!));
+          }
         }
-      }
-      let prompt = `\n${pc.cyan('  ⬡')} `;
-      if (activeFiles.size > 0 || (config.ui.showTokens && messages.length > 1)) {
-        const fileStr = activeFiles.size > 0 ? `${activeFiles.size} file${activeFiles.size > 1 ? 's' : ''}` : '';
-        let tokenStr = '';
-        if (config.ui.showTokens) {
-          const tokens = calculateSessionTokens(messages, buildFileContext());
-          const total = tokens.total;
-          tokenStr = total >= 1000 ? `${(total / 1000).toFixed(1)}kt` : `${total}t`;
+        let prompt = `\n${pc.cyan('  ⬡')} `;
+        if (activeFiles.size > 0 || (config.ui.showTokens && messages.length > 1)) {
+          const fileStr = activeFiles.size > 0 ? `${activeFiles.size} file${activeFiles.size > 1 ? 's' : ''}` : '';
+          let tokenStr = '';
+          if (config.ui.showTokens) {
+            const tokens = calculateSessionTokens(messages, buildFileContext());
+            const total = tokens.total;
+            tokenStr = total >= 1000 ? `${(total / 1000).toFixed(1)}kt` : `${total}t`;
+          }
+          const separator = fileStr && tokenStr ? ' · ' : '';
+          prompt += pc.dim(`[${fileStr}${separator}${tokenStr}] `);
         }
-        const separator = fileStr && tokenStr ? ' · ' : '';
-        prompt += pc.dim(`[${fileStr}${separator}${tokenStr}] `);
-      }
-      prompt += `${pc.bold(pc.white('›'))} `;
-      const input = await readMultiLineInput(prompt);
-      const trimmedInput = input.trim();
-      if (!trimmedInput) continue;
+        prompt += `${pc.bold(pc.white('›'))} `;
+        const input = await readMultiLineInput(prompt);
+        const trimmedInput = input.trim();
+        if (!trimmedInput) continue;
 
-      resetTurnAborted();
-      toolContext.autoApproveTools = false;
+        resetTurnAborted();
+        toolContext.autoApproveTools = false;
 
-      // Construct CommandContext
-      const cmdContext: CommandContext = {
-        config,
-        configDir,
-        cliTempDir,
-        router,
-        sessionManager,
-        userProfile,
-        projectHash: sessionManager.projectHash,
-        messages,
-        activeFiles,
-        toolContext,
-        getSystemPromptWithMemory,
-        callModelWithTools,
-        callModelWithFallback,
-        rl,
-        initializeSessionState,
-        buildFileContext,
-        askLine,
-        buildIndexContext,
-        getIndexDbPath,
-      };
+        // Construct CommandContext
+        const cmdContext: CommandContext = {
+          config,
+          configDir,
+          cliTempDir,
+          router,
+          sessionManager,
+          userProfile,
+          projectHash: sessionManager.projectHash,
+          messages,
+          activeFiles,
+          toolContext,
+          getSystemPromptWithMemory,
+          callModelWithTools,
+          callModelWithFallback,
+          rl,
+          initializeSessionState,
+          buildFileContext,
+          askLine,
+          buildIndexContext,
+          getIndexDbPath,
+        };
 
-      // Try executing as command first
-      const wasCommand = await executeCommand(trimmedInput, cmdContext);
-      if (wasCommand) {
-        continue;
-      }
+        // Try executing as command first
+        const wasCommand = await executeCommand(trimmedInput, cmdContext);
+        if (wasCommand) {
+          continue;
+        }
 
-      // User Message Processing (regular assistant chat)
-      try {
-        const filesContext = buildFileContext();
-        const indexCtx = await buildIndexContext(trimmedInput);
-        const todoCtx = buildTodoContext(sessionId);
-        const userContent = `${indexCtx}${todoCtx}${filesContext}User Prompt: ${trimmedInput}`;
-        printUserTurn(trimmedInput);
-        await callModelWithTools(userContent);
-
-        sessionManager.saveSessionState(messages, activeFiles, getSessionTodos(sessionId));
-        await extractAndSave(router, sessionManager, messages);
-      } catch {
+        // User Message Processing (regular assistant chat)
         try {
           const filesContext = buildFileContext();
+          const indexCtx = await buildIndexContext(trimmedInput);
           const todoCtx = buildTodoContext(sessionId);
-          const userContent = `${todoCtx}${filesContext}User Prompt: ${trimmedInput}`;
-          console.log(pc.yellow('\n  [RETRY] Trying fallback mode...'));
-          const fallbackResult = await callModelWithFallback(userContent);
-          if (fallbackResult) {
-            sessionManager.saveSessionState(messages, activeFiles, getSessionTodos(sessionId));
-            await extractAndSave(router, sessionManager, messages);
+          const userContent = `${indexCtx}${todoCtx}${filesContext}User Prompt: ${trimmedInput}`;
+          printUserTurn(trimmedInput);
+          await callModelWithTools(userContent);
+
+          sessionManager.saveSessionState(messages, activeFiles, getSessionTodos(sessionId));
+          await extractAndSave(router, sessionManager, messages);
+        } catch {
+          try {
+            const filesContext = buildFileContext();
+            const todoCtx = buildTodoContext(sessionId);
+            const userContent = `${todoCtx}${filesContext}User Prompt: ${trimmedInput}`;
+            console.log(pc.yellow('\n  [RETRY] Trying fallback mode...'));
+            const fallbackResult = await callModelWithFallback(userContent);
+            if (fallbackResult) {
+              sessionManager.saveSessionState(messages, activeFiles, getSessionTodos(sessionId));
+              await extractAndSave(router, sessionManager, messages);
+            }
+          } catch (fallbackErr: any) {
+            const firstLine = (fallbackErr.message || '').split('\n')[0];
+            console.log(pc.red(`\n  ${pc.bold('[ERROR]')} Fallback also failed: ${firstLine}`));
+            console.log(pc.dim('         Check that at least one local server is running or run /doctor to debug.'));
           }
-        } catch (fallbackErr: any) {
-          const firstLine = (fallbackErr.message || '').split('\n')[0];
-          console.log(pc.red(`\n  ${pc.bold('[ERROR]')} Fallback also failed: ${firstLine}`));
-          console.log(pc.dim('         Check that at least one local server is running or run /doctor to debug.'));
         }
+        turnSeparator();
       }
-      turnSeparator();
+    } finally {
+      rl.close();
     }
   }
 
