@@ -407,22 +407,42 @@ async function main() {
     console.error(pc.yellow(`\nMCP initialization failed: ${err.message}`));
   }
 
-  // Create REPL loop here — after MCP connects, so piped stdin isn't consumed before 'line' listener attaches
-  chatLoop = createRepl({
-    config,
-    configDir,
-    cliTempDir,
-    router,
-    sessionManager,
-    userProfile,
-    messages,
-    activeFiles,
-    toolContext,
-    getSystemPromptWithMemory,
-    callModelWithTools,
-    callModelWithFallback,
-    getIndexDbPath,
-  });
+  const isTui = process.argv.includes('--tui') || (config as any).ui?.tui === true;
+
+  if (isTui) {
+    const { createTuiRepl } = await import('./tui/index.js');
+    chatLoop = createTuiRepl({
+      config,
+      configDir,
+      cliTempDir,
+      router,
+      sessionManager,
+      userProfile,
+      messages,
+      activeFiles,
+      toolContext,
+      getSystemPromptWithMemory,
+      callModelWithTools,
+      callModelWithFallback,
+      getIndexDbPath,
+    });
+  } else {
+    chatLoop = createRepl({
+      config,
+      configDir,
+      cliTempDir,
+      router,
+      sessionManager,
+      userProfile,
+      messages,
+      activeFiles,
+      toolContext,
+      getSystemPromptWithMemory,
+      callModelWithTools,
+      callModelWithFallback,
+      getIndexDbPath,
+    });
+  }
 
   // Check for updates — non-blocking
   if (config.updateCheck !== false) {

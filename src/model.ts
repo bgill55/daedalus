@@ -165,7 +165,7 @@ export function createModelFunctions(deps: ModelDeps) {
 
       try {
         const stream = await router.chatStream({
-          model: 'auto',
+          model: config.modelOverride || 'auto',
           messages,
           temperature: 0.1,
           tools: allTools,
@@ -394,7 +394,7 @@ export function createModelFunctions(deps: ModelDeps) {
 
     try {
       const response = await router.chat.completions.create({
-        model: 'auto',
+        model: config.modelOverride || 'auto',
         messages,
         temperature: 0.1,
       });

@@ -67,6 +67,7 @@ This guide describes all configuration options available in Daedalus. You can vi
 *   **`ui.showCost`**: Output cost estimation stats after model turns (default: `true`).
 *   **`ui.diffStyle`**: Visual diff style to display for code patches (`"unified"` or `"side-by-side"`).
 *   **`ui.theme`**: CLI theme colors (`"dark"`, `"light"`, or `"auto"`).
+*   **`ui.tui`**: Enable/disable launching the terminal dashboard TUI layout by default (default: `false`).
 
 ---
 

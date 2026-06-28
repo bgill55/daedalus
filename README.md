@@ -50,6 +50,11 @@ npm install -g daedalus-cli
 daedalus
 ```
 
+To launch with the interactive terminal dashboard layout:
+```bash
+daedalus --tui
+```
+
 On first run, Daedalus scans for local LLM servers and guides you through setup. If none are found, it prompts for a remote provider.
 
 From source: `git clone https://github.com/bgill55/daedalus.git && cd daedalus && npm install && npm run build`
@@ -69,6 +74,7 @@ AI assistance without:
 ## Features
 
 ### Core
+- **Interactive Terminal Dashboard (TUI)** — premium side-by-side dashboard with real-time CPU/RAM monitor gauges, model selection overrides, and an interactive file tree to toggle prompt context dynamically.
 - **Local-first** — works entirely on your machine with local LLMs
 - **Embedded model router** — priority, round-robin, or fastest-response routing across multiple models
 - **Smart model tier routing** — routes planning, reviews, and context summarization calls to your configured `intelligence` tier model
