@@ -309,4 +309,41 @@ describe('Orchestrate Command Aliases', () => {
   });
 });
 
+describe('TUI Command', () => {
+  let mockContext: CommandContext;
+
+  beforeEach(() => {
+    mockContext = {
+      config: {},
+      configDir: '',
+      cliTempDir: '',
+      router: {} as any,
+      sessionManager: {} as any,
+      userProfile: {} as any,
+      projectHash: '',
+      messages: [],
+      activeFiles: new Map(),
+      toolContext: {} as any,
+      getSystemPromptWithMemory: () => '',
+      callModelWithTools: async () => ({ content: '', toolCalls: [] }),
+      callModelWithFallback: async () => '',
+      rl: {} as any, // CLI mode has rl defined
+      initializeSessionState: () => {},
+      buildFileContext: () => '',
+      askLine: async () => '',
+      buildIndexContext: async () => '',
+      getIndexDbPath: () => '',
+    };
+  });
+
+  it('throws SWITCH_MODE_TUI when run in CLI mode', async () => {
+    await expect(executeCommand('/tui', mockContext)).rejects.toThrow('SWITCH_MODE_TUI');
+  });
+
+  it('throws SWITCH_MODE_CLI when run in TUI mode', async () => {
+    mockContext.rl = null as any; // TUI mode has rl falsy
+    await expect(executeCommand('/tui', mockContext)).rejects.toThrow('SWITCH_MODE_CLI');
+  });
+});
+
 
