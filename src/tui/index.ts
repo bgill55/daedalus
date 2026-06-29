@@ -86,6 +86,15 @@ export function createTuiRepl(deps: ReplDeps): () => Promise<void> {
     mouse: true,
   });
 
+  // Prevent textbox from inserting tab spaces and messing up layout on tab focus switch
+  const originalListener = (inputField as any)._listener;
+  (inputField as any)._listener = function(ch: string, key: any) {
+    if (key && (key.name === 'tab' || key.name === 'S-tab')) {
+      return;
+    }
+    return originalListener.call(this, ch, key);
+  };
+
   // Create Sidebar (Right Column)
   // Create Sidebar (Right Column)
   const sidebar = blessed.box({
