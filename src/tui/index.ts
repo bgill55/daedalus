@@ -25,17 +25,21 @@ export function createTuiRepl(deps: ReplDeps): () => Promise<void> {
 
   let sessionId = sessionManager.sessionId;
 
-  const originalStdoutWrite = process.stdout.write;
-  const originalStderrWrite = process.stderr.write;
-
+  // Wrapper so blessed writes bypass the tuiWrite override of process.stdout.write
+  const originalStdoutWrite = process.stdout.write.bind(process.stdout);
+  const originalStderrWrite = process.stderr.write.bind(process.stderr);
   const customStdout = new Writable({
     write(chunk, encoding, callback) {
-      originalStdoutWrite.call(process.stdout, chunk, encoding);
+      originalStdoutWrite(chunk, encoding);
       callback();
     }
   });
+  Object.defineProperties(customStdout, {
+    isTTY: { value: true },
+    columns: { value: (process.stdout as any).columns || 80 },
+    rows: { value: (process.stdout as any).rows || 24 },
+  });
 
-  // Initialize Screen
   const screen = blessed.screen({
     smartCSR: true,
     title: 'Daedalus TUI',
