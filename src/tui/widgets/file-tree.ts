@@ -137,6 +137,16 @@ export function initFileTree(parent: any, projectRoot: string, activeFiles: Map<
     renderTree();
   });
 
+  // Handle single click item selection
+  list.on('element click', (el: any) => {
+    const index = list.items.indexOf(el);
+    if (index !== -1) {
+      list.select(index);
+      list.emit('select', el, index);
+      parent.screen.render();
+    }
+  });
+
   renderTree();
 
   return list;

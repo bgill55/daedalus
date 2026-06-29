@@ -87,14 +87,13 @@ export function createTuiRepl(deps: ReplDeps): () => Promise<void> {
   });
 
   // Create Sidebar (Right Column)
+  // Create Sidebar (Right Column)
   const sidebar = blessed.box({
     parent: screen,
     top: 0,
     right: 0,
     width: '20%',
     height: '100%',
-    border: { type: 'line' },
-    style: { border: { fg: 'dim' } }
   });
 
   // Initialize sidebar widgets
@@ -113,6 +112,19 @@ export function createTuiRepl(deps: ReplDeps): () => Promise<void> {
   });
 
   screen.key(['S-tab'], () => {
+    focusIndex = (focusIndex - 1 + focusables.length) % focusables.length;
+    focusables[focusIndex].focus();
+    screen.render();
+  });
+
+  // TextBox captures Tab keypress, so we handle it explicitly on inputField too
+  inputField.key(['tab'], () => {
+    focusIndex = (focusIndex + 1) % focusables.length;
+    focusables[focusIndex].focus();
+    screen.render();
+  });
+
+  inputField.key(['S-tab'], () => {
     focusIndex = (focusIndex - 1 + focusables.length) % focusables.length;
     focusables[focusIndex].focus();
     screen.render();
