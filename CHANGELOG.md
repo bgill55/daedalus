@@ -1,3 +1,10 @@
+## [1.34.12](https://github.com/bgill55/daedalus/compare/v1.34.11...v1.34.12) (2026-06-29)
+
+
+### Bug Fixes
+
+* silence background terminal spinner in TUI mode to prevent logging escape sequences ([5f59c8d](https://github.com/bgill55/daedalus/commit/5f59c8d98db580b2fca07462c1106fd4d96225ee))
+
 ## [1.34.11](https://github.com/bgill55/daedalus/compare/v1.34.10...v1.34.11) (2026-06-29)
 
 
