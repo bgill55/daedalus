@@ -1,3 +1,10 @@
+## [1.34.13](https://github.com/bgill55/daedalus/compare/v1.34.12...v1.34.13) (2026-06-29)
+
+
+### Bug Fixes
+
+* instruct model to skip tool calls for simple greetings in default system prompt ([7d21762](https://github.com/bgill55/daedalus/commit/7d21762ead99fa6e5d36e217e2cfd163d1cea8a0))
+
 ## [1.34.12](https://github.com/bgill55/daedalus/compare/v1.34.11...v1.34.12) (2026-06-29)
 
 
