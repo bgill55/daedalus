@@ -1,3 +1,10 @@
+## [1.34.6](https://github.com/bgill55/daedalus/compare/v1.34.5...v1.34.6) (2026-06-29)
+
+
+### Bug Fixes
+
+* prevent rl.close() from ending process.stdout so TUI renders on /tui mode switch ([bfb6e7d](https://github.com/bgill55/daedalus/commit/bfb6e7dc836ca3e801f6f7cf8a3ac35f3e41c49e))
+
 ## [1.34.5](https://github.com/bgill55/daedalus/compare/v1.34.4...v1.34.5) (2026-06-28)
 
 
