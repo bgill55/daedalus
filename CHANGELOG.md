@@ -1,3 +1,10 @@
+## [1.34.14](https://github.com/bgill55/daedalus/compare/v1.34.13...v1.34.14) (2026-06-29)
+
+
+### Bug Fixes
+
+* remove duplicate Tab key handlers that double-fire and skip widgets ([26dce71](https://github.com/bgill55/daedalus/commit/26dce713e0466f9f3fbb774deb374b1345626ede))
+
 ## [1.34.13](https://github.com/bgill55/daedalus/compare/v1.34.12...v1.34.13) (2026-06-29)
 
 
