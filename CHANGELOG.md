@@ -1,3 +1,10 @@
+## [1.34.8](https://github.com/bgill55/daedalus/compare/v1.34.7...v1.34.8) (2026-06-29)
+
+
+### Bug Fixes
+
+* set isTTY/columns/rows on customStdout so blessed gets proper terminal capabilities ([8792545](https://github.com/bgill55/daedalus/commit/879254555b1c5f2216697d40f2658b0618fa4217))
+
 ## [1.34.7](https://github.com/bgill55/daedalus/compare/v1.34.6...v1.34.7) (2026-06-29)
 
 
