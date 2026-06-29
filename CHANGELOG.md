@@ -1,3 +1,11 @@
+## [1.34.9](https://github.com/bgill55/daedalus/compare/v1.34.8...v1.34.9) (2026-06-29)
+
+
+### Bug Fixes
+
+* cast list element to any in click listeners to satisfy tsc ([df59155](https://github.com/bgill55/daedalus/commit/df59155b784e5a459ae6fccb9d830dc3fc69b99f))
+* resolve overlapping sidebar borders, inputField tab focus capture, and mouse-clicks on TUI lists ([e90ddca](https://github.com/bgill55/daedalus/commit/e90ddca8ba84d242c40869acfb28f61eb31f4a3b))
+
 ## [1.34.8](https://github.com/bgill55/daedalus/compare/v1.34.7...v1.34.8) (2026-06-29)
 
 
