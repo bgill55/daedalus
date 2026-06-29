@@ -130,19 +130,6 @@ export function createTuiRepl(deps: ReplDeps): () => Promise<void> {
     screen.render();
   });
 
-  // TextBox captures Tab keypress, so we handle it explicitly on inputField too
-  inputField.key(['tab'], () => {
-    focusIndex = (focusIndex + 1) % focusables.length;
-    focusables[focusIndex].focus();
-    screen.render();
-  });
-
-  inputField.key(['S-tab'], () => {
-    focusIndex = (focusIndex - 1 + focusables.length) % focusables.length;
-    focusables[focusIndex].focus();
-    screen.render();
-  });
-
   // Global PageUp / PageDown bindings to scroll log box
   screen.key(['pageup'], () => {
     logBox.scroll(-10);
