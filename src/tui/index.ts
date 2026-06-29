@@ -25,6 +25,9 @@ export function createTuiRepl(deps: ReplDeps): () => Promise<void> {
 
   let sessionId = sessionManager.sessionId;
 
+  // Set TUI active flag
+  (globalThis as any).isTui = true;
+
   // Wrapper so blessed writes bypass the tuiWrite override of process.stdout.write
   const originalStdoutWrite = process.stdout.write.bind(process.stdout);
   const originalStderrWrite = process.stderr.write.bind(process.stderr);
@@ -168,6 +171,7 @@ export function createTuiRepl(deps: ReplDeps): () => Promise<void> {
   function restoreStreams() {
     process.stdout.write = originalStdoutWrite;
     process.stderr.write = originalStderrWrite;
+    delete (globalThis as any).isTui;
   }
 
   // Keyboard navigation / Global exit

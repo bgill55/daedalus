@@ -33,6 +33,7 @@ export class DaedalusSpinner {
   }
 
   private isTTY(): boolean {
+    if ((globalThis as any).isTui) return false;
     return process.stdout.isTTY === true;
   }
 
