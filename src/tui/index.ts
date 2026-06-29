@@ -46,6 +46,7 @@ export function createTuiRepl(deps: ReplDeps): () => Promise<void> {
     fullUnicode: true,
     output: customStdout as any,
     alternate: true,
+    mouse: true,
   });
 
   // Create Log Box (Left Main Console)
