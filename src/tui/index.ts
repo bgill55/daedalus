@@ -41,6 +41,7 @@ export function createTuiRepl(deps: ReplDeps): () => Promise<void> {
     title: 'Daedalus TUI',
     fullUnicode: true,
     output: customStdout as any,
+    alternate: true,
   });
 
   // Create Log Box (Left Main Console)
