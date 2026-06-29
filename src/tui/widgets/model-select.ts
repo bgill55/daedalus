@@ -70,7 +70,7 @@ export function initModelSelect(parent: any, config: any, router: any) {
 
   // Handle single click item selection
   list.on('element click', (el: any) => {
-    const index = list.items.indexOf(el);
+    const index = (list as any).items.indexOf(el);
     if (index !== -1) {
       list.select(index);
       list.emit('select', el, index);
