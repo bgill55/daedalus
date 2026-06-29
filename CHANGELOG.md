@@ -1,3 +1,10 @@
+## [1.34.7](https://github.com/bgill55/daedalus/compare/v1.34.6...v1.34.7) (2026-06-29)
+
+
+### Bug Fixes
+
+* enable alternate screen buffer for TUI so terminal is properly cleared and restored on /tui ([413eac4](https://github.com/bgill55/daedalus/commit/413eac449b74d1c994fb6d287d45299e3abb0d92))
+
 ## [1.34.6](https://github.com/bgill55/daedalus/compare/v1.34.5...v1.34.6) (2026-06-29)
 
 
