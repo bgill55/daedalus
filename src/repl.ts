@@ -1,5 +1,6 @@
 import fs from 'fs';
 import readline from 'readline';
+import { Writable } from 'stream';
 import pc from 'picocolors';
 
 import { pendingNotifications } from './agents/background.js';
@@ -45,9 +46,18 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
   // Build commands completion list dynamically from registered commands
   const COMMANDS = commandsList.flatMap(cmd => [cmd.name, ...(cmd.aliases || [])]);
 
+  // Wrapper stream so rl.close() doesn't call process.stdout.end(),
+  // which would break TUI rendering on mode switch
+  const rlOutput = new Writable({
+    write(chunk, encoding, callback) {
+      process.stdout.write(chunk, encoding);
+      callback();
+    },
+  });
+
   const rl = readline.createInterface({
     input: process.stdin,
-    output: process.stdout,
+    output: rlOutput,
     completer: (line: string) => {
       const prefix = line.toLowerCase();
       const hits = prefix.startsWith('/') || prefix.startsWith('?') || prefix.startsWith('exit') || prefix.startsWith('quit')

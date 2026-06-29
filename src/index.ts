@@ -503,6 +503,7 @@ async function main() {
       }
       if (err.message === 'SWITCH_MODE_TUI') {
         currentMode = 'tui';
+        console.clear();
         continue;
       }
       throw err;
