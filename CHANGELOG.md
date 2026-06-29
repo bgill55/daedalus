@@ -1,3 +1,10 @@
+## [1.34.10](https://github.com/bgill55/daedalus/compare/v1.34.9...v1.34.10) (2026-06-29)
+
+
+### Bug Fixes
+
+* intercept and discard tab keypresses in inputField textbox to prevent tab character input during focus shifts ([afc7cd7](https://github.com/bgill55/daedalus/commit/afc7cd7c79f859686192a0e7e193064aaf961cc9))
+
 ## [1.34.9](https://github.com/bgill55/daedalus/compare/v1.34.8...v1.34.9) (2026-06-29)
 
 
