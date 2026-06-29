@@ -1,3 +1,10 @@
+## [1.34.11](https://github.com/bgill55/daedalus/compare/v1.34.10...v1.34.11) (2026-06-29)
+
+
+### Bug Fixes
+
+* enable mouse tracking on blessed screen to activate mouse clicks on TUI widgets ([c76180a](https://github.com/bgill55/daedalus/commit/c76180a011aadb1bfcdc4368fae56d9a66466ea0))
+
 ## [1.34.10](https://github.com/bgill55/daedalus/compare/v1.34.9...v1.34.10) (2026-06-29)
 
 
