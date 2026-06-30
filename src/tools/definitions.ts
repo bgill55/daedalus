@@ -80,13 +80,14 @@ export const BUILTIN_TOOLS: ToolDefinition[] = [
     type: 'function',
     function: {
       name: 'list_files',
-      description: 'List directory tree with optional depth and glob filter.',
+      description: 'List directory tree with optional depth, glob filter, and max result limit.',
       parameters: {
         type: 'object',
         properties: {
           path: { type: 'string', description: 'Directory path', default: '.' },
           depth: { type: 'integer', description: 'Max recursion depth', minimum: 1, maximum: 10, default: 3 },
           glob: { type: 'string', description: 'Glob pattern to filter (e.g. "**/*.ts")' },
+          limit: { type: 'integer', description: 'Max files to return', minimum: 1, maximum: 2000, default: 500 },
         },
         required: [],
         additionalProperties: false,

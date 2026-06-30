@@ -361,6 +361,19 @@ describe('listFiles and searchFiles — directory exclusions', () => {
     expect(resultExcluded.success).toBe(true);
     expect(resultExcluded.content).toBe('(no matches)');
   });
+
+  it('truncates file listing when output exceeds limit', async () => {
+    const ctx = makeContext(tmpDir);
+    // Create 5 temporary files
+    for (let i = 0; i < 5; i++) {
+      fs.writeFileSync(path.join(tmpDir, `file_${i}.txt`), 'test');
+    }
+    const result = await listFiles({ path: tmpDir, limit: 3 }, ctx);
+    expect(result.success).toBe(true);
+    expect(result.content).toContain('file_0.txt');
+    expect(result.content).toContain('truncated');
+    expect(result.content).toContain('more files found');
+  });
 });
 
 

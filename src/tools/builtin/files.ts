@@ -871,16 +871,25 @@ function walkDir(dir: string, baseDir: string, maxDepth: number, pattern?: strin
   return results;
 }
 
-export async function listFiles(args: { path?: string; depth?: number; glob?: string }, context: ToolContext): Promise<ToolResult> {
+export async function listFiles(args: { path?: string; depth?: number; glob?: string; limit?: number }, context: ToolContext): Promise<ToolResult> {
   try {
     const targetPath = args.path ? resolvePath(args.path, context.projectRoot) : context.projectRoot;
     const depth = args.depth ?? 3;
     const glob = args.glob;
+    const limit = args.limit ?? 500;
 
     const files = walkDir(targetPath, targetPath, depth, glob);
-    const content = files.length > 0
-      ? files.sort().join('\n')
-      : '(empty)';
+    files.sort();
+
+    const totalCount = files.length;
+    let content = '';
+    if (totalCount > limit) {
+      content = files.slice(0, limit).join('\n') + `\n... [truncated, ${totalCount - limit} more files found. Use search_files or list_files with a specific subpath or glob to see more]`;
+    } else if (totalCount > 0) {
+      content = files.join('\n');
+    } else {
+      content = '(empty)';
+    }
 
     return { toolCallId: '', name: 'list_files', success: true, content };
   } catch (err: any) {
