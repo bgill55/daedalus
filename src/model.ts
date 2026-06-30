@@ -171,6 +171,7 @@ export function createModelFunctions(deps: ModelDeps) {
           tools: allTools,
           tool_choice: 'auto',
           stream: true,
+          max_tokens: 4096,
           signal,
         });
 

@@ -6,6 +6,13 @@ import { ToolContext, ToolResult } from '../../types.js';
 import { guardGitPath } from '../git-guard.js';
 import { runDiffWorkflow, type DiffOptions } from './diff-ui.js';
 
+const DEFAULT_EXCLUDE_DIRS = [
+  'node_modules', 'dist', 'build', '.git', 'target', 'coverage',
+  'venv', '.venv', 'env', '.env', '__pycache__', '.pytest_cache',
+  '.mypy_cache', '.next', 'out', '.cache'
+];
+
+
 function normalizeWhitespace(str: string): string {
   return str
     .split('\n')
@@ -719,7 +726,11 @@ function nativeGrep(dir: string, pattern: string, fileGlob?: string, limit = 50)
       for (const e of entries) {
         if (results.length >= limit) break;
         const full = path.join(d, e.name);
-        if (e.isDirectory()) { if (e.name !== '.' && e.name !== '..' && e.name !== 'node_modules' && e.name !== '.git') walk(full, depth + 1); }
+        if (e.isDirectory()) {
+          if (e.name === '.' || e.name === '..') continue;
+          if (DEFAULT_EXCLUDE_DIRS.includes(e.name)) continue;
+          walk(full, depth + 1);
+        }
         else if (e.isFile()) {
           if (fileGlob && !e.name.endsWith(fileGlob.replace('*', ''))) continue;
           try {
@@ -846,6 +857,7 @@ function walkDir(dir: string, baseDir: string, maxDepth: number, pattern?: strin
       const fullPath = path.join(dir, entry.name);
       if (entry.isDirectory()) {
         if (entry.name === '.' || entry.name === '..') continue;
+        if (DEFAULT_EXCLUDE_DIRS.includes(entry.name)) continue;
         results.push(...walkDir(fullPath, baseDir, maxDepth, pattern, _currentDepth + 1));
       } else if (entry.isFile()) {
         if (!pattern || matchesGlob(path.relative(baseDir, fullPath), pattern)) {

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import { patchFile, writeFile } from './files.js';
+import { patchFile, writeFile, listFiles, searchFiles } from './files.js';
 import type { ToolContext } from '../../types.js';
 
 function makeTmpDir(): string {
@@ -309,4 +309,58 @@ describe('writeFile — export consistency check', () => {
     expect(result.content).not.toMatch(/is not defined/);
   });
 });
+
+describe('listFiles and searchFiles — directory exclusions', () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = makeTmpDir();
+    // Create some normal files
+    fs.writeFileSync(path.join(tmpDir, 'allowed.txt'), 'hello world');
+    fs.mkdirSync(path.join(tmpDir, 'src'));
+    fs.writeFileSync(path.join(tmpDir, 'src', 'main.js'), 'console.log(1);');
+
+    // Create some excluded directories and files inside them
+    fs.mkdirSync(path.join(tmpDir, '.git'));
+    fs.writeFileSync(path.join(tmpDir, '.git', 'COMMIT_EDITMSG'), 'fix everything');
+    fs.mkdirSync(path.join(tmpDir, 'node_modules'));
+    fs.writeFileSync(path.join(tmpDir, 'node_modules', 'dep.js'), 'module.exports = {}');
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('excludes standard ignored folders from listFiles results', async () => {
+    const ctx = makeContext(tmpDir);
+    const result = await listFiles({ path: tmpDir }, ctx);
+    expect(result.success).toBe(true);
+    expect(result.content).toContain('allowed.txt');
+    expect(result.content).toContain(path.join('src', 'main.js'));
+    expect(result.content).not.toContain('.git');
+    expect(result.content).not.toContain('node_modules');
+  });
+
+  it('excludes standard ignored folders from searchFiles (target=files) results', async () => {
+    const ctx = makeContext(tmpDir);
+    const result = await searchFiles({ pattern: '**', target: 'files', path: tmpDir }, ctx);
+    expect(result.success).toBe(true);
+    expect(result.content).toContain('allowed.txt');
+    expect(result.content).toContain(path.join('src', 'main.js'));
+    expect(result.content).not.toContain('.git');
+    expect(result.content).not.toContain('node_modules');
+  });
+
+  it('excludes standard ignored folders from searchFiles content search', async () => {
+    const ctx = makeContext(tmpDir);
+    const resultAllowed = await searchFiles({ pattern: 'hello', path: tmpDir }, ctx);
+    expect(resultAllowed.success).toBe(true);
+    expect(resultAllowed.content).toContain('allowed.txt');
+
+    const resultExcluded = await searchFiles({ pattern: 'fix everything', path: tmpDir }, ctx);
+    expect(resultExcluded.success).toBe(true);
+    expect(resultExcluded.content).toBe('(no matches)');
+  });
+});
+
 
