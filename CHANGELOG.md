@@ -1,3 +1,10 @@
+## [1.34.15](https://github.com/bgill55/daedalus/compare/v1.34.14...v1.34.15) (2026-06-30)
+
+
+### Bug Fixes
+
+* **cli:** ignore build/dep folders in files tool & add max_tokens to completions ([346bb10](https://github.com/bgill55/daedalus/commit/346bb105a89e23099b15a40565e3620dd46ca5f8))
+
 ## [1.34.14](https://github.com/bgill55/daedalus/compare/v1.34.13...v1.34.14) (2026-06-29)
 
 
