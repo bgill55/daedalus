@@ -1,3 +1,10 @@
+## [1.34.16](https://github.com/bgill55/daedalus/compare/v1.34.15...v1.34.16) (2026-06-30)
+
+
+### Bug Fixes
+
+* **cli:** limit list_files results to prevent context window token overflow ([620ba4a](https://github.com/bgill55/daedalus/commit/620ba4ac5d4d486aa2526ab5151e022406ae11f2))
+
 ## [1.34.15](https://github.com/bgill55/daedalus/compare/v1.34.14...v1.34.15) (2026-06-30)
 
 
