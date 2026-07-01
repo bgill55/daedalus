@@ -42,6 +42,11 @@ Type ? for commands  ·  Tab completes  ·  Be nice to your AI
 o › 
 ```
 
+<p align="center">
+  <img src="assets/cli_view.png" width="49%" alt="Daedalus CLI View" />
+  <img src="assets/tui_view.png" width="49%" alt="Daedalus TUI View" />
+</p>
+
 ---
 
 ## Quick Start
