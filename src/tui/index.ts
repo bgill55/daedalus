@@ -116,15 +116,27 @@ export function createTuiRepl(deps: ReplDeps): () => Promise<void> {
   // Prevent textbox from inserting tab spaces and manually switch focus on Tab/S-Tab
   const originalListener = (inputField as any)._listener;
   (inputField as any)._listener = function(ch: string, key: any) {
-    if (key && (key.name === 'tab' || key.name === 'S-tab')) {
-      if (key.name === 'tab') {
-        focusIndex = (focusIndex + 1) % focusables.length;
-      } else {
-        focusIndex = (focusIndex - 1 + focusables.length) % focusables.length;
+    if (key) {
+      if (key.name === 'tab' || key.name === 'S-tab') {
+        if (key.name === 'tab') {
+          focusIndex = (focusIndex + 1) % focusables.length;
+        } else {
+          focusIndex = (focusIndex - 1 + focusables.length) % focusables.length;
+        }
+        focusables[focusIndex].focus();
+        screen.render();
+        return;
       }
-      focusables[focusIndex].focus();
-      screen.render();
-      return;
+      if (key.name === 'pageup') {
+        logBox.scroll(-10);
+        screen.render();
+        return;
+      }
+      if (key.name === 'pagedown') {
+        logBox.scroll(10);
+        screen.render();
+        return;
+      }
     }
     return originalListener.call(this, ch, key);
   };
