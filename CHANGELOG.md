@@ -1,3 +1,10 @@
+# [1.35.0](https://github.com/bgill55/daedalus/compare/v1.34.18...v1.35.0) (2026-07-01)
+
+
+### Features
+
+* **orchestrator:** implement build verification loops and auto rollbacks ([f0a2229](https://github.com/bgill55/daedalus/commit/f0a22298c69b8943c022aa0fd24a765e0cdf5cbf))
+
 ## [1.34.18](https://github.com/bgill55/daedalus/compare/v1.34.17...v1.34.18) (2026-07-01)
 
 
