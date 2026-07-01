@@ -2,6 +2,18 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Orchestrator } from './orchestrator.js';
 import type { ToolContext, ChatMessage } from '../types.js';
 import type { LocalRouter } from '../router/index.js';
+import fs from 'fs';
+
+// Global mock for child_process exec
+const mockExec = vi.fn((cmd: string, opts: any, cb: any) => {
+  const callback = typeof cb === 'function' ? cb : opts;
+  if (typeof callback === 'function') {
+    callback(null, 'build success', '');
+  }
+});
+vi.mock('child_process', () => ({
+  exec: (cmd: string, opts: any, cb: any) => mockExec(cmd, opts, cb),
+}));
 
 const createMockRouter = (responses: string[]) => {
   const chatMock = vi.fn();
@@ -466,6 +478,111 @@ Debugger: fix deprecations
     expect(callCount).toBe(2);
     expect(askLineMock).toHaveBeenCalledTimes(2);
     expect(abortController.signal.aborted).toBe(true);
+  });
+});
+
+describe('Orchestrator Loop Engineering features', () => {
+  let toolContext: ToolContext;
+  let messages: ChatMessage[];
+
+  beforeEach(() => {
+    messages = [];
+    toolContext = baseContext();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('rollbackTaskPatches reverts patchHistory changes and truncates history', async () => {
+    const fsMockWrite = vi.spyOn(fs, 'writeFileSync').mockImplementation(() => {});
+    const fsMockExists = vi.spyOn(fs, 'existsSync').mockReturnValue(true);
+
+    const { router: localRouter } = createMockRouter([]);
+    const orch = new Orchestrator(localRouter, messages, toolContext);
+
+    toolContext.patchHistory = [
+      { filePath: 'src/file1.ts', oldContent: 'old1', newContent: 'new1', timestamp: 1, description: 'patch1' },
+      { filePath: 'src/file2.ts', oldContent: 'old2', newContent: 'new2', timestamp: 2, description: 'patch2' },
+      { filePath: 'src/file3.ts', oldContent: 'old3', newContent: 'new3', timestamp: 3, description: 'patch3' },
+    ];
+
+    await (orch as any).rollbackTaskPatches(1);
+
+    expect(fsMockWrite).toHaveBeenCalledTimes(2);
+    expect(fsMockWrite).toHaveBeenNthCalledWith(1, 'src/file3.ts', 'old3', 'utf8');
+    expect(fsMockWrite).toHaveBeenNthCalledWith(2, 'src/file2.ts', 'old2', 'utf8');
+    expect(toolContext.patchHistory).toHaveLength(1);
+    expect(toolContext.patchHistory[0].filePath).toBe('src/file1.ts');
+
+    fsMockWrite.mockRestore();
+    fsMockExists.mockRestore();
+  });
+
+  it('runBuildVerification executes correct detected commands', async () => {
+    const fsExistsMock = vi.spyOn(fs, 'existsSync');
+    const fsReadMock = vi.spyOn(fs, 'readFileSync');
+
+    // Mock existsSync to return package.json = true, tsconfig.json = true
+    fsExistsMock.mockImplementation((p: any) => {
+      const pathStr = p.toString();
+      if (pathStr.endsWith('package.json')) return true;
+      if (pathStr.endsWith('tsconfig.json')) return true;
+      return false;
+    });
+
+    fsReadMock.mockReturnValue(JSON.stringify({
+      scripts: {
+        build: 'tsc',
+      }
+    }));
+
+    mockExec.mockImplementationOnce((cmd, opts, cb) => {
+      cb(null, 'build success', '');
+    });
+
+    const { router: localRouter } = createMockRouter([]);
+    const orch = new Orchestrator(localRouter, messages, toolContext);
+
+    const verifyResult = await (orch as any).runBuildVerification();
+    expect(verifyResult.success).toBe(true);
+    expect(mockExec).toHaveBeenCalledWith('npx tsc --noEmit', expect.any(Object), expect.any(Function));
+
+    fsExistsMock.mockRestore();
+    fsReadMock.mockRestore();
+  });
+
+  it('runBuildVerification returns false and captures logs on compile failure', async () => {
+    const fsExistsMock = vi.spyOn(fs, 'existsSync');
+    const fsReadMock = vi.spyOn(fs, 'readFileSync');
+
+    fsExistsMock.mockImplementation((p: any) => {
+      const pathStr = p.toString();
+      if (pathStr.endsWith('package.json')) return true;
+      if (pathStr.endsWith('tsconfig.json')) return true;
+      return false;
+    });
+
+    fsReadMock.mockReturnValue(JSON.stringify({
+      scripts: {
+        build: 'tsc',
+      }
+    }));
+
+    mockExec.mockImplementationOnce((cmd, opts, cb) => {
+      cb(new Error('Compile Error'), 'stdout logs', 'stderr errors');
+    });
+
+    const { router: localRouter } = createMockRouter([]);
+    const orch = new Orchestrator(localRouter, messages, toolContext);
+
+    const verifyResult = await (orch as any).runBuildVerification();
+    expect(verifyResult.success).toBe(false);
+    expect(verifyResult.errorLogs).toContain('stdout logs');
+    expect(verifyResult.errorLogs).toContain('stderr errors');
+
+    fsExistsMock.mockRestore();
+    fsReadMock.mockRestore();
   });
 });
 

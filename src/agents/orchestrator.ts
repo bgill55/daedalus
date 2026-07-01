@@ -1026,6 +1026,7 @@ export class Orchestrator {
     const maxRetries = 2;
     let attempt = 0;
     let currentSummary = previous.summary;
+    let currentCustomContext = customContext;
 
     while (attempt < maxRetries) {
       if (this.toolContext.abortSignal.aborted) {
@@ -1034,7 +1035,7 @@ export class Orchestrator {
       attempt++;
       console.log(`\n[REPAIR] Attempt ${attempt}/${maxRetries} to repair task: ${task.goal}`);
 
-      const baseCtx = customContext || task.context;
+      const baseCtx = currentCustomContext || task.context;
       let repairHint = '';
       if (currentSummary && currentSummary.toLowerCase().includes('i will') && !currentSummary.includes('`write_file`') && !currentSummary.includes('`patch`') && !currentSummary.includes('`terminal`')) {
         repairHint = `\n\nCRITICAL: Your previous response described the work as text but did not actually call any tools. Do not describe WHAT you will do — directly EXECUTE the write_file or patch tool now. Your response must contain a tool call, not a plan or explanation.`;
@@ -1048,10 +1049,22 @@ export class Orchestrator {
         return { success: false, summary: 'Task aborted by user' };
       }
 
-      const verified = await this.verifyArtifacts(task.role, task.goal, result, historyStartIndex);
+      let verified = await this.verifyArtifacts(task.role, task.goal, result, historyStartIndex);
+      let repairCheckLogs = '';
+      if (verified && (task.role === 'coder' || task.role === 'debugger') && (this.toolContext.patchHistory?.length ?? 0) > historyStartIndex) {
+        const checkResult = await this.runBuildVerification();
+        if (!checkResult.success) {
+          verified = false;
+          repairCheckLogs = checkResult.errorLogs || 'Build check failed';
+        }
+      }
 
       if (verified && !this.isDeclaredError(result)) {
         return { success: true, summary: result };
+      }
+
+      if (repairCheckLogs) {
+        currentCustomContext = (customContext || task.context) + `\n\nAdditionally, the build/compilation check failed with error output:\n\`\`\`\n${repairCheckLogs}\n\`\`\``;
       }
       currentSummary = result;
     }
@@ -1347,6 +1360,9 @@ export class Orchestrator {
       task.error = partialWork
         ? `Task still too large after ${depth} splits — manual review needed`
         : 'Task too large and no work completed';
+      if (task.role === 'coder' || task.role === 'debugger') {
+        await this.rollbackTaskPatches(historyStartIndex);
+      }
       this.results.push({
         role: task.role,
         goal: task.goal,
@@ -1359,6 +1375,7 @@ export class Orchestrator {
     let verified = await this.verifyArtifacts(task.role, task.goal, result, historyStartIndex);
     let evidence = '';
     let placeholderSites: string[] = [];
+    let checkLogs = '';
 
     if (verified) {
       placeholderSites = await this.checkPlaceholders(historyStartIndex);
@@ -1379,11 +1396,22 @@ export class Orchestrator {
       }
     }
 
+    if (verified && (task.role === 'coder' || task.role === 'debugger') && (this.toolContext.patchHistory?.length ?? 0) > historyStartIndex) {
+      const checkResult = await this.runBuildVerification();
+      if (!checkResult.success) {
+        verified = false;
+        checkLogs = checkResult.errorLogs || 'Build check failed';
+      }
+    }
+
     if (!verified) {
       let repairCtx = task.context;
       if (placeholderSites.length > 0) {
         const siteList = placeholderSites.map(s => `  - ${s}`).join('\n');
         repairCtx += `\n\nPrevious attempt contained placeholders instead of real content:\n${siteList}\n\nYou MUST replace ALL placeholders with real content. Never output placeholder text like [Year], [Your Name], etc. Use actual values.`;
+      }
+      if (checkLogs) {
+        repairCtx += `\n\nPrevious attempt failed build/compilation verification. The check failed with the following error output:\n\`\`\`\n${checkLogs}\n\`\`\`\nPlease fix the build/compilation errors listed above.`;
       }
       const repaired = await this.attemptRepair(task, {
         role: task.role,
@@ -1419,6 +1447,11 @@ export class Orchestrator {
     task.status = success ? 'completed' : 'failed';
     if (!success) {
       task.error = resultForCheck.split('\n')[0] || result.split('\n')[0] || 'Unknown failure';
+
+      // Rollback patches made during this task to keep codebase clean
+      if (task.role === 'coder' || task.role === 'debugger') {
+        await this.rollbackTaskPatches(historyStartIndex);
+      }
 
       // Log failure as a lesson for self-improvement
       if (this.sessionManager) {
@@ -1641,6 +1674,71 @@ export class Orchestrator {
     }
 
     return output;
+  }
+
+  private async rollbackTaskPatches(historyStartIndex: number): Promise<void> {
+    const history = this.toolContext.patchHistory;
+    if (!history || history.length <= historyStartIndex) return;
+
+    console.log(pc.yellow(`\n[ROLLBACK] Task failed verification. Rolling back changes to preserve workspace health...`));
+
+    // Revert patches in reverse order
+    for (let i = history.length - 1; i >= historyStartIndex; i--) {
+      const patch = history[i];
+      try {
+        if (fs.existsSync(patch.filePath)) {
+          fs.writeFileSync(patch.filePath, patch.oldContent, 'utf8');
+          console.log(pc.gray(`  Reverted changes to ${path.relative(process.cwd(), patch.filePath)}`));
+        }
+      } catch (err: any) {
+        console.log(pc.red(`  Failed to revert changes to ${patch.filePath}: ${err.message}`));
+      }
+    }
+
+    // Truncate the patch history
+    history.length = historyStartIndex;
+  }
+
+  private async runBuildVerification(): Promise<{ success: boolean; errorLogs?: string }> {
+    const cwd = process.cwd();
+    let command = '';
+
+    // Auto-discover verification command
+    if (fs.existsSync(path.join(cwd, 'package.json'))) {
+      try {
+        const pkg = JSON.parse(fs.readFileSync(path.join(cwd, 'package.json'), 'utf8'));
+        if (pkg.scripts && pkg.scripts['daedalus-check']) {
+          command = 'npm run daedalus-check';
+        } else if (fs.existsSync(path.join(cwd, 'tsconfig.json'))) {
+          command = 'npx tsc --noEmit';
+        } else if (pkg.scripts && pkg.scripts.build) {
+          command = 'npm run build';
+        }
+      } catch { /* ignored */ }
+    } else if (fs.existsSync(path.join(cwd, 'Cargo.toml'))) {
+      command = 'cargo check';
+    } else if (fs.existsSync(path.join(cwd, 'go.mod'))) {
+      command = 'go build ./...';
+    }
+
+    if (!command) {
+      return { success: true };
+    }
+
+    console.log(pc.cyan(`\n[VERIFY] Running verification command: "${command}"...`));
+    const { exec } = await import('child_process');
+    return new Promise((resolve) => {
+      exec(command, { cwd, timeout: 30000 }, (error, stdout, stderr) => {
+        if (error) {
+          const logs = (stdout + '\n' + stderr).trim();
+          console.log(pc.red(`[VERIFY] Verification failed!`));
+          resolve({ success: false, errorLogs: logs });
+        } else {
+          console.log(pc.green(`[VERIFY] Verification passed.`));
+          resolve({ success: true });
+        }
+      });
+    });
   }
 }
 

@@ -75,3 +75,29 @@ o › /spawn --bg researcher "Find all usages of configDir in src/"
 
 *   **Task Management**: View active background tasks via `/tasks`, view detailed logs/results via `/task <id>`, and cancel tasks using `/task kill <id>`.
 *   **Prompt-Safe Notifications**: Notifications of completed background tasks are queued and printed right before your next REPL prompt redraw, ensuring your current active workspace is never interrupted.
+
+---
+
+## Loop Engineering: Draft-Verify-Repair & Rollbacks
+
+Daedalus incorporates Loop Engineering principles into the multi-agent orchestrator to emulate the iterative workflow of human developers. This consists of three core phases: **Drafting**, **Verification**, and **Self-Repair / Rollback**.
+
+### 1. Compile & Build Verification
+After a Coder or Debugger agent completes a draft of changes, the orchestrator automatically runs a project-level verification check:
+* **Auto-Discovery:** It scans the project root for compilation/test config files:
+  * TypeScript/JavaScript: Checks for `"daedalus-check"` script in `package.json`, falling back to `npx tsc --noEmit` if `tsconfig.json` exists, or `npm run build`.
+  * Rust: Checks for `Cargo.toml` and runs `cargo check`.
+  * Go: Checks for `go.mod` and runs `go build ./...`.
+* **Standard Verification:** The command is executed asynchronously. If it exits with an error code, the stdout/stderr error logs are captured.
+
+### 2. Self-Correction & Repair Loops
+If verification fails, the orchestrator triggers a repair loop:
+* The error output (e.g., TS compiler type mismatches, syntax errors, missing dependencies) is dynamically appended to the agent's prompt context.
+* The agent receives concrete error feedback (e.g., `"The build failed with this compiler warning: line 42..."`).
+* The agent makes a new repair draft and is verified again.
+
+### 3. Automated Workspace Rollback
+If the agent fails to resolve the errors after all repair attempts are exhausted, the orchestrator automatically rolls back the changes:
+* It reads the pre-patched content (`oldContent`) stored in the session's `patchHistory`.
+* Reverts all files modified during this task in reverse order.
+* Cleans up the workspace to ensure the codebase remains in a healthy, compiling state before prompting the user for intervention.
