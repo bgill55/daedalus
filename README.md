@@ -29,17 +29,6 @@ Daedalus connects to local LLM servers (LM Studio, Ollama, llama.cpp, vLLM) or r
 ║                                                                   ║
 ║  o  local-first · embedded router · multi-agent · not sentient o  ║
 ╚═══════════════════════════════════════════════════════════════════╝
-
-DAEDALUS  v1.23.0 · bgill55_dev
-
-┌─ router ──────────────────────────────────────────────────────────┐
-│ strategy  priority    models  2    config  ~/.daedalus/config.json│
-└───────────────────────────────────────────────────────────────────┘
-
-Type ? for commands  ·  Tab completes  ·  Be nice to your AI
-
-[OK] Router started. Health checks running every 30s.
-o › 
 ```
 
 <p align="center">
