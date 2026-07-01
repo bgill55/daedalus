@@ -1,3 +1,10 @@
+## [1.34.18](https://github.com/bgill55/daedalus/compare/v1.34.17...v1.34.18) (2026-07-01)
+
+
+### Bug Fixes
+
+* **tui:** allow scrolling with PageUp/PageDown while input textbox is focused ([833d69b](https://github.com/bgill55/daedalus/commit/833d69b9ece363198ab2802981df8d6e617acd60))
+
 ## [1.34.17](https://github.com/bgill55/daedalus/compare/v1.34.16...v1.34.17) (2026-07-01)
 
 
