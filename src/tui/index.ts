@@ -90,16 +90,6 @@ export function createTuiRepl(deps: ReplDeps): () => Promise<void> {
     mouse: true,
   });
 
-  // Prevent textbox from inserting tab spaces and messing up layout on tab focus switch
-  const originalListener = (inputField as any)._listener;
-  (inputField as any)._listener = function(ch: string, key: any) {
-    if (key && (key.name === 'tab' || key.name === 'S-tab')) {
-      return;
-    }
-    return originalListener.call(this, ch, key);
-  };
-
-  // Create Sidebar (Right Column)
   // Create Sidebar (Right Column)
   const sidebar = blessed.box({
     parent: screen,
@@ -117,6 +107,27 @@ export function createTuiRepl(deps: ReplDeps): () => Promise<void> {
   // Focus cycling navigation
   const focusables = [inputField, modelList, fileList];
   let focusIndex = 0;
+
+  // Sync focusIndex with Blessed focus events (e.g. if clicked with mouse)
+  inputField.on('focus', () => { focusIndex = 0; });
+  modelList.on('focus', () => { focusIndex = 1; });
+  fileList.on('focus', () => { focusIndex = 2; });
+
+  // Prevent textbox from inserting tab spaces and manually switch focus on Tab/S-Tab
+  const originalListener = (inputField as any)._listener;
+  (inputField as any)._listener = function(ch: string, key: any) {
+    if (key && (key.name === 'tab' || key.name === 'S-tab')) {
+      if (key.name === 'tab') {
+        focusIndex = (focusIndex + 1) % focusables.length;
+      } else {
+        focusIndex = (focusIndex - 1 + focusables.length) % focusables.length;
+      }
+      focusables[focusIndex].focus();
+      screen.render();
+      return;
+    }
+    return originalListener.call(this, ch, key);
+  };
 
   screen.key(['tab'], () => {
     focusIndex = (focusIndex + 1) % focusables.length;
