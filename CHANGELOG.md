@@ -1,3 +1,10 @@
+## [1.34.17](https://github.com/bgill55/daedalus/compare/v1.34.16...v1.34.17) (2026-07-01)
+
+
+### Bug Fixes
+
+* **tui:** handle Tab focus cycling when textbox is focused ([1974e1f](https://github.com/bgill55/daedalus/commit/1974e1ff2e0552f3ed66427908e618fd3cbb405a))
+
 ## [1.34.16](https://github.com/bgill55/daedalus/compare/v1.34.15...v1.34.16) (2026-06-30)
 
 
