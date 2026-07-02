@@ -1,3 +1,11 @@
+## [1.35.6](https://github.com/bgill55/daedalus/compare/v1.35.5...v1.35.6) (2026-07-02)
+
+
+### Bug Fixes
+
+* **orchestrator:** comprehensive stability overhaul — 18 bug fixes across plan validation, parser, verification, repair, and role config ([8c01c21](https://github.com/bgill55/daedalus/commit/8c01c21a41e6b39ee00765c338bb49c4129bd13e))
+* **orchestrator:** comprehensive stability overhaul — 24 bug fixes across plan validation, parser, verification, repair, and role config ([92ba0c2](https://github.com/bgill55/daedalus/commit/92ba0c2fe350a89ec621cae50c9c3e570e439099))
+
 ## [1.35.5](https://github.com/bgill55/daedalus/compare/v1.35.4...v1.35.5) (2026-07-02)
 
 
