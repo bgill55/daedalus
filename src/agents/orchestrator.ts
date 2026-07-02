@@ -771,12 +771,22 @@ export class Orchestrator {
 
   private static VAGUE_GOAL_RE = /\b(add the necessary|add the required|install the necessary|install the required|appropriate packages|suitable packages)\b/i;
 
+  private static isComplexGoal(goal: string): boolean {
+    const lines = goal.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    const hasBullets = lines.filter(l => /^[-*•\d+]/.test(l)).length >= 2;
+    const isLong = goal.length > 400;
+    return hasBullets || isLong;
+  }
+
   private static validateTasks(tasks: DelegationTask[], goal: string, projectRoot?: string): string | null {
     if (tasks.length === 0) return 'No tasks generated';
     const isSplit = goal.toLowerCase().includes('continue the remaining work');
     const coderTasks = tasks.filter(t => t.role === 'coder');
     if (!isSplit && coderTasks.length === 1 && Orchestrator.extractFilePaths(goal).length > 3) {
       return `Expected multiple coder tasks for goal with many file paths`;
+    }
+    if (!isSplit && tasks.length === 1 && Orchestrator.isComplexGoal(goal)) {
+      return `Expected multiple tasks (one per file/component) to delegate a complex goal, but the plan only has 1 task. Please break it down into at least 2-3 focused subtasks.`;
     }
     for (const t of tasks) {
       if (Orchestrator.VAGUE_GOAL_RE.test(t.goal)) {
@@ -1185,8 +1195,12 @@ export class Orchestrator {
     const paths: string[] = [];
     const re = /(?:\(|\[|\s|^)((?:[A-Za-z0-9_\-./\\]+[\\/])?[A-Za-z0-9_\-]+\.(?:tsx?|jsx?|vue|svelte|css|scss|json|md|csv|txt|yaml|yml|toml|py|rs|go|java|sh|env|html|xml|sql|tf|lock|dart))(?:[)\s,;.]|$)/g;
     let m: RegExpExecArray | null;
+    const excludedNames = new Set(['next.js', 'node.js', 'react.js', 'vue.js', 'nest.js', 'nuxt.js', 'express.js', 'alpine.js', 'svelte.js', 'deno.js', 'three.js', 'chart.js', 'socket.io']);
     while ((m = re.exec(text)) !== null) {
       const p = m[1].replace(/\\/g, '/');
+      if (excludedNames.has(p.toLowerCase())) {
+        continue;
+      }
       if (!p.startsWith('http') && !p.startsWith('node_modules') && p.length < 200) {
         paths.push(p);
       }
