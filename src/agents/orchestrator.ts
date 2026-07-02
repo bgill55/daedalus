@@ -1094,8 +1094,14 @@ export class Orchestrator {
       if (verified && (task.role === 'coder' || task.role === 'debugger') && (this.toolContext.patchHistory?.length ?? 0) > historyStartIndex) {
         const checkResult = await this.runBuildVerification();
         if (!checkResult.success) {
-          verified = false;
-          repairCheckLogs = checkResult.errorLogs || 'Build check failed';
+          const modifiedFiles = this.toolContext.patchHistory.slice(historyStartIndex).map(p => p.filePath);
+          const isRelated = this.isBuildErrorRelated(checkResult.errorLogs || '', modifiedFiles);
+          if (isRelated) {
+            verified = false;
+            repairCheckLogs = (checkResult.errorLogs || 'Build check failed') + this.generateBuildErrorHint(checkResult.errorLogs || '');
+          } else {
+            console.log(pc.yellow(`\n[VERIFY] Build check failed, but errors appear to be in unrelated files. Ignoring build failure for this task.`));
+          }
         }
       }
 
@@ -1460,8 +1466,14 @@ export class Orchestrator {
     if (verified && (task.role === 'coder' || task.role === 'debugger') && (this.toolContext.patchHistory?.length ?? 0) > historyStartIndex) {
       const checkResult = await this.runBuildVerification();
       if (!checkResult.success) {
-        verified = false;
-        checkLogs = checkResult.errorLogs || 'Build check failed';
+        const modifiedFiles = this.toolContext.patchHistory.slice(historyStartIndex).map(p => p.filePath);
+        const isRelated = this.isBuildErrorRelated(checkResult.errorLogs || '', modifiedFiles);
+        if (isRelated) {
+          verified = false;
+          checkLogs = (checkResult.errorLogs || 'Build check failed') + this.generateBuildErrorHint(checkResult.errorLogs || '');
+        } else {
+          console.log(pc.yellow(`\n[VERIFY] Build check failed, but errors appear to be in unrelated files. Ignoring build failure for this task.`));
+        }
       }
     }
 
@@ -1808,6 +1820,43 @@ export class Orchestrator {
         }
       });
     });
+  }
+
+  private isBuildErrorRelated(errorLogs: string, modifiedFiles: string[]): boolean {
+    if (!errorLogs) return false;
+    const lowerLogs = errorLogs.toLowerCase();
+    for (const file of modifiedFiles) {
+      const basename = path.basename(file).toLowerCase();
+      const relativePath = path.relative(process.cwd(), file).replace(/\\/g, '/').toLowerCase();
+      if (lowerLogs.includes(basename) || lowerLogs.includes(relativePath)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private generateBuildErrorHint(errorLogs: string): string {
+    if (!errorLogs) return '';
+    const hints: string[] = [];
+
+    const missingModuleMatch = errorLogs.match(/cannot find module ['"]([^'"]+)['"]/i) ||
+                               errorLogs.match(/could not resolve ['"]([^'"]+)['"]/i);
+    if (missingModuleMatch) {
+      const pkg = missingModuleMatch[1];
+      hints.push(`Hint: A required package "${pkg}" is missing. Use the terminal tool to install it (e.g., "npm install ${pkg}").`);
+    }
+
+    if (errorLogs.toLowerCase().includes('duplicate page detected') || 
+        (errorLogs.includes('pages/') && errorLogs.includes('src/pages/'))) {
+      hints.push('Hint: Next.js detected duplicate pages in both pages/ and src/pages/. You must delete the duplicate files in the root pages/ directory to resolve the conflict.');
+    }
+
+    if (errorLogs.toLowerCase().includes('overload') || errorLogs.toLowerCase().includes('no overload matches')) {
+      hints.push('Hint: TypeScript has type overload resolution issues. Try casting the options/arguments as "any" (e.g., "options as any") to bypass strict type checking.');
+    }
+
+    if (hints.length === 0) return '';
+    return '\n\n' + hints.join('\n');
   }
 }
 

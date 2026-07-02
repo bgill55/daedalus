@@ -585,5 +585,40 @@ describe('Orchestrator Loop Engineering features', () => {
     fsExistsMock.mockRestore();
     fsReadMock.mockRestore();
   });
+
+  describe('build check filtering and error hints', () => {
+    it('isBuildErrorRelated matches related errors correctly', () => {
+      const { router: localRouter } = createMockRouter([]);
+      const orch = new Orchestrator(localRouter, messages, toolContext);
+      
+      const modifiedFiles = [
+        'D:/projects/my-app/src/pages/api/download.ts',
+        'D:/projects/my-app/src/utils/helpers.ts'
+      ];
+      
+      expect((orch as any).isBuildErrorRelated('Error in download.ts: Cannot find module', modifiedFiles)).toBe(true);
+      expect((orch as any).isBuildErrorRelated('Error: Cannot find module in src/pages/api/download.ts', modifiedFiles)).toBe(true);
+      expect((orch as any).isBuildErrorRelated('error in HELPERS.ts: strict mode', modifiedFiles)).toBe(true);
+      expect((orch as any).isBuildErrorRelated('Error in unrelated.ts: syntax error', modifiedFiles)).toBe(false);
+    });
+
+    it('generateBuildErrorHint produces correct hints', () => {
+      const { router: localRouter } = createMockRouter([]);
+      const orch = new Orchestrator(localRouter, messages, toolContext);
+      
+      const hint1 = (orch as any).generateBuildErrorHint("Error: Cannot find module 'googleapis' or its types");
+      expect(hint1).toContain('googleapis');
+      expect(hint1).toContain('npm install googleapis');
+      
+      const hint2 = (orch as any).generateBuildErrorHint("Duplicate page detected: pages/stats.tsx and src/pages/stats.tsx");
+      expect(hint2).toContain('duplicate files in the root pages/ directory');
+      
+      const hint3 = (orch as any).generateBuildErrorHint("No overload matches this call.");
+      expect(hint3).toContain('options as any');
+      
+      const hint4 = (orch as any).generateBuildErrorHint("Some generic syntax error at line 5");
+      expect(hint4).toBe('');
+    });
+  });
 });
 
