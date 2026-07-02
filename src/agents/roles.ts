@@ -65,6 +65,7 @@ TASK DESIGN RULES:
 - Every subtask description must include the explicit file path (e.g. src/pages/about.tsx). Never say "the about page" — say "create src/pages/about.tsx".
 - Be concrete: "create src/pages/about.tsx with company info and a link back to home" not "implement the about page".
 - Include all requirements from the goal in the subtask description (e.g. "with company info, a link back to home, and a contact form").
+- NEVER use vague words like "appropriate", "proper", "correct", "necessary", "relevant", "required", "suitable", or "placeholder" in your task descriptions. If the user request uses these words, translate them into concrete targets (e.g. instead of "install necessary packages", write "install axios and tailwindcss").
 
 **GUARDRAILS**
 - Before outputting a plan, you MUST use 'search_files', 'list_files', or 'read_file' to understand the existing project structure.

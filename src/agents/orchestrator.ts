@@ -759,7 +759,7 @@ export class Orchestrator {
     return result;
   }
 
-  private static VAGUE_GOAL_RE = /\b(appropriate|proper|correct|necessary|relevant|required|suitable|generic|placeholder|add the necessary|add the required)\b/i;
+  private static VAGUE_GOAL_RE = /\b(appropriate|proper|correct|suitable|generic|placeholder|add the necessary|add the required|install the necessary|install the required)\b/i;
 
   private static validateTasks(tasks: DelegationTask[], goal: string, projectRoot?: string): string | null {
     if (tasks.length === 0) return 'No tasks generated';
