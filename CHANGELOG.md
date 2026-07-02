@@ -1,3 +1,11 @@
+## [1.35.9](https://github.com/bgill55/daedalus/compare/v1.35.8...v1.35.9) (2026-07-02)
+
+
+### Bug Fixes
+
+* **orchestrator:** filter build errors by modified files and add error hints ([8b3e91d](https://github.com/bgill55/daedalus/commit/8b3e91d808a4cdcc710a4ac571ea715cbc047ce4))
+* **orchestrator:** resolve TS2532 compiler error on patchHistory access ([88183a4](https://github.com/bgill55/daedalus/commit/88183a4aab945e373d3d7a833a3d89c5c8162246))
+
 ## [1.35.8](https://github.com/bgill55/daedalus/compare/v1.35.7...v1.35.8) (2026-07-02)
 
 
