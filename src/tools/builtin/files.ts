@@ -303,8 +303,11 @@ function checkCircuitBreaker(targetPath: string, context: ToolContext): string |
   return null;
 }
 
-function recordPatchSuccess(targetPath: string, context: ToolContext): void {
+function recordWriteSuccess(targetPath: string, context: ToolContext): void {
   context.patchFailureStreak?.set(targetPath, 0);
+  if (context.sessionReadCache && fs.existsSync(targetPath)) {
+    context.sessionReadCache.set(targetPath, fs.statSync(targetPath).mtimeMs);
+  }
 }
 
 function recordPatchFailure(targetPath: string, context: ToolContext): void {
@@ -467,6 +470,9 @@ export async function readFile(args: { path: string; offset?: number; limit?: nu
     if (context.sessionReadCache) {
       context.sessionReadCache.set(targetPath, fs.statSync(targetPath).mtimeMs);
     }
+    if (context.patchFailureStreak) {
+      context.patchFailureStreak.set(targetPath, 0);
+    }
 
     let output = '';
     for (let i = 0; i < selected.length; i++) {
@@ -546,6 +552,8 @@ export async function writeFile(args: { path: string; content: string }, context
     const notices: string[] = [];
     if (postWarnings.length > 0) notices.push(`Warnings:\n${postWarnings.map(w => `  • ${w}`).join('\n')}`);
     if (testFailure) notices.push(testFailure);
+
+    recordWriteSuccess(targetPath, context);
 
     const suffix = notices.length > 0 ? `\n\n${notices.join('\n\n')}` : '';
     return { toolCallId: '', name: 'write_file', success: true, content: `Written ${args.content.length} chars to ${args.path}${suffix}` };
@@ -644,7 +652,7 @@ export async function patchFile(args: { path: string; old_string: string; new_st
       }
       const postWarningsA = buildPostWriteWarnings(targetPath, context.projectRoot);
       const testFailureA = await runColocatedTests(targetPath, context.projectRoot);
-      recordPatchSuccess(targetPath, context);
+      recordWriteSuccess(targetPath, context);
       const noticesA: string[] = [];
       if (postWarningsA.length > 0) noticesA.push(`Warnings:\n${postWarningsA.map(w => `  • ${w}`).join('\n')}`);
       if (testFailureA) noticesA.push(testFailureA);
@@ -701,7 +709,7 @@ export async function patchFile(args: { path: string; old_string: string; new_st
 
     const postWarningsB = buildPostWriteWarnings(targetPath, context.projectRoot);
     const testFailureB = await runColocatedTests(targetPath, context.projectRoot);
-    recordPatchSuccess(targetPath, context);
+    recordWriteSuccess(targetPath, context);
     const noticesB: string[] = [];
     if (postWarningsB.length > 0) noticesB.push(`Warnings:\n${postWarningsB.map(w => `  • ${w}`).join('\n')}`);
     if (testFailureB) noticesB.push(testFailureB);

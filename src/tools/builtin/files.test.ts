@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import { patchFile, writeFile, listFiles, searchFiles } from './files.js';
+import { patchFile, writeFile, listFiles, searchFiles, readFile } from './files.js';
 import type { ToolContext } from '../../types.js';
 
 function makeTmpDir(): string {
@@ -209,6 +209,24 @@ describe('patchFile — write-without-read guardrail', () => {
 
     expect(result.success).toBe(true);
   });
+
+  it('updates cache after successful write to allow consecutive edits without stale read', async () => {
+    const file = path.join(tmpDir, 'consecutive.js');
+    fs.writeFileSync(file, 'const x = 1;\n');
+    const ctx = makeContextWithRead(tmpDir, [file]);
+
+    const r1 = await patchFile(
+      { path: file, old_string: 'const x = 1;', new_string: 'const x = 2;' },
+      ctx,
+    );
+    expect(r1.success).toBe(true);
+
+    const r2 = await patchFile(
+      { path: file, old_string: 'const x = 2;', new_string: 'const x = 3;' },
+      ctx,
+    );
+    expect(r2.success).toBe(true);
+  });
 });
 
 describe('patchFile — circuit breaker', () => {
@@ -241,6 +259,24 @@ describe('patchFile — circuit breaker', () => {
 
     const result = await patchFile({ path: file, old_string: 'MISSING_AGAIN', new_string: '' }, ctx);
     expect(result.error).not.toMatch(/CIRCUIT BREAKER/);
+  });
+
+  it('resets streak after calling readFile', async () => {
+    const file = path.join(tmpDir, 'cb_reset_read.js');
+    fs.writeFileSync(file, 'const x = 1;\n');
+    const ctx = makeContextWithRead(tmpDir, [file]);
+
+    await patchFile({ path: file, old_string: 'MISSING_1', new_string: '' }, ctx);
+    await patchFile({ path: file, old_string: 'MISSING_2', new_string: '' }, ctx);
+
+    const blocked = await patchFile({ path: file, old_string: 'const x = 1;', new_string: 'const x = 2;' }, ctx);
+    expect(blocked.success).toBe(false);
+    expect(blocked.error).toMatch(/CIRCUIT BREAKER/);
+
+    await readFile({ path: file }, ctx);
+
+    const ok = await patchFile({ path: file, old_string: 'const x = 1;', new_string: 'const x = 2;' }, ctx);
+    expect(ok.success).toBe(true);
   });
 });
 
