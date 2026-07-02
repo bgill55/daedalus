@@ -772,7 +772,7 @@ export class Orchestrator {
         return `Task "${t.goal.slice(0, 80)}" contains vague wording — be concrete`;
       }
       const paths = Orchestrator.extractFilePaths(t.goal);
-      if (paths.length === 0) {
+      if ((t.role === 'coder' || t.role === 'debugger') && paths.length === 0) {
         return `Task "${t.goal.slice(0, 80)}" has no file path — each task must target a specific file`;
       }
       if (projectRoot) {
