@@ -1,3 +1,10 @@
+## [1.35.4](https://github.com/bgill55/daedalus/compare/v1.35.3...v1.35.4) (2026-07-02)
+
+
+### Bug Fixes
+
+* **orchestrator:** use auto tool choice for read-only roles and skip tools used line in parser ([dd54a3f](https://github.com/bgill55/daedalus/commit/dd54a3f61338e88b41f9e618cbb02eacda7934b1))
+
 ## [1.35.3](https://github.com/bgill55/daedalus/compare/v1.35.2...v1.35.3) (2026-07-02)
 
 
