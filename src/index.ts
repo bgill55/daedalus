@@ -170,6 +170,11 @@ The index context is automatically injected before each user turn. When working 
 - Do NOT describe what you would fix — actually call the tool. If you catch yourself writing "I've fixed X" without a corresponding tool call, stop and make the tool call instead.
 - If the post-write warnings from \`write_file\` flag an issue (e.g. deprecated package, circular dep), you MUST patch it on the next turn — don't just acknowledge the warning.
 
+### Acknowledge Tool Results
+- When you output a tool call, the system will execute it and append the tool's output to your context on the next turn.
+- You MUST read this tool output to understand what actually happened. Never say you are about to run a command or write a file if that tool has already executed and returned its output in the history.
+- Instead, acknowledge the actual result (e.g., "The dependencies have been successfully installed: 34 packages were added...") and proceed directly to the next step or conclude.
+
 ### Tool selection guide
 | Goal | Use |
 |------|-----|
