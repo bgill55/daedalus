@@ -421,7 +421,7 @@ export class Orchestrator {
         task.error = undefined;
         this.printTaskList(tasks);
         this.results.pop();
-        await this.delegateTask(task, undefined, undefined, projectContext);
+        await this.delegateTask(task, tasks, originalGoal, projectContext);
         this.printTaskList(tasks);
         if ((task.status as any) !== 'failed') {
           return;
@@ -450,7 +450,7 @@ export class Orchestrator {
           task.error = undefined;
           this.printTaskList(tasks);
           this.results.pop();
-          await this.delegateTask(task, undefined, undefined, projectContext);
+          await this.delegateTask(task, tasks, originalGoal, projectContext);
           this.printTaskList(tasks);
           if ((task.status as any) !== 'failed') {
             resolved = true;
@@ -463,7 +463,7 @@ export class Orchestrator {
             task.error = undefined;
             this.printTaskList(tasks);
             this.results.pop();
-            await this.delegateTask(task, undefined, undefined, projectContext);
+            await this.delegateTask(task, tasks, originalGoal, projectContext);
             this.printTaskList(tasks);
             if ((task.status as any) !== 'failed') {
               resolved = true;
@@ -763,7 +763,8 @@ export class Orchestrator {
 
   private static validateTasks(tasks: DelegationTask[], goal: string, projectRoot?: string): string | null {
     if (tasks.length === 0) return 'No tasks generated';
-    if (tasks.length === 1 && Orchestrator.extractFilePaths(goal).length > 1) {
+    const isSplit = goal.toLowerCase().includes('continue the remaining work');
+    if (!isSplit && tasks.length === 1 && Orchestrator.extractFilePaths(goal).length > 1) {
       return `Expected multiple tasks (one per file) but got only 1 task for goal with multiple file paths: ${goal}`;
     }
     for (const t of tasks) {
