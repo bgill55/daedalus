@@ -1,3 +1,10 @@
+## [1.36.1](https://github.com/bgill55/daedalus/compare/v1.36.0...v1.36.1) (2026-07-02)
+
+
+### Bug Fixes
+
+* **cli:** prevent stale read on consecutive writes and reset circuit breaker on read_file ([e5341d0](https://github.com/bgill55/daedalus/commit/e5341d00048387657317a5492179ca3965c28dcb))
+
 # [1.36.0](https://github.com/bgill55/daedalus/compare/v1.35.9...v1.36.0) (2026-07-02)
 
 
