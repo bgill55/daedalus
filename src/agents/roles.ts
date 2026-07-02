@@ -140,7 +140,7 @@ DO NOT fix issues yourself. Report them.`,
     allowedTools: ['read_file', 'search_files', 'list_files', 'terminal', 'git_diff', 'git_status', 'todo', 'find_symbol', 'get_definition', 'get_references'],
     canDelegate: false,
     temperature: 0.1,
-    maxTurns: 5,
+    maxTurns: 6,
   },
 
   debugger: {
@@ -199,7 +199,7 @@ OUTPUT: Concise summaries with source links. No one wants to read your life stor
     allowedTools: ['web_search', 'fetch_url', 'read_file', 'search_files', 'list_files', 'todo'],
     canDelegate: false,
     temperature: 0.3,
-    maxTurns: 5,
+    maxTurns: 8,
   },
 };
 

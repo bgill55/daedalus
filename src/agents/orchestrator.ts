@@ -1600,14 +1600,18 @@ export class Orchestrator {
       const agentSpinner = new DaedalusSpinner({ text: `${role.name} running (turn ${turns + 1})`, color: (s) => pc.cyan(s) });
       agentSpinner.start();
       let completion;
+      const isLastTurn = turns === maxTurns - 1;
+      const currentTools = isLastTurn ? undefined : (tools.length > 0 ? tools : undefined);
+      const currentToolChoice = isLastTurn ? undefined : ((role.name === 'coder' || role.name === 'debugger') && turns === 0 ? 'required' : 'auto');
+
       try {
         completion = await this.retryApiCall(
           () => this.router.chat.completions.create({
             model: 'auto',
             messages,
             temperature: role.temperature ?? 0.1,
-            tools,
-            tool_choice: (role.name === 'coder' || role.name === 'debugger') && turns === 0 ? 'required' : 'auto',
+            tools: currentTools,
+            tool_choice: currentToolChoice,
           }),
           `${role.name} API call`
         );
