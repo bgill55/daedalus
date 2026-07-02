@@ -1,3 +1,10 @@
+## [1.35.1](https://github.com/bgill55/daedalus/compare/v1.35.0...v1.35.1) (2026-07-02)
+
+
+### Bug Fixes
+
+* **prompts:** instruct agents to acknowledge tool results in history ([90c90e1](https://github.com/bgill55/daedalus/commit/90c90e1022ebf04c7e5ac853b37fabe01d65a73c))
+
 # [1.35.0](https://github.com/bgill55/daedalus/compare/v1.34.18...v1.35.0) (2026-07-01)
 
 
