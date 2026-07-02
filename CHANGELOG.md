@@ -1,3 +1,10 @@
+# [1.36.0](https://github.com/bgill55/daedalus/compare/v1.35.9...v1.36.0) (2026-07-02)
+
+
+### Features
+
+* **cli:** add auto-approve flags and prevent tool-calling loops ([399c30b](https://github.com/bgill55/daedalus/commit/399c30b3a77b346592abdacbe1dc3e51ed07fc86))
+
 ## [1.35.9](https://github.com/bgill55/daedalus/compare/v1.35.8...v1.35.9) (2026-07-02)
 
 
