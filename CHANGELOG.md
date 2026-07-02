@@ -1,3 +1,10 @@
+## [1.35.7](https://github.com/bgill55/daedalus/compare/v1.35.6...v1.35.7) (2026-07-02)
+
+
+### Bug Fixes
+
+* **orchestrator:** filter out framework names from file path matching and block single-task collapsed plans for complex goals ([6bb0212](https://github.com/bgill55/daedalus/commit/6bb02127a01dc4fed5946058b45c949f1456d4bf))
+
 ## [1.35.6](https://github.com/bgill55/daedalus/compare/v1.35.5...v1.35.6) (2026-07-02)
 
 
