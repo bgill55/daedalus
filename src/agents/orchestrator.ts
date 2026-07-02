@@ -1094,7 +1094,7 @@ export class Orchestrator {
       if (verified && (task.role === 'coder' || task.role === 'debugger') && (this.toolContext.patchHistory?.length ?? 0) > historyStartIndex) {
         const checkResult = await this.runBuildVerification();
         if (!checkResult.success) {
-          const modifiedFiles = this.toolContext.patchHistory.slice(historyStartIndex).map(p => p.filePath);
+          const modifiedFiles = this.toolContext.patchHistory!.slice(historyStartIndex).map(p => p.filePath);
           const isRelated = this.isBuildErrorRelated(checkResult.errorLogs || '', modifiedFiles);
           if (isRelated) {
             verified = false;
@@ -1466,7 +1466,7 @@ export class Orchestrator {
     if (verified && (task.role === 'coder' || task.role === 'debugger') && (this.toolContext.patchHistory?.length ?? 0) > historyStartIndex) {
       const checkResult = await this.runBuildVerification();
       if (!checkResult.success) {
-        const modifiedFiles = this.toolContext.patchHistory.slice(historyStartIndex).map(p => p.filePath);
+        const modifiedFiles = this.toolContext.patchHistory!.slice(historyStartIndex).map(p => p.filePath);
         const isRelated = this.isBuildErrorRelated(checkResult.errorLogs || '', modifiedFiles);
         if (isRelated) {
           verified = false;
