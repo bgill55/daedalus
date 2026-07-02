@@ -1,3 +1,10 @@
+## [1.35.2](https://github.com/bgill55/daedalus/compare/v1.35.1...v1.35.2) (2026-07-02)
+
+
+### Bug Fixes
+
+* **planner:** refine vague word regex and instruct planner to resolve them ([e2ae045](https://github.com/bgill55/daedalus/commit/e2ae04573d30511c3ec2e3218bbed87eab07ab6a))
+
 ## [1.35.1](https://github.com/bgill55/daedalus/compare/v1.35.0...v1.35.1) (2026-07-02)
 
 
