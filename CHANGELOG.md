@@ -1,3 +1,10 @@
+## [1.35.3](https://github.com/bgill55/daedalus/compare/v1.35.2...v1.35.3) (2026-07-02)
+
+
+### Bug Fixes
+
+* **orchestrator:** pass tasks and originalGoal to retried task delegations and fix split validation check ([cb96492](https://github.com/bgill55/daedalus/commit/cb96492c9a289a160d0a88c36f8adad3480ee517))
+
 ## [1.35.2](https://github.com/bgill55/daedalus/compare/v1.35.1...v1.35.2) (2026-07-02)
 
 
