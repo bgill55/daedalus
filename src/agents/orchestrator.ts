@@ -952,9 +952,10 @@ export class Orchestrator {
     if (!this.requiresRealArtifacts(role, goal)) return true;
     if (this.isDeclaredError(result)) return false;
 
-    // Terminal-only tasks (install, compile, build, run) produce no patchHistory entries — accept them
-    const isTerminalOnlyGoal = /\b(install|run|execute|compile|build)\b/i.test(goal)
-      && !/\b(create|write|generate|add|make|implement)\b/i.test(goal);
+    // Terminal-only tasks (npm install, tsc, npx commands) produce no patchHistory entries — accept them
+    // Only apply when the goal is a bare process invocation, not a creative task like "build web app"
+    const isTerminalOnlyGoal = /^\s*(run|install|execute|compile)\b/i.test(goal)
+      && !/\b(create|write|generate|add|make|implement|build|setup|configure)\b/i.test(goal);
     if (isTerminalOnlyGoal) return true;
 
     if (!this.toolContext.patchHistory || this.toolContext.patchHistory.length <= historyStartIndex) {

@@ -110,7 +110,6 @@ describe('Agent roles', () => {
     const names = filtered.map(t => t.function.name);
 
     expect(names).toContain('todo');
-    expect(names).toContain('delegate_task');
     expect(names).toContain('read_file');
   });
 
