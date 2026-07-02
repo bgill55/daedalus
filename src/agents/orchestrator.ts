@@ -847,6 +847,7 @@ export class Orchestrator {
 
     // Primary: explicit "delegate to" / role-prefixed lines
     for (const line of lines) {
+      if (/^\s*tools\s*used\b/i.test(line)) continue;
       const roleMatch = line.match(/^\s*(?:-|\*|\d+\.?)?\s*(?:delegate to|assign to|have|assign|role|agent:)?\s*(planner|coder|reviewer|debugger|researcher)\b/i);
       if (roleMatch) {
         if (currentRole && currentGoal) {
@@ -1543,7 +1544,7 @@ export class Orchestrator {
             messages,
             temperature: role.temperature ?? 0.1,
             tools,
-            tool_choice: role.name === 'planner' ? 'auto' : 'required',
+            tool_choice: (role.name === 'coder' || role.name === 'debugger') ? 'required' : 'auto',
           }),
           `${role.name} API call`
         );
