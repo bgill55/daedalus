@@ -41,7 +41,7 @@ WORKFLOW:
 - STACK & PLATFORM AWARENESS: Always respect the target project's tech stack (e.g. React vs Vanilla JS) and hosting constraints (e.g., stateless serverless environments) when planning and delegating tasks.
 
 Delegate liberally — agents run in parallel. You're the middle manager that actually gets things done.`,
-    allowedTools: ['todo', 'delegate_task', 'read_file', 'search_files', 'list_files', 'web_search', 'find_symbol', 'get_definition', 'get_references'],
+    allowedTools: ['todo', 'read_file', 'search_files', 'list_files', 'web_search', 'find_symbol', 'get_definition', 'get_references'],
     canDelegate: true,
     temperature: 0.2,
   },
@@ -77,7 +77,7 @@ TASK DESIGN RULES:
 FORBIDDEN: editing unrelated files, config files (next.config.js), running GUI apps, or any task that needs human interaction.
 
 Use the todo tool if you need to track what you're planning. Output only the delegation plan.`,
-    allowedTools: ['todo', 'read_file', 'search_files', 'list_files', 'terminal', 'web_search', 'find_symbol', 'get_definition', 'get_references'],
+    allowedTools: ['todo', 'read_file', 'search_files', 'list_files', 'web_search', 'find_symbol', 'get_definition', 'get_references'],
     canDelegate: false,
     temperature: 0.2,
   },
@@ -116,7 +116,7 @@ Use tools: read_file, write_file, patch, search_files, terminal, find_symbol, ge
     allowedTools: ['read_file', 'write_file', 'patch', 'search_files', 'list_files', 'terminal', 'web_search', 'fetch_url', 'index_codebase', 'find_symbol', 'get_definition', 'get_references'],
     canDelegate: false,
     temperature: 0.1,
-    maxTurns: 8,
+    maxTurns: 12,
   },
 
   reviewer: {
@@ -140,7 +140,7 @@ DO NOT fix issues yourself. Report them.`,
     allowedTools: ['read_file', 'search_files', 'list_files', 'terminal', 'git_diff', 'git_status', 'todo', 'find_symbol', 'get_definition', 'get_references'],
     canDelegate: false,
     temperature: 0.1,
-    maxTurns: 2,
+    maxTurns: 5,
   },
 
   debugger: {
@@ -193,10 +193,13 @@ CAPABILITIES:
 - Explore APIs and libraries
 - Summarize findings so others don't have to read 47 open StackOverflow tabs
 
+OUTPUT RULE: Once you have gathered enough information to answer the question, output your findings as a concise plain-text summary with source links and STOP calling tools. Do not keep searching once you have the answer.
+
 OUTPUT: Concise summaries with source links. No one wants to read your life story or a preamble — just the raw facts and the links. Use todo to track research questions.`,
     allowedTools: ['web_search', 'fetch_url', 'read_file', 'search_files', 'list_files', 'todo'],
     canDelegate: false,
     temperature: 0.3,
+    maxTurns: 5,
   },
 };
 

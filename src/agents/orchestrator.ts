@@ -44,8 +44,8 @@ export class Orchestrator {
   private toolContext: ToolContext;
   private sessionManager?: SessionManager;
   private results: AgentResult[] = [];
-  private readonly MAX_INITIAL_TASKS = 4;
-  private readonly MAX_TOTAL_TASKS = 10;
+  private readonly MAX_INITIAL_TASKS = 8;
+  private readonly MAX_TOTAL_TASKS = 20;
   private readonly REPLAN_INTERVAL = 2;
 
   constructor(router: LocalRouter, messages: ChatMessage[], toolContext: ToolContext, sessionManager?: SessionManager) {
@@ -127,10 +127,14 @@ export class Orchestrator {
       if (tasks.length > this.MAX_INITIAL_TASKS) {
         console.log(pc.yellow(`\nPlan has ${tasks.length} steps (max ${this.MAX_INITIAL_TASKS}). Asking planner to simplify...`));
         plan = await this.createPlan(
-          `${goal}\n\nYour previous plan had ${tasks.length} steps which is too many. Create a simpler plan with at most ${this.MAX_INITIAL_TASKS} focused steps. Merge related steps together. Each step must produce real output.`,
-          projectContext
+          goal,
+          projectContext,
+          `Simplify to at most ${this.MAX_INITIAL_TASKS} focused steps. Merge related steps. Each step must produce real output.`
         );
         tasks = Orchestrator.filterValidTasks(this.parseDelegationTasks(plan, goal));
+        if (tasks.length > this.MAX_INITIAL_TASKS) {
+          tasks = tasks.slice(0, this.MAX_INITIAL_TASKS);
+        }
       } else {
         tasks = Orchestrator.filterValidTasks(tasks);
       }
@@ -197,7 +201,7 @@ export class Orchestrator {
     return this.synthesize(goal);
   }
 
-  private async createPlan(goal: string, projectContext?: string): Promise<string> {
+  private async createPlan(goal: string, projectContext?: string, simplifyHint?: string): Promise<string> {
     const plannerRole = getAgentRole('planner');
     const tools = filterToolsForRole(BUILTIN_TOOLS, 'planner');
 
@@ -212,8 +216,9 @@ export class Orchestrator {
     while (attempts < maxAttempts) {
       attempts++;
       const retryHint = lastValidationError ? `\n\nPREVIOUS PLAN REJECTED: ${lastValidationError}\nFix the issues and output a corrected plan.` : '';
+      const simplifyBlock = simplifyHint ? `\n\n${simplifyHint}` : '';
       const messages: ChatMessage[] = [
-        { role: 'system', content: systemPrompt + (attempts > 1 ? `\n\nIMPORTANT: You MUST create a valid plan. Each subtask needs an explicit file path and concrete wording.${retryHint}` : '') },
+        { role: 'system', content: systemPrompt + (attempts > 1 ? `\n\nIMPORTANT: You MUST create a valid plan. Each subtask needs an explicit file path and concrete wording.${retryHint}` : '') + simplifyBlock },
         { role: 'user', content: `Create a step-by-step plan with one subtask per file for: ${goal}\n\nProject context:\n${projectContext || '(none discovered)'}${Orchestrator.getFrameworkGuidance(projectContext)}\n\n${this.toolContext.activeFiles.size > 0 ? 'Files in context: ' + Array.from(this.toolContext.activeFiles.values()).join(', ') : ''}\n\nRemember: one subtask per file, include the exact file path in each subtask, order by dependencies.` },
       ];
 
@@ -270,15 +275,15 @@ export class Orchestrator {
           finalizeSpinner.stop();
         }
         const content = (followUp.choices[0].message).content || '';
-        if (content && REFUSAL_RE.test(content)) {
-          continue;
-        }
+        const isRefusal = content.length < 300 && REFUSAL_RE.test(content) && !content.includes('delegate to');
+        if (isRefusal) continue;
+        if (!content) continue;
         planText = content;
       } else {
         const content = assistantMessage.content || '';
-        if (content && REFUSAL_RE.test(content)) {
-          continue;
-        }
+        const isRefusal = content.length < 300 && REFUSAL_RE.test(content) && !content.includes('delegate to');
+        if (isRefusal) continue;
+        if (!content) continue;
         planText = content;
       }
 
@@ -293,7 +298,12 @@ export class Orchestrator {
     }
 
     console.log(pc.yellow(`\nUsing fallback plan after ${maxAttempts} failed re-planning attempts`));
-    return `- delegate to coder: ${goal}`;
+    const fallbackRole = /\b(verify|check|test|review|inspect|validate|confirm)\b/i.test(goal)
+      ? 'reviewer'
+      : /\b(research|investigate|find out|look up|search for)\b/i.test(goal)
+        ? 'researcher'
+        : 'coder';
+    return `- delegate to ${fallbackRole}: ${goal}`;
   }
 
   private formatGoal(goal: string, indentLength: number, width: number = 80): string {
@@ -759,13 +769,14 @@ export class Orchestrator {
     return result;
   }
 
-  private static VAGUE_GOAL_RE = /\b(appropriate|proper|correct|suitable|generic|placeholder|add the necessary|add the required|install the necessary|install the required)\b/i;
+  private static VAGUE_GOAL_RE = /\b(add the necessary|add the required|install the necessary|install the required|appropriate packages|suitable packages)\b/i;
 
   private static validateTasks(tasks: DelegationTask[], goal: string, projectRoot?: string): string | null {
     if (tasks.length === 0) return 'No tasks generated';
     const isSplit = goal.toLowerCase().includes('continue the remaining work');
-    if (!isSplit && tasks.length === 1 && Orchestrator.extractFilePaths(goal).length > 1) {
-      return `Expected multiple tasks (one per file) but got only 1 task for goal with multiple file paths: ${goal}`;
+    const coderTasks = tasks.filter(t => t.role === 'coder');
+    if (!isSplit && coderTasks.length === 1 && Orchestrator.extractFilePaths(goal).length > 3) {
+      return `Expected multiple coder tasks for goal with many file paths`;
     }
     for (const t of tasks) {
       if (Orchestrator.VAGUE_GOAL_RE.test(t.goal)) {
@@ -847,8 +858,10 @@ export class Orchestrator {
 
     // Primary: explicit "delegate to" / role-prefixed lines
     for (const line of lines) {
-      if (/^\s*tools\s*used\b/i.test(line)) continue;
-      const roleMatch = line.match(/^\s*(?:-|\*|\d+\.?)?\s*(?:delegate to|assign to|have|assign|role|agent:)?\s*(planner|coder|reviewer|debugger|researcher)\b/i);
+      const trimmedLine = line.trim();
+      if (/^\s*tools?\s*used\b/i.test(trimmedLine)) continue;
+      if (/^\(?tools?\s*used\b/i.test(trimmedLine)) continue;
+      const roleMatch = line.match(/^\s*(?:-|\*|\d+\.?)?\s*(?:delegate\s+to|assign\s+to|agent:)?\s*(planner|coder|reviewer|debugger|researcher)\s*:/i);
       if (roleMatch) {
         if (currentRole && currentGoal) {
           pushTask(currentRole, currentGoal, baseCtx, 0);
@@ -858,8 +871,12 @@ export class Orchestrator {
         let goalPart = line.substring(matchIndex + roleMatch[0].length);
         goalPart = goalPart.replace(/^[:\s\-]+/, '');
         currentGoal = goalPart.trim();
-      } else if (currentRole && line.trim()) {
-        currentGoal += ' ' + line.trim();
+      } else if (currentRole && trimmedLine) {
+        // Only merge continuation lines that look like task detail, not standalone commentary
+        const isCommentary = trimmedLine.length > 60 && /^[A-Z]/.test(trimmedLine) && !/^(and|or|with|using|that|which|to|for|in|on|at)\b/i.test(trimmedLine);
+        if (!isCommentary) {
+          currentGoal += ' ' + trimmedLine;
+        }
       }
     }
     
@@ -878,9 +895,12 @@ export class Orchestrator {
           if (body.length < 3) continue;
           const role = guessRole(body);
           pushTask(role, body, baseCtx, 0);
-        } else if (trimmed.length > 5) {
-          // Unformatted line — treat as a single coder task
-          pushTask('coder', trimmed, baseCtx, 0);
+        } else if (trimmed.length > 10) {
+          // Only accept unformatted lines that contain an action verb
+          const hasActionVerb = /\b(create|write|build|implement|update|add|fix|generate|install|setup|configure|refactor|move|delete|rename)\b/i.test(trimmed);
+          if (hasActionVerb) {
+            pushTask('coder', trimmed, baseCtx, 0);
+          }
         }
       }
     }
@@ -930,7 +950,12 @@ export class Orchestrator {
 
   private async verifyArtifacts(role: string, goal: string, result: string, historyStartIndex: number = 0): Promise<boolean> {
     if (!this.requiresRealArtifacts(role, goal)) return true;
-    if (this.isDeclaredError(result)) return true;
+    if (this.isDeclaredError(result)) return false;
+
+    // Terminal-only tasks (install, compile, build, run) produce no patchHistory entries — accept them
+    const isTerminalOnlyGoal = /\b(install|run|execute|compile|build)\b/i.test(goal)
+      && !/\b(create|write|generate|add|make|implement)\b/i.test(goal);
+    if (isTerminalOnlyGoal) return true;
 
     if (!this.toolContext.patchHistory || this.toolContext.patchHistory.length <= historyStartIndex) {
       return false;
@@ -946,7 +971,7 @@ export class Orchestrator {
     }));
 
     const hasPatchedMentioned = normalizedHistory.some(h =>
-      paths.includes(h.normalizedPath) || paths.some(p => h.normalizedPath.endsWith(p) || p.endsWith(h.normalizedPath))
+      paths.includes(h.normalizedPath) || paths.some(p => h.normalizedPath.endsWith('/' + p))
     );
     if (hasPatchedMentioned) return true;
 
@@ -1038,13 +1063,15 @@ export class Orchestrator {
       console.log(`\n[REPAIR] Attempt ${attempt}/${maxRetries} to repair task: ${task.goal}`);
 
       const baseCtx = currentCustomContext || task.context;
+      const historyStartIndex = this.toolContext.patchHistory?.length || 0;
       let repairHint = '';
-      if (currentSummary && currentSummary.toLowerCase().includes('i will') && !currentSummary.includes('`write_file`') && !currentSummary.includes('`patch`') && !currentSummary.includes('`terminal`')) {
+      const noRealWork = (this.toolContext.patchHistory?.length ?? 0) <= historyStartIndex;
+      if (noRealWork) {
+        repairHint = `\n\nCRITICAL: Your previous response did not produce any file writes. You MUST call write_file or patch — do not describe what you did, just do it now. Call the tool immediately.`;
+      } else if (currentSummary && currentSummary.toLowerCase().includes('i will') && !currentSummary.includes('`write_file`') && !currentSummary.includes('`patch`') && !currentSummary.includes('`terminal`')) {
         repairHint = `\n\nCRITICAL: Your previous response described the work as text but did not actually call any tools. Do not describe WHAT you will do — directly EXECUTE the write_file or patch tool now. Your response must contain a tool call, not a plan or explanation.`;
       }
       const repairContext = `${baseCtx}\n\nPrevious attempt failed verification. Output was:\n${currentSummary}\n\nPlease retry and ensure you actually write the required files/artifacts.${repairHint}`;
-
-      const historyStartIndex = this.toolContext.patchHistory?.length || 0;
       const result = await this.runAgent(role, task.goal, repairContext, tools);
 
       if (this.toolContext.abortSignal.aborted) {
@@ -1082,10 +1109,14 @@ export class Orchestrator {
     return claimed.some(p => historyPaths.has(p.replace(/\\/g, '/')));
   }
 
-  private verifyArtifactsThoroughly(role: string, goal: string, result: string): boolean {
+  private verifyArtifactsThoroughly(role: string, goal: string, result: string, historyStartIndex: number = 0): boolean {
     if (!this.requiresRealArtifacts(role, goal)) return true;
     if (this.hasRealWrites(result)) return true;
-    return !result.toLowerCase().includes('implemented the full');
+    // Fallback: accept if patchHistory has new entries since task start (agent wrote files but result text didn't mention paths)
+    const history = this.toolContext.patchHistory || [];
+    if (history.length > historyStartIndex) return true;
+    // No writes detected anywhere — agent only talked, did not act
+    return false;
   }
 
   private buildCleanSummary(task: DelegationTask, result: string, historyStartIndex: number): string | null {
@@ -1151,7 +1182,7 @@ export class Orchestrator {
   private static extractFilePaths(text: string): string[] {
     if (!text) return [];
     const paths: string[] = [];
-    const re = /(?:\(|\[|\s|^)((?:[A-Za-z0-9_\-./\\]+[\\/])?[A-Za-z0-9_\-]+\.(?:tsx?|jsx?|vue|svelte|css|scss|json|md|csv|txt|yaml|yml|toml|py|rs|go|java|md))(?:[)\s,;]|$)/g;
+    const re = /(?:\(|\[|\s|^)((?:[A-Za-z0-9_\-./\\]+[\\/])?[A-Za-z0-9_\-]+\.(?:tsx?|jsx?|vue|svelte|css|scss|json|md|csv|txt|yaml|yml|toml|py|rs|go|java|sh|env|html|xml|sql|tf|lock|dart))(?:[)\s,;.]|$)/g;
     let m: RegExpExecArray | null;
     while ((m = re.exec(text)) !== null) {
       const p = m[1].replace(/\\/g, '/');
@@ -1310,6 +1341,17 @@ export class Orchestrator {
     }
 
     const MAX_TURNS_SIGNAL = 'Agent reached max turns';
+    const PATCH_ABORT_PREFIX = 'Agent aborted: too many patch failures';
+    if (result.startsWith(PATCH_ABORT_PREFIX)) {
+      task.status = 'failed';
+      task.error = result.split('\n')[0];
+      if (task.role === 'coder' || task.role === 'debugger') {
+        await this.rollbackTaskPatches(historyStartIndex);
+      }
+      this.results.push({ role: task.role, goal: task.goal, summary: result, success: false });
+      console.log(`[${pc.red('FAILED')}] ${role.name}: ${task.error}`);
+      return;
+    }
     if (result === MAX_TURNS_SIGNAL) {
       const partialWork = (this.toolContext.patchHistory?.length ?? 0) > historyStartIndex;
       const depth = task.splitDepth ?? 0;
@@ -1330,15 +1372,17 @@ export class Orchestrator {
         const doneCtx = filesDone.length > 0 ? `\nPartially completed files: ${filesDone.join(', ')}` : '';
 
         const subPlan = await this.createPlan(
-          `Continue the remaining work for: ${task.goal}${doneCtx}\nThe previous agent only got partial work done before hitting the turn limit. Break this into smaller, focused steps.`
+          `Continue the remaining work for: ${task.goal}${doneCtx}\nThe previous agent only got partial work done before hitting the turn limit. Break this into smaller, focused steps.`,
+          projectContext
         );
         const subTasks = this.parseDelegationTasks(subPlan, goal || task.goal);
-        const doneInTasks = (tasks || []).filter(t => t.status === 'completed');
+        const currentIndex = (tasks || []).indexOf(task);
+        const doneBeforeSplit = (tasks || []).filter((t, idx) => t.status === 'completed' && idx < currentIndex);
         const deduped = subTasks.filter(st => {
-          if (doneInTasks.length === 0 || st.role !== 'coder') return true;
+          if (doneBeforeSplit.length === 0 || st.role !== 'coder') return true;
           const newPaths = Orchestrator.extractFilePaths(st.goal).map(p => p.toLowerCase());
           if (newPaths.length === 0) return true;
-          return !doneInTasks.some(d => {
+          return !doneBeforeSplit.some(d => {
             if (d.role !== 'coder') return false;
             const donePaths = Orchestrator.extractFilePaths(d.goal).map(p => p.toLowerCase());
             return donePaths.some(dp => newPaths.includes(dp));
@@ -1441,7 +1485,7 @@ export class Orchestrator {
     }
 
     const resultForCheck = result.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
-    const success = verified && !this.isDeclaredError(resultForCheck) && this.verifyArtifactsThoroughly(task.role, task.goal, resultForCheck);
+    const success = verified && !this.isDeclaredError(resultForCheck) && this.verifyArtifactsThoroughly(task.role, task.goal, resultForCheck, historyStartIndex);
     if (success) {
       const clean = this.buildCleanSummary(task, result, historyStartIndex);
       if (clean) result = clean;
@@ -1476,7 +1520,11 @@ export class Orchestrator {
       ...(evidence ? { evidence } : {}),
     });
 
-    console.log(`[OK] ${role.name} completed`);
+    if (success) {
+      console.log(`[${pc.green('OK')}] ${role.name} completed`);
+    } else {
+      console.log(`[${pc.red('FAILED')}] ${role.name}: ${task.error || 'verification failed'}`);
+    }
 
     // Post-task review if task touched files
     if (success && this.sessionManager && task.role !== 'reviewer') {
@@ -1544,7 +1592,7 @@ export class Orchestrator {
             messages,
             temperature: role.temperature ?? 0.1,
             tools,
-            tool_choice: (role.name === 'coder' || role.name === 'debugger') ? 'required' : 'auto',
+            tool_choice: (role.name === 'coder' || role.name === 'debugger') && turns === 0 ? 'required' : 'auto',
           }),
           `${role.name} API call`
         );
