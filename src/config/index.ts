@@ -145,8 +145,10 @@ export const ConfigSchema = z.object({
   }),
   safety: z.object({
     protectGit: z.boolean().default(true),
+    autoApprove: z.boolean().default(false),
   }).default({
     protectGit: true,
+    autoApprove: false,
   }),
 });
 
@@ -217,6 +219,7 @@ const DEFAULT_CONFIG: DaedalusConfig = {
   },
   safety: {
     protectGit: true,
+    autoApprove: false,
   },
 };
 

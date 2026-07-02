@@ -139,6 +139,7 @@ export function createModelFunctions(deps: ModelDeps) {
 
     let lastContent = '';
     let turn = 0;
+    const signatureHistory: string[] = [];
 
     while (turn < MAX_TOOL_TURNS) {
       if (turnAborted) {
@@ -258,6 +259,31 @@ export function createModelFunctions(deps: ModelDeps) {
         content: fullContent || '',
         tool_calls: toolCallArray,
       });
+
+      // Repetitive tool-calling loop detection
+      const currentSignature = toolCallArray.map(tc => `${tc.function.name}:${tc.function.arguments}`).join('|');
+      let consecutiveCount = 0;
+      for (let j = signatureHistory.length - 1; j >= 0; j--) {
+        if (signatureHistory[j] === currentSignature) {
+          consecutiveCount++;
+        } else {
+          break;
+        }
+      }
+      signatureHistory.push(currentSignature);
+
+      if (consecutiveCount >= 2) {
+        if (consecutiveCount >= 3) {
+          console.log(`\n  ${pc.red('[STOP]')} Terminated repetitive loop after 4 consecutive identical tool calls.`);
+          return { content: lastContent, toolCalls: [] };
+        }
+
+        console.log(`\n  ${pc.yellow('[WARN]')} Loop detected (repetitive tool calls). Injecting correction.`);
+        messages.push({
+          role: 'user',
+          content: `[SYSTEM WARNING] You are stuck in a repetitive loop calling the same tools with the same arguments: "${toolCallArray.map(tc => tc.function.name).join(', ')}". Please STOP repeating yourself. If your previous tool calls did not give you the desired outcome, try a different approach (e.g., read a different file, search with a different query, run a build/test command, or summarize the blocker/findings to the user).`,
+        } as ChatMessage);
+      }
 
       const dangerousTools = process.env.DAEDALUS_AUTO_APPROVE === 'true' ? [] : ['terminal', 'write_file'];
       let turnApproved = false;

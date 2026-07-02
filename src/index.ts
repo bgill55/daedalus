@@ -34,6 +34,16 @@ const { version: APP_VERSION } = _require('../package.json');
 const config = loadConfig();
 const configDir = getConfigDirPath();
 
+// Enable auto-approve if passed via CLI flags or enabled in config safety settings
+const isAutoApprove = process.argv.includes('--auto-approve') ||
+                      process.argv.includes('-y') ||
+                      process.argv.includes('--yes') ||
+                      config.safety?.autoApprove === true;
+
+if (isAutoApprove) {
+  process.env.DAEDALUS_AUTO_APPROVE = 'true';
+}
+
 const changelogPath = path.join(__dirname, '..', 'CHANGELOG.md');
 checkChangelogOnUpgrade(APP_VERSION, configDir, changelogPath);
 

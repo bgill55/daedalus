@@ -74,6 +74,7 @@ This guide describes all configuration options available in Daedalus. You can vi
 ## Safety Settings
 
 *   **`safety.protectGit`**: Protect `.git/` directory and tracked git files from accidental deletion via file and terminal tools (default: `true`). Set to `false` in `~/.daedalus/config.json` to disable.
+*   **`safety.autoApprove`**: Auto-approve all model turn gates and execution steps without prompting the user for approval. Enabling this allows unattended/auto-pilot execution (default: `false`).
 
 ---
 
