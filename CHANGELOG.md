@@ -1,3 +1,10 @@
+## [1.35.5](https://github.com/bgill55/daedalus/compare/v1.35.4...v1.35.5) (2026-07-02)
+
+
+### Bug Fixes
+
+* **orchestrator:** only require file paths for coder and debugger tasks ([deaa66c](https://github.com/bgill55/daedalus/commit/deaa66c249745da54313cf896ce1ca405cfe8a14))
+
 ## [1.35.4](https://github.com/bgill55/daedalus/compare/v1.35.3...v1.35.4) (2026-07-02)
 
 
