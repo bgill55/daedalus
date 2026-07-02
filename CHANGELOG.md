@@ -1,3 +1,10 @@
+## [1.35.8](https://github.com/bgill55/daedalus/compare/v1.35.7...v1.35.8) (2026-07-02)
+
+
+### Bug Fixes
+
+* **orchestrator:** disable tools on the final turn of agent execution to guarantee a text-only summary output ([0a1bc38](https://github.com/bgill55/daedalus/commit/0a1bc385fdbcff2d1c42b088ad56f83a3ea9751e))
+
 ## [1.35.7](https://github.com/bgill55/daedalus/compare/v1.35.6...v1.35.7) (2026-07-02)
 
 
