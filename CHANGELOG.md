@@ -1,3 +1,10 @@
+# [1.37.0](https://github.com/bgill55/daedalus/compare/v1.36.1...v1.37.0) (2026-07-03)
+
+
+### Features
+
+* **agents:** inject versioned Next.js production coding rules into coder context ([a3971f8](https://github.com/bgill55/daedalus/commit/a3971f8396ace5c71354a269faf73a04e0c627bc))
+
 ## [1.36.1](https://github.com/bgill55/daedalus/compare/v1.36.0...v1.36.1) (2026-07-02)
 
 
