@@ -80,8 +80,14 @@ export class Orchestrator {
       const pkg = JSON.parse(fs.readFileSync(path.join(cwd, 'package.json'), 'utf8'));
       const info: string[] = [];
       if (pkg.dependencies) {
-        if (pkg.dependencies.next) info.push('Next.js (React, SSR)');
-        else if (pkg.dependencies.react) info.push('React');
+        if (pkg.dependencies.next) {
+          const rawVer: string = pkg.dependencies.next as string;
+          const major = parseInt(rawVer.replace(/[^0-9.].*/, '').split('.')[0]);
+          const label = Number.isFinite(major) ? `Next.js ${major} (React, SSR)` : 'Next.js (React, SSR)';
+          info.push(label);
+        } else if (pkg.dependencies.react) {
+          info.push('React');
+        }
         if (pkg.dependencies.vue) info.push('Vue');
         if (pkg.dependencies.express) info.push('Express');
         if (pkg.dependencies['@angular/core']) info.push('Angular');
@@ -1164,7 +1170,20 @@ export class Orchestrator {
     if (!projectContext) return '';
     const ctx = projectContext;
     if (/\bNext\.js\b/i.test(ctx)) {
-      return '\n\nIMPORTANT FRAMEWORK NOTE: Next.js uses file-based routing. Any .tsx or .js file added to pages/ or src/pages/ is automatically available as a web page. No edits to next.config.js or any other config file are needed when adding new pages. Do NOT create tasks for modifying config files.\nROUTING: Use next/link for client-side navigation. Do NOT use react-router-dom, vue-router, or any other router library.\n';
+      const majorMatch = ctx.match(/Next\.js\s+(\d+)/);
+      const major = majorMatch ? parseInt(majorMatch[1]) : 13;
+      const isModern = major >= 13;
+      const linkRule = isModern
+        ? 'Use <Link href="...">visible text</Link>. Do NOT nest an <a> tag inside <Link> — Next.js 13+ renders the anchor automatically.'
+        : 'Use <Link href="..."><a className="...">text</a></Link> for Next.js 12 and earlier.';
+      return `\n\nNEXT.JS ${major} PRODUCTION CODING RULES (MANDATORY — follow these before writing any code):
+- ROUTING: Pages live in pages/ or src/pages/. No edits to next.config.js or router config needed for new pages.
+- LINK: ${linkRule}
+- JSX TRANSFORM: Do NOT add \`import React from 'react'\` at the top of .tsx files. Next.js uses the automatic JSX runtime — adding it triggers a lint error (react/react-in-jsx-scope).
+- APOSTROPHES: Escape apostrophes in JSX text as &apos; or use a JS template literal. Writing raw ' inside JSX text (e.g., <p>don't</p>) is a lint error.
+- COMPONENT STRUCTURE: Every .tsx page file must export a single default function component. Do NOT write raw JSX tags outside a function body.
+- IMPORTS: Use next/link for navigation, next/image for images. Do not use react-router-dom.
+- TAILWIND: If Tailwind CSS is detected, use Tailwind utility classes for all styling. Do not write inline styles or separate .css files for component styling.\n`;
     }
     if (/\b(Vue|Nuxt)\b/i.test(ctx)) {
       return '\n\nFRAMEWORK NOTE: This project uses Vue/Vue Router. New pages typically need route entries added to the router config, not config files like vue.config.js.\n';
@@ -1299,9 +1318,7 @@ export class Orchestrator {
     }
 
     // Inject an existing file from the target dir as a style reference only for non-trivial tasks
-    const simpleFileRe = /\b(create|write|build|make|generate|add)\b.*\b(file|component|page|layout|module|function|class|route)\b/i;
-    const isSimpleFileTask = simpleFileRe.test(task.goal.toLowerCase());
-    const styleRef = !isSimpleFileTask ? this.findStyleReference(task.goal) : null;
+    const styleRef = this.findStyleReference(task.goal);
     if (styleRef) {
       enrichedContext += styleRef;
     }
