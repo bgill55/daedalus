@@ -1,3 +1,10 @@
+## [1.37.3](https://github.com/bgill55/daedalus/compare/v1.37.2...v1.37.3) (2026-07-04)
+
+
+### Bug Fixes
+
+* **orchestrator,index:** fix fallback plan cwd paths and argv flag filtering ([9177e85](https://github.com/bgill55/daedalus/commit/9177e8556213abfc40224af7496c367bd7d4e082))
+
 ## [1.37.2](https://github.com/bgill55/daedalus/compare/v1.37.1...v1.37.2) (2026-07-04)
 
 
