@@ -1,3 +1,10 @@
+## [1.37.1](https://github.com/bgill55/daedalus/compare/v1.37.0...v1.37.1) (2026-07-04)
+
+
+### Bug Fixes
+
+* **agents:** harden production code generation against anti-pattern contamination ([3519a1b](https://github.com/bgill55/daedalus/commit/3519a1b94c4333d4ad7f35ffc54f19e742abc26a))
+
 # [1.37.0](https://github.com/bgill55/daedalus/compare/v1.36.1...v1.37.0) (2026-07-03)
 
 
