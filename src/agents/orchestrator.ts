@@ -82,7 +82,9 @@ export class Orchestrator {
       if (pkg.dependencies) {
         if (pkg.dependencies.next) {
           const rawVer: string = pkg.dependencies.next as string;
-          const major = parseInt(rawVer.replace(/[^0-9.].*/, '').split('.')[0]);
+          // Strip semver range operators (^, ~, >=, <=, >, <) before parsing
+          const cleaned = rawVer.replace(/^[^0-9]*/, '');
+          const major = parseInt(cleaned.split('.')[0]);
           const label = Number.isFinite(major) ? `Next.js ${major} (React, SSR)` : 'Next.js (React, SSR)';
           info.push(label);
         } else if (pkg.dependencies.react) {
@@ -1291,7 +1293,16 @@ export class Orchestrator {
       }
     } catch { return null; }
 
-    return `\nExisting file in ${dir}/ (use as a style reference):\n--- ${fullPath} ---\n${content}\n--- end ---`;
+    // Skip files that exhibit known anti-patterns — injecting them as style
+    // references would cause the coder to copy bad conventions into new files.
+    const antiPatterns = [
+      /legacyBehavior/,                              // deprecated Next.js Link API
+      /^\s*<[A-Za-z]/m,                              // raw JSX at top level (outside a function)
+      /import\s+React\s+from\s+['"]react['"]/,       // unnecessary React import (Next.js 13+)
+    ];
+    if (antiPatterns.some(re => re.test(content))) return null;
+
+    return `\nExisting file in ${dir}/ (use as a style reference for structure and import order only):\n--- ${fullPath} ---\n${content}\n--- end ---`;
   }
 
   private async delegateTask(task: DelegationTask, tasks?: DelegationTask[], goal?: string, projectContext?: string): Promise<void> {
@@ -1340,7 +1351,14 @@ export class Orchestrator {
     }
 
     enrichedContext += `\n${frameworkBlock}${task.context}`;
-    const systemExtra = `Project context:\n${projectContext || '(none discovered)'}${Orchestrator.getFrameworkGuidance(projectContext)}\n`;
+    const frameworkRules = Orchestrator.getFrameworkGuidance(projectContext);
+    const systemExtra = `Project context:\n${projectContext || '(none discovered)'}${frameworkRules}\n`;
+
+    // Prepend a terse override reminder so the rules land in the user message too,
+    // which some models weight more heavily than the system prompt extension.
+    if (frameworkRules && task.role === 'coder') {
+      enrichedContext = `IMPORTANT: The CODING RULES in your system context are mandatory and override any patterns you observe in style reference files or your training data.\n\n` + enrichedContext;
+    }
 
     let result = await this.runAgent(role, task.goal, enrichedContext, tools, systemExtra);
 
