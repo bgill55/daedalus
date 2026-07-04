@@ -267,12 +267,13 @@ export class LocalRouter {
     
     this.lastRoutedModel = model.name === actualModel ? model.name : `${model.name} (${actualModel})`;
     
+    const { signal, ...body } = request;
     try {
       const start = Date.now();
       const response = await client.chat.completions.create({
-        ...request,
+        ...body,
         model: actualModel,
-      }) as ChatResponse;
+      }, { signal }) as ChatResponse;
       
       markHealthy(model, Date.now() - start);
       return response;
@@ -293,13 +294,14 @@ export class LocalRouter {
     
     this.lastRoutedModel = model.name === actualModel ? model.name : `${model.name} (${actualModel})`;
     
+    const { signal, ...body } = request;
     try {
       const start = Date.now();
       const stream = await client.chat.completions.create({
-        ...request,
+        ...body,
         model: actualModel,
         stream: true,
-      });
+      }, { signal });
 
       for await (const chunk of stream) {
         yield chunk as StreamChunk;
