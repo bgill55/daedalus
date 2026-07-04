@@ -1,3 +1,10 @@
+## [1.37.2](https://github.com/bgill55/daedalus/compare/v1.37.1...v1.37.2) (2026-07-04)
+
+
+### Bug Fixes
+
+* **orchestrator:** fix planner failure on vague frontend UI goals ([afd1a4b](https://github.com/bgill55/daedalus/commit/afd1a4bcebb508e00bd30d7dc5a5df60e6dad4ad))
+
 ## [1.37.1](https://github.com/bgill55/daedalus/compare/v1.37.0...v1.37.1) (2026-07-04)
 
 
