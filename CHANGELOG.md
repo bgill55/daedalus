@@ -1,3 +1,10 @@
+## [1.37.5](https://github.com/bgill55/daedalus/compare/v1.37.4...v1.37.5) (2026-07-04)
+
+
+### Bug Fixes
+
+* **router:** strip signal from OpenAI body to prevent 422 errors ([883a5e8](https://github.com/bgill55/daedalus/commit/883a5e8628103619ee161cc32a680df5fb4d6346))
+
 ## [1.37.4](https://github.com/bgill55/daedalus/compare/v1.37.3...v1.37.4) (2026-07-04)
 
 
