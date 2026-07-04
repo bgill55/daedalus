@@ -1,3 +1,10 @@
+## [1.37.4](https://github.com/bgill55/daedalus/compare/v1.37.3...v1.37.4) (2026-07-04)
+
+
+### Bug Fixes
+
+* **orchestrator:** refine React import rules for Next.js Pages Router ([dcbfb01](https://github.com/bgill55/daedalus/commit/dcbfb0176a28c76886869ee8b32ec6b3a0e0eaa7))
+
 ## [1.37.3](https://github.com/bgill55/daedalus/compare/v1.37.2...v1.37.3) (2026-07-04)
 
 
