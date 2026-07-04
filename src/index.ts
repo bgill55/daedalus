@@ -281,7 +281,7 @@ function getSystemPromptWithMemory(): string {
 messages.push({ role: 'system', content: getSystemPromptWithMemory() });
 
 // Parse initial arguments (e.g. if started as `daedalus src/index.ts`)
-const initialArgs = process.argv.slice(2);
+const initialArgs = process.argv.slice(2).filter(a => !a.startsWith('-') && !a.startsWith('/'));
 if (initialArgs.length > 0) {
   initialArgs.forEach(fileArg => {
     const absPath = path.resolve(fileArg);

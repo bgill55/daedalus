@@ -312,19 +312,15 @@ export class Orchestrator {
   private buildFallbackPlan(goal: string, projectContext?: string): string {
     const isFrontendGoal = /\b(frontend|front[- ]end|ui|interface|page|layout|landing|component|hero|navbar|navigation)\b/i.test(goal);
     if (isFrontendGoal && projectContext) {
-      const isNextApp = /Next\.js/i.test(projectContext) && (fs.existsSync('app') || !fs.existsSync('src/pages'));
-      const isNextPages = /Next\.js/i.test(projectContext) && (fs.existsSync('src/pages') || fs.existsSync('pages'));
-      const isTailwind = /Tailwind/i.test(projectContext);
-      const styleNote = isTailwind ? ', styled with Tailwind CSS' : '';
+      const cwd = process.cwd();
+      const hasApp      = fs.existsSync(path.join(cwd, 'app'));
+      const hasSrcPages = fs.existsSync(path.join(cwd, 'src', 'pages'));
+      const hasPages    = fs.existsSync(path.join(cwd, 'pages'));
+      const isNextJs    = /Next\.js/i.test(projectContext);
+      const isTailwind  = /Tailwind/i.test(projectContext);
+      const styleNote   = isTailwind ? ', styled with Tailwind CSS' : '';
 
-      if (isNextApp) {
-        const hasSrcPages = fs.existsSync('src/pages');
-        if (hasSrcPages) {
-          return [
-            `- delegate to coder: create src/pages/index.tsx as the main landing page with a hero section and call-to-action${styleNote}`,
-            `- delegate to coder: create src/pages/about.tsx with project overview and a link back to home${styleNote}`,
-          ].join('\n');
-        }
+      if (isNextJs && (hasApp || (!hasSrcPages && !hasPages))) {
         return [
           `- delegate to coder: create app/layout.tsx as the root Next.js App Router layout with a header and footer${styleNote}`,
           `- delegate to coder: create app/page.tsx as the main landing page with a hero section and call-to-action${styleNote}`,
@@ -332,11 +328,22 @@ export class Orchestrator {
         ].join('\n');
       }
 
-      if (isNextPages) {
-        return [
-          `- delegate to coder: create src/pages/index.tsx as the main landing page with a hero section and call-to-action${styleNote}`,
-          `- delegate to coder: create src/pages/about.tsx with project overview and a link back to home${styleNote}`,
-        ].join('\n');
+      if (isNextJs && (hasSrcPages || hasPages)) {
+        const pagesDir    = hasSrcPages ? path.join(cwd, 'src', 'pages') : path.join(cwd, 'pages');
+        const pagesPrefix = hasSrcPages ? 'src/pages' : 'pages';
+        const tasks: string[] = [];
+        const indexExists     = fs.existsSync(path.join(pagesDir, 'index.tsx'))  || fs.existsSync(path.join(pagesDir, 'index.jsx'));
+        const dashboardExists = fs.existsSync(path.join(pagesDir, 'dashboard.tsx'));
+        const featuresExists  = fs.existsSync(path.join(pagesDir, 'features.tsx'));
+        if (!indexExists) {
+          tasks.push(`- delegate to coder: create ${pagesPrefix}/index.tsx as the main landing page with a hero section and call-to-action${styleNote}`);
+        } else if (!dashboardExists) {
+          tasks.push(`- delegate to coder: create ${pagesPrefix}/dashboard.tsx as a dashboard page showing key project stats${styleNote}`);
+        }
+        if (!featuresExists) {
+          tasks.push(`- delegate to coder: create ${pagesPrefix}/features.tsx with feature cards describing the project${styleNote}`);
+        }
+        if (tasks.length > 0) return tasks.join('\n');
       }
     }
 
