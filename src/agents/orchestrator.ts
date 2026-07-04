@@ -1221,14 +1221,20 @@ export class Orchestrator {
       const linkRule = isModern
         ? 'Use <Link href="...">visible text</Link>. Do NOT nest an <a> tag inside <Link> — Next.js 13+ renders the anchor automatically.'
         : 'Use <Link href="..."><a className="...">text</a></Link> for Next.js 12 and earlier.';
+      const isAppRouter = fs.existsSync(path.join(process.cwd(), 'app'));
+      const jsxRule = isAppRouter
+        ? 'Do NOT add `import React from \'react\'` at the top of .tsx files. Next.js App Router uses the automatic JSX runtime.'
+        : 'If other files in the project (e.g. index.tsx) import React, or if ESLint has react/react-in-jsx-scope enabled, you MUST add `import React from \'react\'` at the top of .tsx files.';
+
       return `\n\nNEXT.JS ${major} PRODUCTION CODING RULES (MANDATORY — follow these before writing any code):
-- ROUTING: Pages live in pages/ or src/pages/. No edits to next.config.js or router config needed for new pages.
+- ROUTING: Pages live in pages/ or src/pages/ (or app/ for App Router). No edits to next.config.js or router config needed for new pages.
 - LINK: ${linkRule}
-- JSX TRANSFORM: Do NOT add \`import React from 'react'\` at the top of .tsx files. Next.js uses the automatic JSX runtime — adding it triggers a lint error (react/react-in-jsx-scope).
+- JSX TRANSFORM: ${jsxRule}
 - APOSTROPHES: Escape apostrophes in JSX text as &apos; or use a JS template literal. Writing raw ' inside JSX text (e.g., <p>don't</p>) is a lint error.
 - COMPONENT STRUCTURE: Every .tsx page file must export a single default function component. Do NOT write raw JSX tags outside a function body.
 - IMPORTS: Use next/link for navigation, next/image for images. Do not use react-router-dom.
 - TAILWIND: If Tailwind CSS is detected, use Tailwind utility classes for all styling. Do not write inline styles or separate .css files for component styling.\n`;
+
     }
     if (/\b(Vue|Nuxt)\b/i.test(ctx)) {
       return '\n\nFRAMEWORK NOTE: This project uses Vue/Vue Router. New pages typically need route entries added to the router config, not config files like vue.config.js.\n';
@@ -1336,13 +1342,14 @@ export class Orchestrator {
       }
     } catch { return null; }
 
-    // Skip files that exhibit known anti-patterns — injecting them as style
-    // references would cause the coder to copy bad conventions into new files.
+    const isAppRouter = fs.existsSync(path.join(process.cwd(), 'app'));
     const antiPatterns = [
       /legacyBehavior/,                              // deprecated Next.js Link API
       /^\s*<[A-Za-z]/m,                              // raw JSX at top level (outside a function)
-      /import\s+React\s+from\s+['"]react['"]/,       // unnecessary React import (Next.js 13+)
     ];
+    if (isAppRouter) {
+      antiPatterns.push(/import\s+React\s+from\s+['"]react['"]/); // unnecessary React import (Next.js 13+ App Router)
+    }
     if (antiPatterns.some(re => re.test(content))) return null;
 
     return `\nExisting file in ${dir}/ (use as a style reference for structure and import order only):\n--- ${fullPath} ---\n${content}\n--- end ---`;
