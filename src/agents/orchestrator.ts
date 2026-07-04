@@ -306,6 +306,40 @@ export class Orchestrator {
     }
 
     console.log(pc.yellow(`\nUsing fallback plan after ${maxAttempts} failed re-planning attempts`));
+    return this.buildFallbackPlan(goal, projectContext);
+  }
+
+  private buildFallbackPlan(goal: string, projectContext?: string): string {
+    const isFrontendGoal = /\b(frontend|front[- ]end|ui|interface|page|layout|landing|component|hero|navbar|navigation)\b/i.test(goal);
+    if (isFrontendGoal && projectContext) {
+      const isNextApp = /Next\.js/i.test(projectContext) && (fs.existsSync('app') || !fs.existsSync('src/pages'));
+      const isNextPages = /Next\.js/i.test(projectContext) && (fs.existsSync('src/pages') || fs.existsSync('pages'));
+      const isTailwind = /Tailwind/i.test(projectContext);
+      const styleNote = isTailwind ? ', styled with Tailwind CSS' : '';
+
+      if (isNextApp) {
+        const hasSrcPages = fs.existsSync('src/pages');
+        if (hasSrcPages) {
+          return [
+            `- delegate to coder: create src/pages/index.tsx as the main landing page with a hero section and call-to-action${styleNote}`,
+            `- delegate to coder: create src/pages/about.tsx with project overview and a link back to home${styleNote}`,
+          ].join('\n');
+        }
+        return [
+          `- delegate to coder: create app/layout.tsx as the root Next.js App Router layout with a header and footer${styleNote}`,
+          `- delegate to coder: create app/page.tsx as the main landing page with a hero section and call-to-action${styleNote}`,
+          `- delegate to coder: create app/about/page.tsx with project overview and a link back to home${styleNote}`,
+        ].join('\n');
+      }
+
+      if (isNextPages) {
+        return [
+          `- delegate to coder: create src/pages/index.tsx as the main landing page with a hero section and call-to-action${styleNote}`,
+          `- delegate to coder: create src/pages/about.tsx with project overview and a link back to home${styleNote}`,
+        ].join('\n');
+      }
+    }
+
     const fallbackRole = /\b(verify|check|test|review|inspect|validate|confirm)\b/i.test(goal)
       ? 'reviewer'
       : /\b(research|investigate|find out|look up|search for)\b/i.test(goal)
@@ -796,12 +830,14 @@ export class Orchestrator {
     if (!isSplit && tasks.length === 1 && Orchestrator.isComplexGoal(goal)) {
       return `Expected multiple tasks (one per file/component) to delegate a complex goal, but the plan only has 1 task. Please break it down into at least 2-3 focused subtasks.`;
     }
+    // Whether this is a last-resort single-task fallback plan (goal === task goal, no file path in goal)
+    const isFallbackSingleTask = tasks.length === 1 && tasks[0].goal.trim() === goal.trim();
     for (const t of tasks) {
       if (Orchestrator.VAGUE_GOAL_RE.test(t.goal)) {
         return `Task "${t.goal.slice(0, 80)}" contains vague wording — be concrete`;
       }
       const paths = Orchestrator.extractFilePaths(t.goal);
-      if ((t.role === 'coder' || t.role === 'debugger') && paths.length === 0) {
+      if ((t.role === 'coder' || t.role === 'debugger') && paths.length === 0 && !isFallbackSingleTask) {
         return `Task "${t.goal.slice(0, 80)}" has no file path — each task must target a specific file`;
       }
       if (projectRoot) {

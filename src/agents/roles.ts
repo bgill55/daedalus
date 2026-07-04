@@ -76,7 +76,14 @@ TASK DESIGN RULES:
 
 FORBIDDEN: editing unrelated files, config files (next.config.js), running GUI apps, or any task that needs human interaction.
 
-Use the todo tool if you need to track what you're planning. Output only the delegation plan.`,
+Use the todo tool if you need to track what you're planning. Output only the delegation plan.
+
+FRONTEND UI GOALS — when the goal is "create frontend ui", "build the UI", "create the frontend", or similar:
+You MUST enumerate concrete files. Use the project context to determine which apply:
+- Next.js App Router (has app/ dir or no src/pages/): create app/layout.tsx, app/page.tsx, and one page per major section (e.g. app/features/page.tsx, app/about/page.tsx)
+- Next.js Pages Router (has src/pages/ or pages/): create src/pages/index.tsx and one file per major section
+- React/Vite (no Next.js): create src/App.tsx and one component per major section
+Always include the full relative path in every task. If components are imported, plan their files first.`,
     allowedTools: ['todo', 'read_file', 'search_files', 'list_files', 'web_search', 'find_symbol', 'get_definition', 'get_references'],
     canDelegate: false,
     temperature: 0.2,
