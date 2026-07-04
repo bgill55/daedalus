@@ -1,3 +1,10 @@
+## [1.37.6](https://github.com/bgill55/daedalus/compare/v1.37.5...v1.37.6) (2026-07-04)
+
+
+### Bug Fixes
+
+* add arg validation to patch tool and optimize router openai request compatibility ([538af50](https://github.com/bgill55/daedalus/commit/538af507b61b1f90cc7d71fc441a41652c1b213a))
+
 ## [1.37.5](https://github.com/bgill55/daedalus/compare/v1.37.4...v1.37.5) (2026-07-04)
 
 
