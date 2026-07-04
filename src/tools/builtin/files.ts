@@ -564,6 +564,15 @@ export async function writeFile(args: { path: string; content: string }, context
 
 export async function patchFile(args: { path: string; old_string: string; new_string: string; replace_all?: boolean }, context: ToolContext): Promise<ToolResult> {
   try {
+    if (!args.path) {
+      return formatError("Missing required parameter: path");
+    }
+    if (args.old_string === undefined || args.old_string === null) {
+      return formatError("Missing required parameter: old_string");
+    }
+    if (args.new_string === undefined || args.new_string === null) {
+      return formatError("Missing required parameter: new_string");
+    }
     if (detectPlaceholders(args.new_string) && !detectPlaceholders(args.old_string)) {
       return formatError(`Code placeholders like '// ...' or '/* ... */' detected in new_string. You must write the complete, modified code.`);
     }

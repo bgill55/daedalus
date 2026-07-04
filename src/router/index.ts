@@ -268,6 +268,11 @@ export class LocalRouter {
     this.lastRoutedModel = model.name === actualModel ? model.name : `${model.name} (${actualModel})`;
     
     const { signal, ...body } = request;
+    const isOfficialOpenAI = model.endpoint.includes('api.openai.com');
+    if (body.tool_choice === 'required' && !isOfficialOpenAI) {
+      body.tool_choice = 'auto';
+    }
+
     try {
       const start = Date.now();
       const response = await client.chat.completions.create({
@@ -295,6 +300,11 @@ export class LocalRouter {
     this.lastRoutedModel = model.name === actualModel ? model.name : `${model.name} (${actualModel})`;
     
     const { signal, ...body } = request;
+    const isOfficialOpenAI = model.endpoint.includes('api.openai.com');
+    if (body.tool_choice === 'required' && !isOfficialOpenAI) {
+      body.tool_choice = 'auto';
+    }
+
     try {
       const start = Date.now();
       const stream = await client.chat.completions.create({
