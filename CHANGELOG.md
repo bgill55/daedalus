@@ -1,3 +1,10 @@
+# [1.38.0](https://github.com/bgill55/daedalus/compare/v1.37.6...v1.38.0) (2026-07-05)
+
+
+### Features
+
+* **cli:** enhance code generation quality, prompts, verification pipelines, and design token integration ([83aed68](https://github.com/bgill55/daedalus/commit/83aed68cba1c4b4985870515505af0966fd6263f))
+
 ## [1.37.6](https://github.com/bgill55/daedalus/compare/v1.37.5...v1.37.6) (2026-07-04)
 
 
