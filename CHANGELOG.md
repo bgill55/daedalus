@@ -1,3 +1,10 @@
+## [1.39.2](https://github.com/bgill55/daedalus/compare/v1.39.1...v1.39.2) (2026-07-05)
+
+
+### Bug Fixes
+
+* **tui:** register original stdout/stderr streams on globalThis to prevent stream redirection leaks on unexpected crashes ([5e3fb19](https://github.com/bgill55/daedalus/commit/5e3fb1915dbdbadb7185fe5b8004f974afffed70))
+
 ## [1.39.1](https://github.com/bgill55/daedalus/compare/v1.39.0...v1.39.1) (2026-07-05)
 
 
