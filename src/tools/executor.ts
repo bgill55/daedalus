@@ -96,6 +96,9 @@ export async function executeToolCalls(
   toolCalls: ToolCall[],
   context: ToolContext
 ): Promise<ToolResult[]> {
-  // Execute in parallel for independent calls
-  return Promise.all(toolCalls.map(tc => executeToolCall(tc, context)));
+  const results: ToolResult[] = [];
+  for (const tc of toolCalls) {
+    results.push(await executeToolCall(tc, context));
+  }
+  return results;
 }
