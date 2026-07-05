@@ -8,6 +8,8 @@ Jump straight to:
 - [Orchestration](orchestration.md)
 - [MCP Integration](mcp.md)
 - [Sandboxing](sandboxing.md)
+- [Example Run: Social Media Manager](social-media-manager-sprint.md)
+
 
 ---
 
