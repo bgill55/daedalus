@@ -1,3 +1,10 @@
+# [1.39.0](https://github.com/bgill55/daedalus/compare/v1.38.3...v1.39.0) (2026-07-05)
+
+
+### Features
+
+* **session:** add /session export subcommand to export current conversation to a styled Markdown file ([e01be16](https://github.com/bgill55/daedalus/commit/e01be16b3051712add44cbf17a686a28fb80207c))
+
 ## [1.38.3](https://github.com/bgill55/daedalus/compare/v1.38.2...v1.38.3) (2026-07-05)
 
 
