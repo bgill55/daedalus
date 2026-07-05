@@ -1,3 +1,10 @@
+## [1.38.3](https://github.com/bgill55/daedalus/compare/v1.38.2...v1.38.3) (2026-07-05)
+
+
+### Bug Fixes
+
+* **executor:** execute tool calls sequentially instead of in parallel to avoid concurrent stdin/readline collisions and file-writing races ([099578b](https://github.com/bgill55/daedalus/commit/099578b8a9430e070e7bb7d0b92c69736a5882bf))
+
 ## [1.38.2](https://github.com/bgill55/daedalus/compare/v1.38.1...v1.38.2) (2026-07-05)
 
 
