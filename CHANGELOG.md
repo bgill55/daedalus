@@ -1,3 +1,10 @@
+## [1.39.1](https://github.com/bgill55/daedalus/compare/v1.39.0...v1.39.1) (2026-07-05)
+
+
+### Bug Fixes
+
+* **router:** sanitize messages to strip vision/image payloads for models without vision capabilities and default null/undefined content ([1728853](https://github.com/bgill55/daedalus/commit/1728853309add47d5de49b5d94cf458aacde474d))
+
 # [1.39.0](https://github.com/bgill55/daedalus/compare/v1.38.3...v1.39.0) (2026-07-05)
 
 
