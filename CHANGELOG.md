@@ -1,3 +1,10 @@
+## [1.38.1](https://github.com/bgill55/daedalus/compare/v1.38.0...v1.38.1) (2026-07-05)
+
+
+### Bug Fixes
+
+* **cli:** eliminate turn-gate prompt for read-only tools and fix process termination leaks on Windows ([97163d1](https://github.com/bgill55/daedalus/commit/97163d17d363940ecd0fbc111d5755aa5cb6b3fe))
+
 # [1.38.0](https://github.com/bgill55/daedalus/compare/v1.37.6...v1.38.0) (2026-07-05)
 
 
