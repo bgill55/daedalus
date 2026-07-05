@@ -433,6 +433,9 @@ function buildPostWriteWarnings(filePath: string, projectRoot: string): string[]
 }
 
 function resolvePath(p: string, projectRoot: string): string {
+  if (!p) {
+    throw new Error('Path argument is empty or undefined');
+  }
   const resolved = path.isAbsolute(p) ? p : path.resolve(projectRoot, p);
   // Allow explicit absolute paths to existing locations (cross-project access)
   if (path.isAbsolute(p) && fs.existsSync(resolved)) return resolved;
@@ -511,6 +514,9 @@ export function detectPlaceholders(text: string): boolean {
 
 export async function writeFile(args: { path: string; content: string }, context: ToolContext): Promise<ToolResult> {
   try {
+    if (!args.path) {
+      return formatError("Missing required parameter: path. You must specify a file path to write to.");
+    }
     if (detectPlaceholders(args.content)) {
       return formatError(`Code placeholders like '// ...' or '/* ... */' detected. You must write the complete, non-abbreviated code.`);
     }

@@ -369,7 +369,10 @@ export function createModelFunctions(deps: ModelDeps) {
       }
 
       // Single-agent turn checkpoint gate
-      let shouldPromptGate = true;
+      // Only prompt gate if a dangerous tool was executed, and task auto-approve is not active
+      const hadDangerousTool = approvedCalls.some(c => dangerousTools.includes(c.function.name));
+      let shouldPromptGate = hadDangerousTool && !toolContext.autoApproveTools;
+
       if (results.some(r => !r.success)) {
         shouldPromptGate = false;
         console.log(pc.cyan('\n  [AUTO] Tool execution failed. Agent will attempt to fix it...'));

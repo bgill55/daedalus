@@ -245,13 +245,25 @@ export async function execute(args: { command: string; timeout?: number; workdir
       shell: false,
     });
 
+    let childClosed = false;
+
     const killTimer = setTimeout(() => {
       if (!exited) {
         exited = true;
-        child.kill('SIGTERM');
-        setTimeout(() => {
-          if (!exited) child.kill('SIGKILL');
-        }, 5000);
+        if (process.platform === 'win32') {
+          try {
+            execSync(`taskkill /F /T /PID ${child.pid}`, { stdio: 'ignore' });
+          } catch {
+            try { child.kill('SIGKILL'); } catch {}
+          }
+        } else {
+          child.kill('SIGTERM');
+          setTimeout(() => {
+            if (!childClosed) {
+              try { child.kill('SIGKILL'); } catch {}
+            }
+          }, 5000);
+        }
         resolve({
           toolCallId: '',
           name: 'terminal',
@@ -285,6 +297,7 @@ export async function execute(args: { command: string; timeout?: number; workdir
     });
 
     child.on('close', (code) => {
+      childClosed = true;
       if (!exited) {
         exited = true;
         clearTimeout(killTimer);

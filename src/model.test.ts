@@ -132,7 +132,7 @@ describe('Single Agent Loop', () => {
               {
                 index: 0,
                 id: 'call_1',
-                function: { name: 'read_file', arguments: '{"path":"foo.ts"}' },
+                function: { name: 'write_file', arguments: '{"path":"foo.ts"}' },
               },
             ],
           },
@@ -164,13 +164,13 @@ describe('Single Agent Loop', () => {
       lastRoutedModel: 'test-model',
     } as unknown as LocalRouter;
 
-    const askLine = vi.fn().mockResolvedValue('n');
+    const askLine = vi.fn().mockResolvedValueOnce('y').mockResolvedValueOnce('n');
     const buildFileContext = () => '';
 
     const executorMod = await import('./tools/executor.js');
     vi.spyOn(executorMod, 'executeToolCalls').mockResolvedValue([{
       toolCallId: 'call_1',
-      name: 'read_file',
+      name: 'write_file',
       success: true,
       content: 'file content'
     }]);
@@ -184,7 +184,7 @@ describe('Single Agent Loop', () => {
       askLine,
     });
 
-    const result = await callModelWithTools('read foo.ts');
+    const result = await callModelWithTools('write foo.ts');
 
     expect(askLine).toHaveBeenCalledWith(expect.stringContaining('Next turn?'));
     expect(chatStreamMock).toHaveBeenCalledTimes(1);
