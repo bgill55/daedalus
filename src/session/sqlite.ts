@@ -214,7 +214,7 @@ export function saveTodos(db: Database.Database, todos: SqliteTodo[]): void {
     `);
     const now = Date.now();
     for (const t of todos) {
-      insert.run(t.id, t.content, t.status, t.agent_role || null, t.created_at || now, t.updated_at || now);
+      insert.run(t.id, t.content || '', t.status, t.agent_role || null, t.created_at || now, t.updated_at || now);
     }
   })();
 }

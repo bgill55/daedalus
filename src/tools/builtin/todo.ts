@@ -34,11 +34,16 @@ export async function manage(args: { todos: Array<{ id: string; content: string;
   if (args.merge) {
     const byId = new Map(existing.map(t => [t.id, t]));
     for (const t of args.todos) {
-      byId.set(t.id, t);
+      const prev = byId.get(t.id);
+      if (prev) {
+        byId.set(t.id, { ...prev, ...t });
+      } else {
+        byId.set(t.id, { id: t.id, content: t.content || '', status: t.status });
+      }
     }
     updated = Array.from(byId.values());
   } else {
-    updated = args.todos;
+    updated = args.todos.map(t => ({ id: t.id, content: t.content || '', status: t.status }));
   }
 
   state.store.set(sessionKey, updated);
