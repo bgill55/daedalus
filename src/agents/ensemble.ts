@@ -8,6 +8,8 @@ import { ToolContext, ChatMessage } from '../types.js';
 import { getAgentRole, filterToolsForRole } from './roles.js';
 import { BUILTIN_TOOLS } from '../tools/definitions.js';
 import { executeToolCalls } from '../tools/executor.js';
+import { detectProjectStack } from '../config/stack.js';
+import { Orchestrator } from './orchestrator.js';
 
 interface CandidateResult {
   diff: string;
@@ -210,10 +212,17 @@ export async function runEnsembleWorkflow(
         }
         cand.testsPass = testsPass;
 
+        const projectStack = detectProjectStack(context.projectRoot || process.cwd());
+        const frameworkRules = Orchestrator.getFrameworkGuidance(projectStack);
+
         const criticGoal = `You are evaluating a candidate code draft to solve the following goal:
 
 GOAL:
 ${goal}
+
+PROJECT CONTEXT:
+${projectStack || '(none detected)'}
+${frameworkRules || '(none)'}
 
 PROPOSED CHANGES (GIT DIFF):
 ${cand.diff}
@@ -230,12 +239,12 @@ If the changes are perfect and ready to merge, also include the word "APPROVED" 
         const scoreMatch = reviewResult.match(/SCORE:\s*(\d+)/i);
         const criticScore = scoreMatch ? parseInt(scoreMatch[1], 10) : 5;
 
-        let totalScore = criticScore;
-        if (compiles) totalScore += 5;
-        if (testsPass) totalScore += 5;
+        // Multiplicative scoring: compilation is a major multiplier, tests are a bonus
+        let totalScore = criticScore * (compiles ? 1.5 : 0.5) * (testsPass ? 1.2 : 0.8);
+        totalScore = Number(totalScore.toFixed(1)); // clean output
         cand.score = totalScore;
 
-        console.log(pc.gray(`Candidate ${idx + 1} (${cand.model}): Compiles=${compiles}, TestsPass=${testsPass}, Score=${totalScore}/20`));
+        console.log(pc.gray(`Candidate ${idx + 1} (${cand.model}): Compiles=${compiles}, TestsPass=${testsPass}, Score=${totalScore} (Critic: ${criticScore})`));
 
         try {
           execSync('git reset --hard HEAD', { cwd, stdio: 'ignore' });

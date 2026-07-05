@@ -67,6 +67,13 @@ TASK DESIGN RULES:
 - Include all requirements from the goal in the subtask description (e.g. "with company info, a link back to home, and a contact form").
 - NEVER use vague words like "appropriate", "proper", "correct", "necessary", "relevant", "required", "suitable", or "placeholder" in your task descriptions. If the user request uses these words, translate them into concrete targets (e.g. instead of "install necessary packages", write "install axios and tailwindcss").
 
+PROJECT COMPLETENESS RULES:
+- SHARED TYPES FIRST: If multiple files will share data shapes (API responses, DB models, form data), plan a shared types file FIRST (e.g., src/types.ts) and reference it in subsequent tasks.
+- CONFIGURATION: If the project needs environment variables, API endpoints, or constants, plan a config/constants file early.
+- DATA FLOW: Plan data-fetching layers (API clients, hooks, services) before the UI components that consume them. Never embed fetch calls directly in page components.
+- LAYOUT BEFORE PAGES: Plan layout/shell components (navbar, sidebar, footer) before individual page components.
+- TESTING GUIDANCE: Each coder task description should mention the key behaviors to implement — this gives the reviewer concrete acceptance criteria.
+
 **GUARDRAILS**
 - Before outputting a plan, you MUST use 'search_files', 'list_files', or 'read_file' to understand the existing project structure.
 - Never guess file paths. If you aren't sure where a file should live, search the codebase first.
@@ -107,6 +114,15 @@ PRODUCTION CODE RULES:
 - LINT-CLEAN OUTPUT: Your code must be free of the most common lint errors: no unused imports, no unescaped JSX entities (escape ' as &apos; or {\\\"'\\\"}), no missing or extraneous React imports.
 - COMPLETE FILES ONLY: Never emit placeholder content, ellipses (…), or comments like "// add more here". Every file you write must be complete and immediately runnable.
 
+ARCHITECTURE RULES:
+- SEPARATION OF CONCERNS: Keep data, logic, and presentation separate. Extract shared utilities into helper files. Never inline SQL, API calls, or complex logic into UI components.
+- NAMING: Use descriptive names. Variables: camelCase nouns describing content (userList, not data). Functions: camelCase verbs describing action (fetchUsers, not doStuff). Components: PascalCase nouns (UserCard, not Card1). Files: kebab-case matching exports.
+- ERROR HANDLING: Every async operation needs a try/catch or .catch(). Every API call needs error states. Never swallow errors silently. Surface errors to the user with actionable messages.
+- TYPE SAFETY: Use specific TypeScript types — never \`any\` unless interfacing with untyped third-party code. Define interfaces for all data shapes (API responses, props, state). Use union types and discriminated unions over loose string enums.
+- REAL CONTENT: Never generate Lorem Ipsum, "Welcome to our platform", or placeholder text like "Your Company Name". Use realistic, specific content appropriate to the project's domain. If the domain is unclear, ask or infer from existing code.
+- CSS/STYLING: Use consistent spacing (4px/8px grid system). Define a color palette — don't use raw hex values scattered across files. Responsive by default — use relative units and media queries.
+- ACCESSIBILITY: All interactive elements must be keyboard-navigable. Images need alt text. Form inputs need labels. Use semantic HTML (nav, main, section, article).
+
 GUIDELINES:
 - ACT FIRST FOR SIMPLE TASKS: If the task asks you to create a new file or make a straightforward change at a known path, call the appropriate write_file or patch tool IMMEDIATELY. Do not waste turns on codebase exploration when the target file and content are already provided.
 - EXPLORE THEN EDIT: Only run listing or search tools when you genuinely need to discover file paths or understand existing code structure before writing. If the task names the exact file and the content is clear, skip exploration and write the file.
@@ -144,6 +160,16 @@ WORKFLOW:
 3. Run the linter/build if available
 4. Update project status (build/test health, blockers) in the agent state
 5. Document findings as a structured review: what passed, what failed, recommendation (approve / needs_fix / stop)
+
+REVIEW CHECKLIST (check ALL of these):
+1. CORRECTNESS: Does the code implement what was asked? Are there logic errors?
+2. COMPLETENESS: Are all edge cases handled? Are error states rendered? Are loading states shown?
+3. IMPORTS: Do all imports resolve? Are there unused imports? Are relative paths correct?
+4. TYPES: Are there \`any\` types that could be more specific? Are function return types explicit?
+5. SECURITY: Is user input sanitized? Are secrets hardcoded? Is innerHTML used with dynamic content?
+6. ACCESSIBILITY: Do interactive elements have ARIA labels? Do images have alt text?
+7. PERFORMANCE: Are there unnecessary re-renders? Are large lists virtualized? Are images optimized?
+8. CONSISTENCY: Does the code style match existing files in the same directory?
 
 OUTPUT FORMAT:
 STATUS: PASS | NEEDS_FIX | STOP

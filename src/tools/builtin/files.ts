@@ -574,11 +574,11 @@ export async function patchFile(args: { path: string; old_string: string; new_st
       return formatError("Missing required parameter: new_string");
     }
     if (detectPlaceholders(args.new_string) && !detectPlaceholders(args.old_string)) {
-      return formatError(`Code placeholders like '// ...' or '/* ... */' detected in new_string. You must write the complete, modified code.`);
+      return formatError(`Code placeholders like '// ...' or '/* ... */' detected in new_string. You must write the complete, fully realized code. Do NOT abbreviate code.`);
     }
     const targetPath = resolvePath(args.path, context.projectRoot);
     if (!fs.existsSync(targetPath)) {
-      return formatError(`File not found: ${args.path}`);
+      return formatError(`File not found: ${args.path}. Check the spelling and file extension, or run search_files / list_files to verify the correct path.`);
     }
 
     const circuitBreaker = checkCircuitBreaker(targetPath, context);
@@ -600,7 +600,7 @@ export async function patchFile(args: { path: string; old_string: string; new_st
       if (!content.includes(oldStr)) {
         const fuzzy = fuzzyWhitespacePatch(content, oldStr, newStr, true);
         if (fuzzy.error && fuzzy.error !== 'no_fuzzy_match') { recordPatchFailure(targetPath, context); return formatError(fuzzy.error); }
-        if (!fuzzy.patched) { recordPatchFailure(targetPath, context); return formatError(`Old string not found in file (checked with CRLF normalization and fuzzy whitespace matching).`); }
+        if (!fuzzy.patched) { recordPatchFailure(targetPath, context); return formatError(`Old string not found in file (checked with CRLF normalization and fuzzy whitespace matching).\nTo fix this: call read_file on ${args.path} to fetch the latest text and indentation.`); }
         patched = fuzzy.patched;
       } else {
         patched = content.split(oldStr).join(newStr);
@@ -618,12 +618,12 @@ export async function patchFile(args: { path: string; old_string: string; new_st
           const hintMsg = hint
             ? `\n\nClosest match found at line ${hint.lineNo}:\n${'─'.repeat(40)}\n${hint.snippet}\n${'─'.repeat(40)}\nRe-read the file and retry the patch with the exact content above.`
             : `\n\nNo close match found. Use read_file to verify the exact content before patching.`;
-          return formatError(`Old string not found in ${args.path}.${hintMsg}`);
+          return formatError(`Old string not found in ${args.path}.\nTo fix this: call read_file on ${args.path} to fetch the latest text and indentation.${hintMsg}`);
         }
       } else {
         const secondIdx = content.indexOf(oldStr, idx + oldStr.length);
         if (secondIdx !== -1) {
-          return formatError(`Old string matches multiple locations; use replace_all: true or add more surrounding context`);
+          return formatError(`Old string matches multiple locations. Add more surrounding lines (e.g. function declaration, imports) to make old_string unique, or use replace_all: true.`);
         }
         patched = content.slice(0, idx) + newStr + content.slice(idx + oldStr.length);
       }
@@ -648,7 +648,7 @@ export async function patchFile(args: { path: string; old_string: string; new_st
       const syntaxError = await syntaxCheck(targetPath, context.projectRoot, changedLines.length > 0 ? changedLines : undefined);
       if (syntaxError) {
         fs.writeFileSync(targetPath, rawContent, 'utf8');
-        return formatError(`Syntax error introduced by patch — reverted.\n${syntaxError}\nFix the patch and retry.`);
+        return formatError(`Syntax error introduced by patch — reverted.\n${syntaxError}\nAnalyze the TypeScript/JavaScript compiler error above, check your brackets, semicolons, import declarations, and type definitions, and retry with a corrected patch.`);
       }
       if (context.patchHistory) {
         context.patchHistory.push({
@@ -699,7 +699,7 @@ export async function patchFile(args: { path: string; old_string: string; new_st
     const syntaxError = await syntaxCheck(targetPath, context.projectRoot, changedLinesInteractive.length > 0 ? changedLinesInteractive : undefined);
     if (syntaxError) {
       fs.writeFileSync(targetPath, rawContent, 'utf8');
-      return formatError(`Syntax error introduced by patch — reverted.\n${syntaxError}\nFix the patch and retry.`);
+      return formatError(`Syntax error introduced by patch — reverted.\n${syntaxError}\nAnalyze the TypeScript/JavaScript compiler error above, check your brackets, semicolons, import declarations, and type definitions, and retry with a corrected patch.`);
     }
 
     if (diffResult.decision === 'all') {

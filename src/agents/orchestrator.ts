@@ -1211,7 +1211,7 @@ export class Orchestrator {
     return false;
   }
 
-  private static getFrameworkGuidance(projectContext?: string): string {
+  public static getFrameworkGuidance(projectContext?: string): string {
     if (!projectContext) return '';
     const ctx = projectContext;
     if (/\bNext\.js\b/i.test(ctx)) {
@@ -1236,11 +1236,36 @@ export class Orchestrator {
 - TAILWIND: If Tailwind CSS is detected, use Tailwind utility classes for all styling. Do not write inline styles or separate .css files for component styling.\n`;
 
     }
+    if (/\b(React)\b/i.test(ctx) && !/\bNext\.js\b/i.test(ctx)) {
+      return `\n\nREACT SPA PRODUCTION CODING RULES (MANDATORY):
+- ROUTING: Use react-router-dom v6+ with createBrowserRouter/RouterProvider. Lazy-load routes with React.lazy() and Suspense if possible.
+- STATE: Use React hooks (useState, useReducer, useContext) for local state. For complex global state, use a lightweight manager like Zustand or Redux Toolkit.
+- DATA FETCHING: Use custom hooks wrapping fetch/axios. Keep API calls out of UI component bodies.
+- COMPONENT STRUCTURE: Export a single default component per file. Avoid mixing business logic directly with presentation components.\n`;
+    }
     if (/\b(Vue|Nuxt)\b/i.test(ctx)) {
-      return '\n\nFRAMEWORK NOTE: This project uses Vue/Vue Router. New pages typically need route entries added to the router config, not config files like vue.config.js.\n';
+      return `\n\nVUE/NUXT PRODUCTION CODING RULES (MANDATORY):
+- ROUTING: Vue Router (or file-based pages/ in Nuxt). New pages typically need route entries added to the router config, not config files like vue.config.js.
+- COMPONENTS: Use Single File Components (.vue). Match the existing \`<script setup>\` or Options API style exactly.
+- STATE: Use Pinia or Vuex for global state. Use standard refs/computed for local reactive state.\n`;
     }
     if (/\bExpress\b/i.test(ctx)) {
-      return '\n\nFRAMEWORK NOTE: Express requires explicit route handlers. New endpoints must be added to the server/ or routes/ directory.\n';
+      return `\n\nEXPRESS PRODUCTION CODING RULES (MANDATORY):
+- ROUTING: Express requires explicit route handlers. New endpoints must be added to the server/ or routes/ directory, and registered on the main express application.
+- CONTROLLERS: Keep request/response handler functions in controller files, separate from route definitions.
+- ERROR HANDLING: Always wrap route logic in try/catch or async-error-handler middleware and forward to next(err).\n`;
+    }
+    if (/\b(Python|Flask|Django|FastAPI)\b/i.test(ctx)) {
+      return `\n\nPYTHON PRODUCTION CODING RULES (MANDATORY):
+- STRUCTURE: Follow the framework's conventional project layout.
+- TYPING: Use type hints on all function signatures. Use Pydantic models for request/response schemas.
+- ASYNC: Use async/await where the framework supports it (FastAPI, async Django views).\n`;
+    }
+    if (/\b(Vanilla JS|HTML)\b/i.test(ctx)) {
+      return `\n\nVANILLA JS/HTML PRODUCTION CODING RULES (MANDATORY):
+- STRUCTURE: Keep JS in separate .js files, CSS in separate .css files. Use ES modules (type="module") for scripts.
+- DOM: Use querySelector/querySelectorAll. Never use document.write or innerHTML for user-supplied content.
+- EVENTS: Use addEventListener, never inline event handlers (onclick="...").\n`;
     }
     return '';
   }
@@ -1306,53 +1331,124 @@ export class Orchestrator {
   private findStyleReference(taskGoal: string): string | null {
     // Extract target directory from goal
     let dir = '';
-    // Try file path first: "src/pages/about.tsx" → "src/pages"
     const fileMatch = taskGoal.match(/([A-Za-z0-9_\-/\\]+\.[a-zA-Z0-9]+)/);
     if (fileMatch) {
       dir = path.dirname(fileMatch[1].replace(/\\/g, '/'));
     } else {
-      // Try explicit directory: "in src/components/" or "at pages/"
       const dirMatch = taskGoal.match(/(?:in|at|to|under|inside)\s+(?:the\s+)?([A-Za-z0-9_\-/\\]{2,})(?:\s+(?:directory|folder|path))?/i);
       if (dirMatch) {
         dir = dirMatch[1].replace(/\\/g, '/').replace(/\/+$/, '');
       }
     }
-    if (!dir || !fs.existsSync(dir) || dir === '.' || dir === '') return null;
 
-    // Pick a non-test, non-hidden file as style reference
-    let entries: string[];
-    try { entries = fs.readdirSync(dir); } catch { return null; }
-    const candidates = entries
-      .filter(f => !f.startsWith('.') && !f.includes('.test.') && !f.includes('.spec.') && !f.startsWith('__'))
-      .sort();
+    const checkDirForReference = (searchDir: string): { fullPath: string; content: string } | null => {
+      if (!searchDir || !fs.existsSync(searchDir) || searchDir === '.') return null;
+      let entries: string[];
+      try { entries = fs.readdirSync(searchDir); } catch { return null; }
+      const candidates = entries
+        .filter(f => !f.startsWith('.') && !f.includes('.test.') && !f.includes('.spec.') && !f.startsWith('__'))
+        .sort();
 
-    const target = candidates.find(f => /\.(tsx?|jsx?|vue|svelte)$/i.test(f))
-      || candidates.find(f => /\.(css|scss|less)$/i.test(f))
-      || candidates[0];
+      const target = candidates.find(f => /\.(tsx?|jsx?|vue|svelte)$/i.test(f))
+        || candidates.find(f => /\.(css|scss|less)$/i.test(f))
+        || candidates[0];
 
-    if (!target) return null;
+      if (!target) return null;
+      const fullPath = path.join(searchDir, target);
+      if (fs.statSync(fullPath).isDirectory()) return null;
+      try {
+        let content = fs.readFileSync(fullPath, 'utf8');
+        const lines = content.split('\n');
+        if (lines.length > 80) {
+          content = lines.slice(0, 80).join('\n') + '\n... (truncated)';
+        }
 
-    const fullPath = path.join(dir, target);
-    let content: string;
-    try {
-      content = fs.readFileSync(fullPath, 'utf8');
-      const lines = content.split('\n');
-      if (lines.length > 50) {
-        content = lines.slice(0, 50).join('\n') + '\n... (truncated)';
-      }
-    } catch { return null; }
+        const isAppRouter = fs.existsSync(path.join(process.cwd(), 'app'));
+        const antiPatterns = [
+          /legacyBehavior/,
+          /^\s*<[A-Za-z]/m,
+        ];
+        if (isAppRouter) {
+          antiPatterns.push(/import\s+React\s+from\s+['"]react['"]/);
+        }
+        if (antiPatterns.some(re => re.test(content))) return null;
 
-    const isAppRouter = fs.existsSync(path.join(process.cwd(), 'app'));
-    const antiPatterns = [
-      /legacyBehavior/,                              // deprecated Next.js Link API
-      /^\s*<[A-Za-z]/m,                              // raw JSX at top level (outside a function)
-    ];
-    if (isAppRouter) {
-      antiPatterns.push(/import\s+React\s+from\s+['"]react['"]/); // unnecessary React import (Next.js 13+ App Router)
+        return { fullPath, content };
+      } catch { return null; }
+    };
+
+    // 1. Try target directory
+    let ref = checkDirForReference(dir);
+    if (ref) {
+      return `\nExisting file in ${dir}/ (use as a style reference for structure and import order only):\n--- ${ref.fullPath} ---\n${ref.content}\n--- end ---`;
     }
-    if (antiPatterns.some(re => re.test(content))) return null;
 
-    return `\nExisting file in ${dir}/ (use as a style reference for structure and import order only):\n--- ${fullPath} ---\n${content}\n--- end ---`;
+    // 2. Try parent directory if target directory doesn't have reference
+    if (dir && dir !== '.' && dir !== '') {
+      const parentDir = path.dirname(dir);
+      ref = checkDirForReference(parentDir);
+      if (ref) {
+        return `\nExisting file in sibling/parent ${parentDir}/ (use as a style reference for structure and import order only):\n--- ${ref.fullPath} ---\n${ref.content}\n--- end ---`;
+      }
+    }
+
+    // 3. Try common directories in the project
+    const commonDirs = ['src/components', 'components', 'src/pages', 'pages', 'app', 'src', 'lib'];
+    for (const commonDir of commonDirs) {
+      const fullCommonDir = path.join(process.cwd(), commonDir);
+      ref = checkDirForReference(fullCommonDir);
+      if (ref) {
+        return `\nExisting file in ${commonDir}/ (use as a style reference for structure and import order only):\n--- ${ref.fullPath} ---\n${ref.content}\n--- end ---`;
+      }
+    }
+
+    return null;
+  }
+
+  private discoverDesignTokens(): string {
+    const cwd = process.cwd();
+    let tokens = '';
+
+    // 1. Try to find tailwind config
+    const twConfigs = ['tailwind.config.js', 'tailwind.config.ts', 'tailwind.config.cjs'];
+    for (const configName of twConfigs) {
+      const fullPath = path.join(cwd, configName);
+      if (fs.existsSync(fullPath)) {
+        try {
+          const content = fs.readFileSync(fullPath, 'utf8');
+          const themeMatch = content.match(/theme\s*:\s*\{[\s\S]*?\}/);
+          if (themeMatch) {
+            tokens += `\nTailwind Theme Configuration (from ${configName}):\n${themeMatch[0]}\n`;
+          } else {
+            const lines = content.split('\n').slice(0, 40).join('\n');
+            tokens += `\nTailwind Configuration Snippet (from ${configName}):\n${lines}\n`;
+          }
+          break;
+        } catch { /* ignore */ }
+      }
+    }
+
+    // 2. Try to find CSS custom properties in global CSS files
+    const commonCssDirs = ['src', 'app', 'styles', 'src/styles', '.'];
+    const cssFileNames = ['globals.css', 'global.css', 'index.css', 'app.css', 'main.css'];
+    for (const dirName of commonCssDirs) {
+      for (const fileName of cssFileNames) {
+        const fullPath = path.join(cwd, dirName, fileName);
+        if (fs.existsSync(fullPath)) {
+          try {
+            const content = fs.readFileSync(fullPath, 'utf8');
+            const rootMatches = content.match(/:root\s*\{[\s\S]*?\}/g);
+            if (rootMatches && rootMatches.length > 0) {
+              tokens += `\nDesign Tokens / CSS Variables (from ${dirName}/${fileName}):\n${rootMatches.join('\n')}\n`;
+            }
+            break;
+          } catch { /* ignore */ }
+        }
+      }
+      if (tokens) break;
+    }
+
+    return tokens;
   }
 
   private async delegateTask(task: DelegationTask, tasks?: DelegationTask[], goal?: string, projectContext?: string): Promise<void> {
@@ -1382,6 +1478,14 @@ export class Orchestrator {
     const styleRef = this.findStyleReference(task.goal);
     if (styleRef) {
       enrichedContext += styleRef;
+    }
+
+    // Discover and inject design tokens if coder task
+    if (task.role === 'coder') {
+      const designTokens = this.discoverDesignTokens();
+      if (designTokens) {
+        enrichedContext += designTokens;
+      }
     }
 
     // Extract explicit requirements from the task goal only
@@ -1868,17 +1972,24 @@ export class Orchestrator {
   private async runBuildVerification(): Promise<{ success: boolean; errorLogs?: string }> {
     const cwd = process.cwd();
     let command = '';
+    let lintCommand = '';
 
     // Auto-discover verification command
     if (fs.existsSync(path.join(cwd, 'package.json'))) {
       try {
         const pkg = JSON.parse(fs.readFileSync(path.join(cwd, 'package.json'), 'utf8'));
-        if (pkg.scripts && pkg.scripts['daedalus-check']) {
-          command = 'npm run daedalus-check';
-        } else if (fs.existsSync(path.join(cwd, 'tsconfig.json'))) {
-          command = 'npx tsc --noEmit';
-        } else if (pkg.scripts && pkg.scripts.build) {
-          command = 'npm run build';
+        if (pkg.scripts) {
+          if (pkg.scripts['daedalus-check']) {
+            command = 'npm run daedalus-check';
+          } else if (fs.existsSync(path.join(cwd, 'tsconfig.json'))) {
+            command = 'npx tsc --noEmit';
+          } else if (pkg.scripts.build) {
+            command = 'npm run build';
+          }
+
+          if (pkg.scripts.lint) {
+            lintCommand = 'npm run lint';
+          }
         }
       } catch { /* ignored */ }
     } else if (fs.existsSync(path.join(cwd, 'Cargo.toml'))) {
@@ -1887,24 +1998,45 @@ export class Orchestrator {
       command = 'go build ./...';
     }
 
-    if (!command) {
+    if (!command && !lintCommand) {
       return { success: true };
     }
 
-    console.log(pc.cyan(`\n[VERIFY] Running verification command: "${command}"...`));
     const { exec } = await import('child_process');
-    return new Promise((resolve) => {
-      exec(command, { cwd, timeout: 30000 }, (error, stdout, stderr) => {
-        if (error) {
-          const logs = (stdout + '\n' + stderr).trim();
-          console.log(pc.red(`[VERIFY] Verification failed!`));
-          resolve({ success: false, errorLogs: logs });
-        } else {
-          console.log(pc.green(`[VERIFY] Verification passed.`));
-          resolve({ success: true });
-        }
+
+    const runCmd = (cmd: string): Promise<{ success: boolean; logs?: string }> => {
+      return new Promise((resolve) => {
+        exec(cmd, { cwd, timeout: 30000 }, (error, stdout, stderr) => {
+          if (error) {
+            resolve({ success: false, logs: (stdout + '\n' + stderr).trim() });
+          } else {
+            resolve({ success: true });
+          }
+        });
       });
-    });
+    };
+
+    if (command) {
+      console.log(pc.cyan(`\n[VERIFY] Running verification command: "${command}"...`));
+      const res = await runCmd(command);
+      if (!res.success) {
+        console.log(pc.red(`[VERIFY] Verification failed!`));
+        return { success: false, errorLogs: res.logs };
+      }
+      console.log(pc.green(`[VERIFY] Verification passed.`));
+    }
+
+    if (lintCommand) {
+      console.log(pc.cyan(`\n[VERIFY] Running linter command: "${lintCommand}"...`));
+      const res = await runCmd(lintCommand);
+      if (!res.success) {
+        console.log(pc.red(`[VERIFY] Linter failed!`));
+        return { success: false, errorLogs: res.logs };
+      }
+      console.log(pc.green(`[VERIFY] Linter passed.`));
+    }
+
+    return { success: true };
   }
 
   private isBuildErrorRelated(errorLogs: string, modifiedFiles: string[]): boolean {
