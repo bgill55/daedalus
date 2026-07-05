@@ -1,3 +1,10 @@
+## [1.38.2](https://github.com/bgill55/daedalus/compare/v1.38.1...v1.38.2) (2026-07-05)
+
+
+### Bug Fixes
+
+* **todo:** support property-level merging and default empty content to prevent SQLite NOT NULL constraint failures ([c7abc8f](https://github.com/bgill55/daedalus/commit/c7abc8fe117877b93c4dab6eff9fe70b80c05e05))
+
 ## [1.38.1](https://github.com/bgill55/daedalus/compare/v1.38.0...v1.38.1) (2026-07-05)
 
 
