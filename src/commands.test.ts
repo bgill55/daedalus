@@ -235,6 +235,22 @@ describe('Session Command', () => {
     const successCall = logSpy.mock.calls.find(c => c[0] && c[0].includes('Deleted session'));
     expect(successCall).toBeDefined();
   });
+
+  it('exports a session to markdown', async () => {
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const writeSpy = vi.spyOn(fs, 'writeFileSync').mockImplementation(() => {});
+    
+    mockContext.messages = [
+      { role: 'user', content: 'hello' },
+      { role: 'assistant', content: 'hi', tool_calls: [] }
+    ];
+
+    const handled = await executeCommand('/session export test-export.md', mockContext);
+    expect(handled).toBe(true);
+    expect(writeSpy).toHaveBeenCalled();
+    const successCall = logSpy.mock.calls.find(c => c[0] && c[0].includes('Session transcript exported to'));
+    expect(successCall).toBeDefined();
+  });
 });
 
 describe('Changelog Command', () => {

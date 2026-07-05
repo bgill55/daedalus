@@ -922,7 +922,7 @@ Once you have finished making changes, I will automatically re-run the command t
   },
   {
     name: '/session',
-    description: 'Manage chat sessions — /session new to start, /session new <path> to start in another project, /session load <id> to restore',
+    description: 'Manage chat sessions — /session new to start, /session load <id> to restore, /session export [path] to save transcript',
     execute: async (args, ctx) => {
       const parts = args.trim().split(/\s+/);
       const subcommand = parts[0].toLowerCase();
@@ -948,6 +948,7 @@ Once you have finished making changes, I will automatically re-run the command t
         console.log(pc.gray('Use `/session new [title]` to start a new session.'));
         console.log(pc.gray('Use `/session rename <title>` to rename the current session.'));
         console.log(pc.gray('Use `/session delete <id>` to delete a session.'));
+        console.log(pc.gray('Use `/session export [path]` to export the current session to Markdown.'));
         return;
       }
 
@@ -1065,7 +1066,53 @@ Once you have finished making changes, I will automatically re-run the command t
         return;
       }
 
-      console.log(pc.red(`Unknown subcommand: ${subcommand}. Try: list, search, load, new, rename, delete`));
+      if (subcommand === 'export') {
+        const mdPath = subcommandArg || `transcript-${ctx.sessionManager.sessionId}.md`;
+        const resolved = path.resolve(ctx.sessionManager.projectRoot || '.', mdPath);
+        
+        let md = `# Daedalus Session: ${ctx.sessionManager.sessionTitle}\n\n`;
+        md += `*Generated: ${new Date().toLocaleString()}*\n\n---\n\n`;
+
+        for (const msg of ctx.messages) {
+          if (msg.role === 'system') continue;
+
+          if (msg.role === 'user') {
+            md += `### 👤 User\n\n`;
+            md += `${msg.content}\n\n---\n\n`;
+          } else if (msg.role === 'assistant') {
+            md += `### 🤖 Daedalus\n\n`;
+            if (msg.content) {
+              md += `${msg.content}\n\n`;
+            }
+            if (msg.tool_calls && msg.tool_calls.length > 0) {
+              md += `#### 🛠️ Tool Execution\n\n`;
+              for (const tc of msg.tool_calls) {
+                md += `* **${tc.function.name}**\n`;
+                try {
+                  const prettyArgs = JSON.stringify(JSON.parse(tc.function.arguments), null, 2);
+                  md += `  \`\`\`json\n${prettyArgs}\n  \`\`\`\n`;
+                } catch {
+                  md += `  *Arguments*: \`${tc.function.arguments}\`\n`;
+                }
+              }
+              md += `\n`;
+            }
+            md += `---\n\n`;
+          } else if (msg.role === 'tool') {
+            md += `#### 📥 Tool Response (${msg.name || 'unknown'})\n\n`;
+            const trimmedContent = msg.content && msg.content.length > 2000 
+              ? msg.content.slice(0, 2000) + '\n\n... (output truncated for readability)'
+              : msg.content;
+            md += `\`\`\`text\n${trimmedContent || '(no output)'}\n\`\`\`\n\n---\n\n`;
+          }
+        }
+
+        fs.writeFileSync(resolved, md, 'utf8');
+        console.log(pc.green(`Session transcript exported to: ${pc.bold(resolved)}`));
+        return;
+      }
+
+      console.log(pc.red(`Unknown subcommand: ${subcommand}. Try: list, search, load, new, rename, delete, export`));
     }
   },
   {
