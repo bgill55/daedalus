@@ -31,6 +31,9 @@ export function createTuiRepl(deps: ReplDeps): () => Promise<void> {
   // Wrapper so blessed writes bypass the tuiWrite override of process.stdout.write
   const originalStdoutWrite = process.stdout.write.bind(process.stdout);
   const originalStderrWrite = process.stderr.write.bind(process.stderr);
+
+  (globalThis as any).originalStdoutWrite = originalStdoutWrite;
+  (globalThis as any).originalStderrWrite = originalStderrWrite;
   const customStdout = new Writable({
     write(chunk, encoding, callback) {
       originalStdoutWrite(chunk, encoding);
@@ -182,6 +185,8 @@ export function createTuiRepl(deps: ReplDeps): () => Promise<void> {
     process.stdout.write = originalStdoutWrite;
     process.stderr.write = originalStderrWrite;
     delete (globalThis as any).isTui;
+    delete (globalThis as any).originalStdoutWrite;
+    delete (globalThis as any).originalStderrWrite;
   }
 
   // Keyboard navigation / Global exit
