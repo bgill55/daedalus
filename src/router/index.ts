@@ -273,10 +273,13 @@ export class LocalRouter {
       body.tool_choice = 'auto';
     }
 
+    const sanitizedMessages = sanitizeMessagesForModel(body.messages, model);
+
     try {
       const start = Date.now();
       const response = await client.chat.completions.create({
         ...body,
+        messages: sanitizedMessages,
         model: actualModel,
       }, { signal }) as ChatResponse;
       
@@ -305,10 +308,13 @@ export class LocalRouter {
       body.tool_choice = 'auto';
     }
 
+    const sanitizedMessages = sanitizeMessagesForModel(body.messages, model);
+
     try {
       const start = Date.now();
       const stream = await client.chat.completions.create({
         ...body,
+        messages: sanitizedMessages,
         model: actualModel,
         stream: true,
       }, { signal });
@@ -381,6 +387,31 @@ function isLocalEndpoint(endpoint: string): boolean {
   } catch {
     return false;
   }
+}
+
+export function sanitizeMessagesForModel(messages: any[], model: ModelEntry): any[] {
+  if (!messages) return [];
+  return messages.map(msg => {
+    let content = msg.content;
+    if (content === null || content === undefined) {
+      content = '';
+    } else if (Array.isArray(content)) {
+      if (model.supportsVision) {
+        // Keep as-is
+      } else {
+        // Strip vision/image parts and join text parts
+        const textParts = content
+          .filter((part: any) => part.type === 'text')
+          .map((part: any) => part.text || '')
+          .join('\n');
+        content = textParts || '[Image/Vision Payload Removed]';
+      }
+    }
+    return {
+      ...msg,
+      content,
+    };
+  });
 }
 
 // Factory function for easy creation

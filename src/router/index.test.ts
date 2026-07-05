@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { LocalRouter, createRouter } from './index.js';
+import { LocalRouter, createRouter, sanitizeMessagesForModel } from './index.js';
 import type { RouterConfig } from './types.js';
 import * as health from './health.js';
 import * as rateLimiter from './rate-limiter.js';
@@ -242,6 +242,49 @@ describe('LocalRouter', () => {
     const result = await router.route({ messages: [{ role: 'user', content: 'hello' }] });
     expect(result.model.name).toBe('secondary');
     consumeTokensSpy.mockRestore();
+  });
+
+  describe('sanitizeMessagesForModel', () => {
+    it('keeps vision payload intact if model supports vision', () => {
+      const model = { name: 'v', endpoint: 'http://localhost:1/v1', model: 'm', priority: 1, enabled: true, supportsVision: true };
+      const messages = [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Analyze this image:' },
+            { type: 'image_url', image_url: { url: 'data:image/png;base64,abc' } }
+          ]
+        }
+      ];
+      const sanitized = sanitizeMessagesForModel(messages as any, model);
+      expect(sanitized).toEqual(messages);
+    });
+
+    it('strips vision payload and preserves text if model does not support vision', () => {
+      const model = { name: 't', endpoint: 'http://localhost:1/v1', model: 'm', priority: 1, enabled: true, supportsVision: false };
+      const messages = [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'Analyze this image:' },
+            { type: 'image_url', image_url: { url: 'data:image/png;base64,abc' } }
+          ]
+        }
+      ];
+      const sanitized = sanitizeMessagesForModel(messages as any, model);
+      expect(sanitized[0].content).toBe('Analyze this image:');
+    });
+
+    it('defaults null or undefined content to empty string', () => {
+      const model = { name: 't', endpoint: 'http://localhost:1/v1', model: 'm', priority: 1, enabled: true };
+      const messages = [
+        { role: 'assistant', content: null, tool_calls: [] },
+        { role: 'assistant', content: undefined, tool_calls: [] }
+      ];
+      const sanitized = sanitizeMessagesForModel(messages as any, model);
+      expect(sanitized[0].content).toBe('');
+      expect(sanitized[1].content).toBe('');
+    });
   });
 
 });
