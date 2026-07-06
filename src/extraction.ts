@@ -27,6 +27,13 @@ function isValidTitle(title: string): boolean {
   return true;
 }
 
+function cleanTitle(title: string): string {
+  let cleaned = title.trim();
+  cleaned = cleaned.replace(/^["']|["']$/g, '').trim();
+  cleaned = cleaned.replace(/^(title|conversation title|here is a title|here is the title|proposed title):\s*/i, '').trim();
+  return cleaned.replace(/^["']|["']$/g, '').trim();
+}
+
 function recentTurnHasLearningSignal(messages: ChatMessage[]): boolean {
   const lastMsgs = messages.slice(-10);
   for (const msg of lastMsgs) {
@@ -80,7 +87,7 @@ export async function extractAndSave(
         max_tokens: 20,
       });
 
-      let newTitle = (titleResponse.choices[0]?.message?.content || '').trim().replace(/^["']|["']$/g, '');
+      let newTitle = cleanTitle(titleResponse.choices[0]?.message?.content || '');
 
       if (!isValidTitle(newTitle)) {
         const retryResponse = await router.chat.completions.create({
@@ -92,7 +99,7 @@ export async function extractAndSave(
           temperature: 0.3,
           max_tokens: 20,
         });
-        newTitle = (retryResponse.choices[0]?.message?.content || '').trim().replace(/^["']|["']$/g, '');
+        newTitle = cleanTitle(retryResponse.choices[0]?.message?.content || '');
       }
 
       if (isValidTitle(newTitle)) {
