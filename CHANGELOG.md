@@ -1,3 +1,10 @@
+## [1.39.3](https://github.com/bgill55/daedalus/compare/v1.39.2...v1.39.3) (2026-07-06)
+
+
+### Bug Fixes
+
+* **session:** clean conversational prefixes from generated titles ([3120760](https://github.com/bgill55/daedalus/commit/312076044a735f679c499373b9d8f52a13ceb8bc))
+
 ## [1.39.2](https://github.com/bgill55/daedalus/compare/v1.39.1...v1.39.2) (2026-07-05)
 
 
