@@ -68,14 +68,32 @@ export function initModelSelect(parent: any, config: any, router: any) {
     parent.screen.render();
   });
 
-  // Handle single click item selection
+  // Focus when clicking empty space or border of the list
+  list.on('click', () => {
+    list.focus();
+    parent.screen.render();
+  });
+
+  // Handle single click item selection and focus
   list.on('element click', (el: any) => {
+    list.focus();
     const index = (list as any).items.indexOf(el);
     if (index !== -1) {
       list.select(index);
       list.emit('select', el, index);
       parent.screen.render();
     }
+  });
+
+  // Mouse wheel support for shifting selection
+  list.on('wheelup', () => {
+    list.up();
+    parent.screen.render();
+  });
+
+  list.on('wheeldown', () => {
+    list.down();
+    parent.screen.render();
   });
 
   return list;

@@ -76,6 +76,17 @@ export function createTuiRepl(deps: ReplDeps): () => Promise<void> {
     ansi: true,
   });
 
+  // Enable mouse wheel scrolling on main console log box
+  logBox.on('wheelup', () => {
+    logBox.scroll(-3);
+    screen.render();
+  });
+
+  logBox.on('wheeldown', () => {
+    logBox.scroll(3);
+    screen.render();
+  });
+
   // Create Input Box (Bottom Left)
   const inputField = blessed.textbox({
     parent: screen,
