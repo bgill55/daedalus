@@ -1,3 +1,11 @@
+## [1.39.4](https://github.com/bgill55/daedalus/compare/v1.39.3...v1.39.4) (2026-07-07)
+
+
+### Bug Fixes
+
+* **tui:** add mouse click-to-focus and wheel scroll support to lists and console ([59ed40b](https://github.com/bgill55/daedalus/commit/59ed40b9e4020ee45c5e887dba1837fd39d3f24c))
+* **tui:** pass amount argument to list up and down methods ([8de67f9](https://github.com/bgill55/daedalus/commit/8de67f9aa7762168e4be7f29e70d3d96dcaef934))
+
 ## [1.39.3](https://github.com/bgill55/daedalus/compare/v1.39.2...v1.39.3) (2026-07-06)
 
 
