@@ -156,12 +156,12 @@ export function initFileTree(parent: any, projectRoot: string, activeFiles: Map<
 
   // Mouse wheel support for shifting selection
   list.on('wheelup', () => {
-    list.up();
+    list.up(1);
     parent.screen.render();
   });
 
   list.on('wheeldown', () => {
-    list.down();
+    list.down(1);
     parent.screen.render();
   });
 

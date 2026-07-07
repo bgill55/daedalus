@@ -87,12 +87,12 @@ export function initModelSelect(parent: any, config: any, router: any) {
 
   // Mouse wheel support for shifting selection
   list.on('wheelup', () => {
-    list.up();
+    list.up(1);
     parent.screen.render();
   });
 
   list.on('wheeldown', () => {
-    list.down();
+    list.down(1);
     parent.screen.render();
   });
 
