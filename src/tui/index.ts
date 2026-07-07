@@ -127,6 +127,13 @@ export function createTuiRepl(deps: ReplDeps): () => Promise<void> {
   modelList.on('focus', () => { focusIndex = 1; });
   fileList.on('focus', () => { focusIndex = 2; });
 
+  // Release key grab when inputField blurs to allow navigation in other focused widgets
+  inputField.on('blur', () => {
+    const val = inputField.getValue();
+    inputField.cancel();
+    inputField.setValue(val);
+  });
+
   // Prevent textbox from inserting tab spaces and manually switch focus on Tab/S-Tab
   const originalListener = (inputField as any)._listener;
   (inputField as any)._listener = function(ch: string, key: any) {
