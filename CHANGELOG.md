@@ -1,3 +1,10 @@
+## [1.39.6](https://github.com/bgill55/daedalus/compare/v1.39.5...v1.39.6) (2026-07-07)
+
+
+### Bug Fixes
+
+* **tui:** call list.setItems explicitly after construction to enable key navigation ([97ad1db](https://github.com/bgill55/daedalus/commit/97ad1db0efe7208f7aa2942a33a4ef4742b2ff3b))
+
 ## [1.39.5](https://github.com/bgill55/daedalus/compare/v1.39.4...v1.39.5) (2026-07-07)
 
 
