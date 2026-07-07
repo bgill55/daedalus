@@ -1,3 +1,10 @@
+## [1.39.5](https://github.com/bgill55/daedalus/compare/v1.39.4...v1.39.5) (2026-07-07)
+
+
+### Bug Fixes
+
+* **tui:** cancel textbox readInput when blurred to allow navigation in other focused widgets ([50b54b4](https://github.com/bgill55/daedalus/commit/50b54b4d11dbdedf80f4128a523b1210443f0568))
+
 ## [1.39.4](https://github.com/bgill55/daedalus/compare/v1.39.3...v1.39.4) (2026-07-07)
 
 
