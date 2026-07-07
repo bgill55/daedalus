@@ -16,7 +16,6 @@ export function initModelSelect(parent: any, config: any, router: any) {
     height: 8,
     border: { type: 'line' },
     label: ' SELECTED MODEL ',
-    items: options.map(opt => `  ${opt}`),
     keys: true,
     mouse: true,
     scrollbar: {
@@ -31,6 +30,9 @@ export function initModelSelect(parent: any, config: any, router: any) {
       item: { fg: 'white' }
     }
   });
+
+  // Call setItems explicitly to avoid neo-blessed constructor bugs
+  list.setItems(options.map(opt => `  ${opt}`));
 
   // Highlight initial selection
   const currentOverride = config.modelOverride;
