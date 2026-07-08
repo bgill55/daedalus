@@ -333,9 +333,15 @@ export function createModelFunctions(deps: ModelDeps) {
       }
 
       for (const result of results) {
+        let content = result.content;
+        const failedWriteTools = ['patch', 'write_file'];
+        if (!result.success && failedWriteTools.includes(result.name)) {
+          content += `\n\n[SYSTEM WARNING] The changes to the file were NOT applied due to the error above. You MUST first resolve this error (e.g. by using "read_file" to get the current content if it was a stale read, or correcting code syntax/types) and successfully apply the file change before moving on to other tasks or files. Do not skip or ignore this file.`;
+        }
+
         messages.push({
           role: 'tool',
-          content: truncateToolResult(result.content),
+          content: truncateToolResult(content),
           tool_call_id: result.toolCallId,
         } as ChatMessage);
 
