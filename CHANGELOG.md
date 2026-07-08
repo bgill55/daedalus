@@ -1,3 +1,10 @@
+## [1.39.8](https://github.com/bgill55/daedalus/compare/v1.39.7...v1.39.8) (2026-07-08)
+
+
+### Bug Fixes
+
+* **tui:** dynamically calculate user box wrap width based on mode to prevent nested border wrapping ([4362d01](https://github.com/bgill55/daedalus/commit/4362d01d6e1444f5963282a30dc44e0389ba0c1a))
+
 ## [1.39.7](https://github.com/bgill55/daedalus/compare/v1.39.6...v1.39.7) (2026-07-08)
 
 
