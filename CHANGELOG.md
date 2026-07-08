@@ -1,3 +1,10 @@
+## [1.39.7](https://github.com/bgill55/daedalus/compare/v1.39.6...v1.39.7) (2026-07-08)
+
+
+### Bug Fixes
+
+* **tui:** remove custom input blur listener to prevent double character typing ([6494f48](https://github.com/bgill55/daedalus/commit/6494f4830c1fded59fb7debebde75f7b05e360bb))
+
 ## [1.39.6](https://github.com/bgill55/daedalus/compare/v1.39.5...v1.39.6) (2026-07-07)
 
 
