@@ -1,3 +1,10 @@
+## [1.39.9](https://github.com/bgill55/daedalus/compare/v1.39.8...v1.39.9) (2026-07-08)
+
+
+### Bug Fixes
+
+* **tui:** add responsive thinking spinner animation inside logBox border label ([b2122d5](https://github.com/bgill55/daedalus/commit/b2122d5417a571dc55da414e30bffb1b81dedc7e))
+
 ## [1.39.8](https://github.com/bgill55/daedalus/compare/v1.39.7...v1.39.8) (2026-07-08)
 
 
