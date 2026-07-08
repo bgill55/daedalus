@@ -32,26 +32,48 @@ export class DaedalusSpinner {
     this.color = options.color ?? ((s: string) => `\x1b[36m${s}\x1b[0m`); // default cyan
   }
 
+  private isTui(): boolean {
+    return (globalThis as any).isTui === true;
+  }
+
   private isTTY(): boolean {
-    if ((globalThis as any).isTui) return false;
+    if (this.isTui()) return false;
     return process.stdout.isTTY === true;
   }
 
   start(text?: string): void {
     if (this.running) return;
-    if (!this.isTTY()) return;
+    const tui = this.isTui();
+    if (!tui && !this.isTTY()) return;
     this.running = true;
     if (text) this.text = text;
     this.frameIndex = 0;
-    process.stdout.write('\x1b[?25l');
-    this.render();
-    this.timer = setInterval(() => this.render(), this.interval);
+
+    if (tui) {
+      this.renderTui();
+      this.timer = setInterval(() => this.renderTui(), this.interval);
+    } else {
+      process.stdout.write('\x1b[?25l');
+      this.render();
+      this.timer = setInterval(() => this.render(), this.interval);
+    }
   }
 
   private render(): void {
     const frame = this.frames[this.frameIndex % this.frames.length];
     const line = ` ${frame} ${this.text}...`;
     process.stdout.write(`\x1b[2K\x1b[0G${this.color(line)}`);
+    this.frameIndex++;
+  }
+
+  private renderTui(): void {
+    const logBox = (globalThis as any).tuiLogBox;
+    const screen = (globalThis as any).tuiScreen;
+    if (logBox && screen) {
+      const frame = this.frames[this.frameIndex % this.frames.length];
+      logBox.setLabel(` CONSOLE (${frame} ${this.text}...) `);
+      screen.render();
+    }
     this.frameIndex++;
   }
 
@@ -62,11 +84,20 @@ export class DaedalusSpinner {
       clearInterval(this.timer);
       this.timer = null;
     }
-    if (!this.isTTY()) return;
-    process.stdout.write(`\x1b[2K\x1b[0G`);
-    process.stdout.write('\x1b[?25h');
-    if (finalText) {
-      process.stdout.write(`${finalText}\n`);
+    if (this.isTui()) {
+      const logBox = (globalThis as any).tuiLogBox;
+      const screen = (globalThis as any).tuiScreen;
+      if (logBox && screen) {
+        logBox.setLabel('');
+        screen.render();
+      }
+    } else {
+      if (!this.isTTY()) return;
+      process.stdout.write(`\x1b[2K\x1b[0G`);
+      process.stdout.write('\x1b[?25h');
+      if (finalText) {
+        process.stdout.write(`${finalText}\n`);
+      }
     }
   }
 

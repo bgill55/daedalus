@@ -87,6 +87,10 @@ export function createTuiRepl(deps: ReplDeps): () => Promise<void> {
     screen.render();
   });
 
+  // Register TUI globals so spinners can access and update status
+  (globalThis as any).tuiScreen = screen;
+  (globalThis as any).tuiLogBox = logBox;
+
   // Create Input Box (Bottom Left)
   const inputField = blessed.textbox({
     parent: screen,
@@ -200,6 +204,8 @@ export function createTuiRepl(deps: ReplDeps): () => Promise<void> {
     delete (globalThis as any).isTui;
     delete (globalThis as any).originalStdoutWrite;
     delete (globalThis as any).originalStderrWrite;
+    delete (globalThis as any).tuiScreen;
+    delete (globalThis as any).tuiLogBox;
   }
 
   // Keyboard navigation / Global exit
