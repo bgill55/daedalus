@@ -1,3 +1,10 @@
+## [1.39.10](https://github.com/bgill55/daedalus/compare/v1.39.9...v1.39.10) (2026-07-08)
+
+
+### Bug Fixes
+
+* **model:** inject strict system warnings for failed patch and write_file tools to force correction and prevent skipping ([3af31f2](https://github.com/bgill55/daedalus/commit/3af31f2636c1f7aa6f7fe44caa65d40f66253f27))
+
 ## [1.39.9](https://github.com/bgill55/daedalus/compare/v1.39.8...v1.39.9) (2026-07-08)
 
 
