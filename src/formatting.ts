@@ -36,9 +36,15 @@ function wrapLine(line: string, maxW: number): string[] {
 // ── User message ───────────────────────────────────────────────
 
 export function printUserTurn(userMessage: string): void {
+  const isTui = (globalThis as any).isTui;
+  const cols = process.stdout.columns ?? 80;
+  const targetWidth = isTui 
+    ? Math.max(40, Math.floor(cols * 0.8) - 8)
+    : Math.max(50, cols - 5);
+
   const lines = userMessage.split('\n');
   const wrapped: string[] = [];
-  for (const line of lines) wrapped.push(...wrapLine(line, termW));
+  for (const line of lines) wrapped.push(...wrapLine(line, targetWidth));
 
   const contentW = wrapped.reduce((m, l) => Math.max(m, stripAnsi(l).length), 0);
   const boxW = Math.max(20, contentW) + 2;
