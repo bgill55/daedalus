@@ -279,6 +279,26 @@ export const BUILTIN_TOOLS: ToolDefinition[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'ask_user',
+      description: 'Ask the user a question or present a list of choices, and wait for their input. Use this to clarify requirements or get user feedback before making critical decisions.',
+      parameters: {
+        type: 'object',
+        properties: {
+          question: { type: 'string', description: 'The question to ask the user' },
+          options: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'Optional list of multiple choice options for the user to select from',
+          },
+        },
+        required: ['question'],
+        additionalProperties: false,
+      },
+    },
+  },
 ];
 
 export const POWER_TOOLS: ToolDefinition[] = [
@@ -457,4 +477,5 @@ export const TOOL_IMPLEMENTATIONS: Record<string, string> = {
   read_process: 'tools/builtin/process-watcher.readProcess',
   kill_process: 'tools/builtin/process-watcher.killProcess',
   eval_code: 'tools/builtin/eval.evalCode',
+  ask_user: 'tools/builtin/ask_user.askUser',
 };
