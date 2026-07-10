@@ -1,3 +1,10 @@
+# [1.40.0](https://github.com/bgill55/daedalus/compare/v1.39.10...v1.40.0) (2026-07-10)
+
+
+### Features
+
+* **tools:** add ask_user tool for interactive prompt input ([005adb9](https://github.com/bgill55/daedalus/commit/005adb98d9a21aeeb94f01a1199b2c3215665a11))
+
 ## [1.39.10](https://github.com/bgill55/daedalus/compare/v1.39.9...v1.39.10) (2026-07-08)
 
 
