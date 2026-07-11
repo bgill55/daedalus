@@ -1,3 +1,10 @@
+## [1.40.1](https://github.com/bgill55/daedalus/compare/v1.40.0...v1.40.1) (2026-07-11)
+
+
+### Bug Fixes
+
+* **extraction:** parse JSON containing nested brackets robustly ([8bb2223](https://github.com/bgill55/daedalus/commit/8bb2223dd34b58c6f9a7ed4667968ba40e3a8baa))
+
 # [1.40.0](https://github.com/bgill55/daedalus/compare/v1.39.10...v1.40.0) (2026-07-10)
 
 
