@@ -152,15 +152,20 @@ export async function extractAndSave(
     const text = (response.choices[0]?.message?.content || '').trim();
     if (!text) return;
 
-    const jsonMatch = text.match(/\[[\s\S]*?\]/);
-    if (!jsonMatch) return;
-
     let parsed: any;
     try {
-      parsed = JSON.parse(jsonMatch[0]);
+      parsed = JSON.parse(text);
     } catch {
-      const cleanedJson = cleanJson(jsonMatch[0]);
-      parsed = JSON.parse(cleanedJson);
+      const firstBracket = text.indexOf('[');
+      const lastBracket = text.lastIndexOf(']');
+      if (firstBracket === -1 || lastBracket === -1 || lastBracket < firstBracket) return;
+      const jsonCandidate = text.slice(firstBracket, lastBracket + 1);
+      try {
+        parsed = JSON.parse(jsonCandidate);
+      } catch {
+        const cleanedJson = cleanJson(jsonCandidate);
+        parsed = JSON.parse(cleanedJson);
+      }
     }
     if (!Array.isArray(parsed)) return;
 

@@ -266,4 +266,35 @@ describe('Fact extraction', () => {
     expect(mockSessionManager.updateSessionTitle).not.toHaveBeenCalled();
   });
 
+  it('correctly parses JSON with nested brackets in values', async () => {
+    const messages: ChatMessage[] = [
+      { role: 'user', content: 'use a custom witty opener for this function' },
+      { role: 'assistant', content: 'Sure, I will use [Witty opener] at the beginning.' },
+      { role: 'user', content: 'looks good, commit it.' },
+      { role: 'assistant', content: 'Done.', tool_calls: [{ id: '1', type: 'function', function: { name: 'git_commit', arguments: '{}' } }] },
+    ];
+
+    const nestedJson = '[{"key":"witty opener style","value":"[Witty opener]"}]';
+
+    const mockRouter = {
+      chat: {
+        completions: {
+          create: vi.fn().mockResolvedValue({
+            choices: [{ message: { content: `Here is the JSON:\n${nestedJson}\nHope that helps!` } }],
+          }),
+        },
+      },
+    };
+
+    const mockSessionManager = {
+      sessionTitle: 'Witty Session',
+      loadMemory: vi.fn().mockReturnValue({ facts: [] }),
+      addFact: vi.fn(),
+      updateSessionTitle: vi.fn(),
+    };
+
+    await extractAndSave(mockRouter as any, mockSessionManager as any, messages);
+    expect(mockSessionManager.addFact).toHaveBeenCalledWith('witty opener style', '[Witty opener]', 'agent');
+  });
+
 });
