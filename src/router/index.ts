@@ -392,6 +392,7 @@ function isLocalEndpoint(endpoint: string): boolean {
 export function sanitizeMessagesForModel(messages: any[], model: ModelEntry): any[] {
   if (!messages) return [];
   return messages.map(msg => {
+    const role = msg.role;
     let content = msg.content;
     if (content === null || content === undefined) {
       content = '';
@@ -399,7 +400,6 @@ export function sanitizeMessagesForModel(messages: any[], model: ModelEntry): an
       if (model.supportsVision) {
         // Keep as-is
       } else {
-        // Strip vision/image parts and join text parts
         const textParts = content
           .filter((part: any) => part.type === 'text')
           .map((part: any) => part.text || '')
@@ -407,10 +407,30 @@ export function sanitizeMessagesForModel(messages: any[], model: ModelEntry): an
         content = textParts || '[Image/Vision Payload Removed]';
       }
     }
-    return {
-      ...msg,
-      content,
-    };
+
+    const cleanMsg: any = { role, content };
+
+    if (role === 'assistant') {
+      if (msg.tool_calls && Array.isArray(msg.tool_calls) && msg.tool_calls.length > 0) {
+        cleanMsg.tool_calls = msg.tool_calls.map((tc: any) => ({
+          id: tc.id,
+          type: 'function',
+          function: {
+            name: tc.function.name,
+            arguments: tc.function.arguments,
+          },
+        }));
+      }
+      if (msg.name) cleanMsg.name = msg.name;
+    } else if (role === 'tool') {
+      cleanMsg.tool_call_id = msg.tool_call_id;
+    } else if (role === 'user') {
+      if (msg.name) cleanMsg.name = msg.name;
+    } else if (role === 'system') {
+      if (msg.name) cleanMsg.name = msg.name;
+    }
+
+    return cleanMsg;
   });
 }
 
