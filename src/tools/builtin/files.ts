@@ -310,6 +310,12 @@ function recordWriteSuccess(targetPath: string, context: ToolContext): void {
   }
 }
 
+function recordRevert(targetPath: string, context: ToolContext): void {
+  if (context.sessionReadCache && fs.existsSync(targetPath)) {
+    context.sessionReadCache.set(targetPath, fs.statSync(targetPath).mtimeMs);
+  }
+}
+
 function recordPatchFailure(targetPath: string, context: ToolContext): void {
   const streak = context.patchFailureStreak?.get(targetPath) ?? 0;
   context.patchFailureStreak?.set(targetPath, streak + 1);
@@ -547,8 +553,10 @@ export async function writeFile(args: { path: string; content: string }, context
     if (syntaxError) {
       if (previousContent !== null) {
         fs.writeFileSync(targetPath, previousContent, 'utf8');
+        recordRevert(targetPath, context);
       } else {
         fs.unlinkSync(targetPath);
+        context.sessionReadCache?.delete(targetPath);
       }
       return formatError(`Syntax error in ${args.path} — file reverted.\n${syntaxError}\nFix the error and retry.`);
     }
@@ -611,6 +619,14 @@ export async function patchFile(args: { path: string; old_string: string; new_st
     const newStr = (args.new_string ?? '').replace(/\r\n/g, '\n');
     const replaceAll = args.replace_all ?? false;
 
+    if (replaceAll && /^\w+$/.test(oldStr) && oldStr.length <= 4) {
+      const escaped = oldStr.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+      const regex = new RegExp(`(\\w|-)${escaped}|${escaped}(\\w|-)`, 'g');
+      if (regex.test(content)) {
+        return formatError(`Safety block: replace_all on a short string ('${args.old_string}') was blocked because it would destructively modify larger words or hyphenated names (like in '${content.match(regex)?.[0] || ''}'). Please provide more surrounding lines/context in old_string to make the patch unique.`);
+      }
+    }
+
     let patched: string;
     if (replaceAll) {
       if (!content.includes(oldStr)) {
@@ -664,6 +680,7 @@ export async function patchFile(args: { path: string; old_string: string; new_st
       const syntaxError = await syntaxCheck(targetPath, context.projectRoot, changedLines.length > 0 ? changedLines : undefined);
       if (syntaxError) {
         fs.writeFileSync(targetPath, rawContent, 'utf8');
+        recordRevert(targetPath, context);
         return formatError(`Syntax error introduced by patch — reverted.\n${syntaxError}\nAnalyze the TypeScript/JavaScript compiler error above, check your brackets, semicolons, import declarations, and type definitions, and retry with a corrected patch.`);
       }
       if (context.patchHistory) {
@@ -715,6 +732,7 @@ export async function patchFile(args: { path: string; old_string: string; new_st
     const syntaxError = await syntaxCheck(targetPath, context.projectRoot, changedLinesInteractive.length > 0 ? changedLinesInteractive : undefined);
     if (syntaxError) {
       fs.writeFileSync(targetPath, rawContent, 'utf8');
+      recordRevert(targetPath, context);
       return formatError(`Syntax error introduced by patch — reverted.\n${syntaxError}\nAnalyze the TypeScript/JavaScript compiler error above, check your brackets, semicolons, import declarations, and type definitions, and retry with a corrected patch.`);
     }
 
