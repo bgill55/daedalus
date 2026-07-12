@@ -1,3 +1,10 @@
+## [1.40.2](https://github.com/bgill55/daedalus/compare/v1.40.1...v1.40.2) (2026-07-12)
+
+
+### Bug Fixes
+
+* **router:** sanitize messages to prevent 400 errors from strict providers ([8929392](https://github.com/bgill55/daedalus/commit/89293926a90a1f72705149566dae5dcfc7a9ad5a))
+
 ## [1.40.1](https://github.com/bgill55/daedalus/compare/v1.40.0...v1.40.1) (2026-07-11)
 
 
