@@ -1,3 +1,10 @@
+## [1.40.4](https://github.com/bgill55/daedalus/compare/v1.40.3...v1.40.4) (2026-07-12)
+
+
+### Bug Fixes
+
+* **files:** block destructive short replace_all and update session mtime cache on reverts ([e373d0c](https://github.com/bgill55/daedalus/commit/e373d0cb9008c90360b417c419f01eac511258fd))
+
 ## [1.40.3](https://github.com/bgill55/daedalus/compare/v1.40.2...v1.40.3) (2026-07-12)
 
 
