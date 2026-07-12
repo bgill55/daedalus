@@ -1,3 +1,10 @@
+## [1.40.3](https://github.com/bgill55/daedalus/compare/v1.40.2...v1.40.3) (2026-07-12)
+
+
+### Bug Fixes
+
+* **orchestrator:** resolve projectRoot paths and build verification scope for sub-projects ([da34185](https://github.com/bgill55/daedalus/commit/da34185e9902a9b03a4e1cc076caae054dceb88e))
+
 ## [1.40.2](https://github.com/bgill55/daedalus/compare/v1.40.1...v1.40.2) (2026-07-12)
 
 
