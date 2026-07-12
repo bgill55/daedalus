@@ -436,9 +436,19 @@ function resolvePath(p: string, projectRoot: string): string {
   if (!p) {
     throw new Error('Path argument is empty or undefined');
   }
-  const resolved = path.isAbsolute(p) ? p : path.resolve(projectRoot, p);
+
+  let normalizedPath = p;
+  if (process.platform !== 'win32') {
+    normalizedPath = normalizedPath.replace(/\\/g, '/');
+    if (/^[A-Za-z]:\//.test(normalizedPath)) {
+      const drive = normalizedPath[0].toLowerCase();
+      normalizedPath = `/mnt/${drive}${normalizedPath.substring(2)}`;
+    }
+  }
+
+  const resolved = path.isAbsolute(normalizedPath) ? normalizedPath : path.resolve(projectRoot, normalizedPath);
   // Allow explicit absolute paths to existing locations (cross-project access)
-  if (path.isAbsolute(p) && fs.existsSync(resolved)) return resolved;
+  if (path.isAbsolute(normalizedPath) && fs.existsSync(resolved)) return resolved;
   const relative = path.relative(projectRoot, resolved);
   if (relative.startsWith('..') || path.isAbsolute(relative)) {
     throw new Error(`Path traversal blocked: ${p} is outside the project directory`);

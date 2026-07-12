@@ -106,7 +106,7 @@ export async function runEnsembleWorkflow(
   console.log(pc.cyan(`[ENSEMBLE] Pipeline: Coder (${draftModel}) -> Reviewer (${criticModel}) with ${candidatesCount} candidates`));
 
   let critiques = '';
-  const cwd = process.cwd();
+  const cwd = context.projectRoot || process.cwd();
   const enabledModels = router.getEnabledModels();
 
   function getCandidateParams(index: number): { model: string; temp: number } {
@@ -213,7 +213,7 @@ export async function runEnsembleWorkflow(
         cand.testsPass = testsPass;
 
         const projectStack = detectProjectStack(context.projectRoot || process.cwd());
-        const frameworkRules = Orchestrator.getFrameworkGuidance(projectStack);
+        const frameworkRules = Orchestrator.getFrameworkGuidance(projectStack, context.projectRoot);
 
         const criticGoal = `You are evaluating a candidate code draft to solve the following goal:
 

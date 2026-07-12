@@ -73,7 +73,7 @@ export class Orchestrator {
   }
 
   private async discoverProjectContext(): Promise<string> {
-    const cwd = process.cwd();
+    const cwd = this.toolContext.projectRoot || process.cwd();
     const parts: string[] = [];
 
     try {
@@ -227,7 +227,7 @@ export class Orchestrator {
       const simplifyBlock = simplifyHint ? `\n\n${simplifyHint}` : '';
       const messages: ChatMessage[] = [
         { role: 'system', content: systemPrompt + (attempts > 1 ? `\n\nIMPORTANT: You MUST create a valid plan. Each subtask needs an explicit file path and concrete wording.${retryHint}` : '') + simplifyBlock },
-        { role: 'user', content: `Create a step-by-step plan with one subtask per file for: ${goal}\n\nProject context:\n${projectContext || '(none discovered)'}${Orchestrator.getFrameworkGuidance(projectContext)}\n\n${this.toolContext.activeFiles.size > 0 ? 'Files in context: ' + Array.from(this.toolContext.activeFiles.values()).join(', ') : ''}\n\nRemember: one subtask per file, include the exact file path in each subtask, order by dependencies.` },
+        { role: 'user', content: `Create a step-by-step plan with one subtask per file for: ${goal}\n\nProject context:\n${projectContext || '(none discovered)'}${Orchestrator.getFrameworkGuidance(projectContext, this.toolContext.projectRoot)}\n\n${this.toolContext.activeFiles.size > 0 ? 'Files in context: ' + Array.from(this.toolContext.activeFiles.values()).join(', ') : ''}\n\nRemember: one subtask per file, include the exact file path in each subtask, order by dependencies.` },
       ];
 
       const planSpinner = new DaedalusSpinner({ text: `planner generating plan`, color: (s) => pc.cyan(s) });
@@ -312,7 +312,7 @@ export class Orchestrator {
   private buildFallbackPlan(goal: string, projectContext?: string): string {
     const isFrontendGoal = /\b(frontend|front[- ]end|ui|interface|page|layout|landing|component|hero|navbar|navigation)\b/i.test(goal);
     if (isFrontendGoal && projectContext) {
-      const cwd = process.cwd();
+      const cwd = this.toolContext.projectRoot || process.cwd();
       const hasApp      = fs.existsSync(path.join(cwd, 'app'));
       const hasSrcPages = fs.existsSync(path.join(cwd, 'src', 'pages'));
       const hasPages    = fs.existsSync(path.join(cwd, 'pages'));
@@ -1211,7 +1211,7 @@ export class Orchestrator {
     return false;
   }
 
-  public static getFrameworkGuidance(projectContext?: string): string {
+  public static getFrameworkGuidance(projectContext?: string, projectRoot?: string): string {
     if (!projectContext) return '';
     const ctx = projectContext;
     if (/\bNext\.js\b/i.test(ctx)) {
@@ -1221,7 +1221,7 @@ export class Orchestrator {
       const linkRule = isModern
         ? 'Use <Link href="...">visible text</Link>. Do NOT nest an <a> tag inside <Link> — Next.js 13+ renders the anchor automatically.'
         : 'Use <Link href="..."><a className="...">text</a></Link> for Next.js 12 and earlier.';
-      const isAppRouter = fs.existsSync(path.join(process.cwd(), 'app'));
+      const isAppRouter = fs.existsSync(path.join(projectRoot || process.cwd(), 'app'));
       const jsxRule = isAppRouter
         ? 'Do NOT add `import React from \'react\'` at the top of .tsx files. Next.js App Router uses the automatic JSX runtime.'
         : 'If other files in the project (e.g. index.tsx) import React, or if ESLint has react/react-in-jsx-scope enabled, you MUST add `import React from \'react\'` at the top of .tsx files.';
@@ -1363,7 +1363,7 @@ export class Orchestrator {
           content = lines.slice(0, 80).join('\n') + '\n... (truncated)';
         }
 
-        const isAppRouter = fs.existsSync(path.join(process.cwd(), 'app'));
+        const isAppRouter = fs.existsSync(path.join(this.toolContext.projectRoot || process.cwd(), 'app'));
         const antiPatterns = [
           /legacyBehavior/,
           /^\s*<[A-Za-z]/m,
@@ -1395,7 +1395,7 @@ export class Orchestrator {
     // 3. Try common directories in the project
     const commonDirs = ['src/components', 'components', 'src/pages', 'pages', 'app', 'src', 'lib'];
     for (const commonDir of commonDirs) {
-      const fullCommonDir = path.join(process.cwd(), commonDir);
+      const fullCommonDir = path.join(this.toolContext.projectRoot || process.cwd(), commonDir);
       ref = checkDirForReference(fullCommonDir);
       if (ref) {
         return `\nExisting file in ${commonDir}/ (use as a style reference for structure and import order only):\n--- ${ref.fullPath} ---\n${ref.content}\n--- end ---`;
@@ -1406,7 +1406,7 @@ export class Orchestrator {
   }
 
   private discoverDesignTokens(): string {
-    const cwd = process.cwd();
+    const cwd = this.toolContext.projectRoot || process.cwd();
     let tokens = '';
 
     // 1. Try to find tailwind config
@@ -1505,7 +1505,7 @@ export class Orchestrator {
     }
 
     enrichedContext += `\n${frameworkBlock}${task.context}`;
-    const frameworkRules = Orchestrator.getFrameworkGuidance(projectContext);
+    const frameworkRules = Orchestrator.getFrameworkGuidance(projectContext, this.toolContext.projectRoot);
     const systemExtra = `Project context:\n${projectContext || '(none discovered)'}${frameworkRules}\n`;
 
     // Prepend a terse override reminder so the rules land in the user message too,
@@ -1599,8 +1599,8 @@ export class Orchestrator {
           });
         });
         const inheritCtx = filesDone.length > 0
-          ? `Original goal: ${task.goal}\nProject root: ${process.cwd()}\n\nIMPORTANT — Files that were partially created and MUST be completed or replaced:\n${filesDone.map(f => `  - ${f}`).join('\n')}\n\nThe previous agent left these files incomplete before hitting the turn limit. You MUST read each file, then either complete it with a proper implementation or replace it entirely. Check the existing project structure first — use read_file on existing files to understand what's already there before creating new ones.`
-          : `Original goal: ${task.goal}\nProject root: ${process.cwd()}\n\nCheck the existing project structure first — use read_file on existing files to understand what's already there before creating new ones.`;
+          ? `Original goal: ${task.goal}\nProject root: ${this.toolContext.projectRoot || process.cwd()}\n\nIMPORTANT — Files that were partially created and MUST be completed or replaced:\n${filesDone.map(f => `  - ${f}`).join('\n')}\n\nThe previous agent left these files incomplete before hitting the turn limit. You MUST read each file, then either complete it with a proper implementation or replace it entirely. Check the existing project structure first — use read_file on existing files to understand what's already there before creating new ones.`
+          : `Original goal: ${task.goal}\nProject root: ${this.toolContext.projectRoot || process.cwd()}\n\nCheck the existing project structure first — use read_file on existing files to understand what's already there before creating new ones.`;
         for (const st of deduped) {
           st.status = 'pending';
           st.splitDepth = depth + 1;
@@ -1958,7 +1958,7 @@ export class Orchestrator {
       try {
         if (fs.existsSync(patch.filePath)) {
           fs.writeFileSync(patch.filePath, patch.oldContent, 'utf8');
-          console.log(pc.gray(`  Reverted changes to ${path.relative(process.cwd(), patch.filePath)}`));
+          console.log(pc.gray(`  Reverted changes to ${path.relative(this.toolContext.projectRoot || process.cwd(), patch.filePath)}`));
         }
       } catch (err: any) {
         console.log(pc.red(`  Failed to revert changes to ${patch.filePath}: ${err.message}`));
@@ -1970,7 +1970,7 @@ export class Orchestrator {
   }
 
   private async runBuildVerification(): Promise<{ success: boolean; errorLogs?: string }> {
-    const cwd = process.cwd();
+    const cwd = this.toolContext.projectRoot || process.cwd();
     let command = '';
     let lintCommand = '';
 
@@ -2042,9 +2042,13 @@ export class Orchestrator {
   private isBuildErrorRelated(errorLogs: string, modifiedFiles: string[]): boolean {
     if (!errorLogs) return false;
     const lowerLogs = errorLogs.toLowerCase();
+    const configFiles = ['tsconfig.json', 'package.json', 'package-lock.json', 'cargo.toml', 'go.mod', 'requirements.txt'];
     for (const file of modifiedFiles) {
       const basename = path.basename(file).toLowerCase();
-      const relativePath = path.relative(process.cwd(), file).replace(/\\/g, '/').toLowerCase();
+      if (configFiles.includes(basename)) {
+        return true;
+      }
+      const relativePath = path.relative(this.toolContext.projectRoot || process.cwd(), file).replace(/\\/g, '/').toLowerCase();
       if (lowerLogs.includes(basename) || lowerLogs.includes(relativePath)) {
         return true;
       }
