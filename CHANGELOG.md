@@ -1,3 +1,10 @@
+## [1.40.5](https://github.com/bgill55/daedalus/compare/v1.40.4...v1.40.5) (2026-07-13)
+
+
+### Bug Fixes
+
+* **orchestrator:** allow non-file tasks and prioritize coder role in fallback plans ([0e159ec](https://github.com/bgill55/daedalus/commit/0e159ecc857ba3763f31eb81dfc2c658aa7df674))
+
 ## [1.40.4](https://github.com/bgill55/daedalus/compare/v1.40.3...v1.40.4) (2026-07-12)
 
 
