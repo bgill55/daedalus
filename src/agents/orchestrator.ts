@@ -347,11 +347,14 @@ export class Orchestrator {
       }
     }
 
-    const fallbackRole = /\b(verify|check|test|review|inspect|validate|confirm)\b/i.test(goal)
-      ? 'reviewer'
-      : /\b(research|investigate|find out|look up|search for)\b/i.test(goal)
-        ? 'researcher'
-        : 'coder';
+    const isCoder = /\b(create|add|build|implement|write|generate|make|new|refactor|fix|modify|update)\b/i.test(goal);
+    const fallbackRole = isCoder
+      ? 'coder'
+      : /\b(verify|check|test|review|inspect|validate|confirm)\b/i.test(goal)
+        ? 'reviewer'
+        : /\b(research|investigate|find out|look up|search for)\b/i.test(goal)
+          ? 'researcher'
+          : 'coder';
     return `- delegate to ${fallbackRole}: ${goal}`;
   }
 
@@ -844,7 +847,8 @@ export class Orchestrator {
         return `Task "${t.goal.slice(0, 80)}" contains vague wording — be concrete`;
       }
       const paths = Orchestrator.extractFilePaths(t.goal);
-      if ((t.role === 'coder' || t.role === 'debugger') && paths.length === 0 && !isFallbackSingleTask) {
+      const isNonFileOp = /\b(install|npm|yarn|pnpm|compile|build|setup|initialize|init|run|test|lint)\b/i.test(t.goal);
+      if ((t.role === 'coder' || t.role === 'debugger') && paths.length === 0 && !isFallbackSingleTask && !isNonFileOp) {
         return `Task "${t.goal.slice(0, 80)}" has no file path — each task must target a specific file`;
       }
       if (projectRoot) {
