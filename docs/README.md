@@ -2,6 +2,10 @@
 
 Welcome to the Daedalus documentation. Use the sidebar to browse guides, configuration reference, orchestration, MCP integration, and sandboxing.
 
+<p align="center">
+  <video src="images/Daedalus__Local-First_AI.mp4" width="100%" controls></video>
+</p>
+
 Jump straight to:
 - [Configuration Reference](configuration-reference.md)
 - [Model Routing & Tuning](routing-and-tuning.md)
@@ -76,4 +80,4 @@ Daedalus provides a premium terminal-based user interface for orchestrating agen
 
 At its core, Daedalus coordinates specialized subagents through an embedded model router to solve coding tasks locally or via cloud models:
 
-![Daedalus System Architecture](images/architecture.png)
+![Daedalus System Architecture](images/Daedalus_Local_AI_Coding_Architecture.png)

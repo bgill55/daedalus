@@ -36,6 +36,10 @@ Daedalus connects to local LLM servers (LM Studio, Ollama, llama.cpp, vLLM) or r
   <img src="assets/tui_view.png" width="49%" alt="Daedalus TUI View" />
 </p>
 
+<p align="center">
+  <video src="docs/images/Daedalus__Local-First_AI.mp4" width="100%" controls></video>
+</p>
+
 ---
 
 ## Quick Start
@@ -193,6 +197,10 @@ npx tsc --noEmit  # type check
 ```
 
 ### Architecture
+
+<p align="center">
+  <img src="docs/images/Daedalus_Local_AI_Coding_Architecture.png" alt="Daedalus Local AI Coding Architecture" width="100%" />
+</p>
 
 ```
 src/
