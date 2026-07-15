@@ -132,6 +132,7 @@ AI assistance without:
 | `/models` | List available and healthy models |
 | `/config [set <key> = <val>]` | Show current configuration |
 | `/doctor` | Diagnose connection and discovery |
+| `/spec` | Flesh out a feature idea into a GitHub Issue spec (Finn Loop) |
 | `/help` / `?` / `help` | Show available commands |
 | `/mcp` | Manage MCP servers: explore, search, install, list, remove, info |
 | `/onboard` | First-time setup — discover local models, configure, and test |

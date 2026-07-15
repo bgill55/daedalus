@@ -18,6 +18,7 @@ import { extractAndSave } from './extraction.js';
 import { printUserTurn, turnSeparator } from './formatting.js';
 import { getClipboardText, getClipboardImage } from './clipboard.js';
 import { spawnBackgroundAgent } from './agents/background.js';
+import { handleSpecCommand } from './agents/loop.js';
 
 export interface CommandContext {
   config: any;
@@ -1521,6 +1522,13 @@ Once you have finished making changes, I will automatically re-run the command t
       }
       console.log(pc.bold('  Config:') + pc.gray(` ${ctx.configDir}\\config.json`));
       console.log(pc.bold('----------------------\n'));
+    }
+  },
+  {
+    name: '/spec',
+    description: 'Flesh out a feature idea into a GitHub Issue spec (Finn Loop)',
+    execute: async (args, ctx) => {
+      await handleSpecCommand(args, ctx);
     }
   },
   {
