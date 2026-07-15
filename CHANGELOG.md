@@ -1,3 +1,10 @@
+# [1.44.0](https://github.com/bgill55/daedalus/compare/v1.43.0...v1.44.0) (2026-07-15)
+
+
+### Features
+
+* **rules:** log detected project rules files on startup ([9675acc](https://github.com/bgill55/daedalus/commit/9675acce163fe3d3b85974dc8d7c77fcaf2ffe5d))
+
 # [1.43.0](https://github.com/bgill55/daedalus/compare/v1.42.0...v1.43.0) (2026-07-15)
 
 
