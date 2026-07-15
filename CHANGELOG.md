@@ -1,3 +1,10 @@
+# [1.45.0](https://github.com/bgill55/daedalus/compare/v1.44.0...v1.45.0) (2026-07-15)
+
+
+### Features
+
+* **rules:** inject project-scoped rules into planner and sub-agents, and add /system command ([0935c5c](https://github.com/bgill55/daedalus/commit/0935c5c276ee9438d754bc3dc47020971eb77179))
+
 # [1.44.0](https://github.com/bgill55/daedalus/compare/v1.43.0...v1.44.0) (2026-07-15)
 
 
