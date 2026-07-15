@@ -1,3 +1,10 @@
+## [1.45.1](https://github.com/bgill55/daedalus/compare/v1.45.0...v1.45.1) (2026-07-15)
+
+
+### Performance Improvements
+
+* **files:** normalize CRLF line endings at API boundary and preserve on write ([87746a1](https://github.com/bgill55/daedalus/commit/87746a1dd20b495836c8d2d2864f7bc90060ef49))
+
 # [1.45.0](https://github.com/bgill55/daedalus/compare/v1.44.0...v1.45.0) (2026-07-15)
 
 
