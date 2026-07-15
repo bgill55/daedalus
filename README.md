@@ -107,6 +107,7 @@ AI assistance without:
 | `/context` | Show active file context |
 | `/paste` | Paste clipboard text/image as message |
 | `/clear` | Clear conversation history |
+| `/system` | Print the current active system prompt (including loaded rules) |
 | `/spawn [--bg] <role> <task>` / `/delegate` | Spawn sub-agent: /spawn [--bg] <role> <task> |
 | `/tasks` | List background agent tasks |
 | `/task <id>` | Manage background task: /task <id> | /task kill <id> |

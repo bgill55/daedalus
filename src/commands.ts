@@ -204,6 +204,20 @@ export const commandsList: Command[] = [
     }
   },
   {
+    name: '/system',
+    description: 'Print the current active system prompt (including loaded rules)',
+    execute: async (args, ctx) => {
+      const sysMsg = ctx.messages.find(m => m.role === 'system');
+      if (sysMsg) {
+        console.log(pc.bold('\n--- Current System Prompt ---'));
+        console.log(sysMsg.content);
+        console.log(pc.bold('-----------------------------'));
+      } else {
+        console.log(pc.red('[WARN] No active system prompt found in conversation.'));
+      }
+    }
+  },
+  {
     name: '/spawn',
     aliases: ['/delegate'],
     description: 'Spawn sub-agent: /spawn [--bg] <role> <task>',

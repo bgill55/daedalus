@@ -213,7 +213,26 @@ export class Orchestrator {
     const plannerRole = getAgentRole('planner');
     const tools = filterToolsForRole(BUILTIN_TOOLS, 'planner');
 
-    const systemPrompt = plannerRole.systemPrompt;
+    let systemPrompt = plannerRole.systemPrompt;
+    const projectRoot = this.toolContext.projectRoot || this.sessionManager?.projectRoot;
+    if (projectRoot) {
+      const filesToCheck = ['CLAUDE.md', '.cursorrules', '.daedalusrules', 'DAEDALUS.md'];
+      let rules = '';
+      for (const file of filesToCheck) {
+        const fullPath = path.join(projectRoot, file);
+        if (fs.existsSync(fullPath)) {
+          try {
+            const content = fs.readFileSync(fullPath, 'utf8').trim();
+            if (content) {
+              rules += `\n### Rules from ${file}:\n${content}\n`;
+            }
+          } catch {}
+        }
+      }
+      if (rules) {
+        systemPrompt += `\n\n## PROJECT-SPECIFIC GUIDELINES\n${rules}`;
+      }
+    }
 
     const REFUSAL_RE = /sorry|can'?t|cannot|don'?t have|not (able|capable)|lack(|ing) (the )?(necessary |required )?(tools|capabilities)|unable|apologize/i;
 
@@ -1784,6 +1803,25 @@ export class Orchestrator {
   ): Promise<string> {
     const currentDateStr = new Date().toLocaleString();
     let dynamicSystemPrompt = `${role.systemPrompt}\n\n## CURRENT TIME\nThe current date and local time is: ${currentDateStr}.\n`;
+    const projectRoot = this.toolContext.projectRoot || this.sessionManager?.projectRoot;
+    if (projectRoot) {
+      const filesToCheck = ['CLAUDE.md', '.cursorrules', '.daedalusrules', 'DAEDALUS.md'];
+      let rules = '';
+      for (const file of filesToCheck) {
+        const fullPath = path.join(projectRoot, file);
+        if (fs.existsSync(fullPath)) {
+          try {
+            const content = fs.readFileSync(fullPath, 'utf8').trim();
+            if (content) {
+              rules += `\n### Rules from ${file}:\n${content}\n`;
+            }
+          } catch {}
+        }
+      }
+      if (rules) {
+        dynamicSystemPrompt += `\n## PROJECT-SPECIFIC GUIDELINES\n${rules}`;
+      }
+    }
     if (systemExtra) {
       dynamicSystemPrompt += `\n${systemExtra}\n`;
     }
