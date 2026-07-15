@@ -78,6 +78,7 @@ AI assistance without:
 - **Embedded model router** — priority, round-robin, or fastest-response routing across multiple models
 - **Smart model tier routing** — routes planning, reviews, and context summarization calls to your configured `intelligence` tier model
 - **Multi-agent orchestration** — spawns planner, coder, reviewer, debugger, and researcher sub-agents
+- **Autonomous Finn Loop** — interactive requirements gathering (`/spec`), GitHub Issues tracking, background daemon execution (`daedalus --loop`), and Discord PR review webhook embeds.
 - **Loop Engineering & Self-Repair** — automatic stack-aware compile/build verification checks (e.g., `npx tsc --noEmit`, `cargo check`, `go build`) with dynamic stdout/stderr feedback loops for self-repair, and **Automated Workspace Rollback** to revert patches and keep files clean upon task failure.
 - **Codebase indexing** — FTS5-powered symbol search, definitions, and call-graph references (TS/JS, Python, Go, Rust)
 - **Stack-aware prompting** — automatically scans your project tech stack on startup to prevent library and platform boundary hallucinations
@@ -181,6 +182,7 @@ For in-depth explanations, configuration options, and hardware optimization tips
 
 *   [Model Routing & Tuning Guide](docs/routing-and-tuning.md) — Endpoints, failover chains, routing strategy configs, and GPU/LM Studio tuning recommendations.
 *   [Multi-Agent Orchestration](docs/orchestration.md) — Overview of the planning, coding, and review loops, recovery checkpoints, and background task runners.
+*   [Autonomous Finn Loop](docs/finn-loop.md) — Interactive requirements specification, GitHub issue tracking, background daemon execution, and Discord webhook notifications.
 *   [Execution Sandboxing](docs/sandboxing.md) — Running commands inside isolated Docker containers or WSL distributions.
 *   [Model Context Protocol (MCP) Integration](docs/mcp.md) — Configuring stdio and HTTP/SSE servers to expand your agent's capabilities.
 *   [Configuration Reference Guide](docs/configuration-reference.md) — Reference list of all global configuration keys (`router.*`, `agents.*`, `tools.*`, `ui.*`, etc.).
