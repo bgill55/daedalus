@@ -1,3 +1,10 @@
+# [1.41.0](https://github.com/bgill55/daedalus/compare/v1.40.5...v1.41.0) (2026-07-15)
+
+
+### Features
+
+* **loop:** implement the Finn Loop spec gathering and loop daemon engine ([008adb8](https://github.com/bgill55/daedalus/commit/008adb8ab898c53fac7cc11d64639a6cd9e45112))
+
 ## [1.40.5](https://github.com/bgill55/daedalus/compare/v1.40.4...v1.40.5) (2026-07-13)
 
 
