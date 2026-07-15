@@ -290,7 +290,31 @@ function getSystemPromptWithMemory(): string {
   if (stackPrompt) {
     prompt += '\n' + stackPrompt;
   }
+  const projectRules = getProjectRules(sessionManager.projectRoot);
+  if (projectRules) {
+    prompt += '\n' + projectRules;
+  }
   return prompt;
+}
+
+function getProjectRules(projectRoot: string): string {
+  let rules = '';
+  const filesToCheck = ['CLAUDE.md', '.cursorrules', '.daedalusrules', 'DAEDALUS.md'];
+  for (const file of filesToCheck) {
+    const fullPath = path.join(projectRoot, file);
+    if (fs.existsSync(fullPath)) {
+      try {
+        const content = fs.readFileSync(fullPath, 'utf8').trim();
+        if (content) {
+          rules += `\n### Rules from ${file}:\n${content}\n`;
+        }
+      } catch {}
+    }
+  }
+  if (rules) {
+    return `\n## PROJECT-SPECIFIC GUIDELINES\n${rules}`;
+  }
+  return '';
 }
 
 messages.push({ role: 'system', content: getSystemPromptWithMemory() });
