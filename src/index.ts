@@ -401,6 +401,14 @@ async function main() {
   const enabledCount = config.router.chain.filter(m => m.enabled).length;
   printConfigInfo(enabledCount, config.router.strategy, configDir + '/config.json');
 
+  // Load & log project-specific rules
+  const filesToCheck = ['CLAUDE.md', '.cursorrules', '.daedalusrules', 'DAEDALUS.md'];
+  for (const file of filesToCheck) {
+    if (fs.existsSync(path.join(sessionManager.projectRoot, file))) {
+      console.log(pc.green(`  ✔ Loaded project rules: ${pc.bold(file)}`));
+    }
+  }
+
   // First-run detection: if no models configured, auto-trigger onboarding
   if (enabledCount === 0 && process.stdin.isTTY && !process.env.DAEDALUS_AUTO_APPROVE) {
     console.log(pc.yellow('\n  No models configured yet. Starting onboarding...\n'));
