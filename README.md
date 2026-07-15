@@ -85,6 +85,7 @@ AI assistance without:
 - **Dynamic task checklist** — injects the active todo list into each prompt turn to maintain execution context
 - **Session management** — SQLite-backed history with save, load, JSONL export
 - **Persistent memory** — facts and coding conventions auto-inject every turn; `/profile` and `/style` persist across sessions
+- **Cursor & Claude Code Compatibility** — automatically detects and inherits instructions from `CLAUDE.md`, `.cursorrules`, and `.daedalusrules` files in the project root on startup.
 - **MCP support** — Model Context Protocol servers via stdio and HTTP/SSE
 - **Windows + Unix** — full cross-platform support
 

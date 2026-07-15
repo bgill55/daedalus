@@ -73,6 +73,26 @@ Daedalus provides a premium terminal-based user interface for orchestrating agen
     <h3>Fast & Lean</h3>
     <p>Instant startup, context-aware pruning, and compact terminal UI</p>
   </div>
+  <div class="feature-card">
+    <div class="icon">
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="6" y="6" width="20" height="20" rx="4" stroke="#7c3aed" stroke-width="2"/>
+        <path d="M11 11H21M11 16H21M11 21H17" stroke="#7c3aed" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <h3>Rules Compatible</h3>
+    <p>Seamlessly inherit instructions from CLAUDE.md, .cursorrules, and .daedalusrules</p>
+  </div>
+  <div class="feature-card">
+    <div class="icon">
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M4 16C4 9.37258 9.37258 4 16 4C22.6274 4 28 9.37258 28 16C28 22.6274 22.6274 28 16 28" stroke="#00d4aa" stroke-width="2" stroke-linecap="round"/>
+        <path d="M12 16L16 20L24 12" stroke="#00d4aa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <h3>Finn Loop Native</h3>
+    <p>Run hands-off cycles (polling issues, coding, testing, PR, and Discord alert)</p>
+  </div>
 </div>
 
 ---
