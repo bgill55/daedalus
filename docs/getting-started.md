@@ -115,3 +115,16 @@ For a complete list of commands and utilities, run:
 ```text
 /help
 ```
+
+---
+
+## Security & Sandboxing
+
+By default, Daedalus runs command-line tools directly on your host machine. If you are working on untrusted codebases or want to ensure a clean build environment, you can isolate the execution sandbox. 
+
+Daedalus supports sandboxing via:
+*   **Docker**: Runs commands inside a container while mapping your project root directory.
+*   **WSL (Windows Subsystem for Linux)**: Runs commands in a native Linux environment on Windows.
+
+To learn how to enable and configure these environments, see the [Execution Sandboxing & Shell Configuration Guide](sandboxing.md).
+
