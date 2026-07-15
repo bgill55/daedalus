@@ -1,3 +1,10 @@
+# [1.42.0](https://github.com/bgill55/daedalus/compare/v1.41.0...v1.42.0) (2026-07-15)
+
+
+### Features
+
+* **ui:** implement Dual-Channel UI Commentary Collapse in CLI mode ([f340d08](https://github.com/bgill55/daedalus/commit/f340d082b11451be49c1fbec34a66a680bee43c6))
+
 # [1.41.0](https://github.com/bgill55/daedalus/compare/v1.40.5...v1.41.0) (2026-07-15)
 
 
