@@ -63,7 +63,41 @@ let _buf = '';
 let _inCode = false;
 let _codeLines: string[] = [];
 
+let _commentaryLines = 0;
+const _toolsRun: { name: string; success: boolean }[] = [];
+let _collapseEnabled = true;
+
+export function setFormattingConfig(config: any): void {
+  if (config?.ui?.collapseCommentary === false) {
+    _collapseEnabled = false;
+  }
+}
+
+export function collapseCommentary(): void {
+  if (!_collapseEnabled) {
+    _commentaryLines = 0;
+    _toolsRun.length = 0;
+    return;
+  }
+  if (_commentaryLines === 0) return;
+
+  process.stdout.write('\u001b[1A\u001b[2K'.repeat(_commentaryLines));
+
+  if (_toolsRun.length > 0) {
+    const allSuccess = _toolsRun.every(t => t.success);
+    const badge = allSuccess ? pc.green('✔') : pc.yellow('✗');
+    const summary = _toolsRun.map(t => {
+      return t.success ? pc.dim(t.name) : pc.red(t.name);
+    }).join(', ');
+    console.log(`  ${badge} ${pc.dim('Executed tools:')} ${summary}`);
+  }
+
+  _commentaryLines = 0;
+  _toolsRun.length = 0;
+}
+
 export function openAssistantBlock(): void {
+  collapseCommentary();
   console.log(`\n  ${pc.cyan(pc.bold('Daedalus'))} ${sepLine('─', 40)}`);
 }
 
@@ -181,6 +215,7 @@ export function formatMarkdownLine(line: string): string {
 // ── Separator ──────────────────────────────────────────────────
 
 export function turnSeparator(): void {
+  collapseCommentary();
   const ts = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
   console.log(`\n  ${sepLine('─', 40)} ${pc.dim(ts)}`);
 }
@@ -208,21 +243,34 @@ export function printContextPrune(pruned: number, truncated: number, savedKt: nu
 export function printToolStart(count: number, names: string[]): void {
   const label = count === 1 ? names[0] : `${names.join(', ')}`;
   console.log(`  ${pc.dim('▸')} ${pc.dim(label)}`);
+  _commentaryLines++;
+  for (const name of names) {
+    if (!_toolsRun.some(t => t.name === name)) {
+      _toolsRun.push({ name, success: true });
+    }
+  }
 }
 
 export function printToolResult(name: string, success: boolean, error?: string): void {
+  const t = _toolsRun.find(x => x.name === name);
+  if (t) t.success = success;
+
   if (success) {
     console.log(`  ${pc.green('✔')} ${pc.dim(name)}`);
   } else {
     console.log(`  ${pc.red('✗')} ${pc.dim(name)}${error ? `  ${pc.red(error)}` : ''}`);
   }
+  _commentaryLines++;
 }
 
 export function printToolContentPreview(content: string): void {
   if (!content) return;
   const lines = content.split('\n').filter(l => l.trim());
   const preview = lines.slice(0, 1).map(l => l.length > 100 ? l.slice(0, 100) + '…' : l).join('\n');
-  if (preview) console.log(`  ${pc.dim('  ')}${pc.gray(preview)}`);
+  if (preview) {
+    console.log(`  ${pc.dim('  ')}${pc.gray(preview)}`);
+    _commentaryLines++;
+  }
 }
 
 // ── Turn gate prompt ───────────────────────────────────────────

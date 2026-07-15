@@ -19,6 +19,7 @@ import { printBanner, printConfigInfo } from './banner.js';
 import { checkForUpdates, checkChangelogOnUpgrade } from './update-check.js';
 import { createModelFunctions, currentAbortController, abortTurn } from './model.js';
 import { createRepl } from './repl.js';
+import { setFormattingConfig } from './formatting.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -33,6 +34,7 @@ const { version: APP_VERSION } = _require('../package.json');
 // Load configuration
 const config = loadConfig();
 const configDir = getConfigDirPath();
+setFormattingConfig(config);
 
 // Enable auto-approve if passed via CLI flags or enabled in config safety settings
 const isAutoApprove = process.argv.includes('--auto-approve') ||
