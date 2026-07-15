@@ -1,3 +1,10 @@
+# [1.43.0](https://github.com/bgill55/daedalus/compare/v1.42.0...v1.43.0) (2026-07-15)
+
+
+### Features
+
+* **rules:** auto-detect and load CLAUDE.md, .cursorrules, and .daedalusrules from project root ([b8627db](https://github.com/bgill55/daedalus/commit/b8627db6f2ea37e90425ed92d07edf0d77fb7ca4))
+
 # [1.42.0](https://github.com/bgill55/daedalus/compare/v1.41.0...v1.42.0) (2026-07-15)
 
 
