@@ -480,7 +480,7 @@ export async function readFile(args: { path: string; offset?: number; limit?: nu
     }
 
     const content = fs.readFileSync(targetPath, 'utf8');
-    const lines = content.split('\n');
+    const lines = content.replace(/\r/g, '').split('\n');
     const totalLines = lines.length;
     const start = Math.max(0, offset - 1);
     const end = Math.min(totalLines, start + limit);
@@ -546,8 +546,12 @@ export async function writeFile(args: { path: string; content: string }, context
       fs.mkdirSync(dir, { recursive: true });
     }
     const previousContent = fs.existsSync(targetPath) ? fs.readFileSync(targetPath, 'utf8') : null;
-    const changedLines = previousContent ? computeChangedLines(previousContent, args.content) : [];
-    fs.writeFileSync(targetPath, args.content, 'utf8');
+    const hasCRLF = previousContent ? previousContent.includes('\r\n') : false;
+    const finalContent = hasCRLF ? args.content.replace(/\r\n/g, '\n').replace(/\n/g, '\r\n') : args.content;
+    const prevNormalized = previousContent ? previousContent.replace(/\r/g, '') : null;
+    const newNormalized = args.content.replace(/\r/g, '');
+    const changedLines = prevNormalized ? computeChangedLines(prevNormalized, newNormalized) : [];
+    fs.writeFileSync(targetPath, finalContent, 'utf8');
 
     const syntaxError = await syntaxCheck(targetPath, context.projectRoot, changedLines.length > 0 ? changedLines : undefined);
     if (syntaxError) {
@@ -613,10 +617,10 @@ export async function patchFile(args: { path: string; old_string: string; new_st
 
     const rawContent = fs.readFileSync(targetPath, 'utf8');
     const hasCRLF = rawContent.includes('\r\n');
-    const content = hasCRLF ? rawContent.replace(/\r\n/g, '\n') : rawContent;
+    const content = rawContent.replace(/\r/g, '');
 
-    const oldStr = args.old_string.replace(/\r\n/g, '\n');
-    const newStr = (args.new_string ?? '').replace(/\r\n/g, '\n');
+    const oldStr = args.old_string.replace(/\r/g, '');
+    const newStr = (args.new_string ?? '').replace(/\r/g, '');
     const replaceAll = args.replace_all ?? false;
 
     if (replaceAll && /^\w+$/.test(oldStr) && oldStr.length <= 4) {
@@ -661,7 +665,7 @@ export async function patchFile(args: { path: string; old_string: string; new_st
       }
     }
 
-    const finalNormalized = hasCRLF ? patched.replace(/\r\n/g, '\n').replace(/\n/g, '\r\n') : patched;
+    const finalNormalized = hasCRLF ? patched.replace(/\n/g, '\r\n') : patched;
 
     const autoApply = context.autoApplyEdits ?? 'prompt';
 
