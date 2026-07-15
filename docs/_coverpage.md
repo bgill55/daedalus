@@ -15,6 +15,6 @@
 </div>
 
 <div class="buttons">
-  <a href="#/README" class="primary">Get Started</a>
+  <a href="#/getting-started" class="primary">Get Started</a>
   <a href="https://github.com/bgill55/daedalus" class="secondary">View on GitHub</a>
 </div>
