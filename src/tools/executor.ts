@@ -1,7 +1,7 @@
 // Tool executor - loads and executes tool implementations
 
 import { ToolContext, ToolResult, ToolCall } from '../types.js';
-import { TOOL_IMPLEMENTATIONS } from './definitions.js';
+import { TOOL_IMPLEMENTATIONS, BUILTIN_TOOLS, POWER_TOOLS } from './definitions.js';
 import { executeMCPTool } from './mcp/tool-executor.js';
 
 const implementationCache = new Map<string, any>();
@@ -17,6 +17,38 @@ async function loadImplementation(modulePath: string): Promise<any> {
   } catch (err: any) {
     throw new Error(`Failed to load tool implementation ${modulePath}: ${err.message}`);
   }
+}
+
+function validateArgs(toolName: string, args: Record<string, any>): string | null {
+  const allTools = [...(BUILTIN_TOOLS || []), ...(POWER_TOOLS || [])];
+  const tool = allTools.find(t => t.function.name === toolName);
+  if (!tool) return null;
+
+  const schema = tool.function.parameters;
+  if (!schema || schema.type !== 'object') return null;
+
+  const required = schema.required || [];
+  const missing: string[] = [];
+
+  for (const req of required) {
+    if (args[req] === undefined || args[req] === null || args[req] === '') {
+      missing.push(req);
+    }
+  }
+
+  if (missing.length > 0) {
+    const props = schema.properties || {};
+    let errorMsg = `Tool '${toolName}' call failed validation: missing required parameter(s): ${missing.join(', ')}.\n\n`;
+    errorMsg += `Expected Schema:\n`;
+    for (const [name, prop] of Object.entries(props)) {
+      const isRequired = required.includes(name) ? '(required)' : '(optional)';
+      const p = prop as any;
+      errorMsg += `- ${name}: ${p.type} ${isRequired} - ${p.description || ''}\n`;
+    }
+    return errorMsg;
+  }
+
+  return null;
 }
 
 export async function executeToolCall(
@@ -52,6 +84,17 @@ export async function executeToolCall(
       success: false,
       content: '',
       error: `Invalid tool arguments JSON: ${err.message}`,
+    };
+  }
+
+  const validationError = validateArgs(toolName, args);
+  if (validationError) {
+    return {
+      toolCallId: toolCall.id,
+      name: toolName,
+      success: false,
+      content: '',
+      error: validationError,
     };
   }
 

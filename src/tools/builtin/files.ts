@@ -636,7 +636,13 @@ export async function patchFile(args: { path: string; old_string: string; new_st
       if (!content.includes(oldStr)) {
         const fuzzy = fuzzyWhitespacePatch(content, oldStr, newStr, true);
         if (fuzzy.error && fuzzy.error !== 'no_fuzzy_match') { recordPatchFailure(targetPath, context); return formatError(fuzzy.error); }
-        if (!fuzzy.patched) { recordPatchFailure(targetPath, context); return formatError(`Old string not found in file (checked with CRLF normalization and fuzzy whitespace matching).\nTo fix this: call read_file on ${args.path} to fetch the latest text and indentation.`); }
+        if (!fuzzy.patched) {
+          recordPatchFailure(targetPath, context);
+          const lines = content.split('\n');
+          const showLines = lines.slice(0, 100).map((line, index) => `${index + 1}: ${line}`).join('\n');
+          const suffix = lines.length > 100 ? `\n... (showing first 100 lines of ${lines.length} total)` : '';
+          return formatError(`Old string not found in file (checked with CRLF normalization and fuzzy whitespace matching).\nTo fix this: call read_file on ${args.path} to fetch the latest text and indentation.\n\nHere is the current content of the file (with line numbers) to help you construct the correct old_string:\n${'─'.repeat(40)}\n${showLines}${suffix}\n${'─'.repeat(40)}\nModify your old_string to match the exact lines above.`);
+        }
         patched = fuzzy.patched;
       } else {
         patched = content.split(oldStr).join(newStr);
@@ -651,9 +657,15 @@ export async function patchFile(args: { path: string; old_string: string; new_st
         } else {
           recordPatchFailure(targetPath, context);
           const hint = findClosestBlock(content, oldStr);
-          const hintMsg = hint
-            ? `\n\nClosest match found at line ${hint.lineNo}:\n${'─'.repeat(40)}\n${hint.snippet}\n${'─'.repeat(40)}\nRe-read the file and retry the patch with the exact content above.`
-            : `\n\nNo close match found. Use read_file to verify the exact content before patching.`;
+          let hintMsg = '';
+          if (hint) {
+            hintMsg = `\n\nClosest match found at line ${hint.lineNo}:\n${'─'.repeat(40)}\n${hint.snippet}\n${'─'.repeat(40)}\nRe-read the file and retry the patch with the exact content above.`;
+          } else {
+            const lines = content.split('\n');
+            const showLines = lines.slice(0, 100).map((line, index) => `${index + 1}: ${line}`).join('\n');
+            const suffix = lines.length > 100 ? `\n... (showing first 100 lines of ${lines.length} total)` : '';
+            hintMsg = `\n\nNo close match found. Here is the current content of the file (with line numbers) to help you construct the correct old_string:\n${'─'.repeat(40)}\n${showLines}${suffix}\n${'─'.repeat(40)}\nModify your old_string to match the exact lines above.`;
+          }
           return formatError(`Old string not found in ${args.path}.\nTo fix this: call read_file on ${args.path} to fetch the latest text and indentation.${hintMsg}`);
         }
       } else {
