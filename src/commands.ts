@@ -1485,6 +1485,11 @@ Once you have finished making changes, I will automatically re-run the command t
           const validated = ConfigSchema.parse(ctx.config);
           ctx.config = validated;
           saveConfig(validated);
+          
+          if (ctx.router && typeof ctx.router.updateConfig === 'function') {
+            ctx.router.updateConfig(ctx.config.router);
+          }
+          
           console.log(pc.green(`[OK] Set global config: ${key} = ${value}`));
         } catch (err: any) {
           console.log(pc.red(`[WARN] Invalid configuration value: ${err.message}`));

@@ -35,7 +35,7 @@ describe('Config Command', () => {
       },
       configDir: process.cwd(),
       cliTempDir: process.cwd(),
-      router: {} as any,
+      router: { updateConfig: vi.fn() } as any,
       sessionManager: {} as any,
       userProfile: {} as any,
       projectHash: 'testhash',
