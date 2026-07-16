@@ -80,21 +80,6 @@ export class LocalRouter {
     }
   }
 
-  updateConfig(config: RouterConfig): void {
-    const wasRunning = this.healthCheckTimer !== null;
-    if (this.healthCheckTimer) {
-      clearInterval(this.healthCheckTimer);
-      this.healthCheckTimer = null;
-    }
-    this.config = config;
-    this.clients.clear();
-    this.rateLimiters.clear();
-    this.initializeRateLimiters();
-    if (wasRunning) {
-      this.startHealthChecks().catch(() => {});
-    }
-  }
-
   private async runHealthChecks(): Promise<void> {
     const enabledModels = this.config.chain.filter(m => m.enabled);
     await Promise.all(enabledModels.map(m => checkModelHealth(m, 5000)));
@@ -381,8 +366,18 @@ export class LocalRouter {
   }
 
   updateConfig(config: Partial<RouterConfig>): void {
+    const wasRunning = this.healthCheckTimer !== null;
+    if (this.healthCheckTimer) {
+      clearInterval(this.healthCheckTimer);
+      this.healthCheckTimer = null;
+    }
     this.config = { ...this.config, ...config };
+    this.clients.clear();
+    this.rateLimiters.clear();
     this.initializeRateLimiters();
+    if (wasRunning) {
+      this.startHealthChecks().catch(() => {});
+    }
   }
 
   // OpenAI-compatible interface for delegation tool
