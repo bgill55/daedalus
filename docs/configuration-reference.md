@@ -1,6 +1,6 @@
 # Configuration Reference Guide
 
-This guide describes all configuration options available in Daedalus. You can view them using the `/config` command and update them using the `/config set <key> = <value>` command.
+This guide describes all configuration options available in Daedalus. You can view them using the `/config` command and update them using the `/config set <key> = <value>` command. All settings updated via the command line are validated and applied instantly in real-time without requiring a CLI restart.
 
 ---
 

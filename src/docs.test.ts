@@ -165,7 +165,7 @@ describe('Documentation Sync Verification', () => {
     }
 
     let expectedDocContent = `# Configuration Reference Guide\n\n`;
-    expectedDocContent += `This guide describes all configuration options available in Daedalus. You can view them using the \`/config\` command and update them using the \`/config set <key> = <value>\` command.\n\n`;
+    expectedDocContent += `This guide describes all configuration options available in Daedalus. You can view them using the \`/config\` command and update them using the \`/config set <key> = <value>\` command. All settings updated via the command line are validated and applied instantly in real-time without requiring a CLI restart.\n\n`;
     expectedDocContent += `---\n\n`;
     expectedDocContent += sectionBlocks.join('\n\n---\n\n') + '\n';
 
