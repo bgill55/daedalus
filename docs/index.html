@@ -245,6 +245,58 @@
     ::-webkit-scrollbar-track { background: var(--daedalus-bg); }
     ::-webkit-scrollbar-thumb { background: var(--daedalus-border); border-radius: 4px; }
     ::-webkit-scrollbar-thumb:hover { background: var(--daedalus-muted); }
+    
+    /* Responsive Sidebar Toggle (Hamburger Button) styling */
+    @media screen and (min-width: 769px) {
+      /* Hide the toggle entirely on desktop as the sidebar is permanently visible */
+      .sidebar-toggle {
+        display: none !important;
+      }
+    }
+    
+    @media screen and (max-width: 768px) {
+      /* Place the hamburger toggle in a sleek floating circular button at the top-left on mobile */
+      .sidebar-toggle {
+        background: rgba(26, 26, 46, 0.8) !important;
+        backdrop-filter: blur(10px);
+        border: 1px solid var(--daedalus-border);
+        border-radius: 50% !important;
+        width: 44px;
+        height: 44px;
+        left: 20px !important;
+        top: 20px !important;
+        bottom: auto !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        transition: all 0.2s ease-in-out;
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        padding: 0 !important;
+      }
+      
+      .sidebar-toggle:hover {
+        border-color: var(--daedalus-cyan);
+        box-shadow: 0 0 12px rgba(0, 212, 170, 0.35);
+      }
+      
+      /* Center and color the hamburger bars */
+      .sidebar-toggle-button {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+      }
+      
+      .sidebar-toggle span {
+        background-color: var(--daedalus-cyan) !important;
+        height: 2px !important;
+        margin: 3px 0 !important;
+        width: 18px !important;
+        transition: all 0.2s ease;
+      }
+    }
   </style>
 </head>
 <body>
@@ -252,7 +304,6 @@
   <script>
     window.$docsify = {
       name: 'Daedalus',
-      repo: 'https://github.com/bgill55/daedalus',
       loadSidebar: true,
       subMaxLevel: 3,
       search: 'auto',
