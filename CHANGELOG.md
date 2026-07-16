@@ -1,3 +1,10 @@
+# [1.46.0](https://github.com/bgill55/daedalus/compare/v1.45.1...v1.46.0) (2026-07-16)
+
+
+### Features
+
+* add centralized schema validation and auto-read fallback on patch failure ([edf7618](https://github.com/bgill55/daedalus/commit/edf761850fbf8188e5eae58673496cb07e9a3353))
+
 ## [1.45.1](https://github.com/bgill55/daedalus/compare/v1.45.0...v1.45.1) (2026-07-15)
 
 
