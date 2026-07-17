@@ -140,6 +140,7 @@ export function createModelFunctions(deps: ModelDeps) {
     let lastContent = '';
     let turn = 0;
     const signatureHistory: string[] = [];
+    let pinnedModel: string | undefined;
 
     while (turn < MAX_TOOL_TURNS) {
       if (turnAborted) {
@@ -166,7 +167,7 @@ export function createModelFunctions(deps: ModelDeps) {
 
       try {
         const stream = await router.chatStream({
-          model: config.modelOverride || 'auto',
+          model: pinnedModel || config.modelOverride || 'auto',
           messages,
           temperature: 0.1,
           tools: allTools,
@@ -247,6 +248,10 @@ export function createModelFunctions(deps: ModelDeps) {
 
       if (blockOpened) {
         closeAssistantBlock(fullContent.length, Date.now() - turnStart, toolCallArray.length, router.lastRoutedModel);
+      }
+
+      if (!pinnedModel && router.lastRoutedModelName) {
+        pinnedModel = router.lastRoutedModelName;
       }
 
       if (toolCallArray.length === 0) {

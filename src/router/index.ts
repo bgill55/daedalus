@@ -22,6 +22,7 @@ export class LocalRouter {
   private roundRobinIndex = 0;
   private discoveredModels: Map<string, string> = new Map(); // endpoint key -> model id
   public lastRoutedModel?: string;
+  public lastRoutedModelName?: string;
 
   constructor(config: RouterConfig) {
     this.config = config;
@@ -266,6 +267,7 @@ export class LocalRouter {
       : model.model;
     
     this.lastRoutedModel = model.name === actualModel ? model.name : `${model.name} (${actualModel})`;
+    this.lastRoutedModelName = model.name;
     
     const { signal, ...body } = request;
     const isOfficialOpenAI = model.endpoint.includes('api.openai.com');
@@ -301,6 +303,7 @@ export class LocalRouter {
       : model.model;
     
     this.lastRoutedModel = model.name === actualModel ? model.name : `${model.name} (${actualModel})`;
+    this.lastRoutedModelName = model.name;
     
     const { signal, ...body } = request;
     const isOfficialOpenAI = model.endpoint.includes('api.openai.com');
