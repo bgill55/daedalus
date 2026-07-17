@@ -228,4 +228,22 @@ src/
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines, coding standards, and the PR process. Governed by the [Code of Conduct](CODE_OF_CONDUCT.md).
 
-[CHANGELOG.md](CHANGELOG.md) | [SECURITY.md](SECURITY.md) | MIT License
+---
+
+<p align="center">
+  <sub>Daedalus is open source and free. If it helps you build cooler things faster, consider buying the creator a coffee! ☕</sub>
+</p>
+
+<p align="center">
+  <a href="https://github.com/bgill55">
+    <img src="https://img.shields.io/badge/crafted%20with%20%E2%9D%A4-bgill55__dev-F25F5C?style=for-the-badge&logo=github&logoColor=white" alt="Crafted with love by bgill55_dev" />
+  </a>
+  &emsp;
+  <a href="https://buymeacoffee.com/bgill55art">
+    <img src="https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Support%20My%20Art-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black" alt="Buy Me A Coffee" />
+  </a>
+</p>
+
+<p align="center">
+  <a href="CHANGELOG.md">CHANGELOG.md</a> | <a href="SECURITY.md">SECURITY.md</a> | MIT License
+</p>
