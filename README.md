@@ -231,7 +231,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines, coding standards, and the
 ---
 
 <p align="center">
-  <sub>Daedalus is open source and free. If it helps you build cooler things faster, consider buying the creator a coffee! ☕</sub>
+  <sub>Daedalus is open source and free. If it helps you build cooler things faster, consider buying me a coffee! ☕</sub>
 </p>
 
 <p align="center">
