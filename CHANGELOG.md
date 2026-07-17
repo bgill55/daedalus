@@ -1,3 +1,10 @@
+# [1.48.0](https://github.com/bgill55/daedalus/compare/v1.47.0...v1.48.0) (2026-07-17)
+
+
+### Features
+
+* pin routed model inside single turn tool loops ([6d60e89](https://github.com/bgill55/daedalus/commit/6d60e89dae0e6eaa851843fdf068b84ddc20ed19))
+
 # [1.47.0](https://github.com/bgill55/daedalus/compare/v1.46.0...v1.47.0) (2026-07-17)
 
 
