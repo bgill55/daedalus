@@ -1,3 +1,15 @@
+# [1.47.0](https://github.com/bgill55/daedalus/compare/v1.46.0...v1.47.0) (2026-07-17)
+
+
+### Bug Fixes
+
+* resolve duplicate updateConfig method implementation in LocalRouter ([4b538cb](https://github.com/bgill55/daedalus/commit/4b538cbaa1951968a3695e4a3946a07899b1e12a))
+
+
+### Features
+
+* apply router config updates in real-time without restarting CLI ([20b4412](https://github.com/bgill55/daedalus/commit/20b44129b7b5fc4bb2e597e6663e150c914e7450))
+
 # [1.46.0](https://github.com/bgill55/daedalus/compare/v1.45.1...v1.46.0) (2026-07-16)
 
 
