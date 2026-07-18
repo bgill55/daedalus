@@ -1,3 +1,10 @@
+# [1.49.0](https://github.com/bgill55/daedalus/compare/v1.48.0...v1.49.0) (2026-07-18)
+
+
+### Features
+
+* add interactive man page help for slash commands ([a041254](https://github.com/bgill55/daedalus/commit/a041254aa00013eb9e4b9696dd09418d7e3eda7d))
+
 # [1.48.0](https://github.com/bgill55/daedalus/compare/v1.47.0...v1.48.0) (2026-07-17)
 
 
