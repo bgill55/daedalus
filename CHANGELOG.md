@@ -1,3 +1,10 @@
+## [1.49.1](https://github.com/bgill55/daedalus/compare/v1.49.0...v1.49.1) (2026-07-18)
+
+
+### Bug Fixes
+
+* include full configuration schema reference in help config manual ([2b862c0](https://github.com/bgill55/daedalus/commit/2b862c07b19d27c44a41c11dfcf846bbbfcc0363))
+
 # [1.49.0](https://github.com/bgill55/daedalus/compare/v1.48.0...v1.49.0) (2026-07-18)
 
 
