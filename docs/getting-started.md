@@ -115,6 +115,11 @@ For a complete list of commands and utilities, run:
 ```text
 /help
 ```
+To get detailed manuals, parameter lists, subcommands, and config options for any specific command, run:
+```text
+/help <command>
+```
+For example, `/help config` lists all global configuration keys, and `/help mcp` lists all Model Context Protocol management options.
 
 ---
 

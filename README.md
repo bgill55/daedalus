@@ -146,7 +146,7 @@ AI assistance without:
 | `exit` / `/exit` / `/quit` / `quit` | Save session and exit |
 <!-- END_COMMANDS_TABLE -->
 
-Tab completion works on all commands.
+Tab completion works on all commands. You can get detailed manuals, parameter lists, and subcommand options for any command directly inside the CLI by running `/help <command>` (for example, `/help config` or `/help mcp`).
 
 ---
 
