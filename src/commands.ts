@@ -46,6 +46,8 @@ export interface Command {
   name: string;
   aliases?: string[];
   description: string;
+  usage?: string;
+  helpText?: string;
   execute: (args: string, ctx: CommandContext) => Promise<boolean | void>;
 }
 
@@ -53,6 +55,8 @@ export const commandsList: Command[] = [
   {
     name: '/add',
     description: 'Add file to context',
+    usage: '/add [filepath]',
+    helpText: 'Add a file to the active prompt context. If filepath is omitted, runs an interactive terminal file selector.',
     execute: async (args, ctx) => {
       const fileArg = args.trim();
       if (!fileArg) {
@@ -80,6 +84,8 @@ export const commandsList: Command[] = [
   {
     name: '/remove',
     description: 'Remove file from context',
+    usage: '/remove <filepath>',
+    helpText: 'Remove a file from the active prompt context.',
     execute: async (args, ctx) => {
       const fileArg = args.trim();
       if (!fileArg) {
@@ -221,6 +227,8 @@ export const commandsList: Command[] = [
     name: '/spawn',
     aliases: ['/delegate'],
     description: 'Spawn sub-agent: /spawn [--bg] <role> <task>',
+    usage: '/spawn [--bg] <role> <task>  OR  /delegate [--bg] <task> to <role>',
+    helpText: 'Spawns a specialized agent to execute a coding or research task.\n\nRoles:\n  coder                 Implements, patches, and refactors code files\n  reviewer              Critically reviews changes and runs tests\n  debugger              Tackles compilation errors, runtime failures, and logs\n  researcher            Scans repository structure and reads doc resources\n  planner               Outlines architecture plans and coordinates execution\n\nOptions:\n  --bg                  Runs the agent asynchronously in the background',
     execute: async (args, ctx) => {
       let role = '';
       let task = '';
@@ -296,6 +304,8 @@ export const commandsList: Command[] = [
   {
     name: '/tasks',
     description: 'List background agent tasks',
+    usage: '/tasks',
+    helpText: 'Display a list of all active, completed, failed, or cancelled background agent tasks.',
     execute: async (_args, _ctx) => {
       const { backgroundJobs } = await import('./agents/background.js');
       if (backgroundJobs.size === 0) {
@@ -328,6 +338,8 @@ export const commandsList: Command[] = [
   {
     name: '/task',
     description: 'Manage background task: /task <id> | /task kill <id>',
+    usage: '/task <id>  OR  /task kill <id>',
+    helpText: 'Inspect or terminate background agent tasks.\n\nArguments:\n  <id>                  Show detail info, logs, and output/result of a background task\n  kill <id>             Cancel and terminate a running background task',
     execute: async (args, _ctx) => {
       const { backgroundJobs, killBackgroundAgent } = await import('./agents/background.js');
       const trimmed = args.trim();
@@ -389,6 +401,8 @@ export const commandsList: Command[] = [
     name: '/orchestrate',
     aliases: ['/orc', '/run', '/o'],
     description: 'Orchestrate agents for a goal',
+    usage: '/orchestrate <goal>',
+    helpText: 'Spawns the Orchestration system to plan, execute, and verify a high-level coding goal.\nOrchestrate generates a task.md checklist, coordinates specialized sub-agents, runs verification commands, and handles self-repair loops automatically.',
     execute: async (args, ctx) => {
       const pendingPlan = ctx.sessionManager.getState('orchestrate_plan');
       const pendingGoal = ctx.sessionManager.getState('orchestrate_goal');
@@ -507,6 +521,8 @@ export const commandsList: Command[] = [
   {
     name: '/profile',
     description: 'View or set user profile info',
+    usage: '/profile [view | name = <name> | bio = <bio>]',
+    helpText: 'Manage your persistent developer profile. Profile facts are automatically injected into the model context.\n\nSubcommands:\n  view                  Display your current name and bio details\n  name = <value>        Update your profile name\n  bio = <value>         Update your bio/background facts',
     execute: async (args, ctx) => {
       const rest = args.trim();
       if (!rest || rest === 'view') {
@@ -556,6 +572,8 @@ export const commandsList: Command[] = [
   {
     name: '/style',
     description: 'Set your coding style preferences',
+    usage: '/style [view | <preferences>]',
+    helpText: 'Manage your persistent coding style preferences (e.g. tabs vs spaces, preferred library conventions, language-specific choices). Style instructions are auto-injected into all sessions.',
     execute: async (args, ctx) => {
       const rest = args.trim();
       if (!rest || rest === 'view') {
@@ -878,6 +896,8 @@ Once you have finished making changes, I will automatically re-run the command t
   {
     name: '/project',
     description: 'View or set project config settings (.daedalusrc)',
+    usage: '/project [set <key> <value> | get <key> | reset]',
+    helpText: 'Manage project-specific configuration settings stored in .daedalusrc.\n\nSubcommands:\n  (no args)             Show all active project configuration settings\n  set <key> <value>     Set a project config setting\n  get <key>             Print the value of a specific project config key\n  reset                 Reset and delete project settings file',
     execute: async (args, _ctx) => {
       const rest = args.trim();
       const { loadProjectConfig, saveProjectConfig, hasLocalConfig } = await import('./tools/builtin/project-config.js');
@@ -938,6 +958,8 @@ Once you have finished making changes, I will automatically re-run the command t
   {
     name: '/session',
     description: 'Manage chat sessions — /session new to start, /session load <id> to restore, /session export [path] to save transcript',
+    usage: '/session <subcommand> [args]',
+    helpText: 'Manage, list, load, save, and export SQLite-persisted conversation sessions.\n\nSubcommands:\n  list                  List all saved sessions\n  load <id>             Load a saved session by ID\n  save                  Save the current session manually\n  new                   Start a new conversation session\n  export [filepath]     Export the current session transcript to JSONL',
     execute: async (args, ctx) => {
       const parts = args.trim().split(/\s+/);
       const subcommand = parts[0].toLowerCase();
@@ -1417,7 +1439,9 @@ Once you have finished making changes, I will automatically re-run the command t
   },
   {
     name: '/config',
-    description: 'Show current configuration',
+    description: 'Show or modify global configuration',
+    usage: '/config [set <key> = <value> | get <key> | reset]',
+    helpText: 'Manage global application settings. Setting a key applies it in real-time.\n\nSubcommands:\n  (no args)             Print the entire active configuration JSON\n  set <key> = <value>   Update a configuration value (e.g. /config set router.strategy = round-robin)\n  get <key>             Print the value of a specific config key\n  reset                 Reset config to default settings',
     execute: async (args, ctx) => {
       const rest = args.trim();
       if (!rest) {
@@ -1502,6 +1526,8 @@ Once you have finished making changes, I will automatically re-run the command t
   {
     name: '/doctor',
     description: 'Diagnose connection and discovery',
+    usage: '/doctor',
+    helpText: 'Run diagnostics on model server connections (Ollama, LM Studio, etc.), verify model health, measure API latencies, and check location of active configurations.',
     execute: async (args, ctx) => {
       console.log(pc.bold('\n--- Daedalus Doctor ---'));
       console.log(pc.gray('Checking local server connections...\n'));
@@ -1546,6 +1572,8 @@ Once you have finished making changes, I will automatically re-run the command t
   {
     name: '/spec',
     description: 'Flesh out a feature idea into a GitHub Issue spec (Finn Loop)',
+    usage: '/spec <goal>',
+    helpText: 'Generate detailed specifications and requirements for a coding goal.\nRuns an interactive interview query chain to clarify goals, then saves the resulting specification format.',
     execute: async (args, ctx) => {
       await handleSpecCommand(args, ctx);
     }
@@ -1553,8 +1581,41 @@ Once you have finished making changes, I will automatically re-run the command t
   {
     name: '/help',
     aliases: ['?', 'help'],
-    description: 'Show available commands',
-    execute: async (_args, _ctx) => {
+    description: 'Show available commands or detailed info for a specific command',
+    usage: '/help [command_name]',
+    helpText: 'Display general help or a detailed "man page" for a given slash command.',
+    execute: async (args, _ctx) => {
+      const query = args.trim().toLowerCase();
+      if (query) {
+        const cmdName = query.startsWith('/') ? query : `/${query}`;
+        const cmd = commandsList.find(c =>
+          c.name.toLowerCase() === cmdName ||
+          c.name.toLowerCase() === query ||
+          c.aliases?.some(alias => alias.toLowerCase() === cmdName || alias.toLowerCase() === query)
+        );
+
+        if (!cmd) {
+          console.log(pc.red(`\n  [WARN] Unknown command: "${query}". Type /help to see all commands.`));
+          return;
+        }
+
+        console.log(pc.bold(`\n=== COMMAND MANUAL: ${cmd.name} ===`));
+        console.log(`  ${pc.bold('Description:')} ${cmd.description}`);
+        if (cmd.usage) {
+          console.log(`  ${pc.bold('Usage:')}       ${pc.cyan(cmd.usage)}`);
+        }
+        if (cmd.aliases && cmd.aliases.length > 0) {
+          const formattedAliases = cmd.aliases.map(a => a.startsWith('/') ? a : `/${a}`).join(', ');
+          console.log(`  ${pc.bold('Aliases:')}     ${pc.yellow(formattedAliases)}`);
+        }
+        if (cmd.helpText) {
+          console.log(`\n${pc.bold('Details:')}\n${cmd.helpText.split('\n').map(line => `  ${line}`).join('\n')}`);
+        }
+        console.log(pc.bold('='.repeat(20 + cmd.name.length)));
+        console.log();
+        return;
+      }
+
       console.log(pc.bold('\n--- Available Commands ---'));
       for (const cmd of commandsList) {
         const aliasList = cmd.aliases ? cmd.aliases.map(a => a.startsWith('/') ? a : `/${a}`) : [];
@@ -1563,12 +1624,15 @@ Once you have finished making changes, I will automatically re-run the command t
       }
       console.log(pc.bold('--------------------------'));
       console.log(pc.gray('  Detailed documentation: ') + pc.underline(pc.cyan('https://bgill55.github.io/daedalus/#/')));
+      console.log(pc.gray('  Tip: Type ') + pc.cyan('/help <command>') + pc.gray(' for detailed usage and subcommands (e.g. /help config)'));
       console.log();
     }
   },
   {
     name: '/mcp',
     description: 'Manage MCP servers: explore, search, install, list, remove, info',
+    usage: '/mcp <subcommand> [args]',
+    helpText: 'Configure and interact with Model Context Protocol (MCP) servers.\n\nSubcommands:\n  list, l               List all installed MCP servers and their active state\n  search, s <query>     Search the public MCP Registry for available servers\n  install, i <name>     Install an MCP server from the registry\n  remove, rm <name>     Uninstall an MCP server\n  info <name>           Display metadata and information for a registry server\n  enable <name>         Enable a configured server\n  disable <name>        Disable a configured server without removing it',
     execute: async (args, _ctx) => {
       const parts = args.trim().split(/\s+/);
       const sub = parts[0]?.toLowerCase();
@@ -1871,6 +1935,8 @@ Once you have finished making changes, I will automatically re-run the command t
   {
     name: '/onboard',
     description: 'First-time setup — discover local models, configure, and test',
+    usage: '/onboard',
+    helpText: 'Run the interactive setup wizard to scan your local network/environment for model servers, select a primary model tier, and test its output/diagnostics.',
     execute: async (_args, ctx) => {
       const config = ctx.config;
 
@@ -1984,6 +2050,8 @@ Once you have finished making changes, I will automatically re-run the command t
   {
     name: '/tui',
     description: 'Toggle the Terminal User Interface (TUI) dashboard',
+    usage: '/tui',
+    helpText: 'Switch between standard REPL chat mode and the side-by-side Terminal dashboard mode (which includes resource charts, model settings, and context monitors).',
     execute: async (args, ctx) => {
       if (!ctx.rl) {
         throw new Error('SWITCH_MODE_CLI');

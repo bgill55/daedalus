@@ -136,10 +136,10 @@ AI assistance without:
 | `/def <symbol>` | Get symbol definition |
 | `/changelog` | View the latest CLI changes |
 | `/models` | List available and healthy models |
-| `/config [set <key> = <val>]` | Show current configuration |
+| `/config [set <key> = <val>]` | Show or modify global configuration |
 | `/doctor` | Diagnose connection and discovery |
 | `/spec` | Flesh out a feature idea into a GitHub Issue spec (Finn Loop) |
-| `/help` / `?` / `help` | Show available commands |
+| `/help` / `?` / `help` | Show available commands or detailed info for a specific command |
 | `/mcp` | Manage MCP servers: explore, search, install, list, remove, info |
 | `/onboard` | First-time setup — discover local models, configure, and test |
 | `/tui` | Toggle the Terminal User Interface (TUI) dashboard |
