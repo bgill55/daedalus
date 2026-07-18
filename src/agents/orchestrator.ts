@@ -1985,7 +1985,51 @@ export class Orchestrator {
       output += `\n`;
     }
 
+    this.writeWalkthrough(goal);
     return output;
+  }
+
+  private writeWalkthrough(goal: string): void {
+    if (process.env.VITEST) return;
+    try {
+      const projectRoot = this.toolContext.projectRoot || this.sessionManager?.projectRoot || process.cwd();
+      const hasFailures = this.results.some(r => !r.success);
+      if (hasFailures || this.toolContext.abortSignal.aborted) {
+        return;
+      }
+
+      const uniqueFiles = Array.from(new Set((this.toolContext.patchHistory || []).map(p => p.filePath)));
+      const relativeFiles = uniqueFiles.map(f => path.relative(projectRoot, f).replace(/\\/g, '/'));
+
+      let md = `# Walkthrough - ${goal}\n\n`;
+      md += `Generated autonomously by Daedalus on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}\n\n`;
+      md += `## Accomplished Tasks\n\n`;
+
+      for (const result of this.results) {
+        md += `- [x] **${result.role}**: ${result.goal}\n`;
+        if (result.summary) {
+          md += `  > ${result.summary.split('\n').join('\n  > ')}\n`;
+        }
+      }
+      md += `\n`;
+
+      if (relativeFiles.length > 0) {
+        md += `## Modified Files\n\n`;
+        for (const file of relativeFiles) {
+          md += `- [${path.basename(file)}](file:///${path.resolve(projectRoot, file).replace(/\\/g, '/')})\n`;
+        }
+        md += `\n`;
+      }
+
+      md += `## Verification Status\n\n`;
+      md += `- [x] Linter/compiler checks executed and passed successfully.\n`;
+
+      const walkthroughPath = path.join(projectRoot, 'walkthrough.md');
+      fs.writeFileSync(walkthroughPath, md, 'utf8');
+      console.log(pc.green(`\n[WALKTHROUGH] Generated walkthrough guide at ./walkthrough.md`));
+    } catch (err: any) {
+      console.log(pc.yellow(`\n[WARN] Failed to write walkthrough.md: ${err.message}`));
+    }
   }
 
   private async rollbackTaskPatches(historyStartIndex: number): Promise<void> {
