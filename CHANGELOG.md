@@ -1,3 +1,10 @@
+## [1.49.3](https://github.com/bgill55/daedalus/compare/v1.49.2...v1.49.3) (2026-07-18)
+
+
+### Bug Fixes
+
+* implement repetition loop detection inside model streaming response handler ([808c895](https://github.com/bgill55/daedalus/commit/808c895181e85e58654aa207b51692e9a9e226c9))
+
 ## [1.49.2](https://github.com/bgill55/daedalus/compare/v1.49.1...v1.49.2) (2026-07-18)
 
 
