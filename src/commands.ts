@@ -897,7 +897,7 @@ Once you have finished making changes, I will automatically re-run the command t
     name: '/project',
     description: 'View or set project config settings (.daedalusrc)',
     usage: '/project [set <key> <value> | get <key> | reset]',
-    helpText: 'Manage project-specific configuration settings stored in .daedalusrc.\n\nSubcommands:\n  (no args)             Show all active project configuration settings\n  set <key> <value>     Set a project config setting\n  get <key>             Print the value of a specific project config key\n  reset                 Reset and delete project settings file',
+    helpText: 'Manage project-specific configuration overrides stored in .daedalusrc.\n\nSubcommands:\n  (no args)             Show all active project configuration overrides\n  set <key> <value>     Set a project config override\n  get <key>             Print the value of a specific project config key\n  reset                 Reset and delete project settings file\n\nCommon Overridable Keys:\n  modelOverride         Override primary model selection (e.g. "openai/gpt-4.1")\n  tools.sandbox         Isolate execution for this project ("none" | "docker")\n  context.maxTokens     Adjust context limit for this workspace (e.g. 64000)',
     execute: async (args, _ctx) => {
       const rest = args.trim();
       const { loadProjectConfig, saveProjectConfig, hasLocalConfig } = await import('./tools/builtin/project-config.js');
@@ -1441,7 +1441,7 @@ Once you have finished making changes, I will automatically re-run the command t
     name: '/config',
     description: 'Show or modify global configuration',
     usage: '/config [set <key> = <value> | get <key> | reset]',
-    helpText: 'Manage global application settings. Setting a key applies it in real-time.\n\nSubcommands:\n  (no args)             Print the entire active configuration JSON\n  set <key> = <value>   Update a configuration value (e.g. /config set router.strategy = round-robin)\n  get <key>             Print the value of a specific config key\n  reset                 Reset config to default settings',
+    helpText: 'Manage global settings. Setting a key applies it in real-time.\n\nSubcommands:\n  (no args)             Print the entire active configuration JSON\n  set <key> = <value>   Update a configuration value (e.g. /config set router.strategy = round-robin)\n  get <key>             Print the value of a specific config key\n  reset                 Reset config to default settings\n\nCommon Configuration Keys:\n  router.strategy       Routing mode: "priority" | "round-robin" | "fastest"\n  agents.default        Default agent role to launch: "coder" | "planner" | ...\n  agents.autoOrchestrate Auto-spawn planner for complex queries (true/false)\n  agents.ensemble.enabled Enable multi-model candidate drafting & voting (true/false)\n  tools.sandbox         Isolate shell commands: "none" | "docker" | "wsl"\n  tools.sandboxImage    Docker image to run commands in (e.g. "node:20")\n  context.maxTokens     Context budget in tokens (e.g. 128000)\n  safety.autoApprove    Skip prompt confirmations for tools (true/false)',
     execute: async (args, ctx) => {
       const rest = args.trim();
       if (!rest) {
