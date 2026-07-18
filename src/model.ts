@@ -43,6 +43,30 @@ function truncateToolResult(content: string): string {
   return `${kept}\n... [truncated ${dropped} chars — use read_file with offset/limit to see more]`;
 }
 
+function detectRepetition(text: string): boolean {
+  if (text.length < 200) return false;
+  const tail = text.slice(-400);
+  const len = 18;
+  const counts: Record<string, number> = {};
+  for (let i = 0; i <= tail.length - len; i++) {
+    const sub = tail.substring(i, i + len);
+    counts[sub] = (counts[sub] || 0) + 1;
+  }
+  for (const sub of Object.keys(counts)) {
+    if (!/[a-zA-Z]{3,}/.test(sub)) continue;
+    let occurrences = 0;
+    let pos = tail.indexOf(sub);
+    while (pos !== -1) {
+      occurrences++;
+      pos = tail.indexOf(sub, pos + len);
+    }
+    if (occurrences >= 4) {
+      return true;
+    }
+  }
+  return false;
+}
+
 export interface ModelDeps {
   messages: ChatMessage[];
   config: any;
@@ -74,6 +98,7 @@ export function createModelFunctions(deps: ModelDeps) {
     userContent: string,
     imageBase64?: string,
   ): Promise<{ content: string; toolCalls: ToolCall[] }> {
+    let repetitionAborted = false;
     if (userContent) {
       if (imageBase64) {
         messages.push({
@@ -188,6 +213,13 @@ export function createModelFunctions(deps: ModelDeps) {
             openBlock();
             fullContent += delta.content;
             writeAssistantChunk(delta.content);
+
+            if (detectRepetition(fullContent)) {
+              writeAssistantChunk(pc.red('\n\n[STOP] Repetition loop detected. Aborting stream.'));
+              repetitionAborted = true;
+              currentAbortController?.abort();
+              break;
+            }
           }
 
           if (delta.tool_calls) {
@@ -226,7 +258,7 @@ export function createModelFunctions(deps: ModelDeps) {
           spinner.stop();
           console.log(pc.dim('\n  [STOP] Stopped'));
           clearAbortController();
-          return { content: '', toolCalls: [] };
+          return { content: repetitionAborted ? fullContent : '', toolCalls: [] };
         }
         spinner.stop();
         const firstLine = (error.message || '').split('\n')[0];
