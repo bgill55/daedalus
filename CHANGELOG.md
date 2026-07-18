@@ -1,3 +1,10 @@
+## [1.49.2](https://github.com/bgill55/daedalus/compare/v1.49.1...v1.49.2) (2026-07-18)
+
+
+### Bug Fixes
+
+* auto-generate walkthrough.md upon successful orchestration completion ([6cccf3f](https://github.com/bgill55/daedalus/commit/6cccf3f78772f0409b9ab396256c580abb78656e))
+
 ## [1.49.1](https://github.com/bgill55/daedalus/compare/v1.49.0...v1.49.1) (2026-07-18)
 
 
