@@ -1166,7 +1166,7 @@ export class Orchestrator {
       let verified = await this.verifyArtifacts(task.role, task.goal, result, historyStartIndex);
       let repairCheckLogs = '';
       if (verified && (task.role === 'coder' || task.role === 'debugger') && (this.toolContext.patchHistory?.length ?? 0) > historyStartIndex) {
-        const checkResult = await this.runBuildVerification();
+        const checkResult = await this.runBuildVerification(historyStartIndex);
         if (!checkResult.success) {
           const modifiedFiles = this.toolContext.patchHistory!.slice(historyStartIndex).map(p => p.filePath);
           const isRelated = this.isBuildErrorRelated(checkResult.errorLogs || '', modifiedFiles);
@@ -1676,7 +1676,7 @@ export class Orchestrator {
     }
 
     if (verified && (task.role === 'coder' || task.role === 'debugger') && (this.toolContext.patchHistory?.length ?? 0) > historyStartIndex) {
-      const checkResult = await this.runBuildVerification();
+      const checkResult = await this.runBuildVerification(historyStartIndex);
       if (!checkResult.success) {
         const modifiedFiles = this.toolContext.patchHistory!.slice(historyStartIndex).map(p => p.filePath);
         const isRelated = this.isBuildErrorRelated(checkResult.errorLogs || '', modifiedFiles);
@@ -2055,8 +2055,19 @@ export class Orchestrator {
     history.length = historyStartIndex;
   }
 
-  private async runBuildVerification(): Promise<{ success: boolean; errorLogs?: string }> {
+  private async runBuildVerification(historyStartIndex: number = 0): Promise<{ success: boolean; errorLogs?: string }> {
     const cwd = this.toolContext.projectRoot || process.cwd();
+    const history = this.toolContext.patchHistory || [];
+    const touchedFiles = history.slice(historyStartIndex).map(p => p.filePath);
+    const hasSourceFiles = touchedFiles.some(f => {
+      const ext = path.extname(f).toLowerCase();
+      return ['.ts', '.tsx', '.js', '.jsx', '.go', '.rs', '.py', '.cpp', '.c', '.h', '.java'].includes(ext);
+    });
+    if (touchedFiles.length > 0 && !hasSourceFiles) {
+      console.log(pc.gray(`  [VERIFY] Skipping build check (only config/docs files modified).`));
+      return { success: true };
+    }
+
     let command = '';
     let lintCommand = '';
 
