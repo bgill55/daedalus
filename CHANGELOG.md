@@ -1,3 +1,10 @@
+## [1.49.4](https://github.com/bgill55/daedalus/compare/v1.49.3...v1.49.4) (2026-07-18)
+
+
+### Bug Fixes
+
+* skip build check on config/docs modifications in orchestrator ([1882c17](https://github.com/bgill55/daedalus/commit/1882c17676768f0f91bf7ed7c8a1d25436653bee))
+
 ## [1.49.3](https://github.com/bgill55/daedalus/compare/v1.49.2...v1.49.3) (2026-07-18)
 
 
