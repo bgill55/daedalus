@@ -57,6 +57,7 @@
     "diff": "^7.0.0",
     "neo-blessed": "^0.2.0",
     "openai": "^4.85.4",
+    "pdf-parse": "^2.4.5",
     "picocolors": "^1.1.1",
     "puppeteer-core": "^25.1.0",
     "zod": "^3.23.8"

@@ -1,8 +1,16 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { patchFile, writeFile, listFiles, searchFiles, readFile } from './files.js';
+
+vi.mock('pdf-parse', () => {
+  return {
+    default: async () => ({
+      text: 'Mocked PDF Content Line 1\nMocked PDF Content Line 2'
+    })
+  };
+});
 import type { ToolContext } from '../../types.js';
 
 function makeTmpDir(): string {
@@ -409,6 +417,25 @@ describe('listFiles and searchFiles — directory exclusions', () => {
     expect(result.content).toContain('file_0.txt');
     expect(result.content).toContain('truncated');
     expect(result.content).toContain('more files found');
+  });
+});
+
+describe('readFile — PDF support', () => {
+  let tmpDir: string;
+
+  beforeEach(() => { tmpDir = makeTmpDir(); });
+  afterEach(() => { fs.rmSync(tmpDir, { recursive: true, force: true }); });
+
+  it('correctly reads and parses a PDF file', async () => {
+    const file = path.join(tmpDir, 'test.pdf');
+    // Write mock binary PDF content
+    fs.writeFileSync(file, '%PDF-1.4 mock binary content');
+    const ctx = makeContext(tmpDir);
+
+    const result = await readFile({ path: file }, ctx);
+    expect(result.success).toBe(true);
+    expect(result.content).toContain('1|Mocked PDF Content Line 1');
+    expect(result.content).toContain('2|Mocked PDF Content Line 2');
   });
 });
 

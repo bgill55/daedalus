@@ -479,7 +479,16 @@ export async function readFile(args: { path: string; offset?: number; limit?: nu
       return formatError(`File not found: ${args.path}`);
     }
 
-    const content = fs.readFileSync(targetPath, 'utf8');
+    let content = '';
+    if (targetPath.toLowerCase().endsWith('.pdf')) {
+      const pdfBuffer = fs.readFileSync(targetPath);
+      // @ts-ignore
+      const pdfParser = (await import('pdf-parse')).default;
+      const parsedData = await pdfParser(pdfBuffer);
+      content = parsedData.text;
+    } else {
+      content = fs.readFileSync(targetPath, 'utf8');
+    }
     const lines = content.replace(/\r/g, '').split('\n');
     const totalLines = lines.length;
     const start = Math.max(0, offset - 1);
