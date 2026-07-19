@@ -40,7 +40,7 @@ For full guides, configuration reference, and examples, visit the documentation 
 </p>
 
 <p align="center">
-  <video src="docs/images/Daedalus__Local-First_AI.mp4" width="100%" controls></video>
+  <video src="docs/images/Daedalus__AI_Coding_Assistant.mp4" width="100%" controls></video>
 </p>
 
 ---

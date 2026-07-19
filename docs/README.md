@@ -3,7 +3,7 @@
 Welcome to the Daedalus documentation. Use the sidebar to browse guides, configuration reference, orchestration, MCP integration, and sandboxing.
 
 <p align="center">
-  <video src="images/Daedalus__Local-First_AI.mp4" width="100%" controls></video>
+  <video src="images/Daedalus__AI_Coding_Assistant.mp4" width="100%" controls></video>
 </p>
 
 Jump straight to:
