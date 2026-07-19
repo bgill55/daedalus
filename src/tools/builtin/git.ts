@@ -10,5 +10,5 @@ export async function diff(args: { staged?: boolean; path?: string }, context: T
 }
 
 export async function status(args: Record<string, never>, context: ToolContext): Promise<ToolResult> {
-  return execute({ command: 'git status --porcelain', timeout: 10, workdir: context.projectRoot }, context);
+  return execute({ command: 'git status --porcelain', timeout: 30, workdir: context.projectRoot }, context);
 }

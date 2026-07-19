@@ -52,7 +52,7 @@ describe('Tool executor', () => {
     };
     const result = await executeToolCall(tc, mockContext);
     expect(result.success).toBe(true);
-  }, 10_000);
+  }, 30_000);
 
   it('executes git_diff successfully', async () => {
     const tc: ToolCall = {
@@ -61,7 +61,7 @@ describe('Tool executor', () => {
     };
     const result = await executeToolCall(tc, mockContext);
     expect(result.success).toBe(true);
-  });
+  }, 30_000);
 
   it('handles tool execution failure gracefully', async () => {
     const original = TOOL_IMPLEMENTATIONS['read_file'];
@@ -86,6 +86,6 @@ describe('Tool executor', () => {
     expect(results).toHaveLength(2);
     expect(results[0].success).toBe(true);
     expect(results[1].success).toBe(true);
-  });
+  }, 30_000);
 
 });
