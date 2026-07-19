@@ -1,7 +1,6 @@
 import fs from 'fs';
 import path from 'path';
 import { execSync, spawn, spawnSync } from 'child_process';
-import os from 'os';
 import { ToolContext, ToolResult } from '../../types.js';
 import { guardGitPath } from '../git-guard.js';
 import { runDiffWorkflow, type DiffOptions } from './diff-ui.js';
@@ -399,7 +398,7 @@ async function runColocatedTests(filePath: string, projectRoot: string): Promise
   return null;
 }
 
-function checkPackageJsonAntiPatterns(filePath: string, projectRoot: string): string[] {
+function checkPackageJsonAntiPatterns(filePath: string, _projectRoot: string): string[] {
   if (!filePath.endsWith('package.json')) return [];
   try {
     const pkg = JSON.parse(fs.readFileSync(filePath, 'utf8'));
@@ -482,7 +481,7 @@ export async function readFile(args: { path: string; offset?: number; limit?: nu
     let content = '';
     if (targetPath.toLowerCase().endsWith('.pdf')) {
       const pdfBuffer = fs.readFileSync(targetPath);
-      // @ts-ignore
+      // @ts-expect-error: pdf-parse module lacks TypeScript declaration types
       const pdfParser = (await import('pdf-parse')).default;
       const parsedData = await pdfParser(pdfBuffer);
       content = parsedData.text;
