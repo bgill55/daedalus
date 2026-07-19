@@ -478,6 +478,25 @@ export async function readFile(args: { path: string; offset?: number; limit?: nu
       return formatError(`File not found: ${args.path}`);
     }
 
+    const ext = path.extname(targetPath).toLowerCase();
+    if (['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp'].includes(ext)) {
+      const buffer = fs.readFileSync(targetPath);
+      let mimeType = 'image/png';
+      if (ext === '.jpg' || ext === '.jpeg') mimeType = 'image/jpeg';
+      else if (ext === '.gif') mimeType = 'image/gif';
+      else if (ext === '.webp') mimeType = 'image/webp';
+      else if (ext === '.bmp') mimeType = 'image/bmp';
+
+      const base64 = buffer.toString('base64');
+      const response = {
+        type: 'vision',
+        base64,
+        mimeType,
+        path: args.path
+      };
+      return { toolCallId: '', name: 'read_file', success: true, content: JSON.stringify(response) };
+    }
+
     let content = '';
     if (targetPath.toLowerCase().endsWith('.pdf')) {
       const pdfBuffer = fs.readFileSync(targetPath);

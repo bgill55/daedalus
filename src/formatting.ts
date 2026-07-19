@@ -265,6 +265,11 @@ export function printToolResult(name: string, success: boolean, error?: string):
 
 export function printToolContentPreview(content: string): void {
   if (!content) return;
+  if (content.startsWith('{"type":"vision"')) {
+    console.log(`  ${pc.dim('  ')}${pc.gray('[Image data...]')}`);
+    _commentaryLines++;
+    return;
+  }
   const lines = content.split('\n').filter(l => l.trim());
   const preview = lines.slice(0, 1).map(l => l.length > 100 ? l.slice(0, 100) + '…' : l).join('\n');
   if (preview) {

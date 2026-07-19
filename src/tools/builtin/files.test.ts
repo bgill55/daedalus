@@ -443,4 +443,24 @@ describe('readFile — PDF support', () => {
   });
 });
 
+describe('readFile — Image support', () => {
+  let tmpDir: string;
+
+  beforeEach(() => { tmpDir = makeTmpDir(); });
+  afterEach(() => { fs.rmSync(tmpDir, { recursive: true, force: true }); });
+
+  it('correctly reads an image file and returns base64 vision payload', async () => {
+    const file = path.join(tmpDir, 'test.png');
+    fs.writeFileSync(file, 'mock image bytes');
+    const ctx = makeContext(tmpDir);
+
+    const result = await readFile({ path: file }, ctx);
+    expect(result.success).toBe(true);
+    const parsed = JSON.parse(result.content);
+    expect(parsed.type).toBe('vision');
+    expect(parsed.mimeType).toBe('image/png');
+    expect(parsed.base64).toBe(Buffer.from('mock image bytes').toString('base64'));
+  });
+});
+
 

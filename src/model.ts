@@ -386,18 +386,22 @@ export function createModelFunctions(deps: ModelDeps) {
         if (result.success && result.content) {
           printToolContentPreview(result.content);
         }
-        if (result.success && result.name === 'screenshot_page') {
+        if (result.success && (result.name === 'screenshot_page' || result.name === 'read_file')) {
           try {
             const parsed = JSON.parse(result.content);
             if (parsed.type === 'vision' && parsed.base64) {
+              const mime = parsed.mimeType || 'image/png';
+              const textDescription = parsed.url
+                ? `[Screenshot of ${parsed.url}${parsed.selector ? ` > ${parsed.selector}` : ''}]`
+                : `[Image file: ${parsed.path || 'unknown'}]`;
               messages.push({
                 role: 'user',
                 content: [
-                  { type: 'text', text: `[Screenshot of ${parsed.url}${parsed.selector ? ` > ${parsed.selector}` : ''}]` },
-                  { type: 'image_url', image_url: { url: `data:image/png;base64,${parsed.base64}` } },
+                  { type: 'text', text: textDescription },
+                  { type: 'image_url', image_url: { url: `data:${mime};base64,${parsed.base64}` } },
                 ],
               } as ChatMessage);
-              console.log(`  ${pc.cyan('[VISION]')} Screenshot injected into context (${Math.round(parsed.base64.length * 0.75 / 1024)}KB)`);
+              console.log(`  ${pc.cyan('[VISION]')} Image injected into context (${Math.round(parsed.base64.length * 0.75 / 1024)}KB)`);
             }
           } catch { /* ignored */ }
         }
