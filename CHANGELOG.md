@@ -1,3 +1,10 @@
+# [1.50.0](https://github.com/bgill55/daedalus/compare/v1.49.4...v1.50.0) (2026-07-19)
+
+
+### Features
+
+* add native PDF parsing support to readFile tool using pdf-parse ([59fa377](https://github.com/bgill55/daedalus/commit/59fa3778a780d02ceb0af46b87e452aa2d29094d))
+
 ## [1.49.4](https://github.com/bgill55/daedalus/compare/v1.49.3...v1.49.4) (2026-07-18)
 
 
