@@ -2,6 +2,10 @@
 
 Welcome to Daedalus, a local-first, terminal-based AI coding assistant. This guide will walk you through the requirements, installation, and first-time setup process to get you up and running quickly.
 
+<p align="center">
+  <video src="images/Daedalus__AI_Coding_Assistant.mp4" width="100%" controls></video>
+</p>
+
 ---
 
 ## Requirements
