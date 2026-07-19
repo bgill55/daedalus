@@ -481,9 +481,8 @@ export async function readFile(args: { path: string; offset?: number; limit?: nu
     let content = '';
     if (targetPath.toLowerCase().endsWith('.pdf')) {
       const pdfBuffer = fs.readFileSync(targetPath);
-      // @ts-expect-error: pdf-parse lacks native types for named import in ES Modules
-      const { PDFParse } = await import('pdf-parse');
-      const parser = new PDFParse({ data: new Uint8Array(pdfBuffer) });
+      const pdfParseModule = (await import('pdf-parse')) as any;
+      const parser = new pdfParseModule.PDFParse({ data: new Uint8Array(pdfBuffer) });
       const parsedData = await parser.getText();
       content = parsedData.text;
     } else {
