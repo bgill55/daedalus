@@ -6,9 +6,13 @@ import { patchFile, writeFile, listFiles, searchFiles, readFile } from './files.
 
 vi.mock('pdf-parse', () => {
   return {
-    default: async () => ({
-      text: 'Mocked PDF Content Line 1\nMocked PDF Content Line 2'
-    })
+    PDFParse: class {
+      getText() {
+        return Promise.resolve({
+          text: 'Mocked PDF Content Line 1\nMocked PDF Content Line 2'
+        });
+      }
+    }
   };
 });
 import type { ToolContext } from '../../types.js';
