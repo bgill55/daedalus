@@ -207,7 +207,7 @@ npx tsc --noEmit  # type check
 ### Architecture
 
 <p align="center">
-  <img src="docs/images/Daedalus_Local_AI_Coding_Architecture.png" alt="Daedalus Local AI Coding Architecture" width="100%" />
+  <img src="docs/images/Daedalus_AI_Coding_Architect_Overview.png" alt="Daedalus AI Coding Architect Overview" width="100%" />
 </p>
 
 ```

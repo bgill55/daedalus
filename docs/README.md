@@ -102,4 +102,4 @@ Daedalus provides a premium terminal-based user interface for orchestrating agen
 
 At its core, Daedalus coordinates specialized subagents through an embedded model router to solve coding tasks locally or via cloud models:
 
-![Daedalus System Architecture](images/Daedalus_Local_AI_Coding_Architecture.png)
+![Daedalus System Architecture](images/Daedalus_AI_Coding_Architect_Overview.png)
