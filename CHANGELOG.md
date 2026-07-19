@@ -1,3 +1,10 @@
+# [1.51.0](https://github.com/bgill55/daedalus/compare/v1.50.2...v1.51.0) (2026-07-19)
+
+
+### Features
+
+* **vision:** enable reading local image files via read_file and injecting them as vision messages ([5f0cf94](https://github.com/bgill55/daedalus/commit/5f0cf94efeffa4e70adaa8a9ff2d7da06977409d))
+
 ## [1.50.2](https://github.com/bgill55/daedalus/compare/v1.50.1...v1.50.2) (2026-07-19)
 
 
