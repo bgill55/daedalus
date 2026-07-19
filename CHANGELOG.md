@@ -1,3 +1,10 @@
+# [1.52.0](https://github.com/bgill55/daedalus/compare/v1.51.0...v1.52.0) (2026-07-19)
+
+
+### Features
+
+* **definitions:** force release of read_file vision schemas ([8895556](https://github.com/bgill55/daedalus/commit/88955562108c6348a16d34835f5ed52458593cc9))
+
 # [1.51.0](https://github.com/bgill55/daedalus/compare/v1.50.2...v1.51.0) (2026-07-19)
 
 
