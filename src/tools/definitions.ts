@@ -10,7 +10,7 @@ export const BUILTIN_TOOLS: ToolDefinition[] = [
     type: 'function',
     function: {
       name: 'read_file',
-      description: 'Read a file with optional line range. Returns content with line numbers. Shocking, I know.',
+      description: 'Read a file (text, PDF, or images like PNG, JPG, WebP). Reading an image file will automatically encode it and inject it into your chat context as a visual image for vision analysis.',
       parameters: {
         type: 'object',
         properties: {
