@@ -1,3 +1,11 @@
+## [1.50.2](https://github.com/bgill55/daedalus/compare/v1.50.1...v1.50.2) (2026-07-19)
+
+
+### Bug Fixes
+
+* **files:** cast ESM dynamic import of pdf-parse to any to fix compile error TS2578 ([7227388](https://github.com/bgill55/daedalus/commit/72273887f0f8115a1435c1817046469eef6f9a5d))
+* **files:** import and instantiate named class PDFParse from pdf-parse ESM ([64092d6](https://github.com/bgill55/daedalus/commit/64092d629a1c283e9ef85b0ec49666325d46ad37))
+
 ## [1.50.1](https://github.com/bgill55/daedalus/compare/v1.50.0...v1.50.1) (2026-07-19)
 
 
