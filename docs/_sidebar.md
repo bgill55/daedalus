@@ -6,4 +6,5 @@
 - [MCP Integration](mcp.md)
 - [Sandboxing](sandboxing.md)
 - [Example Run](social-media-manager-sprint.md)
+- [Case Study: Daedalus-Lite](daedalus-lite-sprint.md)
 
