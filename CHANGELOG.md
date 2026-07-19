@@ -1,3 +1,10 @@
+## [1.50.1](https://github.com/bgill55/daedalus/compare/v1.50.0...v1.50.1) (2026-07-19)
+
+
+### Bug Fixes
+
+* **files:** add required explanation description to ts-expect-error comment ([bc1efa9](https://github.com/bgill55/daedalus/commit/bc1efa99b08500147dc6c53dbac5bff137354f44))
+
 # [1.50.0](https://github.com/bgill55/daedalus/compare/v1.49.4...v1.50.0) (2026-07-19)
 
 
