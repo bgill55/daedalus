@@ -1,3 +1,10 @@
+## [1.52.2](https://github.com/bgill55/daedalus/compare/v1.52.1...v1.52.2) (2026-07-20)
+
+
+### Bug Fixes
+
+* **files:** allow absolute path cross-project writes and normalize drive paths ([d331663](https://github.com/bgill55/daedalus/commit/d331663666f08b0b86a3a9d91afa33bba085dad6))
+
 ## [1.52.1](https://github.com/bgill55/daedalus/compare/v1.52.0...v1.52.1) (2026-07-20)
 
 
