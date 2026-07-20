@@ -46,7 +46,7 @@ function truncateToolResult(content: string): string {
 function detectRepetition(text: string): boolean {
   if (text.length < 200) return false;
   const tail = text.slice(-400);
-  const len = 18;
+  const len = 32;
   const counts: Record<string, number> = {};
   for (let i = 0; i <= tail.length - len; i++) {
     const sub = tail.substring(i, i + len);
