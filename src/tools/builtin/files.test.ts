@@ -463,4 +463,22 @@ describe('readFile — Image support', () => {
   });
 });
 
+describe('writeFile — Absolute path cross-project support', () => {
+  let tmpDir: string;
+
+  beforeEach(() => { tmpDir = makeTmpDir(); });
+  afterEach(() => { fs.rmSync(tmpDir, { recursive: true, force: true }); });
+
+  it('allows writing new files to an absolute path when parent directory exists', async () => {
+    const subDir = path.join(tmpDir, 'other-project');
+    fs.mkdirSync(subDir, { recursive: true });
+    const newFile = path.join(subDir, 'new-file.txt');
+
+    const ctx = makeContext(tmpDir);
+    const result = await writeFile({ path: newFile, content: 'hello world' }, ctx);
+    expect(result.success).toBe(true);
+    expect(fs.readFileSync(newFile, 'utf8')).toBe('hello world');
+  });
+});
+
 

@@ -443,17 +443,25 @@ function resolvePath(p: string, projectRoot: string): string {
   }
 
   let normalizedPath = p;
-  if (process.platform !== 'win32') {
+  // Convert /c/path or /d/path (Git Bash / WSL style) to C:/path or D:/path
+  if (/^[\/\\]([a-zA-Z])[\/\\]/.test(normalizedPath)) {
+    const drive = normalizedPath[1].toUpperCase();
+    normalizedPath = `${drive}:/${normalizedPath.substring(3)}`;
+  }
+  if (process.platform === 'win32') {
+    normalizedPath = normalizedPath.replace(/\//g, '\\');
+  } else {
     normalizedPath = normalizedPath.replace(/\\/g, '/');
-    if (/^[A-Za-z]:\//.test(normalizedPath)) {
-      const drive = normalizedPath[0].toLowerCase();
-      normalizedPath = `/mnt/${drive}${normalizedPath.substring(2)}`;
-    }
   }
 
   const resolved = path.isAbsolute(normalizedPath) ? normalizedPath : path.resolve(projectRoot, normalizedPath);
-  // Allow explicit absolute paths to existing locations (cross-project access)
-  if (path.isAbsolute(normalizedPath) && fs.existsSync(resolved)) return resolved;
+  // Allow explicit absolute paths if the file or its parent directory exists
+  if (path.isAbsolute(normalizedPath) && (fs.existsSync(resolved) || fs.existsSync(path.dirname(resolved)))) {
+    const gitGuard = guardGitPath(resolved);
+    if (gitGuard) throw new Error(gitGuard);
+    return resolved;
+  }
+
   const relative = path.relative(projectRoot, resolved);
   if (relative.startsWith('..') || path.isAbsolute(relative)) {
     throw new Error(`Path traversal blocked: ${p} is outside the project directory`);
