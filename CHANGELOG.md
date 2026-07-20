@@ -1,3 +1,10 @@
+## [1.52.1](https://github.com/bgill55/daedalus/compare/v1.52.0...v1.52.1) (2026-07-20)
+
+
+### Bug Fixes
+
+* **model:** increase detectRepetition window size to 32 to avoid false positive triggers in directory tables ([df03f19](https://github.com/bgill55/daedalus/commit/df03f19b8a3b0beb6067db0bb1c379b6972d3a35))
+
 # [1.52.0](https://github.com/bgill55/daedalus/compare/v1.51.0...v1.52.0) (2026-07-19)
 
 
