@@ -20,8 +20,8 @@ describe('generateImage tool', () => {
   });
 
   it('has correct tool definition metadata', () => {
-    expect(generateImageTool.name).toBe('generate_image');
-    expect(generateImageTool.parameters.required).toContain('prompt');
+    expect(generateImageTool.function.name).toBe('generate_image');
+    expect(generateImageTool.function.parameters.required).toContain('prompt');
   });
 
   it('handles API failure gracefully when provider is explicitly sd-webui and server is unreachable', async () => {
@@ -55,7 +55,7 @@ describe('generateImage tool', () => {
     });
 
     expect(result.success).toBe(true);
-    expect(result.output).toContain('local Stable Diffusion');
+    expect(result.content).toContain('local Stable Diffusion');
     expect(fs.existsSync(outputPath)).toBe(true);
   });
 
@@ -77,7 +77,7 @@ describe('generateImage tool', () => {
     });
 
     expect(result.success).toBe(true);
-    expect(result.output).toContain('Pollinations AI');
+    expect(result.content).toContain('Pollinations AI');
     expect(fs.existsSync(outputPath)).toBe(true);
   });
 
@@ -99,7 +99,7 @@ describe('generateImage tool', () => {
     });
 
     expect(result.success).toBe(true);
-    expect(result.output).toContain('Pollinations AI');
+    expect(result.content).toContain('Pollinations AI');
     expect(fs.existsSync(outputPath)).toBe(true);
   });
 });

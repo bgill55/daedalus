@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import type { Tool, ToolResult } from '../../types.js';
+import type { ToolDefinition, ToolResult } from '../../types.js';
 import { loadConfig } from '../../config/index.js';
 
 export interface GenerateImageArgs {
@@ -28,8 +28,10 @@ async function fetchFromPollinations(
   if (!response.ok) {
     const text = await response.text();
     return {
+      toolCallId: '',
+      name: 'generate_image',
       success: false,
-      output: '',
+      content: '',
       error: `Pollinations AI returned HTTP ${response.status}: ${text}`,
     };
   }
@@ -51,8 +53,10 @@ async function fetchFromPollinations(
   fs.writeFileSync(absolutePath, buffer);
 
   return {
+    toolCallId: '',
+    name: 'generate_image',
     success: true,
-    output: `Successfully generated image via Pollinations AI (${width}x${height}).\nSaved to: ${absolutePath}`,
+    content: `Successfully generated image via Pollinations AI (${width}x${height}).\nSaved to: ${absolutePath}`,
   };
 }
 
@@ -63,8 +67,10 @@ export async function generateImage(args: GenerateImageArgs): Promise<ToolResult
 
     if (imgGenConfig && !imgGenConfig.enabled) {
       return {
+        toolCallId: '',
+        name: 'generate_image',
         success: false,
-        output: '',
+        content: '',
         error: 'Image generation is currently disabled in Daedalus configuration.',
       };
     }
@@ -118,8 +124,10 @@ export async function generateImage(args: GenerateImageArgs): Promise<ToolResult
           fs.writeFileSync(absolutePath, buffer);
 
           return {
+            toolCallId: '',
+            name: 'generate_image',
             success: true,
-            output: `Successfully generated image via local Stable Diffusion (${width}x${height}, ${steps} steps).\nSaved to: ${absolutePath}`,
+            content: `Successfully generated image via local Stable Diffusion (${width}x${height}, ${steps} steps).\nSaved to: ${absolutePath}`,
           };
         }
       }
@@ -127,16 +135,20 @@ export async function generateImage(args: GenerateImageArgs): Promise<ToolResult
       if (provider === 'sd-webui') {
         const text = await response.text();
         return {
+          toolCallId: '',
+          name: 'generate_image',
           success: false,
-          output: '',
+          content: '',
           error: `Stable Diffusion API returned HTTP ${response.status}: ${text}`,
         };
       }
     } catch (sdErr: any) {
       if (provider === 'sd-webui') {
         return {
+          toolCallId: '',
+          name: 'generate_image',
           success: false,
-          output: '',
+          content: '',
           error: `Failed to connect to local Stable Diffusion WebUI at ${endpoint}: ${sdErr.message || String(sdErr)}`,
         };
       }
@@ -146,49 +158,53 @@ export async function generateImage(args: GenerateImageArgs): Promise<ToolResult
     return await fetchFromPollinations(args.prompt, width, height, args.output_path, outputDir);
   } catch (err: any) {
     return {
+      toolCallId: '',
+      name: 'generate_image',
       success: false,
-      output: '',
+      content: '',
       error: `Failed to generate image: ${err.message || String(err)}`,
     };
   }
 }
 
-export const generateImageTool: Tool = {
-  name: 'generate_image',
-  description: 'Generate an image using local Stable Diffusion WebUI or Pollinations AI and save it to disk.',
-  parameters: {
-    type: 'object',
-    properties: {
-      prompt: {
-        type: 'string',
-        description: 'Detailed prompt describing the image to generate.',
+export const generateImageTool: ToolDefinition = {
+  type: 'function',
+  function: {
+    name: 'generate_image',
+    description: 'Generate an image using local Stable Diffusion WebUI or Pollinations AI and save it to disk.',
+    parameters: {
+      type: 'object',
+      properties: {
+        prompt: {
+          type: 'string',
+          description: 'Detailed prompt describing the image to generate.',
+        },
+        negative_prompt: {
+          type: 'string',
+          description: 'Negative prompt specifying elements to avoid in the generated image.',
+        },
+        width: {
+          type: 'number',
+          description: 'Image width in pixels (default 512).',
+        },
+        height: {
+          type: 'number',
+          description: 'Image height in pixels (default 512).',
+        },
+        steps: {
+          type: 'number',
+          description: 'Sampling steps for local SD image generation (default 20).',
+        },
+        provider: {
+          type: 'string',
+          description: 'Image generation engine: auto (local SD with Pollinations fallback), sd-webui, or pollinations.',
+        },
+        output_path: {
+          type: 'string',
+          description: 'Relative or absolute file path to save the generated PNG image (default ./assets/images/img_<timestamp>.png).',
+        },
       },
-      negative_prompt: {
-        type: 'string',
-        description: 'Negative prompt specifying elements to avoid in the generated image.',
-      },
-      width: {
-        type: 'number',
-        description: 'Image width in pixels (default 512).',
-      },
-      height: {
-        type: 'number',
-        description: 'Image height in pixels (default 512).',
-      },
-      steps: {
-        type: 'number',
-        description: 'Sampling steps for local SD image generation (default 20).',
-      },
-      provider: {
-        type: 'string',
-        description: 'Image generation engine: auto (local SD with Pollinations fallback), sd-webui, or pollinations.',
-      },
-      output_path: {
-        type: 'string',
-        description: 'Relative or absolute file path to save the generated PNG image (default ./assets/images/img_<timestamp>.png).',
-      },
+      required: ['prompt'],
     },
-    required: ['prompt'],
   },
-  execute: generateImage,
 };

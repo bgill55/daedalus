@@ -208,6 +208,15 @@ const DEFAULT_CONFIG: DaedalusConfig = {
     sandbox: 'none',
     sandboxImage: 'node:20',
   },
+  imageGen: {
+    enabled: true,
+    provider: 'auto',
+    endpoint: 'http://127.0.0.1:7860',
+    defaultWidth: 512,
+    defaultHeight: 512,
+    defaultSteps: 20,
+    outputDir: './assets/images',
+  },
   context: {
     maxTokens: 128000,
     summarizeAt: 0.8,

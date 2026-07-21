@@ -2104,7 +2104,7 @@ Once you have finished making changes, I will automatically re-run the command t
       });
 
       if (res.success) {
-        console.log(pc.green(`\n✔ ${res.output}`));
+        console.log(pc.green(`\n✔ ${res.content}`));
       } else {
         console.log(pc.red(`\n✗ Image generation failed: ${res.error}`));
       }

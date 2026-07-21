@@ -50,7 +50,7 @@ export function printUserTurn(userMessage: string): void {
 
   console.log(`\n  ${pc.bold(pc.green('─ You ─'))} ${pc.dim('─'.repeat(Math.max(10, lineLen - 7)))}`);
   for (const part of wrapped) {
-    console.log(`  ${pc.brightWhite(part)}`);
+    console.log(`  ${pc.whiteBright(part)}`);
   }
   console.log(`  ${pc.dim('─'.repeat(lineLen + 2))}\n`);
 }
