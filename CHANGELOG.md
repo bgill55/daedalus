@@ -1,3 +1,15 @@
+# [1.54.0](https://github.com/bgill55/daedalus/compare/v1.53.1...v1.54.0) (2026-07-21)
+
+
+### Bug Fixes
+
+* **types:** make timestamp optional in PatchEntry and update commands test mock ([08b69cf](https://github.com/bgill55/daedalus/commit/08b69cf0d654da092e578ecbe2ea08a977a11fd9))
+
+
+### Features
+
+* add batch /undo command and [@agent](https://github.com/agent) prompt tagging ([187d085](https://github.com/bgill55/daedalus/commit/187d085d50e1f3d61d2e2b6badb86af3d7f73487))
+
 ## [1.53.1](https://github.com/bgill55/daedalus/compare/v1.53.0...v1.53.1) (2026-07-21)
 
 
