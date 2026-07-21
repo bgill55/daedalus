@@ -16,6 +16,7 @@ import type { UserProfile } from './profile.js';
 import { commandsList, executeCommand, CommandContext } from './commands.js';
 import { extractAndSave } from './extraction.js';
 import { resetTurnAborted } from './model.js';
+import { parseAgentTag } from './agents/roles.js';
 
 export interface ReplDeps {
   config: any;
@@ -194,12 +195,22 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
         }
 
         // User Message Processing (regular assistant chat)
+        let activePrompt = trimmedInput;
+        const agentTag = parseAgentTag(trimmedInput);
+        if (agentTag) {
+          toolContext.agentRole = agentTag.role;
+          activePrompt = agentTag.cleanInput;
+          console.log(pc.cyan(`\n  [AGENT] Targeted role: ${pc.bold(agentTag.role)}`));
+        } else {
+          toolContext.agentRole = config.agents?.default || 'coder';
+        }
+
         try {
           const filesContext = buildFileContext();
-          const indexCtx = await buildIndexContext(trimmedInput);
+          const indexCtx = await buildIndexContext(activePrompt);
           const todoCtx = buildTodoContext(sessionId);
-          const userContent = `${indexCtx}${todoCtx}${filesContext}User Prompt: ${trimmedInput}`;
-          printUserTurn(trimmedInput);
+          const userContent = `${indexCtx}${todoCtx}${filesContext}User Prompt: ${activePrompt}`;
+          printUserTurn(activePrompt);
           await callModelWithTools(userContent);
 
           sessionManager.saveSessionState(messages, activeFiles, getSessionTodos(sessionId));
@@ -208,7 +219,7 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
           try {
             const filesContext = buildFileContext();
             const todoCtx = buildTodoContext(sessionId);
-            const userContent = `${todoCtx}${filesContext}User Prompt: ${trimmedInput}`;
+            const userContent = `${todoCtx}${filesContext}User Prompt: ${activePrompt}`;
             console.log(pc.yellow('\n  [RETRY] Trying fallback mode...'));
             const fallbackResult = await callModelWithFallback(userContent);
             if (fallbackResult) {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getAgentRole, filterToolsForRole, AGENT_ROLES } from './roles.js';
+import { getAgentRole, filterToolsForRole, parseAgentTag, AGENT_ROLES } from './roles.js';
 import type { ToolDefinition } from '../tools/definitions.js';
 
 describe('Agent roles', () => {
@@ -120,5 +120,31 @@ describe('Agent roles', () => {
         expect(role.temperature).toBeLessThanOrEqual(2);
       }
     }
+  });
+
+  describe('parseAgentTag', () => {
+    it('parses valid @role tags correctly', () => {
+      const res = parseAgentTag('@planner break down the user auth task');
+      expect(res).not.toBeNull();
+      expect(res?.role).toBe('planner');
+      expect(res?.cleanInput).toBe('break down the user auth task');
+    });
+
+    it('parses @agent <role> syntax', () => {
+      const res = parseAgentTag('@agent researcher find details on OAuth2');
+      expect(res).not.toBeNull();
+      expect(res?.role).toBe('researcher');
+      expect(res?.cleanInput).toBe('find details on OAuth2');
+    });
+
+    it('returns null for unknown agent tags', () => {
+      const res = parseAgentTag('@unknown do something');
+      expect(res).toBeNull();
+    });
+
+    it('returns null for standard prompt text without tags', () => {
+      const res = parseAgentTag('fix the bug in src/App.tsx');
+      expect(res).toBeNull();
+    });
   });
 });

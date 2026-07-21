@@ -590,25 +590,70 @@ export const commandsList: Command[] = [
   },
   {
     name: '/undo',
-    description: 'Undo last file patch',
+    description: 'Undo file edits (usage: /undo [count|list])',
+    usage: '/undo [count|list]',
+    helpText: 'Undo applied file patches. Specify a number to undo multiple patches (e.g. /undo 3), or "list" to view patch history.',
     execute: async (args, ctx) => {
       const history = ctx.toolContext.patchHistory;
       if (!history || history.length === 0) {
         console.log(pc.yellow('[WARN] No patches to undo.'));
-      } else {
-        const last = history[history.length - 1];
-        try {
-          const currentContent = fs.readFileSync(last.filePath, 'utf8');
-          if (currentContent === last.newContent) {
-            fs.writeFileSync(last.filePath, last.oldContent, 'utf8');
-            console.log(pc.green(`[OK] Undid patch to ${last.filePath} (${last.description})`));
-          } else {
-            console.log(pc.yellow(`[WARN] File ${last.filePath} has been modified since last patch. Cannot auto-undo.`));
-          }
-          history.pop();
-        } catch (err: any) {
-          console.log(pc.red(`[WARN] Failed to undo: ${err.message}`));
+        return;
+      }
+
+      const cleanArg = args.trim().toLowerCase();
+
+      if (cleanArg === 'list' || cleanArg === 'status') {
+        console.log(pc.bold(`\n--- Applied Patch History (${history.length} patch${history.length > 1 ? 'es' : ''}) ---`));
+        history.forEach((patch, idx) => {
+          const num = idx + 1;
+          const relPath = path.relative(process.cwd(), patch.filePath);
+          console.log(`  [${num}] ${pc.cyan(relPath)} — ${pc.dim(patch.description || 'file edit')}`);
+        });
+        console.log(pc.dim('--------------------------------------------------\n'));
+        return;
+      }
+
+      let undoCount = 1;
+      if (cleanArg) {
+        const parsed = parseInt(cleanArg, 10);
+        if (!isNaN(parsed) && parsed > 0) {
+          undoCount = Math.min(parsed, history.length);
+        } else {
+          console.log(pc.yellow(`[WARN] Invalid argument: "${args}". Usage: /undo [count|list]`));
+          return;
         }
+      }
+
+      let undoneCount = 0;
+      for (let i = 0; i < undoCount; i++) {
+        if (history.length === 0) break;
+        const last = history.pop()!;
+        try {
+          if (!last.oldContent) {
+            if (fs.existsSync(last.filePath)) {
+              fs.unlinkSync(last.filePath);
+              console.log(pc.green(`[OK] Undid creation — deleted file ${pc.bold(path.relative(process.cwd(), last.filePath))}`));
+              undoneCount++;
+            }
+          } else {
+            const currentContent = fs.existsSync(last.filePath) ? fs.readFileSync(last.filePath, 'utf8') : null;
+            if (currentContent === last.newContent || currentContent === null) {
+              fs.writeFileSync(last.filePath, last.oldContent, 'utf8');
+              console.log(pc.green(`[OK] Undid patch to ${pc.bold(path.relative(process.cwd(), last.filePath))} (${last.description})`));
+              undoneCount++;
+            } else {
+              console.log(pc.yellow(`[WARN] File ${path.relative(process.cwd(), last.filePath)} has manual edits. Force restoring original patch state...`));
+              fs.writeFileSync(last.filePath, last.oldContent, 'utf8');
+              undoneCount++;
+            }
+          }
+        } catch (err: any) {
+          console.log(pc.red(`[WARN] Failed to undo patch on ${last.filePath}: ${err.message}`));
+        }
+      }
+
+      if (undoneCount > 1) {
+        console.log(pc.green(`[OK] Successfully undone ${undoneCount} patches.`));
       }
     }
   },

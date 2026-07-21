@@ -254,3 +254,19 @@ export function filterToolsForRole(tools: ToolDefinition[], roleName: string): T
   if (role.allowedTools.includes('*')) return tools;
   return tools.filter(t => role.allowedTools.includes(t.function.name));
 }
+
+// Parse @agent tags from user prompt input (e.g. @planner, @coder, @researcher)
+export function parseAgentTag(input: string): { role: string; cleanInput: string } | null {
+  const match = input.match(/^(?:@agent\s+([a-zA-Z0-9_-]+)|@([a-zA-Z0-9_-]+))\s*(.*)/i);
+  if (!match) return null;
+  const roleName = (match[1] || match[2]).toLowerCase();
+  const validRoles = Object.keys(AGENT_ROLES);
+  if (validRoles.includes(roleName)) {
+    const remaining = match[3]?.trim();
+    return {
+      role: roleName,
+      cleanInput: remaining || input,
+    };
+  }
+  return null;
+}

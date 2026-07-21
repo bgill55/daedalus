@@ -129,7 +129,7 @@ AI assistance without:
 | `/extract` | Manually extract facts from session |
 | `/profile` | View or set user profile info |
 | `/style` | Set your coding style preferences |
-| `/undo` | Undo last file patch |
+| `/undo` | Undo file edits (usage: /undo [count|list]) |
 | `/branch [name]` | Git branch operations |
 | `/pr [base]` | Generate PR description Compared to base branch |
 | `/debug <command>` | Run command and autonomously debug failures |

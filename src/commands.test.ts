@@ -362,4 +362,88 @@ describe('TUI Command', () => {
   });
 });
 
+describe('/undo command', () => {
+  let mockContext: CommandContext;
+  const testFile1 = 'test_undo_1.txt';
+  const testFile2 = 'test_undo_2.txt';
+
+  beforeEach(() => {
+    mockContext = {
+      config: {},
+      configDir: process.cwd(),
+      cliTempDir: process.cwd(),
+      router: {} as any,
+      sessionManager: {} as any,
+      userProfile: {} as any,
+      projectHash: 'testhash',
+      messages: [],
+      activeFiles: new Map(),
+      toolContext: { patchHistory: [] } as any,
+      getSystemPromptWithMemory: () => '',
+      callModelWithTools: async () => ({ content: '', toolCalls: [] }),
+      callModelWithFallback: async () => '',
+      rl: {} as any,
+      initializeSessionState: () => {},
+      buildFileContext: () => '',
+      askLine: async () => '',
+      buildIndexContext: async () => '',
+      getIndexDbPath: () => '',
+    };
+  });
+
+  afterEach(() => {
+    if (fs.existsSync(testFile1)) fs.unlinkSync(testFile1);
+    if (fs.existsSync(testFile2)) fs.unlinkSync(testFile2);
+    vi.restoreAllMocks();
+  });
+
+  it('warns when patchHistory is empty', async () => {
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    await executeCommand('/undo', mockContext);
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('No patches to undo'));
+  });
+
+  it('lists patch history when argument is list', async () => {
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    mockContext.toolContext.patchHistory = [
+      { filePath: testFile1, oldContent: 'a', newContent: 'b', description: 'patch 1' },
+    ];
+    await executeCommand('/undo list', mockContext);
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Applied Patch History'));
+  });
+
+  it('reverts modified file patch', async () => {
+    fs.writeFileSync(testFile1, 'modified text', 'utf8');
+    mockContext.toolContext.patchHistory = [
+      { filePath: testFile1, oldContent: 'original text', newContent: 'modified text', description: 'edit testFile1' },
+    ];
+    await executeCommand('/undo', mockContext);
+    expect(fs.readFileSync(testFile1, 'utf8')).toBe('original text');
+    expect(mockContext.toolContext.patchHistory).toHaveLength(0);
+  });
+
+  it('deletes file created without oldContent', async () => {
+    fs.writeFileSync(testFile2, 'new file text', 'utf8');
+    mockContext.toolContext.patchHistory = [
+      { filePath: testFile2, oldContent: '', newContent: 'new file text', description: 'create testFile2' },
+    ];
+    await executeCommand('/undo', mockContext);
+    expect(fs.existsSync(testFile2)).toBe(false);
+    expect(mockContext.toolContext.patchHistory).toHaveLength(0);
+  });
+
+  it('batch undos multiple patches', async () => {
+    fs.writeFileSync(testFile1, 'v2', 'utf8');
+    fs.writeFileSync(testFile2, 'new', 'utf8');
+    mockContext.toolContext.patchHistory = [
+      { filePath: testFile1, oldContent: 'v1', newContent: 'v2', description: 'p1' },
+      { filePath: testFile2, oldContent: '', newContent: 'new', description: 'p2' },
+    ];
+    await executeCommand('/undo 2', mockContext);
+    expect(fs.readFileSync(testFile1, 'utf8')).toBe('v1');
+    expect(fs.existsSync(testFile2)).toBe(false);
+    expect(mockContext.toolContext.patchHistory).toHaveLength(0);
+  });
+});
+
 
