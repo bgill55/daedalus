@@ -1,4 +1,4 @@
-﻿# Daedalus <p align="center"> <img width="256" alt="daedalus_emblem" src="https://github.com/user-attachments/assets/a5d4b394-3c2c-427e-b877-6e49f77467fc" />
+# Daedalus <p align="center"> <img width="256" alt="daedalus_emblem" src="https://github.com/user-attachments/assets/a5d4b394-3c2c-427e-b877-6e49f77467fc" />
 </p> <p align="center"> <a href="https://www.npmjs.com/package/daedalus-cli"><img src="https://img.shields.io/npm/v/daedalus-cli?color=blue" alt="npm version" /></a> <a href="https://www.npmjs.com/package/daedalus-cli"><img src="https://img.shields.io/npm/dw/daedalus-cli?color=blue" alt="npm weekly downloads" /></a> <a href="https://www.npmjs.com/package/daedalus-cli"><img src="https://img.shields.io/npm/dt/daedalus-cli?color=blue" alt="npm total downloads" /></a> <a href="https://github.com/bgill55/daedalus/stargazers"><img src="https://img.shields.io/github/stars/bgill55/daedalus?color=blue" alt="GitHub stars" /></a> <a href="https://github.com/bgill55/daedalus/actions/workflows/ci.yml"><img src="https://github.com/bgill55/daedalus/actions/workflows/ci.yml/badge.svg" alt="CI" /></a> <a href="https://bgill55.github.io/daedalus/"><img src="https://img.shields.io/badge/docs-GitHub%20Pages-blue" alt="Documentation" /></a> <a href="LICENSE"><img src="https://img.shields.io/github/license/bgill55/daedalus?color=blue" alt="License" /></a> <a href="https://nodejs.org"><img src="https://img.shields.io/badge/node-%3E%3D20-brightgreen" alt="Node" /></a>
 </p> **Local-first terminal-based AI coding assistant.** Daedalus connects to local LLM servers (LM Studio, Ollama, llama.cpp, vLLM) or remote providers (OpenAI, Groq, OpenRouter, Anthropic), routes requests across models, and gives your AI agent access to your file system, terminal, git, web search, and codebase indexing. For full guides, configuration reference, and examples, visit the documentation site: [https://bgill55.github.io/daedalus/](https://bgill55.github.io/daedalus/) ```text
 ╔═══════════════════════════════════════════════════════════════════╗
@@ -108,17 +108,22 @@ npm run build # compile TypeScript
 npm test # vitest (270+ tests)
 npm run lint # eslint (flat config)
 npx tsc --noEmit # type check
-``` ### Architecture <p align="center"> <img src="docs/images/Daedalus_AI_Coding_Architect_Overview.png" alt="Daedalus AI Coding Architect Overview" width="100%" />
-</p> ```
+### Architecture
+
+<p align="center">
+  <img src="docs/images/daedalus_evolution_infographic.jpg" alt="Daedalus Evolution: From Foundation to Fortress" width="100%" />
+</p>
+
+```text
 src/
-├── index.ts CLI entry, REPL, command dispatch
-├── config/ Zod-schema validated config
-├── router/ Model routing, health checks, rate limiter
-├── session/ SQLite sessions, project memory, JSONL export
-├── agents/ Multi-agent orchestration (planner, coder, et al.)
-├── tools/ 16 built-in tools + MCP transport
-├── indexing/ FTS5 codebase indexing
-└── onboarding/ Setup wizard
+├── index.ts           CLI entry, REPL, command dispatch
+├── config/            Zod-schema validated config
+├── router/            Model routing, health checks, rate limiter
+├── session/           SQLite sessions, project memory, JSONL export
+├── agents/            Multi-agent orchestration (planner, coder, et al.)
+├── tools/             16 built-in tools + MCP transport
+├── indexing/          FTS5 codebase indexing
+└── onboarding/        Setup wizard
 ``` --- ## Contributing See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines, coding standards, and the PR process. Governed by the [Code of Conduct](CODE_OF_CONDUCT.md). --- <p align="center"> <sub>Daedalus is open source and free. If it helps you build cooler things faster, consider buying me a coffee! </sub>
 </p> <p align="center"> <a href="https://github.com/bgill55"><img src="https://img.shields.io/badge/crafted%20with%20%E2%9D%A4-bgill55__dev-F25F5C?style=for-the-badge&logo=github&logoColor=white" alt="Crafted with love by bgill55_dev" /></a>&emsp;<a href="https://buymeacoffee.com/bgill55art"><img src="https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Support%20My%20Work-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black" alt="Buy Me A Coffee" /></a>
 </p> <p align="center"> <a href="CHANGELOG.md">CHANGELOG.md</a> | <a href="SECURITY.md">SECURITY.md</a> | <a href="LICENSE">MIT License</a>
