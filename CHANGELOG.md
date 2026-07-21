@@ -1,3 +1,16 @@
+# [1.53.0](https://github.com/bgill55/daedalus/compare/v1.52.3...v1.53.0) (2026-07-21)
+
+
+### Bug Fixes
+
+* **build:** resolve strict TypeScript compiler errors for CI build ([9b4b826](https://github.com/bgill55/daedalus/commit/9b4b82617913a0531f47242ae65d6f2cc61028e8))
+
+
+### Features
+
+* **tools:** add local Stable Diffusion image generation tool and /image command ([b5d30ec](https://github.com/bgill55/daedalus/commit/b5d30ecac5c54df39869cc52c193d1243033f45b))
+* **tools:** add Pollinations AI fallback and engine selection for image generation ([b90bd5f](https://github.com/bgill55/daedalus/commit/b90bd5f14122db347e03f0b2b9e2385fb03c7461))
+
 ## [1.52.3](https://github.com/bgill55/daedalus/compare/v1.52.2...v1.52.3) (2026-07-21)
 
 
