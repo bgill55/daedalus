@@ -1,3 +1,10 @@
+# [1.55.0](https://github.com/bgill55/daedalus/compare/v1.54.0...v1.55.0) (2026-07-21)
+
+
+### Features
+
+* add multi-language codebase indexing & stream TPS telemetry, resolve tech debt ([60df919](https://github.com/bgill55/daedalus/commit/60df919051e3577be1b6c2410d568be1cd63678e))
+
 # [1.54.0](https://github.com/bgill55/daedalus/compare/v1.53.1...v1.54.0) (2026-07-21)
 
 
