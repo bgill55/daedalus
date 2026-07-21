@@ -46,15 +46,13 @@ export function printUserTurn(userMessage: string): void {
   const wrapped: string[] = [];
   for (const line of lines) wrapped.push(...wrapLine(line, targetWidth));
 
-  const contentW = wrapped.reduce((m, l) => Math.max(m, stripAnsi(l).length), 0);
-  const boxW = Math.max(20, contentW) + 2;
+  const divider = pc.dim('─'.repeat(Math.min(60, Math.max(20, cols - 10))));
 
-  console.log(`\n  ${pc.dim('╭─')} ${pc.bold('You')} ${pc.dim(`─${'─'.repeat(Math.max(0, boxW - 5))}╮`)}`);
+  console.log(`\n  ${pc.bold(pc.green('You'))} ${divider}`);
   for (const part of wrapped) {
-    const pad = ' '.repeat(Math.max(0, boxW - stripAnsi(part).length));
-    console.log(`  ${bar} ${pc.white(part)}${pad} ${bar}`);
+    console.log(`  ${pc.green('│')} ${pc.white(part)}`);
   }
-  console.log(`  ${pc.dim('╰')}${pc.dim('─'.repeat(boxW + 2))}${pc.dim('╯')}`);
+  console.log(`  ${divider}\n`);
 }
 
 // ── Assistant message ──────────────────────────────────────────
