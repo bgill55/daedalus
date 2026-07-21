@@ -47,6 +47,8 @@ For full guides, configuration reference, and examples, visit the documentation 
 
 > ### 🚀 Looking to build and sell your own AI CLI?
 > Check out **[Daedalus-Lite](https://bgill55.github.io/daedalus-lite/)** — the zero-dependency, rebrandable TypeScript starter template designed for developers to build, rebrand, and sell their own custom AI coding tools! [Visit Daedalus-Lite →](https://bgill55.github.io/daedalus-lite/)
+> 
+> 💡 **Fun fact**: Daedalus itself was built using Daedalus-Lite as a starting point, then extended with advanced features like multi-agent orchestration, codebase indexing, and autonomous workflows. See [what's possible with Daedalus-Lite](https://bgill55.github.io/daedalus-lite/#what-is-possible) for inspiration.
 
 ---
 
