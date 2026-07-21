@@ -1,3 +1,10 @@
+## [1.53.1](https://github.com/bgill55/daedalus/compare/v1.53.0...v1.53.1) (2026-07-21)
+
+
+### Bug Fixes
+
+* **tools:** point generate_image implementation mapping to generateImage function ([06db057](https://github.com/bgill55/daedalus/commit/06db0573900be7e5be5b6f4ac91e753c06ee70f0))
+
 # [1.53.0](https://github.com/bgill55/daedalus/compare/v1.52.3...v1.53.0) (2026-07-21)
 
 
