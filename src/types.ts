@@ -63,7 +63,7 @@ export interface PatchEntry {
   filePath: string;
   oldContent: string;
   newContent: string;
-  timestamp: number;
+  timestamp?: number;
   description: string;
 }
 

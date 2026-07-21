@@ -406,7 +406,7 @@ describe('/undo command', () => {
   it('lists patch history when argument is list', async () => {
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
     mockContext.toolContext.patchHistory = [
-      { filePath: testFile1, oldContent: 'a', newContent: 'b', description: 'patch 1' },
+      { filePath: testFile1, oldContent: 'a', newContent: 'b', timestamp: Date.now(), description: 'patch 1' },
     ];
     await executeCommand('/undo list', mockContext);
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Applied Patch History'));
@@ -415,7 +415,7 @@ describe('/undo command', () => {
   it('reverts modified file patch', async () => {
     fs.writeFileSync(testFile1, 'modified text', 'utf8');
     mockContext.toolContext.patchHistory = [
-      { filePath: testFile1, oldContent: 'original text', newContent: 'modified text', description: 'edit testFile1' },
+      { filePath: testFile1, oldContent: 'original text', newContent: 'modified text', timestamp: Date.now(), description: 'edit testFile1' },
     ];
     await executeCommand('/undo', mockContext);
     expect(fs.readFileSync(testFile1, 'utf8')).toBe('original text');
@@ -425,7 +425,7 @@ describe('/undo command', () => {
   it('deletes file created without oldContent', async () => {
     fs.writeFileSync(testFile2, 'new file text', 'utf8');
     mockContext.toolContext.patchHistory = [
-      { filePath: testFile2, oldContent: '', newContent: 'new file text', description: 'create testFile2' },
+      { filePath: testFile2, oldContent: '', newContent: 'new file text', timestamp: Date.now(), description: 'create testFile2' },
     ];
     await executeCommand('/undo', mockContext);
     expect(fs.existsSync(testFile2)).toBe(false);
@@ -436,8 +436,8 @@ describe('/undo command', () => {
     fs.writeFileSync(testFile1, 'v2', 'utf8');
     fs.writeFileSync(testFile2, 'new', 'utf8');
     mockContext.toolContext.patchHistory = [
-      { filePath: testFile1, oldContent: 'v1', newContent: 'v2', description: 'p1' },
-      { filePath: testFile2, oldContent: '', newContent: 'new', description: 'p2' },
+      { filePath: testFile1, oldContent: 'v1', newContent: 'v2', timestamp: Date.now(), description: 'p1' },
+      { filePath: testFile2, oldContent: '', newContent: 'new', timestamp: Date.now(), description: 'p2' },
     ];
     await executeCommand('/undo 2', mockContext);
     expect(fs.readFileSync(testFile1, 'utf8')).toBe('v1');
