@@ -255,6 +255,7 @@ describe('Single Agent Loop', () => {
     });
 
     const result = await callModelWithTools('loop test');
+    expect(result).toBeDefined();
 
     delete process.env.DAEDALUS_AUTO_APPROVE;
 

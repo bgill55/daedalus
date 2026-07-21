@@ -172,10 +172,15 @@ export function closeAssistantBlock(
   const parts: string[] = [];
   if (modelName) parts.push(pc.dim(modelName));
   if (toolCount !== undefined) parts.push(pc.dim(`${toolCount} tool(s)`));
-  const tokenStr = tokens >= 4000 ? `${(tokens / 4 / 1000).toFixed(1)}k out` : `${Math.round(tokens / 4)} out`;
+  const estTokens = Math.round(tokens / 4);
+  const tokenStr = tokens >= 4000 ? `${(tokens / 4 / 1000).toFixed(1)}k out` : `${estTokens} out`;
   parts.push(pc.dim(tokenStr));
   const elapsed = elapsedMs >= 1000 ? `${(elapsedMs / 1000).toFixed(1)}s` : `${elapsedMs}ms`;
   parts.push(pc.dim(elapsed));
+  if (elapsedMs > 0 && estTokens > 0) {
+    const tps = (estTokens / (elapsedMs / 1000)).toFixed(1);
+    parts.push(pc.dim(`${tps} tok/s`));
+  }
   console.log(`  ${pc.dim('└')} ${parts.join(` ${pc.dim('·')} `)}`);
 }
 

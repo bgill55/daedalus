@@ -1,6 +1,4 @@
 import { execSync } from 'child_process';
-import fs from 'fs';
-import path from 'path';
 import pc from 'picocolors';
 import { ToolContext } from '../types.js';
 import { CommandContext } from '../commands.js';
@@ -13,7 +11,9 @@ export function getGitRepoInfo(cwd: string): { owner: string; repo: string } | n
     if (match) {
       return { owner: match[1], repo: match[2] };
     }
-  } catch {}
+  } catch {
+    // Ignore git command failure when not a repo or remote missing
+  }
   return null;
 }
 
@@ -180,7 +180,9 @@ export async function startLoopDaemon(ctx: ToolContext, config: any, router: any
         console.error(pc.red(`\n✗ Orchestration failed for Issue #${issue.number}. Reverting changes...`));
         try {
           execSync('git reset --hard && git clean -fd', { cwd: sessionManager.projectRoot });
-        } catch {}
+        } catch {
+          // Ignore git reset errors if working directory is already clean
+        }
 
         await fetch(`https://api.github.com/repos/${repo.owner}/${repo.repo}/issues/${issue.number}`, {
           method: 'PATCH',
@@ -275,7 +277,9 @@ export async function startLoopDaemon(ctx: ToolContext, config: any, router: any
       // Go back to main branch
       try {
         execSync('git checkout main', { cwd: sessionManager.projectRoot });
-      } catch {}
+      } catch {
+        // Ignore git checkout error if main branch is unavailable or already checked out
+      }
 
     } catch (err: any) {
       console.error(pc.red(`Error in daemon loop: ${err.message}`));

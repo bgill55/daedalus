@@ -1,7 +1,6 @@
 import blessed from 'neo-blessed';
 import pc from 'picocolors';
 import fs from 'fs';
-import path from 'path';
 import { Writable } from 'stream';
 import type { ReplDeps } from '../repl.js';
 import type { ChatMessage } from '../types.js';

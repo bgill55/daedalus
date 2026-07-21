@@ -1,7 +1,7 @@
 import blessed from 'neo-blessed';
 import pc from 'picocolors';
 
-export function initModelSelect(parent: any, config: any, router: any) {
+export function initModelSelect(parent: any, config: any, _router: any) {
   // Get active models from config
   const enabledModels = config.router?.chain?.filter((m: any) => m.enabled) || [];
   const modelNames = enabledModels.map((m: any) => m.name);

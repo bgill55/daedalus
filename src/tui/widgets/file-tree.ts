@@ -90,14 +90,9 @@ export function initFileTree(parent: any, projectRoot: string, activeFiles: Map<
     treeNodes = getTreeNodes(projectRoot);
     const listItems = treeNodes.map(node => {
       const indent = '  '.repeat(node.depth);
-      let prefix = '';
-      if (node.isDir) {
-        const isExp = expanded.get(node.absolutePath);
-        prefix = isExp ? '▼ 📁 ' : '▶ 📁 ';
-      } else {
-        const isActive = activeFiles.has(node.absolutePath);
-        prefix = isActive ? '✔ 📄 ' : '  📄 ';
-      }
+      const prefix = node.isDir
+        ? (expanded.get(node.absolutePath) ? '▼ 📁 ' : '▶ 📁 ')
+        : (activeFiles.has(node.absolutePath) ? '✔ 📄 ' : '  📄 ');
       
       let nameText = node.name;
       if (!node.isDir && activeFiles.has(node.absolutePath)) {

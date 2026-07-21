@@ -52,7 +52,7 @@ checkChangelogOnUpgrade(APP_VERSION, configDir, changelogPath);
 // Load user profile
 const userProfile: UserProfile = loadProfile();
 
-// Session state — these are snapshots; the source of truth is sessionManager
+// Session state — these references are passed to the REPL/commands via closures and mutated in place
 const activeFiles = new Map<string, string>();
 const messages: ChatMessage[] = [];
 
@@ -308,7 +308,9 @@ function getProjectRules(projectRoot: string): string {
         if (content) {
           rules += `\n### Rules from ${file}:\n${content}\n`;
         }
-      } catch {}
+      } catch {
+        // Ignore unreadable rule file
+      }
     }
   }
   if (rules) {

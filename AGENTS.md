@@ -15,7 +15,7 @@
 - `src/session/` — SQLite-backed session persistence, project memory, JSONL export
 - `src/agents/` — Multi-agent orchestration (planner, coder, reviewer, debugger, researcher)
 - `src/tools/` — 16 built-in tools + MCP transport (stdio + HTTP/SSE)
-- `src/indexing/` — FTS5 codebase indexing (TS/JS, Python, Go, Rust) ## Testing
+- `src/indexing/` — FTS5 codebase indexing (TS/JS, Python, Go, Rust, Java, C/C++, C#, PHP, Ruby, Elixir) ## Testing
 - Framework: vitest
 - Run: `npm test` (vitest run, 347+ tests across 40 files)
 - Tests co-located as `*.test.ts` under `src/` ## Lint

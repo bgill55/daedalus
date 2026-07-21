@@ -226,7 +226,9 @@ export class Orchestrator {
             if (content) {
               rules += `\n### Rules from ${file}:\n${content}\n`;
             }
-          } catch {}
+          } catch {
+            // Ignore unreadable rule file
+          }
         }
       }
       if (rules) {
@@ -1815,7 +1817,9 @@ export class Orchestrator {
             if (content) {
               rules += `\n### Rules from ${file}:\n${content}\n`;
             }
-          } catch {}
+          } catch {
+            // Ignore unreadable rule file
+          }
         }
       }
       if (rules) {

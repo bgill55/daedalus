@@ -4,7 +4,7 @@ import path from 'path';
 import os from 'os';
 import Database from 'better-sqlite3';
 import { initIndexDb } from './fts.js';
-import { collectFiles, parseTypeScript, parsePython, parseGo, parseRust, indexCodebase } from './indexer.js';
+import { collectFiles, parseTypeScript, parsePython, parseGo, parseRust, parseJava, parseCpp, parseCSharp, parsePhp, parseRuby, parseElixir, indexCodebase } from './indexer.js';
 
 describe('Indexer - collectFiles', () => {
   let tmpDir: string;
@@ -186,6 +186,80 @@ describe('Indexer - parseRust', () => {
     expect(symbols[0].kind).toBe('trait');
   });
 
+});
+
+describe('Indexer - parseJava', () => {
+  const projectHash = 'testhash';
+
+  it('parses class and method definitions', () => {
+    const content = 'public class UserService {\n  public void createUser(String name) {}\n}\n';
+    const { symbols } = parseJava(content, 'UserService.java', projectHash);
+    expect(symbols).toHaveLength(2);
+    expect(symbols[0].name).toBe('UserService');
+    expect(symbols[0].kind).toBe('class');
+    expect(symbols[1].name).toBe('createUser');
+    expect(symbols[1].kind).toBe('method');
+  });
+});
+
+describe('Indexer - parseCpp', () => {
+  const projectHash = 'testhash';
+
+  it('parses struct and function definitions', () => {
+    const content = 'struct Node {\n};\nint main() {\n  return 0;\n}\n';
+    const { symbols } = parseCpp(content, 'main.cpp', projectHash);
+    expect(symbols).toHaveLength(2);
+    expect(symbols[0].kind).toBe('struct');
+    expect(symbols[1].kind).toBe('function');
+  });
+});
+
+describe('Indexer - parseCSharp', () => {
+  const projectHash = 'testhash';
+
+  it('parses interface and method definitions', () => {
+    const content = 'public interface IRepository {\n  Task SaveAsync();\n}\n';
+    const { symbols } = parseCSharp(content, 'IRepository.cs', projectHash);
+    expect(symbols).toHaveLength(2);
+    expect(symbols[0].kind).toBe('interface');
+    expect(symbols[1].kind).toBe('method');
+  });
+});
+
+describe('Indexer - parsePhp', () => {
+  const projectHash = 'testhash';
+
+  it('parses class and function definitions', () => {
+    const content = 'class Controller {\n  public function index() {}\n}\n';
+    const { symbols } = parsePhp(content, 'Controller.php', projectHash);
+    expect(symbols).toHaveLength(2);
+    expect(symbols[0].kind).toBe('class');
+    expect(symbols[1].kind).toBe('function');
+  });
+});
+
+describe('Indexer - parseRuby', () => {
+  const projectHash = 'testhash';
+
+  it('parses module and method definitions', () => {
+    const content = 'module Helper\n  def format_text\n  end\nend\n';
+    const { symbols } = parseRuby(content, 'helper.rb', projectHash);
+    expect(symbols).toHaveLength(2);
+    expect(symbols[0].kind).toBe('module');
+    expect(symbols[1].kind).toBe('method');
+  });
+});
+
+describe('Indexer - parseElixir', () => {
+  const projectHash = 'testhash';
+
+  it('parses defmodule and def functions', () => {
+    const content = 'defmodule MyApp.User do\n  def find_user(id) do\n  end\nend\n';
+    const { symbols } = parseElixir(content, 'user.ex', projectHash);
+    expect(symbols).toHaveLength(2);
+    expect(symbols[0].kind).toBe('module');
+    expect(symbols[1].kind).toBe('function');
+  });
 });
 
 describe('Indexer - indexCodebase integration', () => {

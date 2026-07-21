@@ -85,12 +85,12 @@ AI assistance without:
 ### Core
 - **Interactive Terminal Dashboard (TUI)** — premium side-by-side dashboard with real-time CPU/RAM monitor gauges, model selection overrides, and an interactive file tree to toggle prompt context dynamically.
 - **Local-first** — works entirely on your machine with local LLMs
-- **Embedded model router** — priority, round-robin, or fastest-response routing across multiple models
+- **Embedded model router** — priority, round-robin, or fastest-response routing across multiple models with real-time tokens-per-second (`tok/s`) stream telemetry
 - **Smart model tier routing** — routes planning, reviews, and context summarization calls to your configured `intelligence` tier model
 - **Multi-agent orchestration** — spawns planner, coder, reviewer, debugger, and researcher sub-agents
 - **Autonomous Finn Loop** — interactive requirements gathering (`/spec`), GitHub Issues tracking, background daemon execution (`daedalus --loop`), and Discord PR review webhook embeds.
 - **Loop Engineering & Self-Repair** — automatic stack-aware compile/build verification checks (e.g., `npx tsc --noEmit`, `cargo check`, `go build`) with dynamic stdout/stderr feedback loops for self-repair, and **Automated Workspace Rollback** to revert patches and keep files clean upon task failure.
-- **Codebase indexing** — FTS5-powered symbol search, definitions, and call-graph references (TS/JS, Python, Go, Rust)
+- **Codebase indexing** — FTS5-powered symbol search, definitions, and call-graph references across 10+ languages (TS/JS, Python, Go, Rust, Java, C/C++, C#, PHP, Ruby, Elixir)
 - **Stack-aware prompting** — automatically scans your project tech stack on startup to prevent library and platform boundary hallucinations
 - **Dynamic task checklist** — injects the active todo list into each prompt turn to maintain execution context
 - **Session management** — SQLite-backed history with save, load, JSONL export

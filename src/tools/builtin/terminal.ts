@@ -254,13 +254,13 @@ export async function execute(args: { command: string; timeout?: number; workdir
           try {
             execSync(`taskkill /F /T /PID ${child.pid}`, { stdio: 'ignore' });
           } catch {
-            try { child.kill('SIGKILL'); } catch {}
+            try { child.kill('SIGKILL'); } catch { /* Ignore process kill error if process already exited */ }
           }
         } else {
           child.kill('SIGTERM');
           setTimeout(() => {
             if (!childClosed) {
-              try { child.kill('SIGKILL'); } catch {}
+              try { child.kill('SIGKILL'); } catch { /* Ignore process kill error if process already exited */ }
             }
           }, 5000);
         }

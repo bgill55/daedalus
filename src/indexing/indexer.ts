@@ -19,7 +19,7 @@ interface IndexerOptions {
 }
 
 const DEFAULT_EXCLUDE = ['node_modules', 'dist', 'build', '.git', 'target', 'coverage', 'venv', '.venv', 'env', '.env', '__pycache__', '.pytest_cache', '.mypy_cache', '.next', 'out', '.cache'];
-const DEFAULT_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.py', '.go', '.rs'];
+const DEFAULT_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.py', '.go', '.rs', '.java', '.c', '.cpp', '.h', '.hpp', '.cs', '.php', '.rb', '.ex', '.exs'];
 
 /** Compute SHA256 of string content */
 export function hashContent(content: string): string {
@@ -519,6 +519,467 @@ export function parseRust(content: string, relPath: string, projectHash: string)
   return { symbols, references };
 }
 
+/** Extract symbols and references from Java file */
+export function parseJava(content: string, relPath: string, projectHash: string): { symbols: SymbolRow[]; references: ReferenceRow[] } {
+  const symbols: SymbolRow[] = [];
+  const references: ReferenceRow[] = [];
+  const lines = content.split(/\r?\n/);
+
+  let currentCaller: string | null = null;
+  let callerStartLine = 0;
+  let callerBraceCount = 0;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const lineNum = i + 1;
+
+    if (currentCaller) {
+      const openBraces = (line.match(/\{/g) || []).length;
+      const closeBraces = (line.match(/\}/g) || []).length;
+      callerBraceCount += openBraces - closeBraces;
+      if (callerBraceCount <= 0) {
+        const sym = symbols.find(s => s.name === currentCaller && s.file_path === relPath && s.line_start === callerStartLine);
+        if (sym) sym.line_end = lineNum;
+        currentCaller = null;
+      }
+    }
+
+    let match = line.match(/(?:public|protected|private)?\s*(?:static\s+)?(?:final\s+)?(?:class|interface|enum)\s+(\w+)/);
+    if (match) {
+      const kind = line.includes('interface') ? 'interface' : line.includes('enum') ? 'enum' : 'class';
+      symbols.push({
+        name: match[1],
+        kind,
+        file_path: relPath,
+        line_start: lineNum,
+        line_end: lineNum,
+        signature: line.trim().replace(/\s*\{.*$/, ''),
+        project_hash: projectHash,
+      });
+      continue;
+    }
+
+    match = line.match(/(?:public|protected|private)?\s*(?:static\s+)?[\w<>\[\]]+\s+(\w+)\s*\(/);
+    if (match) {
+      const funcName = match[1];
+      if (!['if', 'for', 'while', 'switch', 'catch'].includes(funcName)) {
+        symbols.push({
+          name: funcName,
+          kind: 'method',
+          file_path: relPath,
+          line_start: lineNum,
+          line_end: lineNum,
+          signature: line.trim().replace(/\s*\{.*$/, ''),
+          project_hash: projectHash,
+        });
+        currentCaller = funcName;
+        callerStartLine = lineNum;
+        callerBraceCount = (line.match(/\{/g) || []).length - (line.match(/\}/g) || []).length;
+        continue;
+      }
+    }
+
+    if (currentCaller) {
+      const callMatches = line.matchAll(/\b([a-zA-Z0-9_]+)\s*\(/g);
+      for (const m of callMatches) {
+        const callee = m[1];
+        const reserved = ['if', 'for', 'while', 'catch', 'switch', 'super', 'this', 'new', 'return', 'System'];
+        if (!reserved.includes(callee) && callee !== currentCaller) {
+          references.push({
+            caller_name: currentCaller,
+            caller_file: relPath,
+            caller_line: lineNum,
+            callee_name: callee,
+            callee_file: relPath,
+            callee_line: lineNum,
+            project_hash: projectHash,
+          });
+        }
+      }
+    }
+  }
+
+  return { symbols, references };
+}
+
+/** Extract symbols and references from C/C++ file */
+export function parseCpp(content: string, relPath: string, projectHash: string): { symbols: SymbolRow[]; references: ReferenceRow[] } {
+  const symbols: SymbolRow[] = [];
+  const references: ReferenceRow[] = [];
+  const lines = content.split(/\r?\n/);
+
+  let currentCaller: string | null = null;
+  let callerStartLine = 0;
+  let callerBraceCount = 0;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const lineNum = i + 1;
+
+    if (currentCaller) {
+      const openBraces = (line.match(/\{/g) || []).length;
+      const closeBraces = (line.match(/\}/g) || []).length;
+      callerBraceCount += openBraces - closeBraces;
+      if (callerBraceCount <= 0) {
+        const sym = symbols.find(s => s.name === currentCaller && s.file_path === relPath && s.line_start === callerStartLine);
+        if (sym) sym.line_end = lineNum;
+        currentCaller = null;
+      }
+    }
+
+    let match = line.match(/(?:class|struct|union)\s+(\w+)/);
+    if (match) {
+      const kind = line.includes('class') ? 'class' : 'struct';
+      symbols.push({
+        name: match[1],
+        kind,
+        file_path: relPath,
+        line_start: lineNum,
+        line_end: lineNum,
+        signature: line.trim().replace(/\s*\{.*$/, '').replace(/;$/, ''),
+        project_hash: projectHash,
+      });
+      continue;
+    }
+
+    match = line.match(/(?:inline\s+|static\s+|virtual\s+)?[\w:*&<>]+\s+(\w+)\s*\(/);
+    if (match) {
+      const funcName = match[1];
+      if (!['if', 'for', 'while', 'switch', 'catch', 'sizeof', 'typeof'].includes(funcName)) {
+        symbols.push({
+          name: funcName,
+          kind: 'function',
+          file_path: relPath,
+          line_start: lineNum,
+          line_end: lineNum,
+          signature: line.trim().replace(/\s*\{.*$/, '').replace(/;$/, ''),
+          project_hash: projectHash,
+        });
+        currentCaller = funcName;
+        callerStartLine = lineNum;
+        callerBraceCount = (line.match(/\{/g) || []).length - (line.match(/\}/g) || []).length;
+        continue;
+      }
+    }
+
+    if (currentCaller) {
+      const callMatches = line.matchAll(/\b([a-zA-Z0-9_]+)\s*\(/g);
+      for (const m of callMatches) {
+        const callee = m[1];
+        const reserved = ['if', 'for', 'while', 'switch', 'catch', 'return', 'sizeof', 'typedef'];
+        if (!reserved.includes(callee) && callee !== currentCaller) {
+          references.push({
+            caller_name: currentCaller,
+            caller_file: relPath,
+            caller_line: lineNum,
+            callee_name: callee,
+            callee_file: relPath,
+            callee_line: lineNum,
+            project_hash: projectHash,
+          });
+        }
+      }
+    }
+  }
+
+  return { symbols, references };
+}
+
+/** Extract symbols and references from C# file */
+export function parseCSharp(content: string, relPath: string, projectHash: string): { symbols: SymbolRow[]; references: ReferenceRow[] } {
+  const symbols: SymbolRow[] = [];
+  const references: ReferenceRow[] = [];
+  const lines = content.split(/\r?\n/);
+
+  let currentCaller: string | null = null;
+  let callerStartLine = 0;
+  let callerBraceCount = 0;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const lineNum = i + 1;
+
+    if (currentCaller) {
+      const openBraces = (line.match(/\{/g) || []).length;
+      const closeBraces = (line.match(/\}/g) || []).length;
+      callerBraceCount += openBraces - closeBraces;
+      if (callerBraceCount <= 0) {
+        const sym = symbols.find(s => s.name === currentCaller && s.file_path === relPath && s.line_start === callerStartLine);
+        if (sym) sym.line_end = lineNum;
+        currentCaller = null;
+      }
+    }
+
+    let match = line.match(/(?:public|protected|private|internal)?\s*(?:static\s+)?(?:partial\s+)?(?:class|interface|struct|enum)\s+(\w+)/);
+    if (match) {
+      const kind = line.includes('interface') ? 'interface' : line.includes('struct') ? 'struct' : line.includes('enum') ? 'enum' : 'class';
+      symbols.push({
+        name: match[1],
+        kind,
+        file_path: relPath,
+        line_start: lineNum,
+        line_end: lineNum,
+        signature: line.trim().replace(/\s*\{.*$/, ''),
+        project_hash: projectHash,
+      });
+      continue;
+    }
+
+    match = line.match(/(?:public|protected|private|internal)?\s*(?:static\s+)?(?:async\s+)?[\w<>\[\]]+\s+(\w+)\s*\(/);
+    if (match) {
+      const funcName = match[1];
+      if (!['if', 'for', 'foreach', 'while', 'switch', 'catch'].includes(funcName)) {
+        symbols.push({
+          name: funcName,
+          kind: 'method',
+          file_path: relPath,
+          line_start: lineNum,
+          line_end: lineNum,
+          signature: line.trim().replace(/\s*\{.*$/, ''),
+          project_hash: projectHash,
+        });
+        currentCaller = funcName;
+        callerStartLine = lineNum;
+        callerBraceCount = (line.match(/\{/g) || []).length - (line.match(/\}/g) || []).length;
+        continue;
+      }
+    }
+
+    if (currentCaller) {
+      const callMatches = line.matchAll(/\b([a-zA-Z0-9_]+)\s*\(/g);
+      for (const m of callMatches) {
+        const callee = m[1];
+        const reserved = ['if', 'for', 'foreach', 'while', 'switch', 'catch', 'return', 'nameof', 'typeof'];
+        if (!reserved.includes(callee) && callee !== currentCaller) {
+          references.push({
+            caller_name: currentCaller,
+            caller_file: relPath,
+            caller_line: lineNum,
+            callee_name: callee,
+            callee_file: relPath,
+            callee_line: lineNum,
+            project_hash: projectHash,
+          });
+        }
+      }
+    }
+  }
+
+  return { symbols, references };
+}
+
+/** Extract symbols and references from PHP file */
+export function parsePhp(content: string, relPath: string, projectHash: string): { symbols: SymbolRow[]; references: ReferenceRow[] } {
+  const symbols: SymbolRow[] = [];
+  const references: ReferenceRow[] = [];
+  const lines = content.split(/\r?\n/);
+
+  let currentCaller: string | null = null;
+  let callerStartLine = 0;
+  let callerBraceCount = 0;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const lineNum = i + 1;
+
+    if (currentCaller) {
+      const openBraces = (line.match(/\{/g) || []).length;
+      const closeBraces = (line.match(/\}/g) || []).length;
+      callerBraceCount += openBraces - closeBraces;
+      if (callerBraceCount <= 0) {
+        const sym = symbols.find(s => s.name === currentCaller && s.file_path === relPath && s.line_start === callerStartLine);
+        if (sym) sym.line_end = lineNum;
+        currentCaller = null;
+      }
+    }
+
+    let match = line.match(/(?:class|interface|trait)\s+(\w+)/);
+    if (match) {
+      const kind = line.includes('interface') ? 'interface' : line.includes('trait') ? 'trait' : 'class';
+      symbols.push({
+        name: match[1],
+        kind,
+        file_path: relPath,
+        line_start: lineNum,
+        line_end: lineNum,
+        signature: line.trim().replace(/\s*\{.*$/, ''),
+        project_hash: projectHash,
+      });
+      continue;
+    }
+
+    match = line.match(/(?:public|protected|private)?\s*(?:static\s+)?function\s+(\w+)\s*\(/);
+    if (match) {
+      const funcName = match[1];
+      symbols.push({
+        name: funcName,
+        kind: 'function',
+        file_path: relPath,
+        line_start: lineNum,
+        line_end: lineNum,
+        signature: line.trim().replace(/\s*\{.*$/, ''),
+        project_hash: projectHash,
+      });
+      currentCaller = funcName;
+      callerStartLine = lineNum;
+      callerBraceCount = (line.match(/\{/g) || []).length - (line.match(/\}/g) || []).length;
+      continue;
+    }
+
+    if (currentCaller) {
+      const callMatches = line.matchAll(/\b([a-zA-Z0-9_]+)\s*\(/g);
+      for (const m of callMatches) {
+        const callee = m[1];
+        const reserved = ['function', 'if', 'for', 'foreach', 'while', 'switch', 'catch', 'array', 'echo', 'print', 'var_dump'];
+        if (!reserved.includes(callee) && callee !== currentCaller) {
+          references.push({
+            caller_name: currentCaller,
+            caller_file: relPath,
+            caller_line: lineNum,
+            callee_name: callee,
+            callee_file: relPath,
+            callee_line: lineNum,
+            project_hash: projectHash,
+          });
+        }
+      }
+    }
+  }
+
+  return { symbols, references };
+}
+
+/** Extract symbols and references from Ruby file */
+export function parseRuby(content: string, relPath: string, projectHash: string): { symbols: SymbolRow[]; references: ReferenceRow[] } {
+  const symbols: SymbolRow[] = [];
+  const references: ReferenceRow[] = [];
+  const lines = content.split(/\r?\n/);
+
+  let currentCaller: string | null = null;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const lineNum = i + 1;
+
+    let match = line.match(/^\s*(?:class|module)\s+([A-Z]\w*)/);
+    if (match) {
+      const kind = line.includes('module') ? 'module' : 'class';
+      symbols.push({
+        name: match[1],
+        kind,
+        file_path: relPath,
+        line_start: lineNum,
+        line_end: lineNum,
+        signature: line.trim(),
+        project_hash: projectHash,
+      });
+      continue;
+    }
+
+    match = line.match(/^\s*def\s+([a-zA-Z0-9_?!=]+)/);
+    if (match) {
+      const funcName = match[1];
+      symbols.push({
+        name: funcName,
+        kind: 'method',
+        file_path: relPath,
+        line_start: lineNum,
+        line_end: lineNum,
+        signature: line.trim(),
+        project_hash: projectHash,
+      });
+      currentCaller = funcName;
+      continue;
+    }
+
+    if (currentCaller) {
+      const callMatches = line.matchAll(/\b([a-zA-Z0-9_]+)\s*(?:\(|$)/g);
+      for (const m of callMatches) {
+        const callee = m[1];
+        const reserved = ['def', 'class', 'module', 'if', 'unless', 'while', 'until', 'puts', 'raise', 'return', 'end'];
+        if (!reserved.includes(callee) && callee !== currentCaller) {
+          references.push({
+            caller_name: currentCaller,
+            caller_file: relPath,
+            caller_line: lineNum,
+            callee_name: callee,
+            callee_file: relPath,
+            callee_line: lineNum,
+            project_hash: projectHash,
+          });
+        }
+      }
+    }
+  }
+
+  return { symbols, references };
+}
+
+/** Extract symbols and references from Elixir file */
+export function parseElixir(content: string, relPath: string, projectHash: string): { symbols: SymbolRow[]; references: ReferenceRow[] } {
+  const symbols: SymbolRow[] = [];
+  const references: ReferenceRow[] = [];
+  const lines = content.split(/\r?\n/);
+
+  let currentCaller: string | null = null;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const lineNum = i + 1;
+
+    let match = line.match(/^\s*defmodule\s+([A-Z][\w.]*)/);
+    if (match) {
+      symbols.push({
+        name: match[1],
+        kind: 'module',
+        file_path: relPath,
+        line_start: lineNum,
+        line_end: lineNum,
+        signature: line.trim(),
+        project_hash: projectHash,
+      });
+      continue;
+    }
+
+    match = line.match(/^\s*(?:def|defp)\s+([a-z_]\w*)/);
+    if (match) {
+      const funcName = match[1];
+      symbols.push({
+        name: funcName,
+        kind: 'function',
+        file_path: relPath,
+        line_start: lineNum,
+        line_end: lineNum,
+        signature: line.trim(),
+        project_hash: projectHash,
+      });
+      currentCaller = funcName;
+      continue;
+    }
+
+    if (currentCaller) {
+      const callMatches = line.matchAll(/\b([a-z_]\w*)\s*\(/g);
+      for (const m of callMatches) {
+        const callee = m[1];
+        const reserved = ['defmodule', 'def', 'defp', 'if', 'unless', 'cond', 'case', 'import', 'alias', 'require', 'use'];
+        if (!reserved.includes(callee) && callee !== currentCaller) {
+          references.push({
+            caller_name: currentCaller,
+            caller_file: relPath,
+            caller_line: lineNum,
+            callee_name: callee,
+            callee_file: relPath,
+            callee_line: lineNum,
+            project_hash: projectHash,
+          });
+        }
+      }
+    }
+  }
+
+  return { symbols, references };
+}
+
 /** Language parser dispatch */
 export function parseFile(content: string, relPath: string, projectHash: string): { symbols: SymbolRow[]; references: ReferenceRow[] } {
   const ext = path.extname(relPath).toLowerCase();
@@ -535,6 +996,24 @@ export function parseFile(content: string, relPath: string, projectHash: string)
       return parseGo(content, relPath, projectHash);
     case '.rs':
       return parseRust(content, relPath, projectHash);
+    case '.java':
+      return parseJava(content, relPath, projectHash);
+    case '.c':
+    case '.cpp':
+    case '.h':
+    case '.hpp':
+    case '.cc':
+    case '.cxx':
+      return parseCpp(content, relPath, projectHash);
+    case '.cs':
+      return parseCSharp(content, relPath, projectHash);
+    case '.php':
+      return parsePhp(content, relPath, projectHash);
+    case '.rb':
+      return parseRuby(content, relPath, projectHash);
+    case '.ex':
+    case '.exs':
+      return parseElixir(content, relPath, projectHash);
     default:
       return { symbols: [], references: [] };
   }
