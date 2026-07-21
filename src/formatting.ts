@@ -46,13 +46,13 @@ export function printUserTurn(userMessage: string): void {
   const wrapped: string[] = [];
   for (const line of lines) wrapped.push(...wrapLine(line, targetWidth));
 
-  const divider = pc.dim('─'.repeat(Math.min(60, Math.max(20, cols - 10))));
+  const lineLen = Math.max(20, Math.min(70, cols - 6));
 
-  console.log(`\n  ${pc.bold(pc.green('You'))} ${divider}`);
+  console.log(`\n  ${pc.bold(pc.green('─ You ─'))} ${pc.dim('─'.repeat(Math.max(10, lineLen - 7)))}`);
   for (const part of wrapped) {
-    console.log(`  ${pc.green('│')} ${pc.white(part)}`);
+    console.log(`  ${pc.brightWhite(part)}`);
   }
-  console.log(`  ${divider}\n`);
+  console.log(`  ${pc.dim('─'.repeat(lineLen + 2))}\n`);
 }
 
 // ── Assistant message ──────────────────────────────────────────
