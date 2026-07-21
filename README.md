@@ -45,7 +45,14 @@ For full guides, configuration reference, and examples, visit the documentation 
 
 ---
 
-> ### 🚀 Looking to build and sell your own AI CLI?
+> ### 
+> <div class="icon" style="display: inline-block; width: 20px; height: 20px; vertical-align: middle; margin-right: 6px;">
+>   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+>     <path d="M12 19l9-7-9-5-9 5 9 7z"/>
+>     <polyline points="12 19 12 7 19 7"/>
+>   </svg>
+> </div>
+> Looking to build and sell your own AI CLI?
 > Check out **[Daedalus-Lite](https://bgill55.github.io/daedalus-lite/)** — the zero-dependency, rebrandable TypeScript starter template designed for developers to build, rebrand, and sell their own custom AI coding tools! [Visit Daedalus-Lite →](https://bgill55.github.io/daedalus-lite/)
 > 
 > 💡 **Fun fact**: Daedalus itself was built using Daedalus-Lite as a starting point, then extended with advanced features like multi-agent orchestration, codebase indexing, and autonomous workflows. See [what's possible with Daedalus-Lite](https://bgill55.github.io/daedalus-lite/#what-is-possible) for inspiration.
