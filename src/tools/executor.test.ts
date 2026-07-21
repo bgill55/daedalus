@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { executeToolCall, executeToolCalls } from './executor.js';
 import { TOOL_IMPLEMENTATIONS } from './definitions.js';
 import type { ToolContext, ToolCall } from '../types.js';
@@ -87,5 +87,21 @@ describe('Tool executor', () => {
     expect(results[0].success).toBe(true);
     expect(results[1].success).toBe(true);
   }, 30_000);
+
+  it('dispatches generate_image tool call via executor', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ images: ['iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='] }),
+    } as Response);
+
+    const tc: ToolCall = {
+      id: 'call_gen_img',
+      type: 'function',
+      function: { name: 'generate_image', arguments: '{"prompt":"test image"}' },
+    };
+    const result = await executeToolCall(tc, mockContext);
+    expect(result.error).toBeUndefined();
+    expect(result.success).toBe(true);
+  });
 
 });

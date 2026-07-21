@@ -499,5 +499,5 @@ export const TOOL_IMPLEMENTATIONS: Record<string, string> = {
   kill_process: 'tools/builtin/process-watcher.killProcess',
   eval_code: 'tools/builtin/eval.evalCode',
   ask_user: 'tools/builtin/ask_user.askUser',
-  generate_image: 'tools/builtin/image.generateImageTool',
+  generate_image: 'tools/builtin/image.generateImage',
 };
