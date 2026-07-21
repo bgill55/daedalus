@@ -98,6 +98,7 @@ export const ConfigSchema = z.object({
   }),
   imageGen: z.object({
     enabled: z.boolean().default(true),
+    provider: z.enum(['auto', 'sd-webui', 'pollinations']).default('auto'),
     endpoint: z.string().default('http://127.0.0.1:7860'),
     defaultWidth: z.number().int().positive().default(512),
     defaultHeight: z.number().int().positive().default(512),
@@ -105,6 +106,7 @@ export const ConfigSchema = z.object({
     outputDir: z.string().default('./assets/images'),
   }).default({
     enabled: true,
+    provider: 'auto',
     endpoint: 'http://127.0.0.1:7860',
     defaultWidth: 512,
     defaultHeight: 512,

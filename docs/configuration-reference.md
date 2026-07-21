@@ -37,6 +37,7 @@ This guide describes all configuration options available in Daedalus. You can vi
 ## Image Generation Settings
 
 *   **`imageGen.enabled`**: Enable/disable local image generation tool and commands (default: true).
+*   **`imageGen.provider`**: Image generation engine ("auto", "sd-webui", or "pollinations"). Defaults to "auto" (attempts local SD WebUI first, falling back to free Pollinations AI).
 *   **`imageGen.endpoint`**: Local Stable Diffusion WebUI API endpoint URL (default: "http://127.0.0.1:7860").
 *   **`imageGen.defaultWidth`**: Default image width in pixels (default: 512).
 *   **`imageGen.defaultHeight`**: Default image height in pixels (default: 512).

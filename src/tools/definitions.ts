@@ -452,7 +452,7 @@ export const POWER_TOOLS: ToolDefinition[] = [
     type: 'function',
     function: {
       name: 'generate_image',
-      description: 'Generate an image using a local Stable Diffusion WebUI instance and save it to disk.',
+      description: 'Generate an image using local Stable Diffusion WebUI or Pollinations AI and save it to disk.',
       parameters: {
         type: 'object',
         properties: {
@@ -461,6 +461,7 @@ export const POWER_TOOLS: ToolDefinition[] = [
           width: { type: 'integer', description: 'Image width in pixels (default: 512)', default: 512 },
           height: { type: 'integer', description: 'Image height in pixels (default: 512)', default: 512 },
           steps: { type: 'integer', description: 'Sampling steps for image generation (default: 20)', default: 20 },
+          provider: { type: 'string', enum: ['auto', 'sd-webui', 'pollinations'], description: 'Image generation engine: auto (local SD with Pollinations fallback), sd-webui, or pollinations (default: auto)', default: 'auto' },
           output_path: { type: 'string', description: 'Relative or absolute file path to save the generated PNG image' },
         },
         required: ['prompt'],

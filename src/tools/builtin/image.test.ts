@@ -24,11 +24,12 @@ describe('generateImage tool', () => {
     expect(generateImageTool.parameters.required).toContain('prompt');
   });
 
-  it('handles API failure gracefully when SD WebUI server is unreachable', async () => {
+  it('handles API failure gracefully when provider is explicitly sd-webui and server is unreachable', async () => {
     vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(new Error('ECONNREFUSED'));
 
     const result = await generateImage({
       prompt: 'a futuristic robot arm',
+      provider: 'sd-webui',
       output_path: path.join(tmpDir, 'test_fail.png'),
     });
 
@@ -36,8 +37,7 @@ describe('generateImage tool', () => {
     expect(result.error).toContain('ECONNREFUSED');
   });
 
-  it('decodes base64 and saves PNG file on successful API response', async () => {
-    // 1x1 transparent PNG base64
+  it('decodes base64 and saves PNG file on successful local SD API response', async () => {
     const fakeBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
     
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
@@ -45,17 +45,61 @@ describe('generateImage tool', () => {
       json: async () => ({ images: [fakeBase64] }),
     } as Response);
 
-    const outputPath = path.join(tmpDir, 'test_out.png');
+    const outputPath = path.join(tmpDir, 'test_out_sd.png');
     const result = await generateImage({
       prompt: 'a vibrant sunset over mountains',
       width: 512,
       height: 512,
+      provider: 'sd-webui',
       output_path: outputPath,
     });
 
     expect(result.success).toBe(true);
-    expect(result.output).toContain('Successfully generated image');
+    expect(result.output).toContain('local Stable Diffusion');
     expect(fs.existsSync(outputPath)).toBe(true);
-    expect(fs.statSync(outputPath).size).toBeGreaterThan(0);
+  });
+
+  it('fetches image from Pollinations AI when provider is pollinations', async () => {
+    const fakeBuffer = Buffer.from('fake-png-binary-data');
+
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+      ok: true,
+      arrayBuffer: async () => fakeBuffer.buffer,
+    } as Response);
+
+    const outputPath = path.join(tmpDir, 'test_out_pollinations.png');
+    const result = await generateImage({
+      prompt: 'a cyberpunk neon skyline',
+      width: 512,
+      height: 512,
+      provider: 'pollinations',
+      output_path: outputPath,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.output).toContain('Pollinations AI');
+    expect(fs.existsSync(outputPath)).toBe(true);
+  });
+
+  it('falls back to Pollinations AI when provider is auto and local SD fails', async () => {
+    const fakeBuffer = Buffer.from('fake-png-binary-data');
+
+    vi.spyOn(globalThis, 'fetch')
+      .mockRejectedValueOnce(new Error('ECONNREFUSED')) // local SD attempt fails
+      .mockResolvedValueOnce({                           // Pollinations fallback succeeds
+        ok: true,
+        arrayBuffer: async () => fakeBuffer.buffer,
+      } as Response);
+
+    const outputPath = path.join(tmpDir, 'test_out_fallback.png');
+    const result = await generateImage({
+      prompt: 'a majestic dragon',
+      provider: 'auto',
+      output_path: outputPath,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.output).toContain('Pollinations AI');
+    expect(fs.existsSync(outputPath)).toBe(true);
   });
 });

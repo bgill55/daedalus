@@ -2062,25 +2062,32 @@ Once you have finished making changes, I will automatically re-run the command t
   },
   {
     name: '/image',
-    description: 'Generate an image using local Stable Diffusion WebUI',
-    usage: '/image <prompt> [--output path] [--width 512] [--height 512] [--steps 20]',
-    helpText: 'Generate an image using a local Stable Diffusion WebUI instance (http://127.0.0.1:7860).\n\nArguments:\n  <prompt>             Detailed description of the image to generate\n  --output <path>     Filepath to save PNG (default: ./assets/images/sd_<timestamp>.png)\n  --width <pixels>    Image width (default: 512)\n  --height <pixels>   Image height (default: 512)\n  --steps <count>     Sampling steps (default: 20)',
+    description: 'Generate an image using local Stable Diffusion WebUI or Pollinations AI',
+    usage: '/image <prompt> [--output path] [--provider auto|sd-webui|pollinations] [--width 512] [--height 512] [--steps 20]',
+    helpText: 'Generate an image using a local Stable Diffusion WebUI instance (http://127.0.0.1:7860) or free Pollinations AI.\n\nArguments:\n  <prompt>                      Detailed description of the image to generate\n  --provider <engine>           Engine: auto (local SD with Pollinations fallback), sd-webui, or pollinations\n  --output <path>              Filepath to save PNG (default: ./assets/images/img_<timestamp>.png)\n  --width <pixels>             Image width (default: 512)\n  --height <pixels>            Image height (default: 512)\n  --steps <count>              Sampling steps for local SD (default: 20)',
     execute: async (args, _ctx) => {
       const promptText = args.trim();
       if (!promptText) {
-        console.log(pc.yellow('Usage: /image <prompt> [--output path] [--width 512] [--height 512] [--steps 20]'));
+        console.log(pc.yellow('Usage: /image <prompt> [--provider auto|sd-webui|pollinations] [--output path] [--width 512] [--height 512] [--steps 20]'));
         return;
       }
 
-      console.log(pc.cyan(`\n Generating image via local Stable Diffusion...`));
+      console.log(pc.cyan(`\n Generating image...`));
       const { generateImage } = await import('./tools/builtin/image.js');
 
       let width: number | undefined;
       let height: number | undefined;
       let steps: number | undefined;
+      let provider: 'auto' | 'sd-webui' | 'pollinations' | undefined;
       let output_path: string | undefined;
 
       const cleanedPrompt = promptText
+        .replace(/--provider\s+([^\s]+)/i, (_, pr) => {
+          if (['auto', 'sd-webui', 'pollinations'].includes(pr.toLowerCase())) {
+            provider = pr.toLowerCase() as any;
+          }
+          return '';
+        })
         .replace(/--output\s+([^\s]+)/i, (_, p) => { output_path = p; return ''; })
         .replace(/--width\s+(\d+)/i, (_, w) => { width = parseInt(w, 10); return ''; })
         .replace(/--height\s+(\d+)/i, (_, h) => { height = parseInt(h, 10); return ''; })
@@ -2092,6 +2099,7 @@ Once you have finished making changes, I will automatically re-run the command t
         width,
         height,
         steps,
+        provider,
         output_path,
       });
 
