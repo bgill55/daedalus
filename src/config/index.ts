@@ -76,7 +76,7 @@ export const ConfigSchema = z.object({
       'read_file', 'write_file', 'patch', 'search_files', 'list_files',
       'terminal', 'git_diff', 'git_status', 'todo', 'delegate_task',
       'web_search', 'fetch_url', 'index_codebase', 'find_symbol',
-      'get_definition', 'get_references'
+      'get_definition', 'get_references', 'generate_image'
     ]),
     mcpServers: z.record(z.object({
       transport: z.enum(['stdio', 'http']),
@@ -95,6 +95,21 @@ export const ConfigSchema = z.object({
     mcpServers: {},
     sandbox: 'none',
     sandboxImage: 'node:20',
+  }),
+  imageGen: z.object({
+    enabled: z.boolean().default(true),
+    endpoint: z.string().default('http://127.0.0.1:7860'),
+    defaultWidth: z.number().int().positive().default(512),
+    defaultHeight: z.number().int().positive().default(512),
+    defaultSteps: z.number().int().positive().default(20),
+    outputDir: z.string().default('./assets/images'),
+  }).default({
+    enabled: true,
+    endpoint: 'http://127.0.0.1:7860',
+    defaultWidth: 512,
+    defaultHeight: 512,
+    defaultSteps: 20,
+    outputDir: './assets/images',
   }),
   context: z.object({
     maxTokens: z.number().int().positive().default(128000),

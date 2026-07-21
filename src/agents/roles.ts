@@ -143,7 +143,7 @@ GUIDELINES:
 - Do NOT run git commands (git_diff, git_status, git commit, etc.) — git operations are handled by other roles. You write code, not commit messages.
 
 Use tools: read_file, write_file, patch, search_files, terminal, find_symbol, get_definition, get_references, index_codebase. Do NOT use git_diff or git_status — checking git state is the reviewer's job.`,
-    allowedTools: ['read_file', 'write_file', 'patch', 'search_files', 'list_files', 'terminal', 'web_search', 'fetch_url', 'index_codebase', 'find_symbol', 'get_definition', 'get_references'],
+    allowedTools: ['read_file', 'write_file', 'patch', 'search_files', 'list_files', 'terminal', 'web_search', 'fetch_url', 'index_codebase', 'find_symbol', 'get_definition', 'get_references', 'generate_image'],
     canDelegate: false,
     temperature: 0.1,
     maxTurns: 12,

@@ -105,6 +105,7 @@ AI assistance without:
 - **Terminal** — cross-platform shell execution (bash/cmd/powershell) with custom preference support, timeout, and abort
 - **Git** — status, diff, stage-all-and-commit, undo
 - **Web** — DuckDuckGo search and URL fetching (no API key needed)
+- **Image Generation** — native local Stable Diffusion WebUI integration (`/image` command & `generate_image` tool) for auto-generating UI assets, logos, and graphics
 - **Codebase** — index, find, definitions, references
 
 ### Commands
@@ -150,6 +151,7 @@ AI assistance without:
 | `/mcp` | Manage MCP servers: explore, search, install, list, remove, info |
 | `/onboard` | First-time setup — discover local models, configure, and test |
 | `/tui` | Toggle the Terminal User Interface (TUI) dashboard |
+| `/image` | Generate an image using local Stable Diffusion WebUI |
 | `exit` / `/exit` / `/quit` / `quit` | Save session and exit |
 <!-- END_COMMANDS_TABLE -->
 

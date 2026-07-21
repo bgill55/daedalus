@@ -448,6 +448,26 @@ export const POWER_TOOLS: ToolDefinition[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'generate_image',
+      description: 'Generate an image using a local Stable Diffusion WebUI instance and save it to disk.',
+      parameters: {
+        type: 'object',
+        properties: {
+          prompt: { type: 'string', description: 'Detailed prompt describing the image to generate' },
+          negative_prompt: { type: 'string', description: 'Negative prompt specifying elements to avoid in the generated image' },
+          width: { type: 'integer', description: 'Image width in pixels (default: 512)', default: 512 },
+          height: { type: 'integer', description: 'Image height in pixels (default: 512)', default: 512 },
+          steps: { type: 'integer', description: 'Sampling steps for image generation (default: 20)', default: 20 },
+          output_path: { type: 'string', description: 'Relative or absolute file path to save the generated PNG image' },
+        },
+        required: ['prompt'],
+        additionalProperties: false,
+      },
+    },
+  },
 ];
 
 // Tool name to implementation function mapping
@@ -478,4 +498,5 @@ export const TOOL_IMPLEMENTATIONS: Record<string, string> = {
   kill_process: 'tools/builtin/process-watcher.killProcess',
   eval_code: 'tools/builtin/eval.evalCode',
   ask_user: 'tools/builtin/ask_user.askUser',
+  generate_image: 'tools/builtin/image.generateImageTool',
 };

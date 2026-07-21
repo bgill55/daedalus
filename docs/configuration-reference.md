@@ -34,6 +34,17 @@ This guide describes all configuration options available in Daedalus. You can vi
 
 ---
 
+## Image Generation Settings
+
+*   **`imageGen.enabled`**: Enable/disable local image generation tool and commands (default: true).
+*   **`imageGen.endpoint`**: Local Stable Diffusion WebUI API endpoint URL (default: "http://127.0.0.1:7860").
+*   **`imageGen.defaultWidth`**: Default image width in pixels (default: 512).
+*   **`imageGen.defaultHeight`**: Default image height in pixels (default: 512).
+*   **`imageGen.defaultSteps`**: Default sampling steps for image generation (default: 20).
+*   **`imageGen.outputDir`**: Default directory to save generated PNG images (default: "./assets/images").
+
+---
+
 ## Context Settings
 
 *   **`context.maxTokens`**: Maximum context window limit allowed for model prompts (default: `128000`).

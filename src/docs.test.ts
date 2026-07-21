@@ -143,6 +143,7 @@ describe('Documentation Sync Verification', () => {
       { prefix: 'router.', title: 'Router Settings' },
       { prefix: 'agents.', title: 'Agent Settings' },
       { prefix: 'tools.', title: 'Tool Settings' },
+      { prefix: 'imageGen.', title: 'Image Generation Settings' },
       { prefix: 'context.', title: 'Context Settings' },
       { prefix: 'indexing.', title: 'Codebase Indexing Settings' },
       { prefix: 'session.', title: 'Session Settings' },

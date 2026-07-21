@@ -2061,6 +2061,48 @@ Once you have finished making changes, I will automatically re-run the command t
     }
   },
   {
+    name: '/image',
+    description: 'Generate an image using local Stable Diffusion WebUI',
+    usage: '/image <prompt> [--output path] [--width 512] [--height 512] [--steps 20]',
+    helpText: 'Generate an image using a local Stable Diffusion WebUI instance (http://127.0.0.1:7860).\n\nArguments:\n  <prompt>             Detailed description of the image to generate\n  --output <path>     Filepath to save PNG (default: ./assets/images/sd_<timestamp>.png)\n  --width <pixels>    Image width (default: 512)\n  --height <pixels>   Image height (default: 512)\n  --steps <count>     Sampling steps (default: 20)',
+    execute: async (args, _ctx) => {
+      const promptText = args.trim();
+      if (!promptText) {
+        console.log(pc.yellow('Usage: /image <prompt> [--output path] [--width 512] [--height 512] [--steps 20]'));
+        return;
+      }
+
+      console.log(pc.cyan(`\n Generating image via local Stable Diffusion...`));
+      const { generateImage } = await import('./tools/builtin/image.js');
+
+      let width: number | undefined;
+      let height: number | undefined;
+      let steps: number | undefined;
+      let output_path: string | undefined;
+
+      const cleanedPrompt = promptText
+        .replace(/--output\s+([^\s]+)/i, (_, p) => { output_path = p; return ''; })
+        .replace(/--width\s+(\d+)/i, (_, w) => { width = parseInt(w, 10); return ''; })
+        .replace(/--height\s+(\d+)/i, (_, h) => { height = parseInt(h, 10); return ''; })
+        .replace(/--steps\s+(\d+)/i, (_, s) => { steps = parseInt(s, 10); return ''; })
+        .trim();
+
+      const res = await generateImage({
+        prompt: cleanedPrompt || promptText,
+        width,
+        height,
+        steps,
+        output_path,
+      });
+
+      if (res.success) {
+        console.log(pc.green(`\n✔ ${res.output}`));
+      } else {
+        console.log(pc.red(`\n✗ Image generation failed: ${res.error}`));
+      }
+    }
+  },
+  {
     name: 'exit',
     aliases: ['/exit', '/quit', 'quit'],
     description: 'Save session and exit',
