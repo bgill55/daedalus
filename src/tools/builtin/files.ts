@@ -437,15 +437,16 @@ function nativeGrep(dir: string, pattern: string, fileGlob?: string, limit = 50)
   return results.slice(0, limit);
 }
 
-export async function searchFiles(args: { pattern: string; target?: 'content' | 'files'; path?: string; file_glob?: string; limit?: number }, context: ToolContext): Promise<ToolResult> {
+export async function searchFiles(args: { pattern?: string; target?: 'content' | 'files'; path?: string; file_glob?: string; limit?: number }, context: ToolContext): Promise<ToolResult> {
   try {
     const searchPath = args.path ? resolvePath(args.path, context.projectRoot) : context.projectRoot;
+    const pattern = args.pattern ?? args.file_glob ?? '.*';
     const target = args.target ?? 'content';
     const limit = args.limit ?? 50;
 
     if (target === 'files') {
       // File name search — use walkDir (native)
-      const files = walkDir(searchPath, searchPath, 8, args.pattern);
+      const files = walkDir(searchPath, searchPath, 8, pattern);
       const content = files.slice(0, limit).sort().join('\n');
       return { toolCallId: '', name: 'search_files', success: true, content: content || '(no matches)' };
     }
@@ -453,7 +454,7 @@ export async function searchFiles(args: { pattern: string; target?: 'content' | 
     // Content search — try ripgrep first, fall back to native
     if (rgAvailable()) {
       const rgArgs = ['--no-heading', '--line-number', '--color=never'];
-      rgArgs.push(args.pattern);
+      rgArgs.push(pattern);
       if (args.file_glob) {
         rgArgs.push('--glob', args.file_glob);
       }
@@ -484,7 +485,7 @@ export async function searchFiles(args: { pattern: string; target?: 'content' | 
     }
 
     // Native fallback
-    const matches = nativeGrep(searchPath, args.pattern, args.file_glob, limit);
+    const matches = nativeGrep(searchPath, pattern, args.file_glob, limit);
     return { toolCallId: '', name: 'search_files', success: true, content: matches.length > 0 ? matches.join('\n') : '(no matches)' };
   } catch (err: any) {
     return formatError(`Search failed: ${err.message}`);

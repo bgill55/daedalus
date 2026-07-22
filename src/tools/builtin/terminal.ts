@@ -308,6 +308,8 @@ export async function execute(args: { command: string; timeout?: number; workdir
           if (match && match[1]) {
             diagHint = ` — DIAGNOSTIC HINT: Missing npm package '${match[1]}'. Run 'npm install ${match[1]}' or check package.json dependencies. Do NOT attempt source file string patches to fix missing npm packages.`;
           }
+        } else if (code !== 0 && command.includes('zip') && (fullOutput.includes('is not recognized') || fullOutput.includes('command not found') || code === 127)) {
+          diagHint = ` — DIAGNOSTIC HINT: Linux 'zip' command is unavailable on Windows cmd/powershell. Use PowerShell 'Compress-Archive -Path .\\* -DestinationPath archive.zip -Force' instead.`;
         }
         resolve({
           toolCallId: '',

@@ -71,7 +71,7 @@ export const BUILTIN_TOOLS: ToolDefinition[] = [
           file_glob: { type: 'string', description: 'Filter files by glob pattern (e.g. "*.ts")' },
           limit: { type: 'integer', description: 'Max results', minimum: 1, maximum: 200, default: 50 },
         },
-        required: ['pattern'],
+        required: [],
         additionalProperties: false,
       },
     },
