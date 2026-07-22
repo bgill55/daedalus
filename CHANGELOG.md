@@ -1,3 +1,10 @@
+# [1.56.0](https://github.com/bgill55/daedalus/compare/v1.55.0...v1.56.0) (2026-07-22)
+
+
+### Features
+
+* add /summarize command for manual context compression ([51f4a88](https://github.com/bgill55/daedalus/commit/51f4a88ad4c8fcd60964e271c525e9c9908a6535))
+
 # [1.55.0](https://github.com/bgill55/daedalus/compare/v1.54.0...v1.55.0) (2026-07-21)
 
 
