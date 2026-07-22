@@ -5,6 +5,7 @@ import { ToolContext } from '../../types.js';
 
 export function normalizeWhitespace(str: string): string {
   return str
+    .replace(/\r\n/g, '\n')
     .split('\n')
     .map(line => (line.match(/^\s+/) ? ' ' : '') + line.trimStart().trimEnd())
     .join('\n');
@@ -137,7 +138,13 @@ export function fuzzyWhitespacePatch(content: string, oldStr: string, newStr: st
     }
   }
 
-  if (matches.length === 0) return { error: 'no_fuzzy_match' };
+  if (matches.length === 0) {
+    const trimmedOld = oldStr.trim();
+    if (trimmedOld && trimmedOld !== oldStr) {
+      return fuzzyWhitespacePatch(content, trimmedOld, newStr, replaceAll);
+    }
+    return { error: 'no_fuzzy_match' };
+  }
   if (matches.length > 1 && !replaceAll) {
     return { error: `Fuzzy whitespace match found ${matches.length} ambiguous locations; add more surrounding context to make old_string unique.` };
   }

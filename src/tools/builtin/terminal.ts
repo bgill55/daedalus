@@ -302,12 +302,19 @@ export async function execute(args: { command: string; timeout?: number; workdir
         exited = true;
         clearTimeout(killTimer);
         const fullOutput = output + (errorOutput ? `\n[stderr]\n${errorOutput}` : '');
+        let diagHint = '';
+        if (code !== 0 && (fullOutput.includes('ERR_MODULE_NOT_FOUND') || fullOutput.includes('Cannot find package') || fullOutput.includes('Cannot find module'))) {
+          const match = fullOutput.match(/Cannot find package ['"]([^'"]+)['"]/) || fullOutput.match(/Cannot find module ['"]([^'"]+)['"]/);
+          if (match && match[1]) {
+            diagHint = ` — DIAGNOSTIC HINT: Missing npm package '${match[1]}'. Run 'npm install ${match[1]}' or check package.json dependencies. Do NOT attempt source file string patches to fix missing npm packages.`;
+          }
+        }
         resolve({
           toolCallId: '',
           name: 'terminal',
           success: code === 0,
           content: fullOutput || '(no output)',
-          error: code !== 0 ? `Exit code: ${code}` : undefined,
+          error: code !== 0 ? `Exit code: ${code}${diagHint}` : undefined,
         });
       }
     });
