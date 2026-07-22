@@ -1,3 +1,10 @@
+## [1.56.3](https://github.com/bgill55/daedalus/compare/v1.56.2...v1.56.3) (2026-07-22)
+
+
+### Bug Fixes
+
+* restore Daedalus dry witty persona in main system prompt and remove anti-humor guardrails from agent roles ([5c9944e](https://github.com/bgill55/daedalus/commit/5c9944e80f191d6c6437ade8831c7f68d2181740))
+
 ## [1.56.2](https://github.com/bgill55/daedalus/compare/v1.56.1...v1.56.2) (2026-07-22)
 
 
