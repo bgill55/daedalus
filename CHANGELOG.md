@@ -1,3 +1,10 @@
+## [1.56.2](https://github.com/bgill55/daedalus/compare/v1.56.1...v1.56.2) (2026-07-22)
+
+
+### Bug Fixes
+
+* make pattern optional in search_files schema, add pattern fallback, and add Windows zip command diagnostic hint ([5140588](https://github.com/bgill55/daedalus/commit/5140588c6f2aa64c56aac9e33d9455dfabad57c8))
+
 ## [1.56.1](https://github.com/bgill55/daedalus/compare/v1.56.0...v1.56.1) (2026-07-22)
 
 
