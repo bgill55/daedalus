@@ -446,4 +446,62 @@ describe('/undo command', () => {
   });
 });
 
+describe('/summarize command', () => {
+  let mockContext: CommandContext;
+
+  beforeEach(() => {
+    mockContext = {
+      config: { router: { chain: [] } },
+      configDir: process.cwd(),
+      cliTempDir: process.cwd(),
+      router: {
+        chat: {
+          completions: {
+            create: vi.fn().mockResolvedValue({
+              choices: [{ message: { content: 'Summarized technical context.' } }],
+            }),
+          },
+        },
+      } as any,
+      sessionManager: {
+        sessionId: 'test-session',
+        saveSessionState: vi.fn(),
+      } as any,
+      userProfile: {} as any,
+      projectHash: 'testhash',
+      messages: [{ role: 'system', content: 'system prompt' }],
+      activeFiles: new Map(),
+      toolContext: { sessionId: 'test-session' } as any,
+      getSystemPromptWithMemory: () => '',
+      callModelWithTools: async () => ({ content: '', toolCalls: [] }),
+      callModelWithFallback: async () => '',
+      rl: {} as any,
+      initializeSessionState: () => {},
+      buildFileContext: () => '',
+      askLine: async () => '',
+      buildIndexContext: async () => '',
+      getIndexDbPath: () => '',
+    };
+  });
+
+  it('warns when conversation is too short to summarize', async () => {
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    await executeCommand('/summarize', mockContext);
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('already concise'));
+  });
+
+  it('summarizes older messages when conversation is long', async () => {
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const longText = 'Detailed technical discussion about architecture, database schema, API routing, and code optimization. '.repeat(10);
+    for (let i = 0; i < 6; i++) {
+      mockContext.messages.push({ role: 'user', content: `User message ${i}: ${longText}` });
+      mockContext.messages.push({ role: 'assistant', content: `Assistant reply ${i}: ${longText}` });
+    }
+
+    await executeCommand('/summarize 1', mockContext);
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Successfully summarized'));
+    expect(mockContext.sessionManager.saveSessionState).toHaveBeenCalled();
+  });
+});
+
 

@@ -519,6 +519,52 @@ export const commandsList: Command[] = [
     }
   },
   {
+    name: '/summarize',
+    aliases: ['/compress'],
+    description: 'Summarize older conversation history to save tokens and speed up turns',
+    usage: '/summarize [keepTurns]',
+    helpText: 'Manually compresses older conversation turns into a compact technical summary. Use this if the session grows large or model turns begin slowing down.',
+    execute: async (args, ctx) => {
+      const keepTurnsArg = parseInt(args.trim(), 10);
+      const keepTurns = isNaN(keepTurnsArg) || keepTurnsArg < 1 ? 2 : keepTurnsArg;
+
+      const userOrAssistantCount = ctx.messages.filter(m => m.role === 'user' || m.role === 'assistant').length;
+      if (userOrAssistantCount <= keepTurns * 2) {
+        console.log(pc.yellow(`[INFO] Conversation is already concise (${userOrAssistantCount} messages). At least ${keepTurns * 2 + 1} messages are needed to summarize.`));
+        return;
+      }
+
+      console.log(pc.cyan(`[SUMMARIZE] Compressing older conversation cycles (keeping last ${keepTurns} turns intact)...`));
+
+      const { summarizeMessages } = await import('./session/summarize.js');
+      const summarizeFn = async (sysPrompt: string, userContent: string): Promise<string> => {
+        try {
+          const resp = await ctx.router.chat.completions.create({
+            model: 'intelligence',
+            messages: [
+              { role: 'system', content: sysPrompt },
+              { role: 'user', content: userContent },
+            ],
+            temperature: 0.3,
+            max_tokens: 600,
+          });
+          return resp.choices[0]?.message?.content || '';
+        } catch {
+          return '';
+        }
+      };
+
+      const result = await summarizeMessages(ctx.messages, 0, summarizeFn, keepTurns);
+
+      if (result.summarizedTurns > 0) {
+        ctx.sessionManager.saveSessionState?.(ctx.messages, ctx.activeFiles, getSessionTodos(ctx.toolContext.sessionId));
+        console.log(pc.green(`\n[OK] Successfully summarized ${result.summarizedTurns} turn(s), saving ~${Math.round(result.savedTokens / 1000)}k tokens!`));
+      } else {
+        console.log(pc.yellow('[INFO] No older turns were large enough to summarize.'));
+      }
+    }
+  },
+  {
     name: '/profile',
     description: 'View or set user profile info',
     usage: '/profile [view | name = <name> | bio = <bio>]',

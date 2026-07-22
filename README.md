@@ -127,6 +127,7 @@ AI assistance without:
 | `/fact [text]` | Add a project fact to memory |
 | `/convention [text]` | Add a project convention to memory |
 | `/extract` | Manually extract facts from session |
+| `/summarize` / `/compress` | Summarize older conversation history to save tokens and speed up turns |
 | `/profile` | View or set user profile info |
 | `/style` | Set your coding style preferences |
 | `/undo` | Undo file edits (usage: /undo [count|list]) |
