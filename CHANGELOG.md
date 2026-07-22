@@ -1,3 +1,10 @@
+## [1.56.1](https://github.com/bgill55/daedalus/compare/v1.56.0...v1.56.1) (2026-07-22)
+
+
+### Bug Fixes
+
+* normalize CRLF in patch-utils and add missing package error diagnostic hints in terminal tool ([6683a47](https://github.com/bgill55/daedalus/commit/6683a47a749a3a236c86a41638bf6f607346c894))
+
 # [1.56.0](https://github.com/bgill55/daedalus/compare/v1.55.0...v1.56.0) (2026-07-22)
 
 
