@@ -1,3 +1,10 @@
+## [1.60.2](https://github.com/bgill55/daedalus/compare/v1.60.1...v1.60.2) (2026-07-24)
+
+
+### Bug Fixes
+
+* **commands:** strip quotes from file paths passed to /paste command ([7ad97ba](https://github.com/bgill55/daedalus/commit/7ad97ba087b54e87146639780aa6b0d190a2ef91))
+
 ## [1.60.1](https://github.com/bgill55/daedalus/compare/v1.60.0...v1.60.1) (2026-07-24)
 
 
