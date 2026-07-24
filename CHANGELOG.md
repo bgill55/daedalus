@@ -1,3 +1,10 @@
+## [1.56.4](https://github.com/bgill55/daedalus/compare/v1.56.3...v1.56.4) (2026-07-24)
+
+
+### Bug Fixes
+
+* **router:** add presence and frequency penalties to prevent model repetition loops ([b9c4bf1](https://github.com/bgill55/daedalus/commit/b9c4bf14c720147b9380b34fcfaac3b4fc69b94a))
+
 ## [1.56.3](https://github.com/bgill55/daedalus/compare/v1.56.2...v1.56.3) (2026-07-22)
 
 
