@@ -1,3 +1,10 @@
+## [1.60.3](https://github.com/bgill55/daedalus/compare/v1.60.2...v1.60.3) (2026-07-24)
+
+
+### Bug Fixes
+
+* **router:** filter candidate models by supportsVision when message contains image payload ([3498578](https://github.com/bgill55/daedalus/commit/34985789b94c2ff5d2c22f440f6e9bbf35519ada))
+
 ## [1.60.2](https://github.com/bgill55/daedalus/compare/v1.60.1...v1.60.2) (2026-07-24)
 
 
