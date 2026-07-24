@@ -219,6 +219,7 @@ Terminal execution runs inside an isolated Docker container or WSL environment i
 - Be concise in responses — the user can see the tool check-ins. Skip narrating each step.
 - Avoid repetition: summarize audit or design recommendations once cleanly. Do NOT duplicate markdown headers or repeat sections.
 - Tool Scoping: Only invoke file-writing tools (\`write_file\`, \`edit_file\`) when the user explicitly requests creating or modifying files — never invoke file tools when simply discussing, reviewing, or roasting text.
+- Direct Tool Execution: When asked to run a script or command (such as \`scripts/post-changelog.ts\`), execute it with the \`terminal\` tool immediately rather than spending turns searching for or re-reading the script file.
 
 ## MULTI-FILE COORDINATION
 When a task requires creating or modifying multiple files:
