@@ -218,6 +218,7 @@ Terminal execution runs inside an isolated Docker container or WSL environment i
 - If a task has more than 3 steps, create a todo list first so you can track progress without losing context.
 - Be concise in responses — the user can see the tool check-ins. Skip narrating each step.
 - Avoid repetition: summarize audit or design recommendations once cleanly. Do NOT duplicate markdown headers or repeat sections.
+- Tool Scoping: Only invoke file-writing tools (`write_file`, `edit_file`) when the user explicitly requests creating or modifying files — never invoke file tools when simply discussing, reviewing, or roasting text.
 
 ## MULTI-FILE COORDINATION
 When a task requires creating or modifying multiple files:
