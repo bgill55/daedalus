@@ -74,10 +74,11 @@ export const commandsList: Command[] = [
           console.log(pc.green(`\n[OK] Active context files updated: ${ctx.activeFiles.size} file(s)`));
         }
       } else {
-        const absPath = path.resolve(fileArg);
-        ctx.activeFiles.set(absPath, fileArg);
+        const cleanPath = fileArg.replace(/^["']|["']$/g, '');
+        const absPath = path.resolve(cleanPath);
+        ctx.activeFiles.set(absPath, cleanPath);
         ctx.toolContext.activeFiles = new Map(ctx.activeFiles);
-        console.log(pc.green(`[OK] Added file to context: ${pc.bold(fileArg)}`));
+        console.log(pc.green(`[OK] Added file to context: ${pc.bold(cleanPath)}`));
       }
     }
   },
@@ -91,12 +92,13 @@ export const commandsList: Command[] = [
       if (!fileArg) {
         console.log(pc.red('[WARN] Please specify a file path. Example: /remove src/App.tsx'));
       } else {
-        const absPath = path.resolve(fileArg);
+        const cleanPath = fileArg.replace(/^["']|["']$/g, '');
+        const absPath = path.resolve(cleanPath);
         if (ctx.activeFiles.delete(absPath)) {
           ctx.toolContext.activeFiles = new Map(ctx.activeFiles);
-          console.log(pc.green(`[OK] Removed file from context: ${pc.bold(fileArg)}`));
+          console.log(pc.green(`[OK] Removed file from context: ${pc.bold(cleanPath)}`));
         } else {
-          console.log(pc.yellow(`[WARN] File was not in context: ${fileArg}`));
+          console.log(pc.yellow(`[WARN] File was not in context: ${cleanPath}`));
         }
       }
     }

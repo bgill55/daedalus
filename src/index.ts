@@ -347,7 +347,12 @@ function buildFileContext(): string {
   for (const [absPath, filename] of activeFiles) {
     let content: string;
     if (fs.existsSync(absPath)) {
-      content = fs.readFileSync(absPath, 'utf8');
+      const ext = path.extname(absPath).toLowerCase();
+      if (['.png', '.jpg', '.jpeg', '.webp', '.gif'].includes(ext)) {
+        content = `[Binary Image File: ${filename} (${ext.toUpperCase().slice(1)}) — Note: Text-only model active. To process vision, use a vision-enabled model]`;
+      } else {
+        content = fs.readFileSync(absPath, 'utf8');
+      }
     } else {
       content = '[New file - does not exist yet]';
     }
