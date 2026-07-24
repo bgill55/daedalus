@@ -1,3 +1,10 @@
+# [1.60.0](https://github.com/bgill55/daedalus/compare/v1.59.1...v1.60.0) (2026-07-24)
+
+
+### Features
+
+* **scripts:** auto-generate changelog release notes from recent git commits ([bac4f2e](https://github.com/bgill55/daedalus/commit/bac4f2e3920a9ccc5cd47f91eeb500a7f0139eb4))
+
 ## [1.59.1](https://github.com/bgill55/daedalus/compare/v1.59.0...v1.59.1) (2026-07-24)
 
 
