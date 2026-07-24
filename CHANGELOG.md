@@ -1,3 +1,10 @@
+# [1.58.0](https://github.com/bgill55/daedalus/compare/v1.57.0...v1.58.0) (2026-07-24)
+
+
+### Features
+
+* **cli:** add Discord server link https://discord.gg/GPH2ZH57up to startup banner and README ([ebd9a5d](https://github.com/bgill55/daedalus/commit/ebd9a5d4fac53f3c7751067744370583a4ff8bbc))
+
 # [1.57.0](https://github.com/bgill55/daedalus/compare/v1.56.4...v1.57.0) (2026-07-24)
 
 
