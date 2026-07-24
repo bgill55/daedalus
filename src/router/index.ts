@@ -136,8 +136,18 @@ export class LocalRouter {
     }
 
     const requiresTools = !!(request.tools && request.tools.length > 0);
+    const hasImage = request.messages.some(msg => 
+      Array.isArray(msg.content) && msg.content.some((c: any) => c.type === 'image_url')
+    );
     const estimatedTokens = this.estimateTokens(request);
     const isComplexTask = requiresTools || estimatedTokens > 8000;
+
+    if (hasImage) {
+      const visionSupporting = candidateModels.filter(m => m.supportsVision);
+      if (visionSupporting.length > 0) {
+        candidateModels = visionSupporting;
+      }
+    }
 
     if (requiresTools) {
       const toolSupporting = candidateModels.filter(m => m.supportsTools);
