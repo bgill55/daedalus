@@ -274,6 +274,12 @@ export class LocalRouter {
     if (body.tool_choice === 'required' && !isOfficialOpenAI) {
       body.tool_choice = 'auto';
     }
+    if (body.frequency_penalty === undefined) {
+      body.frequency_penalty = 0.2;
+    }
+    if (body.presence_penalty === undefined) {
+      body.presence_penalty = 0.1;
+    }
 
     const sanitizedMessages = sanitizeMessagesForModel(body.messages, model);
 
@@ -309,6 +315,13 @@ export class LocalRouter {
     const isOfficialOpenAI = model.endpoint.includes('api.openai.com');
     if (body.tool_choice === 'required' && !isOfficialOpenAI) {
       body.tool_choice = 'auto';
+    }
+
+    if (body.frequency_penalty === undefined) {
+      body.frequency_penalty = 0.2;
+    }
+    if (body.presence_penalty === undefined) {
+      body.presence_penalty = 0.1;
     }
 
     const sanitizedMessages = sanitizeMessagesForModel(body.messages, model);

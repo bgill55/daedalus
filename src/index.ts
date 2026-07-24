@@ -217,6 +217,7 @@ Terminal execution runs inside an isolated Docker container or WSL environment i
 - Do NOT re-read a file you just read unless the content changed.
 - If a task has more than 3 steps, create a todo list first so you can track progress without losing context.
 - Be concise in responses — the user can see the tool check-ins. Skip narrating each step.
+- Avoid repetition: summarize audit or design recommendations once cleanly. Do NOT duplicate markdown headers or repeat sections.
 
 ## MULTI-FILE COORDINATION
 When a task requires creating or modifying multiple files:
