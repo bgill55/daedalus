@@ -81,6 +81,6 @@ export function printConfigInfo(
   console.log(bot);
   console.log('');
 
-  console.log(`  ${pc.dim('Type')} ${pc.cyan('?')} ${pc.dim('for commands  ·  Tab completes  ·  ')} ${pc.cyan('https://bgill55.github.io/daedalus/#/')}`);
+  console.log(`  ${pc.dim('Type')} ${pc.cyan('?')} ${pc.dim('for commands  ·  ')} ${pc.cyan('https://github.com/bgill55/daedalus')} ${pc.dim(' (Star on GitHub!)')}`);
   console.log('');
 }
