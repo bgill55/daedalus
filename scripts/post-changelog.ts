@@ -1,5 +1,6 @@
 import { Client, GatewayIntentBits, Events, EmbedBuilder } from 'discord.js';
 import dotenv from 'dotenv';
+import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 
@@ -20,19 +21,24 @@ const notesArg = process.argv[3];
 let version = versionArg;
 let notes = notesArg ? notesArg.replace(/\\n/g, '\n') : '';
 
-if (!version || !notes) {
+// Auto-detect version from package.json if not provided
+if (!version) {
   try {
     const pkgPath = path.resolve('package.json');
     const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
-    version = version || `v${pkg.version}`;
+    version = `v${pkg.version}`;
   } catch {
-    version = version || 'v1.58.0';
+    version = 'v1.59.0';
   }
+}
 
-  if (!notes) {
-    notes = `- Integrated Daedalus AI Discord Bot & Slash Commands (/ask, /roast, /excuse)\n` +
-            `- Added GitHub star prompts to startup banner & README\n` +
-            `- Performance and router stability enhancements`;
+// Auto-generate release notes from git log if not provided!
+if (!notes) {
+  try {
+    const gitLog = execSync('git log -n 5 --pretty=format:"• %s"', { encoding: 'utf8' }).trim();
+    notes = gitLog || '• Maintenance and stability updates';
+  } catch {
+    notes = '• Maintenance and stability updates';
   }
 }
 
