@@ -124,7 +124,8 @@ export const commandsList: Command[] = [
     execute: async (args, ctx) => {
       const extra = args.trim();
       if (extra && !extra.startsWith('http')) {
-        const filePath = path.resolve(extra);
+        const cleanPath = extra.replace(/^["']|["']$/g, '');
+        const filePath = path.resolve(cleanPath);
         if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
           const ext = path.extname(filePath).toLowerCase();
           if (['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp'].includes(ext)) {
