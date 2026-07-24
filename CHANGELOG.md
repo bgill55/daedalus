@@ -1,3 +1,10 @@
+## [1.60.1](https://github.com/bgill55/daedalus/compare/v1.60.0...v1.60.1) (2026-07-24)
+
+
+### Bug Fixes
+
+* **context:** strip quotes from /add file paths and handle binary image files gracefully ([498d217](https://github.com/bgill55/daedalus/commit/498d2174cc1061e06e527a85f47de9511b21dd16))
+
 # [1.60.0](https://github.com/bgill55/daedalus/compare/v1.59.1...v1.60.0) (2026-07-24)
 
 
