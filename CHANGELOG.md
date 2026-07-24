@@ -1,3 +1,16 @@
+# [1.59.0](https://github.com/bgill55/daedalus/compare/v1.58.0...v1.59.0) (2026-07-24)
+
+
+### Bug Fixes
+
+* **agent:** add tool scoping rule to system prompt preventing unwanted write_file calls on text review ([f297caa](https://github.com/bgill55/daedalus/commit/f297caa1454843cde396ab00af4326ad5026bf25))
+* **lint:** escape backticks in system prompt string on line 221 ([cc09dbe](https://github.com/bgill55/daedalus/commit/cc09dbe019d75bda5ba32ae3bbc76f11dbfef4b1))
+
+
+### Features
+
+* **scripts:** add automated Discord changelog poster script and npm run bot command ([9d9731f](https://github.com/bgill55/daedalus/commit/9d9731fcd22ad84b37c990a14d8e42363c9feb4f))
+
 # [1.58.0](https://github.com/bgill55/daedalus/compare/v1.57.0...v1.58.0) (2026-07-24)
 
 
