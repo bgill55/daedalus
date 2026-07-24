@@ -142,3 +142,13 @@ Daedalus supports sandboxing via:
 
 To learn how to enable and configure these environments, see the [Execution Sandboxing & Shell Configuration Guide](sandboxing.md).
 
+---
+
+## Community & Support
+
+Have questions, need help setting up local LLM models (Ollama, LM Studio), or want to report a bug?
+
+* 💬 **Discord Community**: [Join the official Daedalus Discord](https://discord.gg/GPH2ZH57up) for live Q&A, setup assistance, release announcements, and showcase channels.
+* ⭐ **GitHub Issues**: [Open an issue on GitHub](https://github.com/bgill55/daedalus/issues) for bug reports and feature requests.
+* 🤖 **AI Bot**: Tag **@Daedalus** inside our Discord server for instant assistance!
+

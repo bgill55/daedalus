@@ -7,4 +7,5 @@
 - [Sandboxing](sandboxing.md)
 - [Example Run](social-media-manager-sprint.md)
 - [Case Study: Daedalus-Lite](daedalus-lite-sprint.md)
+- [💬 Discord Community](https://discord.gg/GPH2ZH57up)
 
