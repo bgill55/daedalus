@@ -1,3 +1,10 @@
+## [1.59.1](https://github.com/bgill55/daedalus/compare/v1.59.0...v1.59.1) (2026-07-24)
+
+
+### Bug Fixes
+
+* **agent:** add Direct Tool Execution rule to prevent search loops when running scripts ([c69c4b2](https://github.com/bgill55/daedalus/commit/c69c4b20feb8c01ba71e472d7318e888014db864))
+
 # [1.59.0](https://github.com/bgill55/daedalus/compare/v1.58.0...v1.59.0) (2026-07-24)
 
 
