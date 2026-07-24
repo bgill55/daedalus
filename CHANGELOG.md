@@ -1,3 +1,10 @@
+# [1.57.0](https://github.com/bgill55/daedalus/compare/v1.56.4...v1.57.0) (2026-07-24)
+
+
+### Features
+
+* **cli:** add GitHub repository star prompt to banner startup footer ([6901ad0](https://github.com/bgill55/daedalus/commit/6901ad0a24cc7f8ae8dbabc937aba2a5a74fcef6))
+
 ## [1.56.4](https://github.com/bgill55/daedalus/compare/v1.56.3...v1.56.4) (2026-07-24)
 
 
