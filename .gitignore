@@ -4,7 +4,9 @@ dist/
 *.sqlite-journal
 *.jsonl
 .env
+.env*
 .DS_Store
+src/bot.ts
 
 vscode-extension/
 youtube-video-production.md
