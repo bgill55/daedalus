@@ -1,3 +1,10 @@
+# [1.70.0](https://github.com/bgill55/daedalus/compare/v1.69.0...v1.70.0) (2026-07-25)
+
+
+### Features
+
+* **bot:** add bgill55.art to creator recognition check ([0d1021a](https://github.com/bgill55/daedalus/commit/0d1021ad8347546c2d7a5def0bd52261afed7106))
+
 # [1.69.0](https://github.com/bgill55/daedalus/compare/v1.68.0...v1.69.0) (2026-07-25)
 
 
