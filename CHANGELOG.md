@@ -1,3 +1,10 @@
+## [1.60.5](https://github.com/bgill55/daedalus/compare/v1.60.4...v1.60.5) (2026-07-25)
+
+
+### Bug Fixes
+
+* **cli:** support both --loop and --daemon flags for starting Finn Loop daemon ([1a6a4e7](https://github.com/bgill55/daedalus/commit/1a6a4e77baab659c40c8859b6feb73ea6b37d0e9))
+
 ## [1.60.4](https://github.com/bgill55/daedalus/compare/v1.60.3...v1.60.4) (2026-07-25)
 
 
