@@ -1,3 +1,10 @@
+## [1.66.1](https://github.com/bgill55/daedalus/compare/v1.66.0...v1.66.1) (2026-07-25)
+
+
+### Bug Fixes
+
+* **ci:** respect .gitignore for src/bot.ts and exclude from build ([d7f2718](https://github.com/bgill55/daedalus/commit/d7f271866c48d37ed1fe75374a3d27cb30a60c30))
+
 # [1.66.0](https://github.com/bgill55/daedalus/compare/v1.65.1...v1.66.0) (2026-07-25)
 
 
