@@ -1,3 +1,10 @@
+## [1.66.2](https://github.com/bgill55/daedalus/compare/v1.66.1...v1.66.2) (2026-07-25)
+
+
+### Bug Fixes
+
+* **reviewer:** add TYPE LOCATION and DEFENSIVE GUARDS & ASCII audit rules to reviewer prompt ([7058c7d](https://github.com/bgill55/daedalus/commit/7058c7dfc0ee9f28acc7fe312d2c9d6e8183d1b0))
+
 ## [1.66.1](https://github.com/bgill55/daedalus/compare/v1.66.0...v1.66.1) (2026-07-25)
 
 
