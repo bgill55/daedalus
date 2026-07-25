@@ -1,3 +1,10 @@
+## [1.71.2](https://github.com/bgill55/daedalus/compare/v1.71.1...v1.71.2) (2026-07-25)
+
+
+### Bug Fixes
+
+* **discord:** auto-extract release notes bullet points from CHANGELOG.md for Discord embeds ([7ddca53](https://github.com/bgill55/daedalus/commit/7ddca53e1dd8e1e45818fbd93e0295f36d3b7b72))
+
 ## [1.71.1](https://github.com/bgill55/daedalus/compare/v1.71.0...v1.71.1) (2026-07-25)
 
 
