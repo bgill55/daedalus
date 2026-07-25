@@ -1,3 +1,10 @@
+## [1.60.6](https://github.com/bgill55/daedalus/compare/v1.60.5...v1.60.6) (2026-07-25)
+
+
+### Bug Fixes
+
+* **router:** add automatic model fallback retry loop when endpoint model loading throws 400 error ([581e90e](https://github.com/bgill55/daedalus/commit/581e90eda343a7c0aa8be0b01aaeb4dd9ba96a1c))
+
 ## [1.60.5](https://github.com/bgill55/daedalus/compare/v1.60.4...v1.60.5) (2026-07-25)
 
 
