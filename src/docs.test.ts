@@ -82,7 +82,9 @@ describe('Documentation Sync Verification', () => {
       '/refs': '/refs <symbol>',
       '/def': '/def <symbol>',
       '/commit': '/commit [msg]',
-      '/test': '/test [n]',
+      '/test': '/test [n] [-g]',
+      '/watch': '/watch [start|stop|status]',
+      '/mcp': '/mcp <explore|search|install|list|rm>',
       '/branch': '/branch [name]',
       '/pr': '/pr [base]',
       '/project': '/project [set <key> = <val>]',
@@ -93,22 +95,71 @@ describe('Documentation Sync Verification', () => {
       '/session': '/session [name]',
     };
 
-    let table = `| Command | Description |\n`;
-    table += `|---------|-------------|\n`;
-
-    for (const cmd of commandsList) {
-      const usage = COMMAND_USAGES[cmd.name] || cmd.name;
-      const allNames = [usage];
-      if (cmd.aliases) {
-        allNames.push(...cmd.aliases);
+    const COMMAND_GROUPS: { name: string; commands: string[] }[] = [
+      {
+        name: 'Multi-Agent & Orchestration',
+        commands: ['/orchestrate', '/spawn', '/task', '/tasks', '/ensemble', '/debug', '/spec']
+      },
+      {
+        name: 'Codebase Search & Live Watcher',
+        commands: ['/watch', '/index', '/find', '/refs', '/def']
+      },
+      {
+        name: 'Developer Tools, Git & MCP',
+        commands: ['/test', '/commit', '/branch', '/pr', '/mcp', '/image', '/undo']
+      },
+      {
+        name: 'Memory, Conventions & Config',
+        commands: ['/project', '/config', '/profile', '/style', '/fact', '/convention', '/memory', '/extract', '/session', '/prune']
+      },
+      {
+        name: 'Context & CLI Utilities',
+        commands: ['/add', '/remove', '/context', '/paste', '/tokens', '/clear', '/summarize', '/system', '/health', '/models', '/doctor', '/changelog', '/help', '/update', '/exit']
       }
-      const commandCell = allNames.map(n => `\`${n}\``).join(' / ');
-      table += `| ${commandCell} | ${cmd.description} |\n`;
+    ];
+
+    const processedNames = new Set<string>();
+    let content = '';
+
+    for (const group of COMMAND_GROUPS) {
+      content += `\n### ${group.name}\n\n`;
+      content += `| Command | Description |\n`;
+      content += `|---------|-------------|\n`;
+
+      for (const cmdName of group.commands) {
+        const cmd = commandsList.find(c => c.name === cmdName);
+        if (!cmd) continue;
+
+        processedNames.add(cmd.name);
+        const usage = COMMAND_USAGES[cmd.name] || cmd.name;
+        const allNames = [usage];
+        if (cmd.aliases) {
+          allNames.push(...cmd.aliases);
+        }
+        const commandCell = allNames.map(n => `\`${n}\``).join(' / ');
+        content += `| ${commandCell} | ${cmd.description} |\n`;
+      }
+    }
+
+    const unmapped = commandsList.filter(c => !processedNames.has(c.name));
+    if (unmapped.length > 0) {
+      content += `\n### Additional Commands\n\n`;
+      content += `| Command | Description |\n`;
+      content += `|---------|-------------|\n`;
+      for (const cmd of unmapped) {
+        const usage = COMMAND_USAGES[cmd.name] || cmd.name;
+        const allNames = [usage];
+        if (cmd.aliases) {
+          allNames.push(...cmd.aliases);
+        }
+        const commandCell = allNames.map(n => `\`${n}\``).join(' / ');
+        content += `| ${commandCell} | ${cmd.description} |\n`;
+      }
     }
 
     const before = readmeContent.substring(0, startIndex + startMarker.length);
     const after = readmeContent.substring(endIndex);
-    const expectedReadmeContent = `${before}\n${table}${after}`;
+    const expectedReadmeContent = `${before}\n${content}\n${after}`;
 
     if (readmeContent.replace(/\r\n/g, '\n') !== expectedReadmeContent.replace(/\r\n/g, '\n')) {
       const a = readmeContent.replace(/\r\n/g, '\n');
