@@ -1,3 +1,10 @@
+## [1.65.1](https://github.com/bgill55/daedalus/compare/v1.65.0...v1.65.1) (2026-07-25)
+
+
+### Bug Fixes
+
+* **stats:** align /stats CLI output formatting to match REPL theme ([bc7caf4](https://github.com/bgill55/daedalus/commit/bc7caf4824f4e89f12a90529d6cadd2e1dfe97e1))
+
 # [1.65.0](https://github.com/bgill55/daedalus/compare/v1.64.0...v1.65.0) (2026-07-25)
 
 
