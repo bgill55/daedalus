@@ -1,3 +1,15 @@
+# [1.67.0](https://github.com/bgill55/daedalus/compare/v1.66.2...v1.67.0) (2026-07-25)
+
+
+### Bug Fixes
+
+* **health:** centralize types in src/types.ts, fix maskKey empty string edge case, use ASCII hyphen in headers, and add unit test suite ([ad581ba](https://github.com/bgill55/daedalus/commit/ad581badf59c7e92fe99a5c676b3d73b1dd1645a))
+
+
+### Features
+
+* **issue-6:** [Daedalus Spec] Add /health REPL command to display model router provider latency, health status, and API key status ([3be2e6f](https://github.com/bgill55/daedalus/commit/3be2e6f682138604e3325156280f3f201679ca03))
+
 ## [1.66.2](https://github.com/bgill55/daedalus/compare/v1.66.1...v1.66.2) (2026-07-25)
 
 
