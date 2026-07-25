@@ -195,7 +195,8 @@ export async function startLoopDaemon(ctx: ToolContext, config: any, router: any
         }),
       });
 
-      // 2. Run Orchestrator
+      // 2. Run Orchestrator in auto-approve mode
+      process.env.DAEDALUS_AUTO_APPROVE = 'true';
       console.log(pc.cyan(`Starting orchestration for Issue #${issue.number}...`));
       const { Orchestrator } = await import('./orchestrator.js');
       const orchestrator = new Orchestrator(router, [], ctx, sessionManager);
