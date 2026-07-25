@@ -121,7 +121,7 @@ export class LocalRouter {
     }
 
     if (healthyModels.length === 0) {
-      throw new Error('No enabled models configured. Check your config.json file.');
+      throw new Error('No healthy models available. Check your local servers (LM Studio, Ollama, etc.)');
     }
 
     let selectedModel: ModelEntry | undefined;
