@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import path from 'node:path';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -25,49 +26,73 @@ function parseArgs() {
   return result;
 }
 
-function extractChangelog(body) {
-  if (!body) return [];
-  return body
-    .split('\n')
+function extractChangelog(body, tag) {
+  let lines = [];
+
+  if (body) {
+    lines = body.split('\n');
+  }
+
+  // Auto-extract from CHANGELOG.md if body is missing or empty
+  if (lines.length === 0 || !lines.some(l => l.trim().startsWith('- ') || l.trim().startsWith('* '))) {
+    try {
+      const changelogPath = path.resolve(process.cwd(), 'CHANGELOG.md');
+      if (fs.existsSync(changelogPath)) {
+        const content = fs.readFileSync(changelogPath, 'utf8');
+        const cleanTag = (tag || '').replace(/^v/, '');
+        const escapedTag = cleanTag.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+        const regex = new RegExp(`#+ \\[?${escapedTag}[\\s\\S]*?(?=(?:\\n#+ [ \\[0-9]|$))`, 'i');
+        const match = content.match(regex);
+        if (match) {
+          lines = match[0].split('\n');
+        }
+      }
+    } catch {
+      // Ignore fallback errors
+    }
+  }
+
+  return lines
     .map((line) => line.trim())
     .filter((line) => line.startsWith('- ') || line.startsWith('* '))
     .map((line) => line.replace(/^[-*]\s+/, ''));
 }
 
 function createEmbed({ tag, title, body, url }) {
-  const changelogItems = extractChangelog(body);
+  const changelogItems = extractChangelog(body, tag);
   let npmPackage = process.env.npm_package_name || 'daedalus-cli';
   try {
-    const pkg = JSON.parse(fs.readFileSync(new URL('../../package.json', import.meta.url), 'utf8'));
+    const pkg = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), 'package.json'), 'utf8'));
     if (pkg.name) npmPackage = pkg.name;
   } catch {
-    // Fallback to default
+    // Fallback
   }
   const repo = process.env.GITHUB_REPOSITORY || 'bgill55/daedalus';
 
   const descriptionLines = [];
-  descriptionLines.push(`**Version:** ${tag}`);
+  descriptionLines.push(`🚀 **Daedalus Release ${tag}**\n`);
   if (changelogItems.length) {
-    descriptionLines.push('');
     descriptionLines.push(...changelogItems.map((item) => `• ${item}`));
+  } else {
+    descriptionLines.push('• General performance improvements and bug fixes.');
   }
 
   return {
     title,
     description: descriptionLines.join('\n'),
     url,
-    color: 0x00ffff, // cyan
+    color: 0x06b6d4, // Cyan
     timestamp: new Date().toISOString(),
-    footer: { text: `Released from ${repo}` },
+    footer: { text: `Daedalus Release Engine • ${repo}` },
     fields: [
       {
-        name: 'NPM',
-        value: `[${npmPackage} on npm](https://www.npmjs.com/package/${npmPackage})`,
+        name: '📦 NPM Package',
+        value: `\`npm i -g ${npmPackage}@latest\``,
         inline: true,
       },
       {
-        name: 'GitHub',
-        value: `[Repository](${url})`,
+        name: '⭐ GitHub Repo',
+        value: `[${repo}](${url})`,
         inline: true,
       },
     ],
