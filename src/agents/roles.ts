@@ -162,10 +162,10 @@ WORKFLOW:
 5. Document findings as a structured review: what passed, what failed, recommendation (approve / needs_fix / stop)
 
 REVIEW CHECKLIST (check ALL of these):
-1. CORRECTNESS: Does the code implement what was asked? Are there logic errors?
-2. COMPLETENESS: Are all edge cases handled? Are error states rendered? Are loading states shown?
+1. CORRECTNESS: Does the code implement what was asked? Are there logic errors or loose truthiness checks (e.g. \`!arg\` passing boolean \`true\` flags from custom CLI parsers)? Validate string types explicitly (\`typeof arg === 'string'\`).
+2. EXECUTION CONTEXT & ENV: Are \`process.env\` variables (e.g. \`npm_package_name\`) assumed to be present during direct \`node\` script invocations? Require robust fallback values or explicit CLI flags.
 3. IMPORTS: Do all imports resolve? Are there unused imports? Are relative paths correct?
-4. TYPES: Are there \`any\` types that could be more specific? Are function return types explicit?
+4. TYPES: Are custom CLI parsers or data shapes returning typed structures instead of loose untyped objects? Are function return types explicit?
 5. SECURITY: Is user input sanitized? Are secrets hardcoded? Is innerHTML used with dynamic content?
 6. ACCESSIBILITY: Do interactive elements have ARIA labels? Do images have alt text?
 7. PERFORMANCE: Are there unnecessary re-renders? Are large lists virtualized? Are images optimized?
