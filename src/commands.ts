@@ -1294,6 +1294,51 @@ Once you have finished making changes, I will automatically re-run the command t
     }
   },
   {
+    name: '/watch',
+    aliases: ['watch'],
+    description: 'Start or stop background codebase file-watcher for automatic FTS5 symbol re-indexing',
+    usage: '/watch [start | stop | status]',
+    helpText: 'Watches project files for changes and automatically updates the codebase symbol index in real time as you save files.',
+    execute: async (args) => {
+      const { initDb } = await import('./indexing/fts.js');
+      const { watchCodebase } = await import('./indexing/watcher.js');
+      const action = args.trim().toLowerCase() || 'start';
+
+      if (action === 'stop') {
+        if ((globalThis as any).__daedalusWatcher) {
+          (globalThis as any).__daedalusWatcher.close();
+          delete (globalThis as any).__daedalusWatcher;
+          console.log(pc.green('\n[OK] Codebase file watcher stopped.'));
+        } else {
+          console.log(pc.yellow('\n[INFO] File watcher is not currently running.'));
+        }
+        return;
+      }
+
+      if (action === 'status') {
+        const isRunning = !!(globalThis as any).__daedalusWatcher;
+        console.log(pc.cyan(`\n⚡ File Watcher Status: ${isRunning ? pc.bold(pc.green('ACTIVE')) : pc.dim('INACTIVE')}`));
+        return;
+      }
+
+      if ((globalThis as any).__daedalusWatcher) {
+        console.log(pc.yellow('\n[INFO] File watcher is already running in background.'));
+        return;
+      }
+
+      try {
+        const cwd = process.cwd();
+        const db = initDb(cwd);
+        const projectHash = 'local';
+        const instance = watchCodebase(db, cwd, projectHash);
+        (globalThis as any).__daedalusWatcher = instance;
+        console.log(pc.green('\n[OK] Started background codebase watcher! Symbol index will auto-update on file save.'));
+      } catch (err: any) {
+        console.log(pc.red(`\n[ERROR] Failed to start file watcher: ${err.message}`));
+      }
+    }
+  },
+  {
     name: '/index',
     description: 'Index codebase for symbol search',
     execute: async (args, ctx) => {

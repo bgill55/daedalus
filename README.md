@@ -140,6 +140,7 @@ AI assistance without:
 | `/project [set <key> = <val>]` | View or set project config settings (.daedalusrc) |
 | `/session [name]` | Manage chat sessions — /session new to start, /session load <id> to restore, /session export [path] to save transcript |
 | `/test [n]` / `test` | Run test loop and fix failures (supports --git-aware / -g for smart test selection) |
+| `/watch` / `watch` | Start or stop background codebase file-watcher for automatic FTS5 symbol re-indexing |
 | `/index` | Index codebase for symbol search |
 | `/find <query>` | Search indexed symbols |
 | `/refs <symbol>` | Find symbol references (callers) |
