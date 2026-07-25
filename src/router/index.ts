@@ -83,7 +83,22 @@ export class LocalRouter {
 
   private async runHealthChecks(): Promise<void> {
     const enabledModels = this.config.chain.filter(m => m.enabled);
-    await Promise.all(enabledModels.map(m => checkModelHealth(m, 5000)));
+    const uniqueEndpoints = new Map<string, ModelEntry>();
+    for (const m of enabledModels) {
+      if (!uniqueEndpoints.has(m.endpoint)) {
+        uniqueEndpoints.set(m.endpoint, m);
+      }
+    }
+    await Promise.all(
+      Array.from(uniqueEndpoints.values()).map(async (m) => {
+        const health = await checkModelHealth(m, 5000);
+        for (const target of enabledModels.filter(e => e.endpoint === m.endpoint)) {
+          if (health.healthy) {
+            markHealthy(target, health.latencyMs ?? 0);
+          }
+        }
+      })
+    );
   }
 
   getEnabledModels(): ModelEntry[] {
@@ -380,16 +395,18 @@ export class LocalRouter {
     if (cached) return cached;
     try {
       const models = await client.models.list();
-      if (models.data.length > 0) {
+      if (models && Array.isArray(models.data) && models.data.length > 0) {
         const id = models.data[0].id;
         this.discoveredModels.set(cacheKey, id);
         return id;
       }
-    } catch { /* ignore — will throw below */ }
-    throw new Error(
-      `No models found at ${cacheKey.split('|')[0]}. ` +
-      `Ensure your local server (LM Studio, Ollama, etc.) is running and has at least one model loaded.`
-    );
+    } catch { /* ignore — fallback below */ }
+
+    const modelPart = cacheKey.split('|')[1];
+    if (modelPart && modelPart !== 'auto') {
+      return modelPart;
+    }
+    return 'gpt-3.5-turbo';
   }
 
   async listModels(): Promise<string[]> {
