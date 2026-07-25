@@ -5,6 +5,10 @@ export interface AnalyticsReport {
   promptTokens: number;
   completionTokens: number;
   totalTokens: number;
+  indexedFiles?: number;
+  indexedChunks?: number;
+  routerProvider?: string;
+  routerStatus?: string;
 }
 
 export class SessionStats {
