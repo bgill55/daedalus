@@ -1,3 +1,10 @@
+# [1.62.0](https://github.com/bgill55/daedalus/compare/v1.61.1...v1.62.0) (2026-07-25)
+
+
+### Features
+
+* **analytics:** add SessionStats and /stats command handler, and add DEPENDENCY ORDERING RULE to planner prompt ([ee1c2bd](https://github.com/bgill55/daedalus/commit/ee1c2bd39e930b8005babd2d47e423ae9da6b608))
+
 ## [1.61.1](https://github.com/bgill55/daedalus/compare/v1.61.0...v1.61.1) (2026-07-25)
 
 
