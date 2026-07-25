@@ -162,7 +162,19 @@ export async function startLoopDaemon(ctx: ToolContext, config: any, router: any
         return;
       }
 
-      const issues = (await resp.json()) as any[];
+      let issues = (await resp.json()) as any[];
+      if (issues.length === 0) {
+        const inProgressResp = await fetch(`https://api.github.com/repos/${repo.owner}/${repo.repo}/issues?state=open&labels=daedalus-in-progress`, {
+          headers: {
+            Authorization: `token ${token}`,
+            'User-Agent': 'Daedalus-CLI',
+          },
+        });
+        if (inProgressResp.ok) {
+          issues = (await inProgressResp.json()) as any[];
+        }
+      }
+
       if (issues.length === 0) {
         return;
       }
