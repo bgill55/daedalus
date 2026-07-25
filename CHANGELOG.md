@@ -1,3 +1,10 @@
+## [1.60.9](https://github.com/bgill55/daedalus/compare/v1.60.8...v1.60.9) (2026-07-25)
+
+
+### Bug Fixes
+
+* **loop:** sanitize quotes in git commit message and use git checkout -B for issue branches ([8894b26](https://github.com/bgill55/daedalus/commit/8894b262155ce5b8548585ad3554f8cb84ae1e85))
+
 ## [1.60.8](https://github.com/bgill55/daedalus/compare/v1.60.7...v1.60.8) (2026-07-25)
 
 
