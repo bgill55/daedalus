@@ -1,6 +1,7 @@
 import pc from 'picocolors';
 import { globalSessionStats } from '../session/analytics.js';
 
+/** Format and return session statistics report for CLI display */
 export function handleStatsCommand(): string {
   const report = globalSessionStats.getReport();
   const width = Math.min(process.stdout.columns || 80, 72);
