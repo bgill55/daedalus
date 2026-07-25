@@ -37,9 +37,17 @@ export async function handleSpecCommand(args: string, ctx: CommandContext) {
   }
 
   const repoInfo = getGitRepoInfo(ctx.sessionManager.projectRoot);
-  const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+  let token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+  if (!token) {
+    try {
+      token = execSync('gh auth token', { cwd: ctx.sessionManager.projectRoot, encoding: 'utf8' }).trim();
+    } catch {
+      // Fallback
+    }
+  }
+
   if (!repoInfo || !token) {
-    console.log(pc.red('[WARN] GitHub integration not configured. Ensure you are in a git repository with GITHUB_TOKEN or GH_TOKEN env set.'));
+    console.log(pc.red('[WARN] GitHub integration not configured. Ensure you are in a git repository with GITHUB_TOKEN/GH_TOKEN or gh CLI authenticated.'));
     return;
   }
 
@@ -114,11 +122,18 @@ export async function startLoopDaemon(ctx: ToolContext, config: any, router: any
   console.log(pc.bold(pc.green('======================================\n')));
 
   const repoInfo = getGitRepoInfo(sessionManager.projectRoot);
-  const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+  let token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+  if (!token) {
+    try {
+      token = execSync('gh auth token', { cwd: sessionManager.projectRoot, encoding: 'utf8' }).trim();
+    } catch {
+      // Fallback
+    }
+  }
   const discordWebhook = process.env.DISCORD_WEBHOOK_URL;
 
   if (!repoInfo || !token) {
-    console.error(pc.red('[ERROR] Daemon requires a Git repository with GITHUB_TOKEN or GH_TOKEN env variable set.'));
+    console.error(pc.red('[ERROR] Daemon requires a Git repository with GITHUB_TOKEN/GH_TOKEN or gh CLI authenticated.'));
     process.exit(1);
   }
 
