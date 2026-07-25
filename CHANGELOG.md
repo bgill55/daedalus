@@ -1,3 +1,10 @@
+# [1.63.0](https://github.com/bgill55/daedalus/compare/v1.62.0...v1.63.0) (2026-07-25)
+
+
+### Features
+
+* **repl:** wire up /stats command in REPL commands registry ([16bba45](https://github.com/bgill55/daedalus/commit/16bba45ff410bd1dbc89961010e2a99541a765ae))
+
 # [1.62.0](https://github.com/bgill55/daedalus/compare/v1.61.1...v1.62.0) (2026-07-25)
 
 
