@@ -67,6 +67,7 @@ ${dynamicCommands}
 
   const isCreator = username && (
     username.toLowerCase().includes('bgill55') ||
+    username.toLowerCase().includes('bgill55.art') ||
     username.toLowerCase().includes('brica')
   );
 
