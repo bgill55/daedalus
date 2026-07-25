@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import fs from 'fs';
 import { executeCommand, commandsList } from './commands.js';
 import type { CommandContext } from './commands.js';
+import type { DaedalusConfig } from './config/index.js';
 
 vi.mock('./config/index.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('./config/index.js')>();
@@ -30,9 +31,10 @@ describe('Config Command', () => {
         indexing: {
           enabled: true,
           watch: true,
+          languages: ['typescript'],
           exclude: ['node_modules'],
         },
-      },
+      } as DaedalusConfig,
       configDir: process.cwd(),
       cliTempDir: process.cwd(),
       router: { updateConfig: vi.fn() } as any,
@@ -112,7 +114,7 @@ describe('Help Command', () => {
 
   beforeEach(() => {
     mockContext = {
-      config: {},
+      config: {} as DaedalusConfig,
       configDir: '',
       cliTempDir: '',
       router: {} as any,
@@ -160,7 +162,7 @@ describe('Session Command', () => {
 
   beforeEach(() => {
     mockContext = {
-      config: {},
+      config: {} as DaedalusConfig,
       configDir: '',
       cliTempDir: '',
       router: {} as any,
@@ -258,7 +260,7 @@ describe('Changelog Command', () => {
 
   beforeEach(() => {
     mockContext = {
-      config: {},
+      config: {} as DaedalusConfig,
       configDir: '',
       cliTempDir: '',
       router: {} as any,
@@ -330,7 +332,7 @@ describe('TUI Command', () => {
 
   beforeEach(() => {
     mockContext = {
-      config: {},
+      config: {} as DaedalusConfig,
       configDir: '',
       cliTempDir: '',
       router: {} as any,
@@ -369,9 +371,9 @@ describe('/undo command', () => {
 
   beforeEach(() => {
     mockContext = {
-      config: {},
-      configDir: process.cwd(),
-      cliTempDir: process.cwd(),
+      config: {} as DaedalusConfig,
+      configDir: '',
+      cliTempDir: '',
       router: {} as any,
       sessionManager: {} as any,
       userProfile: {} as any,
@@ -451,7 +453,7 @@ describe('/summarize command', () => {
 
   beforeEach(() => {
     mockContext = {
-      config: { router: { chain: [] } },
+      config: { router: { chain: [] } } as unknown as DaedalusConfig,
       configDir: process.cwd(),
       cliTempDir: process.cwd(),
       router: {

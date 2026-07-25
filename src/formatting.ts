@@ -65,7 +65,7 @@ let _commentaryLines = 0;
 const _toolsRun: { name: string; success: boolean }[] = [];
 let _collapseEnabled = true;
 
-export function setFormattingConfig(config: any): void {
+export function setFormattingConfig(config: { ui?: { collapseCommentary?: boolean } & Record<string, unknown> }): void {
   if (config?.ui?.collapseCommentary === false) {
     _collapseEnabled = false;
   }

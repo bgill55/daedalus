@@ -12,6 +12,14 @@ export interface AgentRole {
   temperature?: number;             // Override default
 }
 
+const SHARED_CODER_GUARDRAILS = `\
+- ERROR HANDLING: If a file write or patch tool call returns an error or failure (e.g. syntax error or file reverted), the change was not applied. You must read the error, fix the root cause, and retry the write/patch.
+- ACCURATE IMPORTS: Calculate relative import levels carefully. Double-check your import paths relative to the destination file to prevent compiler errors.
+- MODERN ENVIRONMENT: Always use the native global fetch instead of importing node-fetch, as modern Node.js and Next.js support global fetch natively.
+- TS CONFIGURATION: If typescript compilation/syntax checks fail due to deprecated options in tsconfig.json, fix those options in tsconfig.json before retrying.
+- STACK AWARENESS: Before modifying or creating code, check the project's root files (like package.json, webpack/vite/tsconfig configs, or imported dependencies in HTML files) to accurately determine the tech stack (e.g. React/Vue/Vite vs Vanilla JS, Next.js vs Express). NEVER write React JSX/TSX or import React dependencies into a vanilla JS project unless explicitly instructed to migrate.
+- STATELESS/SERVERLESS RULES: Serverless environments (like Cloudflare Pages/Workers, AWS Lambda, Vercel edge/serverless routes) have read-only and stateless filesystems/environments at runtime. Never attempt to write persistent configuration files to the server's local directory or mutate runtime environment objects (e.g. process.env, context.env). Use client-side storage (e.g., LocalStorage) or database KV stores for persisting configuration.`;
+
 export const AGENT_ROLES: Record<string, AgentRole> = {
   orchestrator: {
     name: 'orchestrator',
@@ -133,13 +141,8 @@ GUIDELINES:
 - Make minimal, focused changes. No scope creep.
 - Follow existing code style. You're a guest in their codebase, act like it.
 - NEVER use code placeholders, comments like "// ...", or ellipses in your edits. You must output the complete code.
-- ERROR HANDLING: If a file write or patch tool call returns an error or failure (e.g. syntax error or file reverted), the change was not applied. You must read the error, fix the root cause, and retry the write/patch.
-- ACCURATE IMPORTS: Calculate relative import levels carefully. Double-check your import paths relative to the destination file to prevent compiler errors.
-- MODERN ENVIRONMENT: Always use the native global fetch instead of importing node-fetch, as modern Node.js and Next.js support global fetch natively.
-- TS CONFIGURATION: If typescript compilation/syntax checks fail due to deprecated options in tsconfig.json, fix those options in tsconfig.json before retrying.
+${SHARED_CODER_GUARDRAILS}
 - DEPENDENCY FRESHNESS: When adding or updating dependencies (e.g. in package.json, requirements.txt, etc.), always verify and use the latest stable versions of libraries instead of hardcoding outdated versions from your training data. Use web_search or CLI queries to check the latest versions if needed.
-- STACK AWARENESS: Before modifying or creating code, check the project's root files (like package.json, webpack/vite/tsconfig configs, or imported dependencies in HTML files) to accurately determine the tech stack (e.g. React/Vue/Vite vs Vanilla JS, Next.js vs Express). NEVER write React JSX/TSX or import React dependencies into a vanilla JS project unless explicitly instructed to migrate.
-- STATELESS/SERVERLESS RULES: Serverless environments (like Cloudflare Pages/Workers, AWS Lambda, Vercel edge/serverless routes) have read-only and stateless filesystems/environments at runtime. Never attempt to write persistent configuration files to the server's local directory or mutate runtime environment objects (e.g. process.env, context.env). Use client-side storage (e.g., LocalStorage) or database KV stores for persisting configuration.
 - ACKNOWLEDGE TOOL OUTPUTS: When a tool call (such as a write_file, patch, or terminal command) completes, you will receive its output in the chat history on the next turn. You MUST read this output and report the actual outcome. Do not describe the action as pending (e.g., "I will run the command") if the command has already finished executing. Report the final success or failure.
 - Do NOT run test or verification commands (npm test, npx vitest, etc.) — testing is handled by the reviewer role after your changes are complete. Running tests from the coder role wastes turn budget and the test script may not exist or may be a placeholder.
 - Do NOT run git commands (git_diff, git_status, git commit, etc.) — git operations are handled by other roles. You write code, not commit messages.
@@ -199,12 +202,7 @@ GUIDELINES:
 - CRITICAL PROCESS: You must always run a codebase search or listing tool to find and analyze the actual implementation files before proposing or writing edits. Never guess or hallucinate file names.
 - TEST FILE PROTECTION: Never write core feature logic or implement changes inside test files (e.g. files matching test_*.py or *.test.ts) unless the goal explicitly requests changes to the test suite itself.
 - EXPLAIN EDITS: You must output a brief single-sentence explanation of what file you are editing and why before you use any edit or write tools.
-- ERROR HANDLING: If a file write or patch tool call returns an error or failure (e.g. syntax error or file reverted), the change was not applied. You must read the error, fix the root cause, and retry the write/patch.
-- ACCURATE IMPORTS: Calculate relative import levels carefully. Double-check your import paths relative to the destination file to prevent compiler errors.
-- MODERN ENVIRONMENT: Always use the native global fetch instead of importing node-fetch, as modern Node.js and Next.js support global fetch natively.
-- TS CONFIGURATION: If typescript compilation/syntax checks fail due to deprecated options in tsconfig.json, fix those options in tsconfig.json before retrying.
-- STACK AWARENESS: Before modifying or creating code, check the project's root files (like package.json, webpack/vite/tsconfig configs, or imported dependencies in HTML files) to accurately determine the tech stack (e.g. React/Vue/Vite vs Vanilla JS, Next.js vs Express). NEVER write React JSX/TSX or import React dependencies into a vanilla JS project unless explicitly instructed to migrate.
-- STATELESS/SERVERLESS RULES: Serverless environments (like Cloudflare Pages/Workers, AWS Lambda, Vercel edge/serverless routes) have read-only and stateless filesystems/environments at runtime. Never attempt to write persistent configuration files to the server's local directory or mutate runtime environment objects (e.g. process.env, context.env). Use client-side storage (e.g., LocalStorage) or database KV stores for persisting configuration.
+${SHARED_CODER_GUARDRAILS}
 - ACKNOWLEDGE TOOL OUTPUTS: When a tool call (such as a read_file, patch, or terminal command) completes, you will receive its output in the chat history on the next turn. You MUST read this output and report the actual outcome. Do not describe the action as pending (e.g., "I will run the command") if the command has already finished executing. Report the final success or failure.
 
 PROCESS:

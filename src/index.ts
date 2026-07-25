@@ -11,7 +11,7 @@ import { setRouterClient } from './tools/builtin/delegation.js';
 import { createRouter, RouterConfig } from './router/index.js';
 import { loadConfig, getConfigDirPath } from './config/index.js';
 import { detectProjectStack } from './config/stack.js';
-import { ToolContext, ChatMessage } from './types.js';
+import { ToolContext, ChatMessage, ToolDefinition } from './types.js';
 import { setSessionTodos } from './tools/builtin/todo.js';
 import { SessionManager } from './session/manager.js';
 import { loadProfile, getProfilePrompt, UserProfile } from './profile.js';
@@ -20,13 +20,15 @@ import { checkForUpdates, checkChangelogOnUpgrade } from './update-check.js';
 import { createModelFunctions, currentAbortController, abortTurn } from './model.js';
 import { createRepl } from './repl.js';
 import { setFormattingConfig } from './formatting.js';
+import { BoundedMap } from './utils/bounded-map.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Save true original stream writes to global context for crash recovery
-(globalThis as any).originalStdoutWrite = process.stdout.write;
-(globalThis as any).originalStderrWrite = process.stderr.write;
+const _global = globalThis as { originalStdoutWrite?: typeof process.stdout.write; originalStderrWrite?: typeof process.stderr.write };
+_global.originalStdoutWrite = process.stdout.write;
+_global.originalStderrWrite = process.stderr.write;
 
 const _require = createRequire(import.meta.url);
 const { version: APP_VERSION } = _require('../package.json');
@@ -103,8 +105,8 @@ const toolContext: ToolContext = {
   patchHistory: [],
   pauseSpinner: () => {},
   resumeSpinner: () => {},
-  sessionReadCache: new Map(),
-  patchFailureStreak: new Map(),
+  sessionReadCache: new BoundedMap<string, number>(1000),
+  patchFailureStreak: new BoundedMap<string, number>(1000),
 };
 
 // Enable delegation tool
@@ -250,7 +252,7 @@ When asked to create or modify code in a project you haven't explored yet:
 - When adding or updating project dependencies (e.g. in package.json, requirements.txt, Cargo.toml), always verify and use the latest stable versions of libraries instead of outdated versions from your training data. Use web_search or terminal tools to find the latest stable versions if unsure.`;
 
 // MCP registry singleton ref — set after connectAll(), used by getSystemPromptWithMemory
-let mcpRegistryRef: { getConnectedServers: () => string[]; getToolDefinitions: () => any[] } | null = null;
+let mcpRegistryRef: { getConnectedServers: () => string[]; getToolDefinitions: () => ToolDefinition[] } | null = null;
 
 // Build system prompt with project memory and user profile
 function getSystemPromptWithMemory(): string {
@@ -444,7 +446,7 @@ async function main() {
         getSystemPromptWithMemory,
         callModelWithTools,
         callModelWithFallback,
-        rl: null as any,
+        rl: null as unknown as readline.Interface,
         initializeSessionState: () => {},
         buildFileContext,
         askLine,
@@ -484,8 +486,8 @@ async function main() {
         console.log(pc.dim(`  ${mcpToolCount} MCP tool(s) registered`));
       }
     }
-  } catch (err: any) {
-    console.error(pc.yellow(`\nMCP initialization failed: ${err.message}`));
+  } catch (err: unknown) {
+    console.error(pc.yellow(`\nMCP initialization failed: ${err instanceof Error ? err.message : String(err)}`));
   }
 
   const isLoop = process.argv.includes('--loop') || process.argv.includes('--daemon');
@@ -532,8 +534,8 @@ async function main() {
               exclude: config.indexing.exclude,
             });
           }
-        } catch (err: any) {
-          console.error(pc.yellow(`  [WARN] Auto-index failed: ${err.message}`));
+        } catch (err: unknown) {
+          console.error(pc.yellow(`  [WARN] Auto-index failed: ${err instanceof Error ? err.message : String(err)}`));
         }
       })();
     }, 100);
@@ -578,14 +580,14 @@ async function main() {
     try {
       await chatLoop();
       break;
-    } catch (err: any) {
-      if (err.message === 'SWITCH_MODE_CLI') {
+    } catch (err: unknown) {
+      if (err instanceof Error && err.message === 'SWITCH_MODE_CLI') {
         currentMode = 'cli';
         console.clear();
         console.log(pc.cyan('\n  ⬡ Returned to CLI mode... Type ? for commands.'));
         continue;
       }
-      if (err.message === 'SWITCH_MODE_TUI') {
+      if (err instanceof Error && err.message === 'SWITCH_MODE_TUI') {
         currentMode = 'tui';
         console.clear();
         continue;
@@ -596,11 +598,11 @@ async function main() {
 }
 
 main().catch((err) => {
-  if ((globalThis as any).originalStdoutWrite) {
-    process.stdout.write = (globalThis as any).originalStdoutWrite;
+  if (_global.originalStdoutWrite) {
+    process.stdout.write = _global.originalStdoutWrite;
   }
-  if ((globalThis as any).originalStderrWrite) {
-    process.stderr.write = (globalThis as any).originalStderrWrite;
+  if (_global.originalStderrWrite) {
+    process.stderr.write = _global.originalStderrWrite;
   }
   console.error(err);
   process.exit(1);

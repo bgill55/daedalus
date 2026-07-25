@@ -6,6 +6,7 @@ import pc from 'picocolors';
 
 import { executeToolCalls } from './tools/executor.js';
 import { discoverLocalServers, saveConfig } from './config/index.js';
+import type { DaedalusConfig } from './config/index.js';
 import type { ToolContext, ToolCall, ChatMessage } from './types.js';
 import type { LocalRouter } from './router/index.js';
 import type { SessionManager } from './session/manager.js';
@@ -21,7 +22,7 @@ import { spawnBackgroundAgent } from './agents/background.js';
 import { handleSpecCommand } from './agents/loop.js';
 
 export interface CommandContext {
-  config: any;
+  config: DaedalusConfig;
   configDir: string;
   cliTempDir: string;
   router: LocalRouter;

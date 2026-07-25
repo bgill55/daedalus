@@ -9,6 +9,7 @@ import { getSessionTodos, setSessionTodos, buildTodoContext } from './tools/buil
 import { calculateSessionTokens } from './session/tokens.js';
 import { printUserTurn, turnSeparator } from './formatting.js';
 import type { ToolContext, ToolCall, ChatMessage } from './types.js';
+import type { DaedalusConfig } from './config/index.js';
 import type { LocalRouter } from './router/index.js';
 import type { SessionManager } from './session/manager.js';
 import type { SqliteTodo } from './session/sqlite.js';
@@ -19,7 +20,7 @@ import { resetTurnAborted } from './model.js';
 import { parseAgentTag } from './agents/roles.js';
 
 export interface ReplDeps {
-  config: any;
+  config: DaedalusConfig;
   configDir: string;
   cliTempDir: string;
   router: LocalRouter;
