@@ -1,3 +1,10 @@
+# [1.68.0](https://github.com/bgill55/daedalus/compare/v1.67.0...v1.68.0) (2026-07-25)
+
+
+### Features
+
+* **repl:** wire up /health command in REPL registry and sync README commands table ([cec6c09](https://github.com/bgill55/daedalus/commit/cec6c09a98773e46bdee80775362dfa9f421a8b7))
+
 # [1.67.0](https://github.com/bgill55/daedalus/compare/v1.66.2...v1.67.0) (2026-07-25)
 
 
