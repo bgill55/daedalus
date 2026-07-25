@@ -1,3 +1,10 @@
+## [1.60.10](https://github.com/bgill55/daedalus/compare/v1.60.9...v1.60.10) (2026-07-25)
+
+
+### Bug Fixes
+
+* **loop:** check both daedalus-todo and daedalus-in-progress issues on daemon restart ([d949d03](https://github.com/bgill55/daedalus/commit/d949d03471f6f0fa0e7d24f0100e3da5b3d84b24))
+
 ## [1.60.9](https://github.com/bgill55/daedalus/compare/v1.60.8...v1.60.9) (2026-07-25)
 
 
