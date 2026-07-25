@@ -1300,8 +1300,9 @@ Once you have finished making changes, I will automatically re-run the command t
     usage: '/watch [start | stop | status]',
     helpText: 'Watches project files for changes and automatically updates the codebase symbol index in real time as you save files.',
     execute: async (args) => {
-      const { initDb } = await import('./indexing/fts.js');
+      const { initIndexDb } = await import('./indexing/fts.js');
       const { watchCodebase } = await import('./indexing/watcher.js');
+      const path = await import('path');
       const action = args.trim().toLowerCase() || 'start';
 
       if (action === 'stop') {
@@ -1328,7 +1329,8 @@ Once you have finished making changes, I will automatically re-run the command t
 
       try {
         const cwd = process.cwd();
-        const db = initDb(cwd);
+        const dbPath = path.join(cwd, '.daedalus', 'index.db');
+        const db = initIndexDb(dbPath);
         const projectHash = 'local';
         const instance = watchCodebase(db, cwd, projectHash);
         (globalThis as any).__daedalusWatcher = instance;
@@ -1834,7 +1836,7 @@ Once you have finished making changes, I will automatically re-run the command t
     name: '/mcp',
     description: 'Manage MCP servers: explore, search, install, list, remove, info',
     usage: '/mcp <subcommand> [args]',
-    helpText: 'Configure and interact with Model Context Protocol (MCP) servers.\n\nSubcommands:\n  list, l               List all installed MCP servers and their active state\n  search, s <query>     Search the public MCP Registry for available servers\n  install, i <name>     Install an MCP server from the registry\n  remove, rm <name>     Uninstall an MCP server\n  info <name>           Display metadata and information for a registry server\n  enable <name>         Enable a configured server\n  disable <name>        Disable a configured server without removing it',
+    helpText: 'Configure and interact with Model Context Protocol (MCP) servers.\n\nSubcommands:\n  explore, ex           Browse curated featured community MCP servers\n  list, l               List all installed MCP servers and their active state\n  search, s <query>     Search the public MCP Registry for available servers\n  install, i <name>     Install an MCP server from the registry\n  remove, rm <name>     Uninstall an MCP server\n  info <name>           Display metadata and information for a registry server\n  enable <name>         Enable a configured server\n  disable <name>        Disable a configured server without removing it',
     execute: async (args, _ctx) => {
       const parts = args.trim().split(/\s+/);
       const sub = parts[0]?.toLowerCase();
