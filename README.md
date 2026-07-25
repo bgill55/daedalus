@@ -149,6 +149,7 @@ AI assistance without:
 | `/config [set <key> = <val>]` | Show or modify global configuration |
 | `/doctor` | Diagnose connection and discovery |
 | `/spec` | Flesh out a feature idea into a GitHub Issue spec (Finn Loop) |
+| `/stats` / `stats` | Display session analytics, token usage, index count, and router status |
 | `/help` / `?` / `help` | Show available commands or detailed info for a specific command |
 | `/mcp` | Manage MCP servers: explore, search, install, list, remove, info |
 | `/onboard` | First-time setup — discover local models, configure, and test |

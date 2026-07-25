@@ -2137,6 +2137,16 @@ export class Orchestrator {
       console.log(pc.green(`[VERIFY] Linter passed.`));
     }
 
+    if (fs.existsSync(path.join(cwd, 'package.json'))) {
+      try {
+        const pkg = JSON.parse(fs.readFileSync(path.join(cwd, 'package.json'), 'utf8'));
+        if (pkg.scripts && pkg.scripts['sync-docs']) {
+          console.log(pc.cyan(`[VERIFY] Syncing documentation with latest command registry...`));
+          await runCmd('npm run sync-docs');
+        }
+      } catch { /* ignored */ }
+    }
+
     return { success: true };
   }
 
