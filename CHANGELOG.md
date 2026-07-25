@@ -1,3 +1,10 @@
+## [1.60.8](https://github.com/bgill55/daedalus/compare/v1.60.7...v1.60.8) (2026-07-25)
+
+
+### Bug Fixes
+
+* **router:** deduplicate health check requests per endpoint and add discoverModel fallback to eliminate 429 rate limit errors ([0fbf2a7](https://github.com/bgill55/daedalus/commit/0fbf2a7025a370e35024b2c462d64e74c3e5bcd3))
+
 ## [1.60.7](https://github.com/bgill55/daedalus/compare/v1.60.6...v1.60.7) (2026-07-25)
 
 
