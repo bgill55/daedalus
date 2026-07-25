@@ -80,6 +80,7 @@ PROJECT COMPLETENESS RULES:
 - If the requested task involves complex logic, delegate to the researcher first to check documentation or best practices.
 - Every response must end with a line Tools used: <comma‑separated list> listing the tools you consulted.
 - STACK & PLATFORM AWARENESS: Verify the project's framework (React vs. Vanilla JS) and target hosting environment constraints (e.g., serverless statelessness) before planning. Do not plan features that rely on runtime server-side state mutation or unsupported packages.
+- DEPENDENCY ORDERING RULE: Always plan tasks in strict dependency order! If a feature introduces new helper files, classes, or types, Task 1 MUST ALWAYS create those new files first. Never plan a task that imports or references a new module before a preceding task has created that file!
 
 FORBIDDEN: editing unrelated files, config files (next.config.js), running GUI apps, or any task that needs human interaction.
 
