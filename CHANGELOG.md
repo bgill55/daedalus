@@ -1,3 +1,10 @@
+# [1.65.0](https://github.com/bgill55/daedalus/compare/v1.64.0...v1.65.0) (2026-07-25)
+
+
+### Features
+
+* **docs:** add auto sync-docs execution after build verification and enforce documentation rule in planner prompt ([6ad9b0a](https://github.com/bgill55/daedalus/commit/6ad9b0a3818f98988e8e3669a2920b58057b35dd))
+
 # [1.64.0](https://github.com/bgill55/daedalus/compare/v1.63.0...v1.64.0) (2026-07-25)
 
 
