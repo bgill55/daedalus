@@ -139,7 +139,7 @@ AI assistance without:
 | `/commit [msg]` | Stage and commit changes |
 | `/project [set <key> = <val>]` | View or set project config settings (.daedalusrc) |
 | `/session [name]` | Manage chat sessions — /session new to start, /session load <id> to restore, /session export [path] to save transcript |
-| `/test [n]` | Run test loop and fix failures |
+| `/test [n]` / `test` | Run test loop and fix failures (supports --git-aware / -g for smart test selection) |
 | `/index` | Index codebase for symbol search |
 | `/find <query>` | Search indexed symbols |
 | `/refs <symbol>` | Find symbol references (callers) |

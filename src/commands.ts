@@ -1248,13 +1248,31 @@ Once you have finished making changes, I will automatically re-run the command t
   },
   {
     name: '/test',
-    description: 'Run test loop and fix failures',
+    aliases: ['test'],
+    description: 'Run test loop and fix failures (supports --git-aware / -g for smart test selection)',
+    usage: '/test [--git-aware | -g] [maxLoops]',
+    helpText: 'Runs your test suite and automatically invokes Daedalus tools to fix failing assertions. Use --git-aware or -g to focus only on tests affected by recent git changes.',
     execute: async (args, ctx) => {
-      const maxLoops = args.trim() ? parseInt(args.trim(), 10) || 3 : 3;
+      const isGitAware = args.includes('--git-aware') || args.includes('-g');
+      const cleanArgs = args.replace('--git-aware', '').replace('-g', '').trim();
+      const maxLoops = cleanArgs ? parseInt(cleanArgs, 10) || 3 : 3;
       const { loadProjectConfig } = await import('./tools/builtin/project-config.js');
       const { execute: termExec } = await import('./tools/builtin/terminal.js');
+      const { getGitAwareTestCommand } = await import('./utils/gitAwareTest.js');
       const cfg = loadProjectConfig(process.cwd());
-      const testCmd = cfg.testCommand || 'npm test';
+
+      let testCmd = cfg.testCommand || 'npm test';
+      if (isGitAware) {
+        const gitAware = getGitAwareTestCommand(process.cwd(), testCmd);
+        if (gitAware.testFiles.length > 0) {
+          console.log(pc.cyan(`\n⚡ Git-Aware Mode: Detected ${gitAware.modifiedFiles.length} modified files → running ${gitAware.testFiles.length} target test suites:`));
+          console.log(pc.gray(gitAware.testFiles.map(f => `  • ${f}`).join('\n')));
+          testCmd = gitAware.command;
+        } else {
+          console.log(pc.yellow(`\n⚡ Git-Aware Mode: No specific matching test files found for modified files. Running full test suite.`));
+        }
+      }
+
       console.log(pc.bold(`\nTest-Run-Fix Loop (max ${maxLoops} iterations)`));
       console.log(pc.gray(`Test command: ${testCmd}\n`));
       for (let i = 0; i < maxLoops; i++) {
