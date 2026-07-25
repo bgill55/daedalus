@@ -8,6 +8,7 @@ Welcome to the Daedalus documentation. Use the sidebar to browse guides, configu
 
 Jump straight to:
 - [Getting Started / Setup Guide](getting-started.md)
+- [NotebookLM & Architecture Summary](notebooklm-summary.md)
 - [Configuration Reference](configuration-reference.md)
 - [Model Routing & Tuning](routing-and-tuning.md)
 - [Orchestration](orchestration.md)

@@ -1,4 +1,5 @@
 - [Getting Started](getting-started.md)
+- [NotebookLM Overview](notebooklm-summary.md)
 - [Configuration](configuration-reference.md)
 - [Model Routing & Tuning](routing-and-tuning.md)
 - [Orchestration](orchestration.md)
