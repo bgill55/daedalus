@@ -46,6 +46,15 @@ Configuration is located under the `"router"` object in `~/.daedalus/config.json
 
 ---
 
+## Multi-Model Fallback Chain
+
+Daedalus includes an automatic multi-model failover engine. If a provider returns a rate-limit (429), timeout, or 5xx server error during text completion or streaming:
+* The failing provider is marked unhealthy and temporarily excluded.
+* Daedalus immediately fails over to the next candidate model in your router chain without throwing errors or breaking your active session.
+* Output streaming and sub-agent execution continue seamlessly.
+
+---
+
 ## Proactive Model Routing & Tiers
 
 Models can be classified into specific tiers in the configuration:

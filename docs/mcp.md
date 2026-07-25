@@ -50,6 +50,7 @@ Daedalus includes a built-in MCP server manager that lets you discover, install,
 
 | Command | Description |
 |---------|-------------|
+| `/mcp explore` | Browse curated featured community MCP servers |
 | `/mcp search <query>` | Search the official registry for MCP servers |
 | `/mcp install <name>` | Install a server (adds it to your Daedalus config) |
 | `/mcp list` | Show installed servers with connection status |
