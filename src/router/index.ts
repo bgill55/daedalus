@@ -268,45 +268,59 @@ export class LocalRouter {
   }
 
   async chatCompletion(request: ChatRequest): Promise<ChatResponse> {
-    const { model } = await this.route(request);
-    const client = this.getOrCreateClient(model);
-    const key = `${model.endpoint}|${model.model}`;
+    let attempts = 0;
+    const maxAttempts = 3;
+    let lastError: any;
 
-    const actualModel = model.model === 'auto'
-      ? await this.discoverModel(client, key)
-      : model.model;
-    
-    this.lastRoutedModel = model.name === actualModel ? model.name : `${model.name} (${actualModel})`;
-    this.lastRoutedModelName = model.name;
-    
-    const { signal, ...body } = request;
-    const isOfficialOpenAI = model.endpoint.includes('api.openai.com');
-    if (body.tool_choice === 'required' && !isOfficialOpenAI) {
-      body.tool_choice = 'auto';
-    }
-    if (body.frequency_penalty === undefined) {
-      body.frequency_penalty = 0.2;
-    }
-    if (body.presence_penalty === undefined) {
-      body.presence_penalty = 0.1;
+    while (attempts < maxAttempts) {
+      attempts++;
+      let selectedModel: ModelEntry | undefined;
+      try {
+        const { model } = await this.route(request);
+        selectedModel = model;
+        const client = this.getOrCreateClient(model);
+        const key = `${model.endpoint}|${model.model}`;
+
+        const actualModel = model.model === 'auto'
+          ? await this.discoverModel(client, key)
+          : model.model;
+        
+        this.lastRoutedModel = model.name === actualModel ? model.name : `${model.name} (${actualModel})`;
+        this.lastRoutedModelName = model.name;
+        
+        const { signal, ...body } = request;
+        const isOfficialOpenAI = model.endpoint.includes('api.openai.com');
+        if (body.tool_choice === 'required' && !isOfficialOpenAI) {
+          body.tool_choice = 'auto';
+        }
+        if (body.frequency_penalty === undefined) {
+          body.frequency_penalty = 0.2;
+        }
+        if (body.presence_penalty === undefined) {
+          body.presence_penalty = 0.1;
+        }
+
+        const sanitizedMessages = sanitizeMessagesForModel(body.messages, model);
+
+        const start = Date.now();
+        const response = await client.chat.completions.create({
+          ...body,
+          messages: sanitizedMessages,
+          model: actualModel,
+        }, { signal }) as ChatResponse;
+        
+        markHealthy(model, Date.now() - start);
+        return response;
+      } catch (err: any) {
+        lastError = err;
+        if (err.name === 'AbortError' || err.name === 'APIUserAbortError') throw err;
+        if (selectedModel) {
+          markUnhealthy(selectedModel, err.message);
+        }
+      }
     }
 
-    const sanitizedMessages = sanitizeMessagesForModel(body.messages, model);
-
-    try {
-      const start = Date.now();
-      const response = await client.chat.completions.create({
-        ...body,
-        messages: sanitizedMessages,
-        model: actualModel,
-      }, { signal }) as ChatResponse;
-      
-      markHealthy(model, Date.now() - start);
-      return response;
-    } catch (err: any) {
-      markUnhealthy(model, err.message);
-      throw err;
-    }
+    throw lastError || new Error('All model attempts failed.');
   }
 
   async *chatStream(request: ChatRequest): AsyncGenerator<StreamChunk> {
