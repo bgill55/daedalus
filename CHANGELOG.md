@@ -1,3 +1,10 @@
+## [1.60.7](https://github.com/bgill55/daedalus/compare/v1.60.6...v1.60.7) (2026-07-25)
+
+
+### Bug Fixes
+
+* **router:** fallback to enabled models when all candidate health checks return unhealthy ([142f2b4](https://github.com/bgill55/daedalus/commit/142f2b4d858a60d0bee9854fba125465fc408a18))
+
 ## [1.60.6](https://github.com/bgill55/daedalus/compare/v1.60.5...v1.60.6) (2026-07-25)
 
 
