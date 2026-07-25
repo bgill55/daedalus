@@ -99,10 +99,14 @@ export class LocalRouter {
   }
 
   async route(request: ChatRequest): Promise<RouteResult> {
-    const healthyModels = this.getHealthyModels();
+    let healthyModels = this.getHealthyModels();
     
     if (healthyModels.length === 0) {
-      throw new Error('No healthy models available. Check your local servers (LM Studio, Ollama, etc.)');
+      healthyModels = this.config.chain.filter(m => m.enabled);
+    }
+
+    if (healthyModels.length === 0) {
+      throw new Error('No enabled models configured. Check your config.json file.');
     }
 
     let selectedModel: ModelEntry | undefined;
@@ -116,9 +120,10 @@ export class LocalRouter {
         }
         request.model = 'auto';
       } else {
-        selectedModel = healthyModels.find(m => m.name === request.model || m.model === request.model);
+        selectedModel = healthyModels.find(m => m.name === request.model || m.model === request.model) ||
+                        this.config.chain.find(m => m.enabled && (m.name === request.model || m.model === request.model));
         if (!selectedModel) {
-          throw new Error(`Requested model ${request.model} is not healthy or enabled.`);
+          throw new Error(`Requested model ${request.model} is not configured or enabled.`);
         }
         if (!isLocalEndpoint(selectedModel.endpoint)) {
           const rateLimiter = this.rateLimiters.get(`${selectedModel.endpoint}|${selectedModel.model}`);
