@@ -1,3 +1,10 @@
+## [1.60.4](https://github.com/bgill55/daedalus/compare/v1.60.3...v1.60.4) (2026-07-25)
+
+
+### Bug Fixes
+
+* **loop:** add gh auth token fallback for /spec and Finn Loop daemon ([0629e12](https://github.com/bgill55/daedalus/commit/0629e123f6ee32dddaef95598dca153b69a4f190))
+
 ## [1.60.3](https://github.com/bgill55/daedalus/compare/v1.60.2...v1.60.3) (2026-07-24)
 
 
