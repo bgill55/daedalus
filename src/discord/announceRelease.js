@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -35,8 +36,14 @@ function extractChangelog(body) {
 
 function createEmbed({ tag, title, body, url }) {
   const changelogItems = extractChangelog(body);
-  const npmPackage = process.env.npm_package_name || 'your-package';
-  const repo = process.env.GITHUB_REPOSITORY || 'owner/repo';
+  let npmPackage = process.env.npm_package_name || 'daedalus-cli';
+  try {
+    const pkg = JSON.parse(fs.readFileSync(new URL('../../package.json', import.meta.url), 'utf8'));
+    if (pkg.name) npmPackage = pkg.name;
+  } catch {
+    // Fallback to default
+  }
+  const repo = process.env.GITHUB_REPOSITORY || 'bgill55/daedalus';
 
   const descriptionLines = [];
   descriptionLines.push(`**Version:** ${tag}`);
@@ -69,10 +76,12 @@ function createEmbed({ tag, title, body, url }) {
 
 async function main() {
   const { tag, title, body, url } = parseArgs();
-  if (!tag || !title || !body || !url) {
-    console.error('❌ Missing required arguments. Expected --tag, --title, --body, --url');
+  if (typeof tag !== 'string' || typeof title !== 'string' || typeof url !== 'string') {
+    console.error('❌ Missing or invalid required arguments. Expected string values for --tag, --title, --url');
     process.exit(1);
   }
+
+  const safeBody = typeof body === 'string' ? body : '';
 
   const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
   if (!webhookUrl) {
@@ -80,7 +89,7 @@ async function main() {
     process.exit(1);
   }
 
-  const embed = createEmbed({ tag, title, body, url });
+  const embed = createEmbed({ tag, title, body: safeBody, url });
   const payload = { embeds: [embed] };
 
   try {
