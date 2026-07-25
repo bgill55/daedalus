@@ -488,7 +488,7 @@ async function main() {
     console.error(pc.yellow(`\nMCP initialization failed: ${err.message}`));
   }
 
-  const isLoop = process.argv.includes('--loop');
+  const isLoop = process.argv.includes('--loop') || process.argv.includes('--daemon');
   if (isLoop) {
     const { startLoopDaemon } = await import('./agents/loop.js');
     await startLoopDaemon(toolContext, config, router, sessionManager);
