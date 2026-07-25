@@ -6,13 +6,13 @@ export function handleStatsCommand(): string {
 
   const lines = [
     pc.bold(pc.cyan('┌─ Session & System Statistics ─────────────────────────────┐')),
-    `│ ${pc.bold('Uptime:')}          ${report.uptime.padEnd(41)} │`,
-    `│ ${pc.bold('Interactions:')}    ${report.totalInteractions.toString().padEnd(41)} │`,
-    `│ ${pc.bold('Total Tokens:')}    ${report.totalTokens.toLocaleString().padEnd(41)} │`,
-    `│ ${pc.bold('Prompt Tokens:')}   ${report.promptTokens.toLocaleString().padEnd(41)} │`,
-    `│ ${pc.bold('Completion:')}      ${report.completionTokens.toLocaleString().padEnd(41)} │`,
-    `│ ${pc.bold('Error Count:')}     ${report.totalErrors.toString().padEnd(41)} │`,
-    pc.bold(pc.cyan('└───────────────────────────────────────────────────────────┘')),
+    `│ ${pc.bold('Uptime:')}          ${report.uptime} │`,
+    `│ ${pc.bold('Interactions:')}    ${report.totalInteractions} │`,
+    `│ ${pc.bold('Total Tokens:')}    ${report.totalTokens} │`,
+    `│ ${pc.bold('Prompt Tokens:')}   ${report.promptTokens} │`,
+    `│ ${pc.bold('Completion Tokens:')} ${report.completionTokens} │`,
+    `│ ${pc.bold('Error Count:')}     ${report.totalErrors} │`,
+    pc.bold(pc.cyan('└─────────────────────────────────────────────────────────┘')),
   ];
 
   return lines.join('\n');
