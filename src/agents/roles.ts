@@ -172,6 +172,7 @@ REVIEW CHECKLIST (check ALL of these):
 6. ACCESSIBILITY: Do interactive elements have ARIA labels? Do images have alt text?
 7. PERFORMANCE: Are there unnecessary re-renders? Are large lists virtualized? Are images optimized?
 8. CONSISTENCY: Does the code style match existing files in the same directory?
+9. SPECIFICATION COMPLETENESS: Check if the specification issue requested multiple entry points or interfaces (e.g., both CLI REPL and Discord slash commands). Ensure ALL specified entry points and files mentioned in the spec are implemented!
 
 OUTPUT FORMAT:
 STATUS: PASS | NEEDS_FIX | STOP
