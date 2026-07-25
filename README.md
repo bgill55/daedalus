@@ -113,6 +113,56 @@ AI assistance without:
 ### Commands
 
 <!-- START_COMMANDS_TABLE -->
+
+### 🤖 Multi-Agent & Orchestration
+
+| Command | Description |
+|---------|-------------|
+| `/orchestrate <goal>` / `/orc` / `/run` / `/o` | Orchestrate agents for a goal |
+| `/spawn [--bg] <role> <task>` / `/delegate` | Spawn sub-agent: /spawn [--bg] <role> <task> |
+| `/task <id>` | Manage background task: /task <id> | /task kill <id> |
+| `/tasks` | List background agent tasks |
+| `/ensemble <goal>` | Ensemble model drafting pipeline |
+| `/debug <command>` | Run command and autonomously debug failures |
+| `/spec` | Flesh out a feature idea into a GitHub Issue spec (Finn Loop) |
+
+### 🔍 Codebase Search & Live Watcher
+
+| Command | Description |
+|---------|-------------|
+| `/watch [start|stop|status]` / `watch` | Start or stop background codebase file-watcher for automatic FTS5 symbol re-indexing |
+| `/index` | Index codebase for symbol search |
+| `/find <query>` | Search indexed symbols |
+| `/refs <symbol>` | Find symbol references (callers) |
+| `/def <symbol>` | Get symbol definition |
+
+### 🛠️ Developer Tools, Git & MCP
+
+| Command | Description |
+|---------|-------------|
+| `/test [n] [-g]` / `test` | Run test loop and fix failures (supports --git-aware / -g for smart test selection) |
+| `/commit [msg]` | Stage and commit changes |
+| `/branch [name]` | Git branch operations |
+| `/pr [base]` | Generate PR description Compared to base branch |
+| `/mcp <explore|search|install|list|rm>` | Manage MCP servers: explore, search, install, list, remove, info |
+| `/image` | Generate an image using local Stable Diffusion WebUI or Pollinations AI |
+
+### 🧠 Memory, Conventions & Config
+
+| Command | Description |
+|---------|-------------|
+| `/project [set <key> = <val>]` | View or set project config settings (.daedalusrc) |
+| `/config [set <key> = <val>]` | Show or modify global configuration |
+| `/profile` | View or set user profile info |
+| `/style` | Set your coding style preferences |
+| `/fact [text]` | Add a project fact to memory |
+| `/convention [text]` | Add a project convention to memory |
+| `/memory` | View project memory (facts & conventions) |
+| `/extract` | Manually extract facts from session |
+| `/session [name]` | Manage chat sessions — /session new to start, /session load <id> to restore, /session export [path] to save transcript |
+
+### 💬 Context & CLI Utilities
+
 | Command | Description |
 |---------|-------------|
 | `/add` | Add file to context |
@@ -121,44 +171,23 @@ AI assistance without:
 | `/paste` | Paste clipboard text/image as message |
 | `/clear` | Clear conversation history |
 | `/system` | Print the current active system prompt (including loaded rules) |
-| `/spawn [--bg] <role> <task>` / `/delegate` | Spawn sub-agent: /spawn [--bg] <role> <task> |
-| `/tasks` | List background agent tasks |
-| `/task <id>` | Manage background task: /task <id> | /task kill <id> |
-| `/orchestrate <goal>` / `/orc` / `/run` / `/o` | Orchestrate agents for a goal |
-| `/memory` | View project memory (facts & conventions) |
-| `/fact [text]` | Add a project fact to memory |
-| `/convention [text]` | Add a project convention to memory |
-| `/extract` | Manually extract facts from session |
-| `/summarize` / `/compress` | Summarize older conversation history to save tokens and speed up turns |
-| `/profile` | View or set user profile info |
-| `/style` | Set your coding style preferences |
-| `/undo` | Undo file edits (usage: /undo [count|list]) |
-| `/branch [name]` | Git branch operations |
-| `/pr [base]` | Generate PR description Compared to base branch |
-| `/debug <command>` | Run command and autonomously debug failures |
-| `/ensemble <goal>` | Ensemble model drafting pipeline |
-| `/commit [msg]` | Stage and commit changes |
-| `/project [set <key> = <val>]` | View or set project config settings (.daedalusrc) |
-| `/session [name]` | Manage chat sessions — /session new to start, /session load <id> to restore, /session export [path] to save transcript |
-| `/test [n]` / `test` | Run test loop and fix failures (supports --git-aware / -g for smart test selection) |
-| `/watch` / `watch` | Start or stop background codebase file-watcher for automatic FTS5 symbol re-indexing |
-| `/index` | Index codebase for symbol search |
-| `/find <query>` | Search indexed symbols |
-| `/refs <symbol>` | Find symbol references (callers) |
-| `/def <symbol>` | Get symbol definition |
-| `/changelog` | View the latest CLI changes |
-| `/models` | List available and healthy models |
-| `/config [set <key> = <val>]` | Show or modify global configuration |
-| `/doctor` | Diagnose connection and discovery |
-| `/spec` | Flesh out a feature idea into a GitHub Issue spec (Finn Loop) |
-| `/stats` / `stats` | Display session analytics, token usage, index count, and router status |
 | `/health` / `health` | Display model router provider latency, health status, and API key status |
 | `/help` / `?` / `help` | Show available commands or detailed info for a specific command |
-| `/mcp` | Manage MCP servers: explore, search, install, list, remove, info |
+
+### ⚡️ Additional Commands
+
+| Command | Description |
+|---------|-------------|
+| `/summarize` / `/compress` | Summarize older conversation history to save tokens and speed up turns |
+| `/undo` | Undo file edits (usage: /undo [count|list]) |
+| `/changelog` | View the latest CLI changes |
+| `/models` | List available and healthy models |
+| `/doctor` | Diagnose connection and discovery |
+| `/stats` / `stats` | Display session analytics, token usage, index count, and router status |
 | `/onboard` | First-time setup — discover local models, configure, and test |
 | `/tui` | Toggle the Terminal User Interface (TUI) dashboard |
-| `/image` | Generate an image using local Stable Diffusion WebUI or Pollinations AI |
 | `exit` / `/exit` / `/quit` / `quit` | Save session and exit |
+
 <!-- END_COMMANDS_TABLE -->
 
 Tab completion works on all commands. You can get detailed manuals, parameter lists, and subcommand options for any command directly inside the CLI by running `/help <command>` (for example, `/help config` or `/help mcp`).
