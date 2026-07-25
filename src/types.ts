@@ -68,3 +68,16 @@ export interface PatchEntry {
 }
 
 export type ToolExecutor = (args: Record<string, unknown>, context: ToolContext) => Promise<ToolResult>;
+
+export type ProviderStatus = 'UP' | 'DOWN' | 'UNKNOWN';
+
+export interface ProviderHealth {
+  status: ProviderStatus;
+  avgLatencyMs: number | null;
+  apiKey: string;
+}
+
+export interface HealthPayload {
+  routerStrategy: string;
+  providers: Record<string, ProviderHealth>;
+}

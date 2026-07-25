@@ -10,7 +10,7 @@ export function formatHealthTable(payload: HealthPayload): string {
 
   // Append router strategy as a spanning row
   const table = buildTable({
-    headers: ['Provider', 'Status', 'Avg Latency', 'API‑Key'],
+    headers: ['Provider', 'Status', 'Avg Latency', 'API-Key'],
     rows,
     footer: [['Router Strategy', payload.routerStrategy, '', '']],
   });
@@ -32,7 +32,6 @@ function buildTable(opts: BuildTableOptions): string {
   const { headers, rows, footer } = opts;
   
   // Calculate column widths
-  const numCols = headers.length;
   const colWidths = headers.map((h, i) => {
     let maxLen = h.length;
     for (const row of rows) {
