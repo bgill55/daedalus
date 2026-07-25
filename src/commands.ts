@@ -1673,6 +1673,17 @@ Once you have finished making changes, I will automatically re-run the command t
     }
   },
   {
+    name: '/stats',
+    aliases: ['stats'],
+    description: 'Display session analytics, token usage, index count, and router status',
+    usage: '/stats',
+    helpText: 'Display real-time session statistics including token counters, uptime, codebase index counts, and model router health.',
+    execute: async (_args, _ctx) => {
+      const { handleStatsCommand } = await import('./commands/stats.js');
+      console.log(`\n${handleStatsCommand()}\n`);
+    }
+  },
+  {
     name: '/help',
     aliases: ['?', 'help'],
     description: 'Show available commands or detailed info for a specific command',
