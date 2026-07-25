@@ -1,3 +1,17 @@
+# [1.66.0](https://github.com/bgill55/daedalus/compare/v1.65.1...v1.66.0) (2026-07-25)
+
+
+### Bug Fixes
+
+* **ci:** add discord.js and dotenv dependencies for bot and daemon ([49c10d4](https://github.com/bgill55/daedalus/commit/49c10d44081d6b6f21c4ebd2fd8ee8efefe6f6ea))
+* **loop:** add dotenv.config() and robust response checking to sendDiscordEmbed in loop.ts ([fe806a4](https://github.com/bgill55/daedalus/commit/fe806a49e7cd14c6d8918f04f31d07ce9fac9634))
+* **reviewer:** add SPECIFICATION COMPLETENESS audit rule to reviewer prompt ([912edd1](https://github.com/bgill55/daedalus/commit/912edd1a93c0c0ab0e807a497df4035428ed882c))
+
+
+### Features
+
+* **bot:** register /stats slash command for Discord bot ([8f0e67e](https://github.com/bgill55/daedalus/commit/8f0e67e8238a0bf7e354803ad581927a49ed393f))
+
 ## [1.65.1](https://github.com/bgill55/daedalus/compare/v1.65.0...v1.65.1) (2026-07-25)
 
 
