@@ -224,10 +224,11 @@ export async function startLoopDaemon(ctx: ToolContext, config: any, router: any
       // 3. Orchestration Passed - push branch and open PR
       console.log(pc.green('\n✔ Orchestration completed successfully. Pushing changes...'));
       const branchName = `daedalus-issue-${issue.number}`;
+      const cleanTitle = issue.title.replace(/"/g, "'");
       try {
-        execSync(`git checkout -b ${branchName}`, { cwd: sessionManager.projectRoot });
+        execSync(`git checkout -B ${branchName}`, { cwd: sessionManager.projectRoot });
         execSync('git add .', { cwd: sessionManager.projectRoot });
-        execSync(`git commit -m "feat(issue-${issue.number}): ${issue.title}"`, { cwd: sessionManager.projectRoot });
+        execSync(`git commit -m "feat(issue-${issue.number}): ${cleanTitle}"`, { cwd: sessionManager.projectRoot });
         execSync(`git push -u origin ${branchName} --force`, { cwd: sessionManager.projectRoot });
       } catch (err: any) {
         console.error(pc.red(`Git push failed: ${err.message}`));

@@ -1,0 +1,32 @@
+name: Discord Release Announcer
+on:
+  release:
+    types: [published]   # Fires only when a release is published
+
+jobs:
+  announce:
+    runs-on: ubuntu-latest
+    if: startsWith(github.event.release.tag_name, 'v')
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Announce release to Discord
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          node ./src/discord/announceRelease.js \
+            --tag "${{ github.event.release.tag_name }}" \
+            --title "${{ github.event.release.name }}" \
+            --body "${{ github.event.release.body }}" \
+            --url "${{ github.event.release.html_url }}" | echo "::add-mask::${{ secrets.DISCORD_WEBHOOK_URL }}"
