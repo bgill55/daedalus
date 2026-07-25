@@ -1,3 +1,10 @@
+## [1.71.1](https://github.com/bgill55/daedalus/compare/v1.71.0...v1.71.1) (2026-07-25)
+
+
+### Bug Fixes
+
+* **test:** update src/docs.test.ts to match categorized commands table in README.md ([7498aa4](https://github.com/bgill55/daedalus/commit/7498aa48a73bb11a592a57412626d541db80c358))
+
 # [1.71.0](https://github.com/bgill55/daedalus/compare/v1.70.0...v1.71.0) (2026-07-25)
 
 
