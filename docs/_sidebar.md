@@ -3,6 +3,7 @@
 - [Model Routing & Tuning](routing-and-tuning.md)
 - [Orchestration](orchestration.md)
 - [Autonomous Finn Loop](finn-loop.md)
+- [Gold Standard Spec Example](example-spec-stats.md)
 - [MCP Integration](mcp.md)
 - [Sandboxing](sandboxing.md)
 - [Example Run](social-media-manager-sprint.md)
