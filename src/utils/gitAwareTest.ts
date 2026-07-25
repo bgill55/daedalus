@@ -12,7 +12,7 @@ export interface GitAwareResult {
  * Inspects git status to find modified source files and map them to relevant test files.
  */
 export function getGitAwareTestCommand(cwd: string = process.cwd(), defaultCmd: string = 'npm test'): GitAwareResult {
-  let diffOutput = '';
+  let diffOutput: string;
   try {
     diffOutput = execSync('git status --short', { cwd, encoding: 'utf8' });
   } catch {
