@@ -114,7 +114,7 @@ AI assistance without:
 
 <!-- START_COMMANDS_TABLE -->
 
-### 🤖 Multi-Agent & Orchestration
+### Multi-Agent & Orchestration
 
 | Command | Description |
 |---------|-------------|
@@ -126,7 +126,7 @@ AI assistance without:
 | `/debug <command>` | Run command and autonomously debug failures |
 | `/spec` | Flesh out a feature idea into a GitHub Issue spec (Finn Loop) |
 
-### 🔍 Codebase Search & Live Watcher
+### Codebase Search & Live Watcher
 
 | Command | Description |
 |---------|-------------|
@@ -136,7 +136,7 @@ AI assistance without:
 | `/refs <symbol>` | Find symbol references (callers) |
 | `/def <symbol>` | Get symbol definition |
 
-### 🛠️ Developer Tools, Git & MCP
+### Developer Tools, Git & MCP
 
 | Command | Description |
 |---------|-------------|
@@ -146,8 +146,9 @@ AI assistance without:
 | `/pr [base]` | Generate PR description Compared to base branch |
 | `/mcp <explore|search|install|list|rm>` | Manage MCP servers: explore, search, install, list, remove, info |
 | `/image` | Generate an image using local Stable Diffusion WebUI or Pollinations AI |
+| `/undo` | Undo file edits (usage: /undo [count|list]) |
 
-### 🧠 Memory, Conventions & Config
+### Memory, Conventions & Config
 
 | Command | Description |
 |---------|-------------|
@@ -161,7 +162,7 @@ AI assistance without:
 | `/extract` | Manually extract facts from session |
 | `/session [name]` | Manage chat sessions — /session new to start, /session load <id> to restore, /session export [path] to save transcript |
 
-### 💬 Context & CLI Utilities
+### Context & CLI Utilities
 
 | Command | Description |
 |---------|-------------|
@@ -170,19 +171,18 @@ AI assistance without:
 | `/context` | Show active file context |
 | `/paste` | Paste clipboard text/image as message |
 | `/clear` | Clear conversation history |
+| `/summarize` / `/compress` | Summarize older conversation history to save tokens and speed up turns |
 | `/system` | Print the current active system prompt (including loaded rules) |
 | `/health` / `health` | Display model router provider latency, health status, and API key status |
+| `/models` | List available and healthy models |
+| `/doctor` | Diagnose connection and discovery |
+| `/changelog` | View the latest CLI changes |
 | `/help` / `?` / `help` | Show available commands or detailed info for a specific command |
 
-### ⚡️ Additional Commands
+### Additional Commands
 
 | Command | Description |
 |---------|-------------|
-| `/summarize` / `/compress` | Summarize older conversation history to save tokens and speed up turns |
-| `/undo` | Undo file edits (usage: /undo [count|list]) |
-| `/changelog` | View the latest CLI changes |
-| `/models` | List available and healthy models |
-| `/doctor` | Diagnose connection and discovery |
 | `/stats` / `stats` | Display session analytics, token usage, index count, and router status |
 | `/onboard` | First-time setup — discover local models, configure, and test |
 | `/tui` | Toggle the Terminal User Interface (TUI) dashboard |

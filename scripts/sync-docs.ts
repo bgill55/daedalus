@@ -58,24 +58,24 @@ const COMMAND_USAGES: Record<string, string> = {
 
 const COMMAND_GROUPS: { name: string; commands: string[] }[] = [
   {
-    name: '🤖 Multi-Agent & Orchestration',
+    name: 'Multi-Agent & Orchestration',
     commands: ['/orchestrate', '/spawn', '/task', '/tasks', '/ensemble', '/debug', '/spec']
   },
   {
-    name: '🔍 Codebase Search & Live Watcher',
+    name: 'Codebase Search & Live Watcher',
     commands: ['/watch', '/index', '/find', '/refs', '/def']
   },
   {
-    name: '🛠️ Developer Tools, Git & MCP',
-    commands: ['/test', '/commit', '/branch', '/pr', '/mcp', '/image']
+    name: 'Developer Tools, Git & MCP',
+    commands: ['/test', '/commit', '/branch', '/pr', '/mcp', '/image', '/undo']
   },
   {
-    name: '🧠 Memory, Conventions & Config',
+    name: 'Memory, Conventions & Config',
     commands: ['/project', '/config', '/profile', '/style', '/fact', '/convention', '/memory', '/extract', '/session', '/prune']
   },
   {
-    name: '💬 Context & CLI Utilities',
-    commands: ['/add', '/remove', '/context', '/paste', '/tokens', '/clear', '/system', '/health', '/help', '/update', '/exit']
+    name: 'Context & CLI Utilities',
+    commands: ['/add', '/remove', '/context', '/paste', '/tokens', '/clear', '/summarize', '/system', '/health', '/models', '/doctor', '/changelog', '/help', '/update', '/exit']
   }
 ];
 
@@ -120,7 +120,7 @@ function syncCommandsTable() {
   // Fallback for any commands not in explicit categories
   const unmapped = commandsList.filter(c => !processedNames.has(c.name));
   if (unmapped.length > 0) {
-    content += `\n### ⚡️ Additional Commands\n\n`;
+    content += `\n### Additional Commands\n\n`;
     content += `| Command | Description |\n`;
     content += `|---------|-------------|\n`;
     for (const cmd of unmapped) {
