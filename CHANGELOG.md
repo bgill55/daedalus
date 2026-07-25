@@ -1,3 +1,10 @@
+# [1.64.0](https://github.com/bgill55/daedalus/compare/v1.63.0...v1.64.0) (2026-07-25)
+
+
+### Features
+
+* **issue-4:** [Daedalus Spec] Add /stats REPL command to display session analytics, token usage, codebase index count, and model router status ([d2a0c50](https://github.com/bgill55/daedalus/commit/d2a0c504e2738ee2a21f6ab33c0d7790fb030613))
+
 # [1.63.0](https://github.com/bgill55/daedalus/compare/v1.62.0...v1.63.0) (2026-07-25)
 
 
