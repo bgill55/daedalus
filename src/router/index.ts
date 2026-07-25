@@ -113,11 +113,15 @@ export class LocalRouter {
     });
   }
 
-  async route(request: ChatRequest): Promise<RouteResult> {
+  async route(request: ChatRequest, excludedModels?: Set<string>): Promise<RouteResult> {
     let healthyModels = this.getHealthyModels();
+
+    if (excludedModels && excludedModels.size > 0) {
+      healthyModels = healthyModels.filter(m => !excludedModels.has(m.name) && !excludedModels.has(m.model));
+    }
     
     if (healthyModels.length === 0) {
-      healthyModels = this.config.chain.filter(m => m.enabled);
+      healthyModels = this.config.chain.filter(m => m.enabled && (!excludedModels || (!excludedModels.has(m.name) && !excludedModels.has(m.model))));
     }
 
     if (healthyModels.length === 0) {
@@ -291,12 +295,13 @@ export class LocalRouter {
     let attempts = 0;
     const maxAttempts = 3;
     let lastError: any;
+    const excludedModels = new Set<string>();
 
     while (attempts < maxAttempts) {
       attempts++;
       let selectedModel: ModelEntry | undefined;
       try {
-        const { model } = await this.route(request);
+        const { model } = await this.route(request, excludedModels);
         selectedModel = model;
         const client = this.getOrCreateClient(model);
         const key = `${model.endpoint}|${model.model}`;
@@ -336,6 +341,8 @@ export class LocalRouter {
         if (err.name === 'AbortError' || err.name === 'APIUserAbortError') throw err;
         if (selectedModel) {
           markUnhealthy(selectedModel, err.message);
+          excludedModels.add(selectedModel.name);
+          excludedModels.add(selectedModel.model);
         }
       }
     }
@@ -344,50 +351,68 @@ export class LocalRouter {
   }
 
   async *chatStream(request: ChatRequest): AsyncGenerator<StreamChunk> {
-    const { model } = await this.route(request);
-    const client = this.getOrCreateClient(model);
-    const key = `${model.endpoint}|${model.model}`;
+    let attempts = 0;
+    const maxAttempts = 3;
+    let lastError: any;
+    const excludedModels = new Set<string>();
 
-    const actualModel = model.model === 'auto'
-      ? await this.discoverModel(client, key)
-      : model.model;
-    
-    this.lastRoutedModel = model.name === actualModel ? model.name : `${model.name} (${actualModel})`;
-    this.lastRoutedModelName = model.name;
-    
-    const { signal, ...body } = request;
-    const isOfficialOpenAI = model.endpoint.includes('api.openai.com');
-    if (body.tool_choice === 'required' && !isOfficialOpenAI) {
-      body.tool_choice = 'auto';
-    }
+    while (attempts < maxAttempts) {
+      attempts++;
+      let selectedModel: ModelEntry | undefined;
+      try {
+        const { model } = await this.route(request, excludedModels);
+        selectedModel = model;
+        const client = this.getOrCreateClient(model);
+        const key = `${model.endpoint}|${model.model}`;
 
-    if (body.frequency_penalty === undefined) {
-      body.frequency_penalty = 0.2;
-    }
-    if (body.presence_penalty === undefined) {
-      body.presence_penalty = 0.1;
-    }
+        const actualModel = model.model === 'auto'
+          ? await this.discoverModel(client, key)
+          : model.model;
+        
+        this.lastRoutedModel = model.name === actualModel ? model.name : `${model.name} (${actualModel})`;
+        this.lastRoutedModelName = model.name;
+        
+        const { signal, ...body } = request;
+        const isOfficialOpenAI = model.endpoint.includes('api.openai.com');
+        if (body.tool_choice === 'required' && !isOfficialOpenAI) {
+          body.tool_choice = 'auto';
+        }
 
-    const sanitizedMessages = sanitizeMessagesForModel(body.messages, model);
+        if (body.frequency_penalty === undefined) {
+          body.frequency_penalty = 0.2;
+        }
+        if (body.presence_penalty === undefined) {
+          body.presence_penalty = 0.1;
+        }
 
-    try {
-      const start = Date.now();
-      const stream = await client.chat.completions.create({
-        ...body,
-        messages: sanitizedMessages,
-        model: actualModel,
-        stream: true,
-      }, { signal });
+        const sanitizedMessages = sanitizeMessagesForModel(body.messages, model);
 
-      for await (const chunk of stream) {
-        yield chunk as StreamChunk;
+        const start = Date.now();
+        const stream = await client.chat.completions.create({
+          ...body,
+          messages: sanitizedMessages,
+          model: actualModel,
+          stream: true,
+        }, { signal });
+
+        for await (const chunk of stream) {
+          yield chunk as StreamChunk;
+        }
+        
+        markHealthy(model, Date.now() - start);
+        return;
+      } catch (err: any) {
+        lastError = err;
+        if (err.name === 'AbortError' || err.name === 'APIUserAbortError') throw err;
+        if (selectedModel) {
+          markUnhealthy(selectedModel, err.message);
+          excludedModels.add(selectedModel.name);
+          excludedModels.add(selectedModel.model);
+        }
       }
-      
-      markHealthy(model, Date.now() - start);
-    } catch (err: any) {
-      markUnhealthy(model, err.message);
-      throw err;
     }
+
+    throw lastError || new Error('All model streaming attempts failed.');
   }
 
   private async discoverModel(client: OpenAI, cacheKey: string): Promise<string> {
