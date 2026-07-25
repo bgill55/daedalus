@@ -1,3 +1,16 @@
+# [1.61.0](https://github.com/bgill55/daedalus/compare/v1.60.10...v1.61.0) (2026-07-25)
+
+
+### Bug Fixes
+
+* **discord:** resolve package name resolution and strict arg type validation flagged in PR [#3](https://github.com/bgill55/daedalus/issues/3) code review ([ce58535](https://github.com/bgill55/daedalus/commit/ce58535108bb0a57dad69d35ca51b3e34644e5e2))
+
+
+### Features
+
+* **issue-2:** [Daedalus Spec] 'Add Discord webhook announcer for GitHub release updates' ([a2d4dce](https://github.com/bgill55/daedalus/commit/a2d4dce9ed3a4215b95e9b03ac73cd5e9f26d74f))
+* **reviewer:** add strict execution context and CLI argument type checks to reviewer agent prompt ([e327e73](https://github.com/bgill55/daedalus/commit/e327e73eff2ff34211baf353e2d94a44e086110a))
+
 ## [1.60.10](https://github.com/bgill55/daedalus/compare/v1.60.9...v1.60.10) (2026-07-25)
 
 
