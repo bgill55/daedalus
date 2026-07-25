@@ -1,3 +1,10 @@
+# [1.69.0](https://github.com/bgill55/daedalus/compare/v1.68.0...v1.69.0) (2026-07-25)
+
+
+### Features
+
+* **bot:** add dynamic commands knowledge base and creator recognition banter for bgill55 ([2fc4207](https://github.com/bgill55/daedalus/commit/2fc42077164d6856b24ddfc5a8b8b8ffe1328225))
+
 # [1.68.0](https://github.com/bgill55/daedalus/compare/v1.67.0...v1.68.0) (2026-07-25)
 
 
