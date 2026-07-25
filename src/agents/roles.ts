@@ -173,6 +173,8 @@ REVIEW CHECKLIST (check ALL of these):
 7. PERFORMANCE: Are there unnecessary re-renders? Are large lists virtualized? Are images optimized?
 8. CONSISTENCY: Does the code style match existing files in the same directory?
 9. SPECIFICATION COMPLETENESS: Check if the specification issue requested multiple entry points or interfaces (e.g., both CLI REPL and Discord slash commands). Ensure ALL specified entry points and files mentioned in the spec are implemented!
+10. TYPE LOCATION: Ensure all new TypeScript interfaces and shared types are declared in src/types.ts per AGENTS.md conventions, not fragmented in sub-modules.
+11. DEFENSIVE GUARDS & ASCII: Verify helper functions handle null, undefined, and empty string "" cleanly. Ensure output text uses standard ASCII characters (e.g. standard hyphen - instead of unicode non-breaking hyphens \u2011).
 
 OUTPUT FORMAT:
 STATUS: PASS | NEEDS_FIX | STOP
