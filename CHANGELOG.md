@@ -1,3 +1,10 @@
+## [1.61.1](https://github.com/bgill55/daedalus/compare/v1.61.0...v1.61.1) (2026-07-25)
+
+
+### Bug Fixes
+
+* **loop:** enable DAEDALUS_AUTO_APPROVE in Finn Loop daemon mode to bypass interactive task prompts ([45c6b7f](https://github.com/bgill55/daedalus/commit/45c6b7f787de4186d438817d3b6caa0d7187b8e8))
+
 # [1.61.0](https://github.com/bgill55/daedalus/compare/v1.60.10...v1.61.0) (2026-07-25)
 
 
