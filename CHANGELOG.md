@@ -1,3 +1,19 @@
+# [1.71.0](https://github.com/bgill55/daedalus/compare/v1.70.0...v1.71.0) (2026-07-25)
+
+
+### Bug Fixes
+
+* **ci:** replace .releaserc.json with release.config.cjs to fix JSON parse error ([0af68fe](https://github.com/bgill55/daedalus/commit/0af68fec94dcb9b706c39714d36d088a09be0a02))
+* **ci:** trigger Discord release announcements directly from semantic-release via @semantic-release/exec ([1562ecd](https://github.com/bgill55/daedalus/commit/1562ecdc04a35a1bacfd0605c36c851770da09bb))
+
+
+### Features
+
+* **commands:** implement Sprint 2 /test --git-aware smart test selection ([72dec56](https://github.com/bgill55/daedalus/commit/72dec567a87c28d7bb8633d09439fa042f02a621))
+* **indexing:** implement Sprint 3 /watch command for live background re-indexing ([33bb2bd](https://github.com/bgill55/daedalus/commit/33bb2bd023c5c7454759aa6e322f42bc5b11a0c4))
+* **mcp:** implement Sprint 4 /mcp explore marketplace subcommand ([cfc560d](https://github.com/bgill55/daedalus/commit/cfc560d87ea68974b6822bf0bbe21eb878518ac6))
+* **router:** implement Sprint 1 multi-model fallback chain for zero-interruption sessions ([91d79ce](https://github.com/bgill55/daedalus/commit/91d79ceb4b8229a39b903e6a2d7e228e27a34e30))
+
 # [1.70.0](https://github.com/bgill55/daedalus/compare/v1.69.0...v1.70.0) (2026-07-25)
 
 
