@@ -1,7 +1,10 @@
+import dotenv from 'dotenv';
 import { execSync } from 'child_process';
 import pc from 'picocolors';
 import { ToolContext } from '../types.js';
 import { CommandContext } from '../commands.js';
+
+dotenv.config();
 
 export function getGitRepoInfo(cwd: string): { owner: string; repo: string } | null {
   try {
@@ -17,15 +20,22 @@ export function getGitRepoInfo(cwd: string): { owner: string; repo: string } | n
   return null;
 }
 
-export async function sendDiscordEmbed(webhookUrl: string, embed: any) {
+export async function sendDiscordEmbed(webhookUrl: string, embed: any): Promise<boolean> {
   try {
-    await fetch(webhookUrl, {
+    const res = await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ embeds: [embed] }),
     });
+    if (!res.ok) {
+      const text = await res.text();
+      console.error(pc.yellow(`[WARN] Discord webhook returned ${res.status}: ${text}`));
+      return false;
+    }
+    return true;
   } catch (err: any) {
     console.error(pc.yellow(`[WARN] Failed to send Discord notification: ${err.message}`));
+    return false;
   }
 }
 
