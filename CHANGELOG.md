@@ -1,3 +1,15 @@
+# [1.72.0](https://github.com/bgill55/daedalus/compare/v1.71.2...v1.72.0) (2026-07-26)
+
+
+### Bug Fixes
+
+* **discord:** add error handling, exit codes, and npm script for post-infographic ([591be23](https://github.com/bgill55/daedalus/commit/591be234b420b204333de01dabbc84a4d7c6c308))
+
+
+### Features
+
+* **issue-8:** [Daedalus Spec] Chat‑History Branching – “What‑if” sessions | Snapshot a chat, branch it, try a different approach, then merge the winning edits back. Perfect for brainstorming multiple implementations. | daedalus /session branch <name> ([3fc857d](https://github.com/bgill55/daedalus/commit/3fc857dfda04037c2474d9cae2ca7cb946ac663e))
+
 ## [1.71.2](https://github.com/bgill55/daedalus/compare/v1.71.1...v1.71.2) (2026-07-25)
 
 
