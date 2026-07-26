@@ -1,3 +1,10 @@
+# [1.74.0](https://github.com/bgill55/daedalus/compare/v1.73.0...v1.74.0) (2026-07-26)
+
+
+### Features
+
+* **config:** add OS & System Diagnostics Awareness module and system prompt headers ([daf9147](https://github.com/bgill55/daedalus/commit/daf914787d08a21fad9a4d8d570d87db14ae3066))
+
 # [1.73.0](https://github.com/bgill55/daedalus/compare/v1.72.0...v1.73.0) (2026-07-26)
 
 
