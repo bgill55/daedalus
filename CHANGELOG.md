@@ -1,3 +1,10 @@
+## [1.74.1](https://github.com/bgill55/daedalus/compare/v1.74.0...v1.74.1) (2026-07-26)
+
+
+### Bug Fixes
+
+* **persona:** restore CLI wit and banter directives with specific example-driven humor ([f964bc2](https://github.com/bgill55/daedalus/commit/f964bc20d7b0187670aec1b17c1ee9dbe5fb2051))
+
 # [1.74.0](https://github.com/bgill55/daedalus/compare/v1.73.0...v1.74.0) (2026-07-26)
 
 
