@@ -178,12 +178,12 @@ AI assistance without:
 | `/doctor` | Diagnose connection and discovery |
 | `/changelog` | View the latest CLI changes |
 | `/help` / `?` / `help` | Show available commands or detailed info for a specific command |
-| `/lite` | Show link to Daedalus Lite documentation for building your own version of Daedalus |
 
 ### Additional Commands
 
 | Command | Description |
 |---------|-------------|
+| `/lite` | Show Daedalus Lite documentation |
 | `/stats` / `stats` | Display session analytics, token usage, index count, and router status |
 | `/onboard` | First-time setup — discover local models, configure, and test |
 | `/tui` | Toggle the Terminal User Interface (TUI) dashboard |
