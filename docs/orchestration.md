@@ -108,6 +108,10 @@ If the agent fails to resolve the errors after all repair attempts are exhausted
 
 Daedalus supports non-linear session exploration. Rather than abandoning context when an experimental approach fails, you can snapshot, branch, checkout, and merge session trajectories.
 
+<p align="center">
+  <img src="images/session_branching_infographic.jpg" alt="Daedalus: Navigating the What-If Labyrinth Infographic" width="100%"/>
+</p>
+
 ### Commands
 * `/session branch <name>`: Create an immutable snapshot of conversation turns and active context up to the current step.
 * `/session checkout <name>`: Switch active REPL session context to an existing branch.
