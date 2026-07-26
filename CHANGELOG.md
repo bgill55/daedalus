@@ -1,3 +1,15 @@
+# [1.73.0](https://github.com/bgill55/daedalus/compare/v1.72.0...v1.73.0) (2026-07-26)
+
+
+### Bug Fixes
+
+* **tsc:** add public db getter to SessionManager and pass loaded session object to initializeSessionState ([176b703](https://github.com/bgill55/daedalus/commit/176b70387ca82e6e242261b54b0a5e4a5c9b4afa))
+
+
+### Features
+
+* **session:** implement Chat-History Branching system (/session branch, checkout, list, merge) ([1658410](https://github.com/bgill55/daedalus/commit/1658410b19f1de1c7129ef13952bdcb4be19733d))
+
 # [1.72.0](https://github.com/bgill55/daedalus/compare/v1.71.2...v1.72.0) (2026-07-26)
 
 
