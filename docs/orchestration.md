@@ -101,3 +101,16 @@ If the agent fails to resolve the errors after all repair attempts are exhausted
 * It reads the pre-patched content (`oldContent`) stored in the session's `patchHistory`.
 * Reverts all files modified during this task in reverse order.
 * Cleans up the workspace to ensure the codebase remains in a healthy, compiling state before prompting the user for intervention.
+
+---
+
+## Non-Linear Session Branching & Merging
+
+Daedalus supports non-linear session exploration. Rather than abandoning context when an experimental approach fails, you can snapshot, branch, checkout, and merge session trajectories.
+
+### Commands
+* `/session branch <name>`: Create an immutable snapshot of conversation turns and active context up to the current step.
+* `/session checkout <name>`: Switch active REPL session context to an existing branch.
+* `/session branches`: Render a hierarchical tree diagram of all session branches and their status (`active`, `archived`, `merged`).
+* `/session merge <name>`: Extract all `code_diff` patches from step $K+1$ onwards, execute `git apply` against the workspace, append conversation turns to the parent session history, and update the branch status to `merged`.
+

@@ -73,6 +73,13 @@ Exposes a fully autonomous developer workflow (Spec → Build → Review → PR 
 * `/spec` command: Interactively gathers requirements, generates a markdown spec, and opens a GitHub Issue labeled `daedalus-todo`.
 * `daedalus --loop` daemon: Polls GitHub for open issues, runs autonomous orchestration to solve them, executes verifications, commits changes, opens a Pull Request, and alerts team channels via Discord Webhooks.
 
+### 9. Chat-History Branching System ("What-if" Sessions)
+Enables non-linear exploration of coding tasks by snapshotting and branching sessions:
+* `/session branch <name>`: Takes an immutable snapshot of conversation turns and active context up to step $N$.
+* `/session checkout <name>`: Switches active REPL context to an existing branch.
+* `/session branches`: Displays a hierarchical tree visualization of session parent-child branches.
+* `/session merge <name>`: Extracts unified `code_diff` patches from step $N+1$ onwards, executes `git apply` against the workspace, appends trajectory turns to parent history, and marks status as `merged`.
+
 ---
 
 ## 3. Real-World Benchmarks & Practical Case Studies
