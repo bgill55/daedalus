@@ -754,8 +754,8 @@ export const commandsList: Command[] = [
           console.log(pc.red(`Session not found: ${subcommandArg}`));
           return;
         }
-        ctx.sessionManager.startSession(target.id, target.title);
-        ctx.initializeSessionState();
+        const loaded = ctx.sessionManager.startSession(target.id, target.title);
+        ctx.initializeSessionState(loaded);
         console.log(pc.green(`[OK] Loaded session: ${target.title} (${target.id})`));
         return;
       }
@@ -763,8 +763,8 @@ export const commandsList: Command[] = [
       if (subcommand === 'new') {
         ctx.sessionManager.saveSessionState(ctx.messages, ctx.activeFiles, getSessionTodos(ctx.toolContext.sessionId));
         const newTitle = subcommandArg || `Session ${new Date().toLocaleDateString()}`;
-        ctx.sessionManager.startSession(undefined, newTitle);
-        ctx.initializeSessionState();
+        const loaded = ctx.sessionManager.startSession(undefined, newTitle);
+        ctx.initializeSessionState(loaded);
         console.log(pc.green(`[OK] Started new session: ${newTitle}`));
         return;
       }

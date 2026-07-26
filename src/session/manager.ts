@@ -55,6 +55,13 @@ export class SessionManager {
     this.setProjectRoot(projectRoot);
   }
 
+  public get db(): Database.Database {
+    if (!this.indexDb) {
+      this.init();
+    }
+    return this.indexDb;
+  }
+
   public setProjectRoot(projectRoot: string): void {
     this.projectRoot = path.resolve(projectRoot);
     this.projectHash = getProjectHash(this.projectRoot);
