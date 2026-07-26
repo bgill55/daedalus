@@ -74,9 +74,9 @@ describe('detectProjectStack', () => {
     expect(result).toContain('Frameworks/Libraries: None (Vanilla HTML5 / CSS3 / JavaScript)');
   });
 
-  it('returns empty string if nothing matches', () => {
+  it('returns system diagnostics even if no stack files match', () => {
     const root = createTempProject({});
     const result = detectProjectStack(root);
-    expect(result).toBe('');
+    expect(result).toContain('[System Diagnostics]');
   });
 });

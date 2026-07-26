@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { getSystemPromptHeader } from './systemInfo.js';
 
 export function detectProjectStack(projectRoot: string): string {
   const parts: string[] = [];
@@ -51,9 +52,10 @@ export function detectProjectStack(projectRoot: string): string {
     parts.push('Frameworks/Libraries: None (Vanilla HTML5 / CSS3 / JavaScript)');
   }
 
+  const sysHeader = getSystemPromptHeader();
   if (parts.length === 0) {
-    return '';
+    return `\n--- DETECTED PROJECT TECH STACK ---\n- ${sysHeader}\n-----------------------------------\n`;
   }
 
-  return `\n--- DETECTED PROJECT TECH STACK ---\n${parts.map(p => `- ${p}`).join('\n')}\n-----------------------------------\n`;
+  return `\n--- DETECTED PROJECT TECH STACK ---\n- ${sysHeader}\n${parts.map((p) => `- ${p}`).join('\n')}\n-----------------------------------\n`;
 }
