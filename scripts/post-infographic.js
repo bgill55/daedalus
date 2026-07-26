@@ -35,17 +35,25 @@ const payload = {
 };
 
 async function post() {
-  const res = await fetch(webhookUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  });
+  try {
+    const res = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
 
-  if (res.ok) {
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error('❌ Failed to post to Discord:', res.status, errText);
+      process.exit(1);
+    }
+
     console.log('✅ Infographic successfully posted to Discord!');
-  } else {
-    console.error('❌ Failed to post to Discord:', res.status, await res.text());
+  } catch (err) {
+    console.error('❌ Error posting to Discord:', err);
+    process.exit(1);
   }
 }
 
 post();
+
