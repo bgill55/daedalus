@@ -26,6 +26,7 @@
     "test": "vitest run",
     "lint": "eslint src --ext .ts",
     "sync-docs": "tsx scripts/sync-docs.ts",
+    "post-infographic": "node scripts/post-infographic.js",
     "postinstall": "node scripts/postinstall.js"
   },
   "engines": {
