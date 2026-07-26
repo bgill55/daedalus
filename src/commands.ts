@@ -20,6 +20,12 @@ import { printUserTurn, turnSeparator } from './formatting.js';
 import { getClipboardText, getClipboardImage } from './clipboard.js';
 import { spawnBackgroundAgent } from './agents/background.js';
 import { handleSpecCommand } from './agents/loop.js';
+import {
+  createSessionBranch,
+  checkoutSessionBranch,
+  listSessionBranches,
+  mergeSessionBranch,
+} from './session/branching.js';
 
 export interface CommandContext {
   config: DaedalusConfig;
@@ -636,6 +642,178 @@ export const commandsList: Command[] = [
       ctx.userProfile.style = rest;
       saveProfile(ctx.userProfile);
       console.log(pc.green('[OK] Coding style saved. It will be injected into every session.'));
+    }
+  },
+  {
+    name: '/session',
+    description: 'Manage chat sessions & branches: /session <list|load|new|branch|checkout|merge|export>',
+    usage: '/session <list|load|new|delete|export|branch|checkout|merge|branches> [args]',
+    helpText: 'Manage, snapshot, branch, load, save, and export conversation sessions.\n\nSubcommands:\n  list                  List all saved sessions for current project\n  load <id>             Load a saved session by ID\n  new [title]           Start a new conversation session\n  delete <id>           Delete a saved session by ID\n  export [filepath]     Export the current session transcript to Markdown\n  search <query>        Search past sessions for keyword\n  rename <title>        Rename the active session\n  branch <name>         Create a new session branch snapshot from current state\n  checkout <name>       Switch active REPL session context to an existing branch\n  branches              Display hierarchical tree of session branches\n  merge <name>          Merge code patches & trajectory turns from branch into current session',
+    execute: async (args, ctx) => {
+      const parts = args.trim().split(/\s+/);
+      const subcommand = parts[0]?.toLowerCase();
+      const subcommandArg = parts.slice(1).join(' ').trim();
+
+      const db = ctx.sessionManager.db;
+      const sessionDir = path.join(ctx.configDir, 'sessions');
+      const workspaceRoot = process.cwd();
+      const currentSessionId = ctx.toolContext.sessionId || 'default';
+
+      if (subcommand === 'branch') {
+        if (!subcommandArg) {
+          console.log(pc.red('[WARN] Usage: /session branch <name>'));
+          return;
+        }
+        try {
+          const branch = createSessionBranch(db, currentSessionId, subcommandArg, workspaceRoot, sessionDir);
+          console.log(pc.green(`[OK] Created session branch '${branch.name}' (id: ${branch.id.slice(0, 8)}) at step ${branch.branch_point_step}.`));
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.log(pc.red(`[ERROR] ${msg}`));
+        }
+        return;
+      }
+
+      if (subcommand === 'checkout') {
+        if (!subcommandArg) {
+          console.log(pc.red('[WARN] Usage: /session checkout <name>'));
+          return;
+        }
+        try {
+          const branch = checkoutSessionBranch(db, subcommandArg);
+          ctx.toolContext.sessionId = branch.id;
+          console.log(pc.green(`[OK] Switched session context to '${branch.name}' [id: ${branch.id.slice(0, 8)}].`));
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.log(pc.red(`[ERROR] ${msg}`));
+        }
+        return;
+      }
+
+      if (subcommand === 'branches') {
+        const treeStr = listSessionBranches(db);
+        console.log(pc.bold('\n--- Session Branches ---'));
+        console.log(treeStr);
+        console.log(pc.bold('------------------------\n'));
+        return;
+      }
+
+      if (subcommand === 'merge') {
+        if (!subcommandArg) {
+          console.log(pc.red('[WARN] Usage: /session merge <name>'));
+          return;
+        }
+        try {
+          const result = await mergeSessionBranch(db, subcommandArg, workspaceRoot, sessionDir);
+          if (result.success) {
+            console.log(pc.green(`[OK] ${result.message}`));
+          } else {
+            console.log(pc.red(`[ERROR] ${result.message}`));
+          }
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.log(pc.red(`[ERROR] ${msg}`));
+        }
+        return;
+      }
+
+      if (!subcommand || subcommand === 'list') {
+        const sessions = ctx.sessionManager.getSessionsForProject();
+        console.log(pc.bold('\n--- Past Sessions ---'));
+        if (sessions.length === 0) {
+          console.log(pc.gray('  No past sessions found.'));
+        } else {
+          sessions.forEach((s) => {
+            const currentTag = s.id === ctx.sessionManager.sessionId ? pc.green(' (current)') : '';
+            const dateStr = new Date(s.updated_at).toLocaleString();
+            console.log(`  • ${pc.cyan(s.id)}${currentTag}`);
+            console.log(`    Title: ${pc.white(s.title)}`);
+            console.log(`    Updated: ${pc.dim(dateStr)}`);
+          });
+        }
+        console.log(pc.bold('---------------------\n'));
+        console.log(pc.gray('Use `/session load <id>` to resume a past session.'));
+        console.log(pc.gray('Use `/session new [title]` to start a new session.'));
+        console.log(pc.gray('Use `/session branch <name>` to snapshot & branch current session.'));
+        console.log(pc.gray('Use `/session checkout <name>` to switch to a branch.'));
+        console.log(pc.gray('Use `/session merge <name>` to merge branch edits.'));
+        console.log(pc.gray('Use `/session delete <id>` to delete a session.'));
+        console.log(pc.gray('Use `/session export [path]` to export session transcript.'));
+        return;
+      }
+
+      if (subcommand === 'load') {
+        if (!subcommandArg) {
+          console.log(pc.red('Usage: /session load <id>'));
+          return;
+        }
+        ctx.sessionManager.saveSessionState(ctx.messages, ctx.activeFiles, getSessionTodos(ctx.toolContext.sessionId));
+        const sessions = ctx.sessionManager.getSessionsForProject();
+        const target = sessions.find((s) => s.id === subcommandArg || s.id.startsWith(subcommandArg));
+        if (!target) {
+          console.log(pc.red(`Session not found: ${subcommandArg}`));
+          return;
+        }
+        ctx.sessionManager.startSession(target.id, target.title);
+        ctx.initializeSessionState();
+        console.log(pc.green(`[OK] Loaded session: ${target.title} (${target.id})`));
+        return;
+      }
+
+      if (subcommand === 'new') {
+        ctx.sessionManager.saveSessionState(ctx.messages, ctx.activeFiles, getSessionTodos(ctx.toolContext.sessionId));
+        const newTitle = subcommandArg || `Session ${new Date().toLocaleDateString()}`;
+        ctx.sessionManager.startSession(undefined, newTitle);
+        ctx.initializeSessionState();
+        console.log(pc.green(`[OK] Started new session: ${newTitle}`));
+        return;
+      }
+
+      if (subcommand === 'delete') {
+        if (!subcommandArg) {
+          console.log(pc.red('Usage: /session delete <id>'));
+          return;
+        }
+        ctx.sessionManager.deleteSession(subcommandArg);
+        console.log(pc.green(`[OK] Deleted session: ${subcommandArg}`));
+        return;
+      }
+
+      if (subcommand === 'export') {
+        const defaultPath = `session-export-${Date.now()}.md`;
+        const exportPath = subcommandArg || defaultPath;
+        const lines: string[] = [];
+        lines.push(`# Session Transcript - ${new Date().toLocaleString()}\n`);
+        ctx.messages.forEach((m) => {
+          if (m.role === 'system') return;
+          lines.push(`### ${m.role.toUpperCase()}\n${m.content}\n`);
+        });
+        fs.writeFileSync(exportPath, lines.join('\n'), 'utf8');
+        console.log(pc.green(`[OK] Session transcript exported to ${exportPath}`));
+        return;
+      }
+
+      if (subcommand === 'search') {
+        if (!subcommandArg) {
+          console.log(pc.red('Usage: /session search <query>'));
+          return;
+        }
+        const query = subcommandArg.toLowerCase();
+        const sessions = ctx.sessionManager.getSessionsForProject();
+        const matches = sessions.filter((s) => s.title.toLowerCase().includes(query) || s.id.toLowerCase().includes(query));
+        console.log(pc.bold(`\n--- Search Results for "${query}" ---`));
+        if (matches.length === 0) {
+          console.log(pc.gray('  No matching sessions found.'));
+        } else {
+          matches.forEach((s) => {
+            console.log(`  • ${pc.cyan(s.id)} - ${pc.white(s.title)}`);
+          });
+        }
+        console.log(pc.bold('------------------------------------\n'));
+        return;
+      }
+
+      console.log(pc.yellow('[INFO] Usage: /session <list|load|new|delete|export|branch|checkout|branches|merge> [args]'));
     }
   },
   {

@@ -160,7 +160,7 @@ AI assistance without:
 | `/convention [text]` | Add a project convention to memory |
 | `/memory` | View project memory (facts & conventions) |
 | `/extract` | Manually extract facts from session |
-| `/session [name]` | Manage chat sessions — /session new to start, /session load <id> to restore, /session export [path] to save transcript |
+| `/session [name]` | Manage chat sessions & branches: /session <list|load|new|branch|checkout|merge|export> |
 
 ### Context & CLI Utilities
 
