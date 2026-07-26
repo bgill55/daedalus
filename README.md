@@ -178,6 +178,7 @@ AI assistance without:
 | `/doctor` | Diagnose connection and discovery |
 | `/changelog` | View the latest CLI changes |
 | `/help` / `?` / `help` | Show available commands or detailed info for a specific command |
+| `/lite` | Show link to Daedalus Lite documentation for building your own version of Daedalus |
 
 ### Additional Commands
 

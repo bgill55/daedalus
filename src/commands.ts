@@ -645,6 +645,18 @@ export const commandsList: Command[] = [
     }
   },
   {
+    name: '/lite',
+    description: 'Show Daedalus Lite documentation',
+    usage: '/lite',
+    helpText: 'Display link to Daedalus Lite documentation for building your own version of Daedalus',
+    execute: async (_args, _ctx) => {
+      console.log(pc.bold('\n--- Daedalus Lite Documentation ---'));
+      console.log(pc.gray('  Build your own version of Daedalus:'));
+      console.log(pc.cyan('  https://bgill55.github.io/daedalus-lite/'));
+      console.log(pc.bold('----------------------------------'));
+    }
+  },
+  {
     name: '/session',
     description: 'Manage chat sessions & branches: /session <list|load|new|branch|checkout|merge|export>',
     usage: '/session <list|load|new|delete|export|branch|checkout|merge|branches> [args]',
