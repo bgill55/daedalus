@@ -67,8 +67,14 @@ export function createTuiRepl(deps: ReplDeps): () => Promise<void> {
     scrollable: true,
     alwaysScroll: true,
     scrollbar: {
-      ch: ' ',
-      style: { bg: 'cyan' }
+      ch: '█',
+      track: {
+        bg: 'grey'
+      },
+      style: {
+        fg: 'cyan',
+        bg: 'cyan'
+      }
     },
     mouse: true,
     keys: true,
@@ -180,6 +186,17 @@ export function createTuiRepl(deps: ReplDeps): () => Promise<void> {
 
   screen.key(['pagedown'], () => {
     logBox.scroll(10);
+    screen.render();
+  });
+
+  // Arrow key scrolling for laptops without a wheel
+  screen.key(['up'], () => {
+    logBox.scroll(-1);
+    screen.render();
+  });
+
+  screen.key(['down'], () => {
+    logBox.scroll(1);
     screen.render();
   });
 
@@ -331,7 +348,7 @@ export function createTuiRepl(deps: ReplDeps): () => Promise<void> {
   async function chatLoop(): Promise<void> {
     // Initial welcome logs
     logBox.log(pc.cyan('  ⬡') + pc.bold(pc.white(' Daedalus TUI Active. Type your prompts below.')));
-    logBox.log(pc.dim('  Press Ctrl+C to exit. Use Tab to switch focus. Use PageUp/PageDown to scroll logs.'));
+    logBox.log(pc.dim('  Press Ctrl+C to exit. Use Tab to switch focus. Use ↑↓, PgUp/PgDown to scroll logs. Scrollbar on right.'));
     screen.render();
 
     while (true) {
