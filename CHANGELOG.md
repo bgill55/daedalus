@@ -1,3 +1,10 @@
+# [1.79.0](https://github.com/bgill55/daedalus/compare/v1.78.2...v1.79.0) (2026-07-27)
+
+
+### Features
+
+* make onboarding wizard noob-friendly with helpful links, error messages, and spinner ([1c87f98](https://github.com/bgill55/daedalus/commit/1c87f98a097c9cf517ec05ab18707d00d1c24eca))
+
 ## [1.78.2](https://github.com/bgill55/daedalus/compare/v1.78.1...v1.78.2) (2026-07-27)
 
 
