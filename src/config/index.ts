@@ -3,6 +3,9 @@
 import { z } from 'zod';
 import * as fs from 'fs';
 import * as path from 'path';
+import { createLogger } from '../tools/logger.js';
+
+const logger = createLogger();
 
 export const ModelEntrySchema = z.object({
   name: z.string(),
@@ -170,8 +173,7 @@ export const ConfigSchema = z.object({
 });
 
 export type DaedalusConfig = z.infer<typeof ConfigSchema>;
-
-const DEFAULT_CONFIG: DaedalusConfig = {
+export const DEFAULT_CONFIG: DaedalusConfig = {
   version: 1,
   router: {
     strategy: 'priority',
@@ -270,9 +272,9 @@ export function loadConfig(): DaedalusConfig {
     const parsed = JSON.parse(content);
     return ConfigSchema.parse(parsed);
   } catch (err: any) {
-    console.error('\n[WARN] Failed to load config file:');
-    console.error(`  ${err.message}`);
-    console.error('  Falling back to defaults. Edit ~/.daedalus/config.json or run /onboard');
+    logger.error('\n[WARN] Failed to load config file:');
+    logger.error(`  ${err.message}`);
+    logger.error('  Falling back to defaults. Edit ~/.daedalus/config.json or run /onboard');
     return DEFAULT_CONFIG;
   }
 }

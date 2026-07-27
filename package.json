@@ -22,9 +22,11 @@
     "bot": "tsx src/bot/index.ts",
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
+    "lint": "eslint src --ext .ts",
     "prepublishOnly": "npm run build",
     "test": "vitest run",
-    "lint": "eslint src --ext .ts",
+    "audit": "npm run lint && npm run build && npm run test && node -e \"const { validateConfig } = require('./dist/config/validate'); const { DEFAULT_CONFIG } = require('./dist/config/index'); validateConfig(DEFAULT_CONFIG); console.log('Config validation passed')\"",
+    "docs": "typedoc --out docs src",
     "sync-docs": "tsx scripts/sync-docs.ts",
     "post-infographic": "node scripts/post-infographic.js",
     "postinstall": "node scripts/postinstall.js"
@@ -83,6 +85,7 @@
     "globals": "^16.5.0",
     "semantic-release": "^25.0.5",
     "tsx": "^4.19.4",
+    "typedoc": "^0.28.20",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.61.1",
     "vitest": "^2.1.8"
