@@ -1,3 +1,10 @@
+# [1.78.0](https://github.com/bgill55/daedalus/compare/v1.77.0...v1.78.0) (2026-07-27)
+
+
+### Features
+
+* enhance /paste command with specific image detection and line count feedback ([5d96c59](https://github.com/bgill55/daedalus/commit/5d96c594dfed307027524fde1723ebfb3d3b1b85))
+
 # [1.77.0](https://github.com/bgill55/daedalus/compare/v1.76.2...v1.77.0) (2026-07-27)
 
 
