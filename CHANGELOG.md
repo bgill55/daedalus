@@ -1,3 +1,10 @@
+## [1.83.2](https://github.com/bgill55/daedalus/compare/v1.83.1...v1.83.2) (2026-07-27)
+
+
+### Bug Fixes
+
+* add error handling to TUI spinner to prevent crashes ([c275334](https://github.com/bgill55/daedalus/commit/c275334f58fd09af699477206106b1edb17bfbe0))
+
 ## [1.83.1](https://github.com/bgill55/daedalus/compare/v1.83.0...v1.83.1) (2026-07-27)
 
 
