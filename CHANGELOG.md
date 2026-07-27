@@ -1,3 +1,10 @@
+# [1.75.0](https://github.com/bgill55/daedalus/compare/v1.74.1...v1.75.0) (2026-07-27)
+
+
+### Features
+
+* add system_info tool for OS/hardware diagnostics ([d0fc683](https://github.com/bgill55/daedalus/commit/d0fc68381ae43d0f9214ae69f5f30608d123e6f1))
+
 ## [1.74.1](https://github.com/bgill55/daedalus/compare/v1.74.0...v1.74.1) (2026-07-26)
 
 
