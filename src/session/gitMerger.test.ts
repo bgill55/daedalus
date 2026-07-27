@@ -61,7 +61,7 @@ describe('Git Merger', () => {
     expect(result.success).toBe(true);
     expect(result.appliedPatches).toBe(1);
 
-    const content = fs.readFileSync(path.join(repo, 'test.txt'), 'utf8');
+    const content = fs.readFileSync(path.join(repo, 'test.txt'), 'utf8').replace(/\r/g, '');
     expect(content).toBe('Hello Universe\n');
   });
 
