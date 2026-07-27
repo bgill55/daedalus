@@ -242,6 +242,7 @@ For in-depth explanations, configuration options, and hardware optimization tips
 *   [Execution Sandboxing](docs/sandboxing.md) — Running commands inside isolated Docker containers or WSL distributions.
 *   [Model Context Protocol (MCP) Integration](docs/mcp.md) — Configuring stdio and HTTP/SSE servers to expand your agent's capabilities.
 *   [Configuration Reference Guide](docs/configuration-reference.md) — Reference list of all global configuration keys (`router.*`, `agents.*`, `tools.*`, `ui.*`, etc.).
+*   [API Reference](modules.html) — Auto-generated TypeScript API documentation showing all exported classes, functions, and modules.
 
 ---
 
