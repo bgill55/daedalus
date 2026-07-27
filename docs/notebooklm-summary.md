@@ -131,7 +131,7 @@ Daedalus maintains a test suite of **439 tests across 53 files** (Vitest), cover
 | `/mcp <explore\|search\|install\|list>` | MCP | Manage MCP servers (explore marketplace, search, install) |
 | `/image <prompt>` | Image Gen | Generate UI assets using Stable Diffusion WebUI or Pollinations AI |
 | `/undo` | Safety | Revert the last applied file patch |
-| `/preview <filepath\|url>` | Utilities | Screenshot a local HTML file or URL and save the image |
+| `/preview <filepath-or-url>` | Utilities | Screenshot a local HTML file or URL and save the image |
 | `/lite` | Utilities | Show Daedalus Lite documentation |
 | `/stats` | Utilities | Display session analytics, token usage, index count, router status |
 | `/onboard` | Setup | First-time setup: discover local models, configure, test |
