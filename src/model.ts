@@ -172,7 +172,7 @@ export function createModelFunctions(deps: ModelDeps) {
         console.log(pc.dim('\n  [STOP] Stopped'));
         return { content: lastContent, toolCalls: [] };
       }
-      const spinner = new DaedalusSpinner({ text: 'Daedalus thinking', color: (s) => pc.cyan(s) });
+      const spinner = new DaedalusSpinner({ text: 'Daedalus thinking', color: (s) => pc.blue(s) });
       spinner.start();
 
       let fullContent = '';
