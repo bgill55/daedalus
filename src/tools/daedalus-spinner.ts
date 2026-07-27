@@ -70,9 +70,13 @@ export class DaedalusSpinner {
     const logBox = (globalThis as any).tuiLogBox;
     const screen = (globalThis as any).tuiScreen;
     if (logBox && screen) {
-      const frame = this.frames[this.frameIndex % this.frames.length];
-      logBox.setLabel(` CONSOLE (${frame} ${this.text}...) `);
-      screen.render();
+      try {
+        const frame = this.frames[this.frameIndex % this.frames.length];
+        logBox.setLabel(` CONSOLE (${frame} ${this.text}...) `);
+        screen.render();
+      } catch (e) {
+        // Silently fail if TUI isn't ready or has been destroyed
+      }
     }
     this.frameIndex++;
   }
@@ -88,8 +92,12 @@ export class DaedalusSpinner {
       const logBox = (globalThis as any).tuiLogBox;
       const screen = (globalThis as any).tuiScreen;
       if (logBox && screen) {
-        logBox.setLabel('');
-        screen.render();
+        try {
+          logBox.setLabel('');
+          screen.render();
+        } catch (e) {
+          // Ignore errors during cleanup
+        }
       }
     } else {
       if (!this.isTTY()) return;
