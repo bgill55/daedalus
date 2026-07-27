@@ -135,8 +135,7 @@ export function listSessionBranches(db: Database.Database): string {
     });
   }
 
-  rootBranches.forEach((root, index) => {
-    const isLast = index === rootBranches.length - 1;
+  rootBranches.forEach((root) => {
     lines.push(`* ${root.name} (${root.status}) [id: ${root.id.slice(0, 8)}]`);
     const children = childMap.get(root.id) || [];
     children.forEach((child, cIndex) => {
@@ -168,7 +167,8 @@ export async function mergeSessionBranch(
 
   const jsonlPath = path.join(sessionDir, `${target.id}.jsonl`);
   const diffs: string[] = [];
-  const newTurnsToAppend: Array<{ role: string; content: string; tool_calls?: any }> = [];
+  const newTurnsToAppend: Array<{ role: string; content: string; tool_calls?: unknown }> = [];
+  const parseErrors: string[] = [];
 
   if (fs.existsSync(jsonlPath)) {
     const raw = fs.readFileSync(jsonlPath, 'utf8');
@@ -177,16 +177,24 @@ export async function mergeSessionBranch(
     for (let i = target.branch_point_step; i < lines.length; i++) {
       try {
         const item = JSON.parse(lines[i]);
-        if (item.code_diff) {
-          diffs.push(item.code_diff);
+        if (item.role && item.content) {
+          if (item.code_diff) {
+            diffs.push(item.code_diff);
+          }
+          newTurnsToAppend.push({
+            role: item.role,
+            content: item.content,
+            tool_calls: item.tool_calls,
+          });
         }
-        newTurnsToAppend.push({
-          role: item.role,
-          content: item.content,
-          tool_calls: item.tool_calls,
-        });
-      } catch { /* ignored */ }
+      } catch (err) {
+        parseErrors.push(`Line ${i + 1}: ${err instanceof Error ? err.message : String(err)}`);
+      }
     }
+  }
+
+  if (parseErrors.length > 0) {
+    return { success: false, message: `Failed to parse ${parseErrors.length} turn(s) in branch JSONL: ${parseErrors.join('; ')}` };
   }
 
   if (diffs.length > 0) {

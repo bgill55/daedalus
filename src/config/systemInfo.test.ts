@@ -39,4 +39,19 @@ describe('System Diagnostics Module', () => {
     expect(header).toContain('CPUs:');
     expect(header).toContain('RAM:');
   });
+
+  it('detectShell falls back to bash for unknown platforms', () => {
+    expect(detectShell('android')).toBe('bash');
+    expect(detectShell('cygwin')).toBe('bash');
+  });
+
+  it('resolveOsName handles unknown platforms gracefully', () => {
+    expect(resolveOsName('android', '14')).toBe('android (14)');
+    expect(resolveOsName('cygwin', '3.4.6')).toBe('cygwin (3.4.6)');
+  });
+
+  it('total memory is greater than or equal to free memory', () => {
+    const diag = getSystemDiagnostics();
+    expect(diag.totalMemoryGB).toBeGreaterThanOrEqual(diag.freeMemoryGB);
+  });
 });
