@@ -78,7 +78,7 @@ Daedalus detects the user's operating system, hardware, and shell environment at
 
 ### 10. Live Preview (`/preview`)
 Renders local HTML files or URLs in headless Chromium and captures a PNG screenshot:
-* `/preview <filepath|url>`: Converts local file paths to `file://` URLs, launches headless Chrome via Puppeteer, screenshots the page, and saves the image to `~/.daedalus/screenshots/`.
+* `/preview <filepath-or-url>`: Converts local file paths to `file://` URLs, launches headless Chrome via Puppeteer, screenshots the page, and saves the image to `~/.daedalus/screenshots/`.
 
 ### 11. Chat-History Branching System ("What-if" Sessions)
 Enables non-linear exploration of coding tasks by snapshotting and branching sessions:

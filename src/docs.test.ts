@@ -93,7 +93,7 @@ describe('Documentation Sync Verification', () => {
       '/fact': '/fact [text]',
       '/convention': '/convention [text]',
       '/session': '/session [name]',
-      '/preview': '/preview <filepath|url>',
+      '/preview': '/preview <filepath-or-url>',
     };
 
     const COMMAND_GROUPS: { name: string; commands: string[] }[] = [

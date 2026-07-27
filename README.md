@@ -179,7 +179,7 @@ AI assistance without:
 | `/changelog` | View the latest CLI changes |
 | `/help` / `?` / `help` | Show available commands or detailed info for a specific command |
 | `/exit` / `/exit` / `/quit` / `quit` | Save session and exit |
-| `/preview <filepath|url>` | Screenshot a local HTML file or URL and save the image |
+| `/preview <filepath-or-url>` | Screenshot a local HTML file or URL and save the image |
 
 ### Additional Commands
 
