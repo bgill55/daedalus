@@ -1,3 +1,10 @@
+## [1.83.1](https://github.com/bgill55/daedalus/compare/v1.83.0...v1.83.1) (2026-07-27)
+
+
+### Reverts
+
+* Revert "chore(release): 1.83.0" ([f88c6dc](https://github.com/bgill55/daedalus/commit/f88c6dcd41b47971cd6c9c164ce0d9be8029074d))
+
 # [1.82.0](https://github.com/bgill55/daedalus/compare/v1.81.0...v1.82.0) (2026-07-27)
 
 
