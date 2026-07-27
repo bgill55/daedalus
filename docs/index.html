@@ -3,140 +3,256 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Daedalus - Local-first terminal-based AI coding assistant</title>
+  <title>Daedalus — AI Coding Assistant</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' fill='none'><path d='M12 16L24 32L12 48' stroke='%2300d4aa' stroke-width='4.5' stroke-linecap='round' stroke-linejoin='round'/><path d='M32 16V48' stroke='%237c3aed' stroke-width='4.5' stroke-linecap='round'/><path d='M32 16H44C51 16 54 22 54 32C54 42 51 48 44 48H32' stroke='%2300d4aa' stroke-width='4.5' stroke-linecap='round' stroke-linejoin='round'/><path d='M39 24H42C44 24 46 26 46 32C46 38 44 40 42 40H39' stroke='%237c3aed' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/><path d='M39 29V35' stroke='%2300d4aa' stroke-width='3' stroke-linecap='round'/></svg>">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/docsify@4/lib/themes/dark.min.css">
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; line-height: 1.6; color: #333; max-width: 900px; margin: 0 auto; padding: 20px; }
-    h1, h2, h3 { color: #2c3e50; }
-    p { margin-bottom: 1em; }
-    .shields { display: flex; gap: 10px; flex-wrap: wrap; margin: 20px 0; }
-    .shields img { height: 24px; }
-    pre { background: #f5f5f5; padding: 20px; border-radius: 5px; overflow-x: auto; }
-    .center { text-align: center; }
-    hr { border: 1px solid #ddd; margin: 30px 0; }
-    blockquote { background: #f8f9fa; border-left: 4px solid #3498db; padding: 15px; margin: 20px 0; }
-    a { color: #3498db; text-decoration: none; }
-    a:hover { text-decoration: underline; }
-    video { max-width: 100%; border-radius: 5px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-    .image-container { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; margin: 20px 0; }
-    .image-container img { max-width: 49%; border-radius: 5px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-    @media (max-width: 768px) { .image-container img { max-width: 100%; } }
+    :root {
+      --daedalus-cyan: #00d4aa;
+      --daedalus-purple: #7c3aed;
+      --daedalus-bg: #0f0f1a;
+      --daedalus-surface: #1a1a2e;
+      --daedalus-border: #2a2a4a;
+      --daedalus-text: #e2e8f0;
+      --daedalus-muted: #94a3b8;
+      --cover-max-width: 60em;
+    }
+    /* Base */
+    body, .docsify-dark {
+      background: var(--daedalus-bg) !important;
+      color: var(--daedalus-text);
+    }
+    .app-nav, .sidebar, .content {
+      background: var(--daedalus-bg);
+    }
+    /* Sidebar */
+    .sidebar {
+      border-right: 1px solid var(--daedalus-border);
+      background: var(--daedalus-surface);
+    }
+    .sidebar ul li a {
+      color: var(--daedalus-muted);
+      border-left: 2px solid transparent;
+      transition: all 0.2s ease;
+    }
+    .sidebar ul li a:hover {
+      color: var(--daedalus-cyan);
+      border-left-color: var(--daedalus-cyan);
+    }
+    .sidebar ul li.active > a {
+      color: var(--daedalus-cyan);
+      border-left-color: var(--daedalus-cyan);
+    }
+    .sidebar .app-name-link {
+      color: var(--daedalus-cyan) !important;
+      font-weight: bold;
+      font-size: 1.3em;
+    }
+    /* Links */
+    a { color: var(--daedalus-cyan); }
+    a:hover { color: #00ffcc; }
+    /* Code blocks */
+    .markdown-section pre {
+      background: var(--daedalus-surface) !important;
+      border: 1px solid var(--daedalus-border);
+      border-radius: 8px;
+    }
+    .markdown-section code {
+      background: var(--daedalus-surface);
+      color: var(--daedalus-cyan);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    /* Headers */
+    .markdown-section h1, .markdown-section h2, .markdown-section h3 {
+      color: var(--daedalus-text);
+      border-bottom: 1px solid var(--daedalus-border);
+      padding-bottom: 0.3em;
+    }
+    .markdown-section h1 { color: var(--daedalus-cyan); }
+    .markdown-section h2 { color: #a78bfa; }
+    /* Tables */
+    .markdown-section table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+    .markdown-section th {
+      background: var(--daedalus-surface);
+      color: var(--daedalus-cyan);
+      border: 1px solid var(--daedalus-border);
+      padding: 10px 14px;
+    }
+    .markdown-section td {
+      border: 1px solid var(--daedalus-border);
+      padding: 8px 14px;
+    }
+    .markdown-section tr:nth-child(even) {
+      background: rgba(0, 212, 170, 0.03);
+    }
+    /* Blockquotes */
+    .markdown-section blockquote {
+      border-left: 4px solid var(--daedalus-cyan);
+      background: rgba(0, 212, 170, 0.05);
+      padding: 12px 20px;
+      border-radius: 0 8px 8px 0;
+    }
+    /* Cover page */
+    .cover {
+      background: linear-gradient(135deg, var(--daedalus-bg) 0%, var(--daedalus-surface) 50%, #0a0a1a 100%) !important;
+    }
+    .cover-main {
+      text-align: center;
+      padding: 4em 2em;
+    }
+    .cover-main .logo {
+      font-size: 4em;
+      margin-bottom: 0.3em;
+    }
+    .cover-main .logo svg {
+      filter: drop-shadow(0 0 20px rgba(0, 212, 170, 0.4));
+      animation: float 3s ease-in-out infinite;
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
+    }
+    .cover-main h1 {
+      color: var(--daedalus-cyan) !important;
+      font-size: 3.2em;
+      font-weight: 800;
+      margin: 0.2em 0;
+      letter-spacing: -0.02em;
+    }
+    .cover-main h1 small {
+      display: block !important;
+      position: relative !important;
+      left: auto !important;
+      color: var(--daedalus-muted);
+      font-size: 0.45em;
+      font-weight: 400;
+      letter-spacing: 0.1em;
+      margin-top: 0.3em;
+      text-align: center !important;
+    }
+    .cover-main p {
+      color: var(--daedalus-text) !important;
+      font-size: 1.15em;
+      max-width: 32em;
+      margin: 1.5em auto;
+      line-height: 1.7;
+    }
+    .cover-main .hero-text {
+      max-width: 32em;
+      margin: 1.5em auto;
+    }
+    .cover-main .hero-text p {
+      margin: 0;
+      line-height: 1.7;
+    }
+    /* Mermaid diagrams */
+    .mermaid {
+      background: var(--daedalus-surface);
+      border: 1px solid var(--daedalus-border);
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    /* Navigation */
+    .app-nav {
+      background: var(--daedalus-surface);
+      border-bottom: 1px solid var(--daedalus-border);
+    }
+    .app-nav > ul > li > a {
+      color: var(--daedalus-muted);
+    }
+    .app-nav > ul > li > a:hover {
+      color: var(--daedalus-cyan);
+    }
+    /* Search */
+    #tsd-search {
+      background: var(--daedalus-surface);
+      border: 1px solid var(--daedalus-border);
+    }
+    #tsd-search-input {
+      background: var(--daedalus-bg);
+      color: var(--daedalus-text);
+      border: 1px solid var(--daedalus-border);
+    }
+    /* Mobile */
+    @media (max-width: 768px) {
+      .sidebar {
+        background: var(--daedalus-surface);
+      }
+      .sidebar-toggle {
+        background: var(--daedalus-surface);
+        border: 1px solid var(--daedalus-border);
+      }
+    }
   </style>
 </head>
 <body>
-  <h1 class="center">Daedalus</h1>
+  <div id="app">Loading...</div>
   
-  <div class="center">
-    <img src="https://github.com/user-attachments/assets/a5d4b394-3c2c-427e-b877-6e49f77467fc" width="256" alt="daedalus_emblem">
-  </div>
+  <script>
+    window.$docsify = {
+      name: 'Daedalus',
+      repo: 'https://github.com/bgill55/daedalus',
+      loadSidebar: true,
+      loadNavbar: true,
+      coverpage: true,
+      mergeNavbar: true,
+      subMaxLevel: 3,
+      search: {
+        placeholder: 'Search docs...',
+        noData: 'No results found!'
+      },
+      pagination: {
+        previousText: 'Previous',
+        nextText: 'Next',
+        crossDomain: true
+      },
+      copyCode: {
+        buttonText: 'Copy',
+        errorText: 'Error',
+        successText: 'Copied'
+      }
+    };
+  </script>
   
-  <div class="center shields">
-    <a href="https://www.npmjs.com/package/daedalus-cli"><img src="https://img.shields.io/npm/v/daedalus-cli?color=blue" alt="npm version"></a>
-    <a href="https://www.npmjs.com/package/daedalus-cli"><img src="https://img.shields.io/npm/dw/daedalus-cli?color=blue" alt="npm weekly downloads"></a>
-    <a href="https://www.npmjs.com/package/daedalus-cli"><img src="https://img.shields.io/npm/dt/daedalus-cli?color=blue" alt="npm total downloads"></a>
-    <a href="https://github.com/bgill55/daedalus/stargazers"><img src="https://img.shields.io/github/stars/bgill55/daedalus?color=blue" alt="GitHub stars"></a>
-    <a href="https://discord.gg/GPH2ZH57up"><img src="https://img.shields.io/badge/Discord-Join%20Community-5865F2?logo=discord&logoColor=white" alt="Discord Community"></a>
-    <a href="https://github.com/bgill55/daedalus/actions/workflows/ci.yml"><img src="https://github.com/bgill55/daedalus/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-    <a href="https://bgill55.github.io/daedalus/"><img src="https://img.shields.io/badge/docs-GitHub%20Pages-blue" alt="Documentation"></a>
-    <a href="LICENSE"><img src="https://img.shields.io/github/license/bgill55/daedalus?color=blue" alt="License"></a>
-    <a href="https://nodejs.org"><img src="https://img.shields.io/badge/node-%3E%3D20-brightgreen" alt="Node"></a>
-  </div>
+  <!-- Core Docsify -->
+  <script src="https://cdn.jsdelivr.net/npm/docsify@4/lib/docsify.min.js"></script>
   
-  <p><strong>Local-first terminal-based AI coding assistant.</strong></p>
+  <!-- Plugins -->
+  <script src="https://cdn.jsdelivr.net/npm/docsify@4/lib/plugins/search.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docsify@4/lib/plugins/pagination.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docsify-copy-code@2/dist/docsify-copy-code.min.js"></script>
   
-  <p>Daedalus connects to local LLM servers (LM Studio, Ollama, llama.cpp, vLLM) or remote providers (OpenAI, Groq, OpenRouter, Anthropic), routes requests across models, and gives your AI agent access to your file system, terminal, git, web search, and codebase indexing.</p>
+  <!-- Mermaid Support -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docsify-mermaid@2/dist/docsify-mermaid.js"></script>
+  <script>
+    mermaid.initialize({ startOnLoad: true, theme: 'dark' });
+  </script>
   
-  <p>For full guides, configuration reference, and examples, visit the documentation site: <a href="https://bgill55.github.io/daedalus/">https://bgill55.github.io/daedalus/</a></p>
-  
-  <pre>╔═══════════════════════════════════════════════════════════════════╗
-║  ██████╗  █████╗ ███████╗██████╗  █████╗ ██╗     ██╗   ██╗███████╗║
-║  ██╔══██╗██╔══██╗██╔════╝██╔══██╗██╔══██╗██║     ██║   ██║██╔════╝║
-║  ██║  ██║███████║█████╗  ██║  ██║███████║██║     ██║   ██║███████╗║
-║  ██║  ██║██╔══██║██╔══╝  ██║  ██║██╔══██╗██║     ██║   ██║╚════██║║
-║  ██████╔╝██║  ██║███████╗██████╔╝██║  ██║███████╗╚██████╔╝███████║║
-║  ╚═════╝ ╚═╝  ╚═╝╚══════╝╚═════╝ ╚═╝  ╚═╝╚══════╝ ╚══════╝ ╚══════╝║
-║                                                                   ║
-║  o  local-first · embedded router · multi-agent · not sentient o  ║
-╚═══════════════════════════════════════════════════════════════════╝</pre>
-  
-  <div class="center image-container">
-    <img src="media/cli_view.png" width="49%" alt="Daedalus CLI View">
-    <img src="media/tui_view.png" width="49%" alt="Daedalus TUI View">
-  </div>
-  
-  <div class="center">
-    <video src="media/Daedalus__AI_Coding_Assistant.mp4" width="100%" controls></video>
-  </div>
-  
-  <hr>
-  
-  <blockquote>
-    <h3>Looking to build and sell your own AI CLI?</h3>
-    Check out <strong>Daedalus-Lite</strong> — the zero-dependency, rebrandable TypeScript starter template designed for developers to build, rebrand, and sell their own custom AI coding tools! <a href="https://bgill55.github.io/daedalus-lite/">Visit Daedalus-Lite →</a>
-    <br><small>Fun fact: Daedalus itself was built using Daedalus-Lite as a starting point, then extended with advanced features like multi-agent orchestration, codebase indexing, and autonomous workflows.</small>
-  </blockquote>
-  
-  <hr>
-  
-  <h2>Quick Start</h2>
-  <pre>npm install -g daedalus-cli
-daedalus</pre>
-  
-  <p>To launch with the interactive terminal dashboard layout:</p>
-  <pre>daedalus --tui</pre>
-  
-  <p>On first run, Daedalus scans for local LLM servers and guides you through setup. If none are found, it prompts for a remote provider.</p>
-  
-  <p>From source: <code>git clone https://github.com/bgill55/daedalus.git && cd daedalus && npm install && npm run build</code></p>
-  
-  <hr>
-  
-  <h2>Why Daedalus?</h2>
-  <p>AI assistance without:</p>
-  <ul>
-    <li>Sending your code to third-party servers</li>
-    <li>Per-token pricing for every interaction</li>
-    <li>Being locked into a single provider</li>
-    <li>Losing conversation history between sessions</li>
-  </ul>
-  
-  <hr>
-  
-  <h2>Features</h2>
-  
-  <h3>Core</h3>
-  <ul>
-    <li><strong>Interactive Terminal Dashboard (TUI)</strong> — premium side-by-side dashboard with real-time CPU/RAM monitor gauges, model selection overrides, and an interactive file tree to toggle prompt context dynamically.</li>
-    <li><strong>Local-first</strong> — works entirely on your machine with local LLMs</li>
-    <li><strong>Embedded model router</strong> — priority, round-robin, or fastest-response routing across multiple models with real-time tokens-per-second (`tok/s`) stream telemetry, plus <strong>Multi-Model Fallback</strong> for zero-interruption auto-failover on rate limits (429) or 5xx errors.</li>
-    <li><strong>Smart model tier routing</strong> — routes planning, reviews, and context summarization calls to your configured `intelligence` tier model</li>
-    <li><strong>Multi-agent orchestration</strong> — spawns planner, coder, reviewer, debugger, and researcher sub-agents</li>
-    <li><strong>Autonomous Finn Loop</strong> — interactive requirements gathering (`/spec`), GitHub Issues tracking, background daemon execution (`daedalus --loop`), and Discord PR review webhook embeds.</li>
-    <li><strong>Loop Engineering & Self-Repair</strong> — automatic stack-aware compile/build verification checks (e.g., `npx tsc --noEmit`, `cargo check`, `go build`) with dynamic stdout/stderr feedback loops for self-repair, <strong>Automated Workspace Rollback</strong> to revert patches upon task failure, and <strong>Git-Aware Smart Testing</strong> (`/test -g`) to run only affected unit tests in < 200ms.</li>
-    <li><strong>Codebase indexing & Live Watcher</strong> — FTS5-powered symbol search, definitions, and call-graph references across 10+ languages with background <strong>Live File-Watcher</strong> (`/watch`) for automatic re-indexing on save.</li>
-    <li><strong>MCP Marketplace & Explorer</strong> (`/mcp explore`) — Model Context Protocol server marketplace with one-click installation (`/mcp install <name>`) via stdio and HTTP/SSE.</li>
-    <li><strong>Stack-aware prompting</strong> — automatically scans your project tech stack on startup to prevent library and platform boundary hallucinations</li>
-    <li><strong>Dynamic task checklist</strong> — injects the active todo list into each prompt turn to maintain execution context</li>
-    <li><strong>Session management</strong> — SQLite-backed history with save, load, JSONL export</li>
-    <li><strong>Persistent memory</strong> — facts and coding conventions auto-inject every turn; `/profile` and `/style` persist across sessions</li>
-    <li><strong>Cursor & Claude Code Compatibility</strong> — automatically detects and inherits instructions from `CLAUDE.md`, `.cursorrules`, and `.daedalusrules` files in the project root on startup.</li>
-  </ul>
-  
-  <hr>
-  
-  <h2>Developer API Reference</h2>
-  <p>For detailed TypeScript API documentation showing all exported classes, functions, and modules, see the <a href="modules.html">Auto-generated API Reference</a>.</p>
-  
-  <hr>
-  
-  <h2>Detailed Documentation Guides</h2>
-  <p>For in-depth explanations, configuration options, and hardware optimization tips, see the modular guides below:</p>
-  <ul>
-    <li><a href="routing-and-tuning.md">Model Routing & Tuning Guide</a> — Endpoints, failover chains, routing strategy configs, and GPU/LM Studio tuning recommendations.</li>
-    <li><a href="orchestration.md">Multi-Agent Orchestration</a> — Overview of the planning, coding, and review loops, recovery checkpoints, and background task runners.</li>
-    <li><a href="finn-loop.md">Autonomous Finn Loop</a> — Interactive requirements specification, GitHub issue tracking, background daemon execution, and Discord webhook notifications.</li>
-    <li><a href="sandboxing.md">Execution Sandboxing</a> — Running commands inside isolated Docker containers or WSL distributions.</li>
-    <li><a href="mcp.md">Model Context Protocol (MCP) Integration</a> — Configuring stdio and HTTP/SSE servers to expand your agent's capabilities.</li>
-    <li><a href="configuration-reference.md">Configuration Reference Guide</a> — Reference list of all global configuration keys (`router.*`, `agents.*`, `tools.*`, `ui.*`, etc.).</li>
-  </ul>
+  <!-- Custom Navigation -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Add API Reference link to navigation
+      const nav = document.querySelector('.app-nav');
+      if (nav) {
+        const apiLink = document.createElement('li');
+        apiLink.innerHTML = '<a href="modules.html">API Reference</a>';
+        nav.querySelector('ul').appendChild(apiLink);
+      }
+      
+      // Add API Reference to sidebar
+      const sidebar = document.querySelector('.sidebar');
+      if (sidebar) {
+        const apiItem = document.createElement('li');
+        apiItem.innerHTML = '<a href="modules.html">API Reference</a>';
+        sidebar.querySelector('ul').appendChild(apiItem);
+      }
+    });
+  </script>
 </body>
 </html>
