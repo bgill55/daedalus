@@ -805,7 +805,8 @@ export const commandsList: Command[] = [
           if (m.role === 'system') return;
           lines.push(`### ${m.role.toUpperCase()}\n${m.content}\n`);
         });
-        fs.writeFileSync(exportPath, lines.join('\n'), 'utf8');
+        const resolvedPath = path.resolve(exportPath);
+        fs.writeFileSync(resolvedPath, lines.join('\n'), 'utf8');
         console.log(pc.green(`[OK] Session transcript exported to ${exportPath}`));
         return;
       }
@@ -1249,7 +1250,7 @@ Once you have finished making changes, I will automatically re-run the command t
     name: '/session',
     description: 'Manage chat sessions — /session new to start, /session load <id> to restore, /session export [path] to save transcript',
     usage: '/session <subcommand> [args]',
-    helpText: 'Manage, list, load, save, and export SQLite-persisted conversation sessions.\n\nSubcommands:\n  list                  List all saved sessions\n  load <id>             Load a saved session by ID\n  save                  Save the current session manually\n  new                   Start a new conversation session\n  export [filepath]     Export the current session transcript to JSONL',
+    helpText: 'Manage, list, load, save, and export SQLite-persisted conversation sessions.\n\nSubcommands:\n  list                  List all saved sessions\n  load <id>             Load a saved session by ID\n  save                  Save the current session manually\n  new                   Start a new conversation session\n  export [path]     Export the current session transcript to Markdown',
     execute: async (args, ctx) => {
       const parts = args.trim().split(/\s+/);
       const subcommand = parts[0].toLowerCase();
@@ -1394,8 +1395,8 @@ Once you have finished making changes, I will automatically re-run the command t
       }
 
       if (subcommand === 'export') {
-        const mdPath = subcommandArg || `transcript-${ctx.sessionManager.sessionId}.md`;
-        const resolved = path.resolve(ctx.sessionManager.projectRoot || '.', mdPath);
+        const cleanedPath = (subcommandArg || `transcript-${ctx.sessionManager.sessionId}.md`).replace(/^["']|["']$/g, '');
+        const resolved = path.resolve(ctx.sessionManager.projectRoot || '.', cleanedPath);
         
         let md = `# Daedalus Session: ${ctx.sessionManager.sessionTitle}\n\n`;
         md += `*Generated: ${new Date().toLocaleString()}*\n\n---\n\n`;
