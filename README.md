@@ -109,6 +109,10 @@ AI assistance without:
 - **Web** — DuckDuckGo search and URL fetching (no API key needed)
 - **Image Generation** — local Stable Diffusion WebUI integration with automatic zero-config Pollinations AI fallback (`/image` command & `generate_image` tool) for generating UI assets, logos, and graphics without requiring an API key
 - **Codebase** — index, find, definitions, references
+- **Logger** — unified `src/tools/logger.ts` with `ConsoleLogger` and `SilentLogger` for configurable output
+- **REPL** — persistent context REPL (`src/tools/repl.ts`) for interactive experimentation
+- **Telemetry** — lightweight performance timing utilities (`src/tools/telemetry.ts`)
+- **Dependency fallback** — `src/tools/deps.ts` to verify required commands and provide helpful install guidance
 
 ### Commands
 
@@ -246,9 +250,11 @@ For in-depth explanations, configuration options, and hardware optimization tips
 ```bash
 npm run dev       # hot-reload
 npm run build     # compile TypeScript
-npm test          # vitest (270+ tests)
+npm test          # vitest (470+ tests)
 npm run lint      # eslint (flat config)
 npx tsc --noEmit  # type check
+npm run audit     # full CI pipeline (lint + build + test + config validation)
+npm run docs      # generate Typedoc HTML documentation
 ```
 
 ### Architecture
@@ -260,11 +266,11 @@ npx tsc --noEmit  # type check
 ```
 src/
 ├── index.ts           CLI entry, REPL, command dispatch
-├── config/            Zod-schema validated config
+├── config/            Zod-schema validated config (+ validate.ts)
 ├── router/            Model routing, health checks, rate limiter
 ├── session/           SQLite sessions, project memory, JSONL export
 ├── agents/            Multi-agent orchestration (planner, coder, et al.)
-├── tools/             16 built-in tools + MCP transport
+├── tools/             Logger, REPL, telemetry, deps fallback, spinner
 ├── indexing/          FTS5 codebase indexing
 └── onboarding/        Setup wizard
 ```
