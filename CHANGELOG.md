@@ -1,3 +1,10 @@
+## [1.76.1](https://github.com/bgill55/daedalus/compare/v1.76.0...v1.76.1) (2026-07-27)
+
+
+### Bug Fixes
+
+* **docs:** escape pipe in preview table cell ([af47786](https://github.com/bgill55/daedalus/commit/af477867303a7f253c7773d465c196dc25541873))
+
 # [1.76.0](https://github.com/bgill55/daedalus/compare/v1.75.1...v1.76.0) (2026-07-27)
 
 
