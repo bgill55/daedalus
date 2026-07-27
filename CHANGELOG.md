@@ -1,3 +1,10 @@
+# [1.76.0](https://github.com/bgill55/daedalus/compare/v1.75.1...v1.76.0) (2026-07-27)
+
+
+### Features
+
+* **cli:** add /preview command for HTML/URL screenshot previews ([388a297](https://github.com/bgill55/daedalus/commit/388a297d4926fa23a572d5af7ef8dc2f1717c8a4))
+
 ## [1.75.1](https://github.com/bgill55/daedalus/compare/v1.75.0...v1.75.1) (2026-07-27)
 
 
