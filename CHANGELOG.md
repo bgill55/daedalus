@@ -1,3 +1,10 @@
+## [1.78.1](https://github.com/bgill55/daedalus/compare/v1.78.0...v1.78.1) (2026-07-27)
+
+
+### Bug Fixes
+
+* normalize line endings in gitMerger test ([569a4b3](https://github.com/bgill55/daedalus/commit/569a4b3ffe0f4a88ebe72342a774951204e3d519))
+
 # [1.78.0](https://github.com/bgill55/daedalus/compare/v1.77.0...v1.78.0) (2026-07-27)
 
 
