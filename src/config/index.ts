@@ -176,10 +176,8 @@ const DEFAULT_CONFIG: DaedalusConfig = {
   router: {
     strategy: 'priority',
     chain: [
-      { name: 'lmstudio-default', endpoint: 'http://localhost:1234/v1', model: 'auto', priority: 1, enabled: true },
-      { name: 'ollama-default', endpoint: 'http://localhost:11434/v1', model: 'auto', priority: 2, enabled: true },
-      { name: 'llamacpp-default', endpoint: 'http://localhost:8080/v1', model: 'auto', priority: 3, enabled: false },
-      { name: 'vllm-default', endpoint: 'http://localhost:8000/v1', model: 'auto', priority: 4, enabled: false },
+      // LM Studio with gemma-4-e4b - vision-capable local model
+      { name: 'lmstudio-gemma', endpoint: 'http://127.0.0.1:1234/v1', model: 'google/gemma-4-e4b', priority: 0, enabled: true, supportsVision: true, supportsTools: true, tier: 'intelligence' },
     ],
     healthCheckInterval: 30000,
     requestTimeout: 120000,

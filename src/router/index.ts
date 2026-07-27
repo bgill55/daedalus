@@ -109,7 +109,11 @@ export class LocalRouter {
     const enabled = this.getEnabledModels();
     return enabled.filter(m => {
       const health = getCachedHealth(m);
-      return health?.healthy !== false; // Unknown = assume healthy
+      // Local endpoints are assumed healthy until proven otherwise
+      if (!health && isLocalEndpoint(m.endpoint)) {
+        return true;
+      }
+      return health?.healthy !== false; // Unknown = assume healthy for remote, but local is always healthy initially
     });
   }
 

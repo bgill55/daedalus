@@ -19,7 +19,7 @@
   ],
   "scripts": {
     "start": "tsx src/index.ts",
-    "bot": "tsx src/bot.ts",
+    "bot": "tsx src/bot/index.ts",
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "prepublishOnly": "npm run build",
