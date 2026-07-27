@@ -1,3 +1,10 @@
+## [1.75.1](https://github.com/bgill55/daedalus/compare/v1.75.0...v1.75.1) (2026-07-27)
+
+
+### Bug Fixes
+
+* **session:** tighten any, improve merge error handling, add tests ([3015447](https://github.com/bgill55/daedalus/commit/30154475f4b1710cd0f6982c4dba4f11da3abe0d))
+
 # [1.75.0](https://github.com/bgill55/daedalus/compare/v1.74.1...v1.75.0) (2026-07-27)
 
 
