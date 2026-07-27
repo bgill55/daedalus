@@ -73,16 +73,26 @@ Exposes a fully autonomous developer workflow (Spec → Build → Review → PR 
 * `/spec` command: Interactively gathers requirements, generates a markdown spec, and opens a GitHub Issue labeled `daedalus-todo`.
 * `daedalus --loop` daemon: Polls GitHub for open issues, runs autonomous orchestration to solve them, executes verifications, commits changes, opens a Pull Request, and alerts team channels via Discord Webhooks.
 
-### 9. Chat-History Branching System ("What-if" Sessions)
+### 9. OS & System Diagnostics Awareness
+Daedalus detects the user's operating system, hardware, and shell environment at startup and injects structured system diagnostics into the system prompt. The `system_info` tool exposes platform, architecture, CPU count, memory, and shell type to the LLM for context-aware terminal command generation.
+
+### 10. Live Preview (`/preview`)
+Renders local HTML files or URLs in headless Chromium and captures a PNG screenshot:
+* `/preview <filepath|url>`: Converts local file paths to `file://` URLs, launches headless Chrome via Puppeteer, screenshots the page, and saves the image to `~/.daedalus/screenshots/`.
+
+### 11. Chat-History Branching System ("What-if" Sessions)
 Enables non-linear exploration of coding tasks by snapshotting and branching sessions:
-* `/session branch <name>`: Takes an immutable snapshot of conversation turns and active context up to step $N$.
+* `/session branch <name>`: Takes an immutable snapshot of conversation turns and active context up to step $N$, saved as JSONL.
 * `/session checkout <name>`: Switches active REPL context to an existing branch.
 * `/session branches`: Displays a hierarchical tree visualization of session parent-child branches.
-* `/session merge <name>`: Extracts unified `code_diff` patches from step $N+1$ onwards, executes `git apply` against the workspace, appends trajectory turns to parent history, and marks status as `merged`.
+* `/session merge <name>`: Extracts unified `code_diff` patches from step $N+1$ onwards, applies them via `git apply`, appends trajectory turns to parent history, and marks status as `merged`. JSONL parse errors during merge are collected and reported instead of silently ignored.
 
 ---
 
 ## 3. Real-World Benchmarks & Practical Case Studies
+
+### Test Suite Growth
+Daedalus maintains a test suite of **439 tests across 53 files** (Vitest), covering the model router, session branching, tool execution, config validation, codebase indexing, MCP transport, CLI commands, the git-based merge system, and system diagnostics.
 
 ### Case Study A: Autonomous Feature Engineering (`/health` Command)
 * **Objective**: Implement a new `/health` command in Daedalus CLI to display model router provider latency, health status, and API key statuses.
@@ -108,6 +118,7 @@ Enables non-linear exploration of coding tasks by snapshotting and branching ses
 | `/tasks` | Multi-Agent | List active background tasks |
 | `/ensemble <goal>` | Multi-Agent | Run multi-model ensemble drafting pipeline |
 | `/spec <idea>` | Workflow | Interactively flesh out a feature spec and open GitHub Issue |
+| `/debug <command>` | Workflow | Run a command and autonomously debug failures |
 | `/watch [start\|stop\|status]` | Codebase | Background file watcher for automatic symbol re-indexing |
 | `/index` | Codebase | Manually index codebase symbols into SQLite FTS5 |
 | `/find <query>` | Codebase | Search indexed symbols in project |
@@ -117,20 +128,34 @@ Enables non-linear exploration of coding tasks by snapshotting and branching ses
 | `/commit [msg]` | Dev Tools | Stage and commit git changes |
 | `/branch [name]` | Dev Tools | Git branch operations |
 | `/pr [base]` | Dev Tools | Generate PR description compared to base branch |
-| `/mcp <explore\|search\|install>` | MCP | Manage MCP servers (explore marketplace, search, install) |
+| `/mcp <explore\|search\|install\|list>` | MCP | Manage MCP servers (explore marketplace, search, install) |
 | `/image <prompt>` | Image Gen | Generate UI assets using Stable Diffusion WebUI or Pollinations AI |
 | `/undo` | Safety | Revert the last applied file patch |
+| `/preview <filepath\|url>` | Utilities | Screenshot a local HTML file or URL and save the image |
+| `/lite` | Utilities | Show Daedalus Lite documentation |
+| `/stats` | Utilities | Display session analytics, token usage, index count, router status |
+| `/onboard` | Setup | First-time setup: discover local models, configure, test |
+| `/tui` | UI | Toggle the Terminal User Interface (TUI) dashboard |
 | `/add <file>` | Context | Add file to active prompt context |
 | `/remove <file>` | Context | Remove file from active prompt context |
 | `/context` | Context | Show active file context |
 | `/paste` | Context | Paste clipboard text or image into prompt |
+| `/clear` | Context | Clear conversation history |
+| `/summarize` | Context | Summarize the current conversation |
+| `/tokens` | Context | Display estimated token count for current session |
 | `/health` | Diagnostics | Display router provider latency, health status, and API key statuses |
-| `/config` | Config | View or modify global configuration settings |
-| `/project` | Config | View or set project-level config settings (`.daedalusrc`) |
+| `/doctor` | Diagnostics | Run full system diagnostics and health checks |
+| `/models` | Diagnostics | List all configured models and tiers |
+| `/config [set <key>=<val>]` | Config | View or modify global configuration settings |
+| `/project [set <key>=<val>]` | Config | View or set project-level config settings (`.daedalusrc`) |
+| `/profile` | Config | View or edit user profile (tone, experience, shell) |
+| `/style` | Config | View or set coding style preferences |
 | `/memory` | Memory | View stored project facts and conventions |
 | `/fact <text>` | Memory | Add a fact to project memory |
 | `/convention <text>` | Memory | Add a coding convention to project memory |
+| `/extract` | Memory | Manually trigger fact extraction from current session |
 | `/session [name]` | Session | Manage, save, restore, or export chat sessions |
+| `/prune [budget]` | Session | Prune old messages to stay within token budget |
 
 ---
 

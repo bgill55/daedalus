@@ -2506,7 +2506,47 @@ Once you have finished making changes, I will automatically re-run the command t
     }
   },
   {
-    name: 'exit',
+    name: '/preview',
+    description: 'Screenshot a local HTML file or URL and save the image',
+    usage: '/preview <filepath | url>',
+    helpText: 'Opens the given HTML file or URL in headless Chrome and saves a PNG screenshot.\n  Examples:\n    /preview preview.html\n    /preview http://localhost:3000\n    /preview ./src/components/output.html',
+    execute: async (args, ctx) => {
+      const target = args.trim();
+      if (!target) {
+        console.log(pc.red('[WARN] Usage: /preview <filepath or URL>'));
+        return;
+      }
+
+      let url = target;
+      if (!/^https?:\/\//i.test(target) && !/^file:\/\//i.test(target)) {
+        const absPath = path.resolve(target);
+        if (!fs.existsSync(absPath)) {
+          console.log(pc.red(`[ERROR] File not found: ${absPath}`));
+          return;
+        }
+        url = `file:///${absPath.replace(/\\/g, '/')}`;
+      }
+
+      console.log(pc.dim(`[PREVIEW] Screenshotting ${url}...`));
+
+      try {
+        const { screenshotPage } = await import('./tools/builtin/screenshot.js');
+        const result = await screenshotPage({ url }, ctx.toolContext);
+        if (!result.success) {
+          console.log(pc.red(`[ERROR] ${result.error || 'Screenshot failed'}`));
+          return;
+        }
+        const data = JSON.parse(result.content);
+        console.log(pc.green(`[OK] Screenshot saved to: ${data.savedPath}`));
+        console.log(pc.dim(`     URL: ${data.url}`));
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.log(pc.red(`[ERROR] Preview failed: ${msg}`));
+      }
+    }
+  },
+  {
+    name: '/exit',
     aliases: ['/exit', '/quit', 'quit'],
     description: 'Save session and exit',
     execute: async (args, ctx) => {

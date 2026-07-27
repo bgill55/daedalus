@@ -178,6 +178,8 @@ AI assistance without:
 | `/doctor` | Diagnose connection and discovery |
 | `/changelog` | View the latest CLI changes |
 | `/help` / `?` / `help` | Show available commands or detailed info for a specific command |
+| `/exit` / `/exit` / `/quit` / `quit` | Save session and exit |
+| `/preview <filepath|url>` | Screenshot a local HTML file or URL and save the image |
 
 ### Additional Commands
 
@@ -187,7 +189,6 @@ AI assistance without:
 | `/stats` / `stats` | Display session analytics, token usage, index count, and router status |
 | `/onboard` | First-time setup — discover local models, configure, and test |
 | `/tui` | Toggle the Terminal User Interface (TUI) dashboard |
-| `exit` / `/exit` / `/quit` / `quit` | Save session and exit |
 
 <!-- END_COMMANDS_TABLE -->
 

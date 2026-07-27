@@ -93,6 +93,7 @@ describe('Documentation Sync Verification', () => {
       '/fact': '/fact [text]',
       '/convention': '/convention [text]',
       '/session': '/session [name]',
+      '/preview': '/preview <filepath|url>',
     };
 
     const COMMAND_GROUPS: { name: string; commands: string[] }[] = [
@@ -114,7 +115,7 @@ describe('Documentation Sync Verification', () => {
       },
       {
         name: 'Context & CLI Utilities',
-        commands: ['/add', '/remove', '/context', '/paste', '/tokens', '/clear', '/summarize', '/system', '/health', '/models', '/doctor', '/changelog', '/help', '/update', '/exit']
+        commands: ['/add', '/remove', '/context', '/paste', '/tokens', '/clear', '/summarize', '/system', '/health', '/models', '/doctor', '/changelog', '/help', '/update', '/exit', '/preview']
       }
     ];
 

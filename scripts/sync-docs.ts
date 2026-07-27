@@ -54,6 +54,7 @@ const COMMAND_USAGES: Record<string, string> = {
   '/fact': '/fact [text]',
   '/convention': '/convention [text]',
   '/session': '/session [name]',
+  '/preview': '/preview <filepath|url>',
 };
 
 const COMMAND_GROUPS: { name: string; commands: string[] }[] = [
@@ -75,7 +76,7 @@ const COMMAND_GROUPS: { name: string; commands: string[] }[] = [
   },
   {
     name: 'Context & CLI Utilities',
-    commands: ['/add', '/remove', '/context', '/paste', '/tokens', '/clear', '/summarize', '/system', '/health', '/models', '/doctor', '/changelog', '/help', '/update', '/exit']
+    commands: ['/add', '/remove', '/context', '/paste', '/tokens', '/clear', '/summarize', '/system', '/health', '/models', '/doctor', '/changelog', '/help', '/update', '/exit', '/preview']
   }
 ];
 
