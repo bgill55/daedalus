@@ -1,3 +1,10 @@
+# [1.82.0](https://github.com/bgill55/daedalus/compare/v1.81.0...v1.82.0) (2026-07-27)
+
+
+### Features
+
+* complete three development sprints ([79cc161](https://github.com/bgill55/daedalus/commit/79cc161758b33571db8563abe4d79cbb6675e3f6))
+
 # [1.81.0](https://github.com/bgill55/daedalus/compare/v1.80.0...v1.81.0) (2026-07-27)
 
 
