@@ -1,3 +1,10 @@
+# [1.81.0](https://github.com/bgill55/daedalus/compare/v1.80.0...v1.81.0) (2026-07-27)
+
+
+### Features
+
+* **tui:** change spinner color from cyan to blue for consistency ([a93fd4d](https://github.com/bgill55/daedalus/commit/a93fd4d250d41feff2cc296f5a84afff564dbc5f))
+
 # [1.80.0](https://github.com/bgill55/daedalus/compare/v1.79.0...v1.80.0) (2026-07-27)
 
 
