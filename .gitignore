@@ -8,6 +8,10 @@ dist/
 .DS_Store
 src/bot.ts
 scripts/post-changelog.ts
+core.autocrlf
+message.channel
+src/bot/nul
+src/bot/tachments.filter
 
 vscode-extension/
 youtube-video-production.md

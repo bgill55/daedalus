@@ -14,6 +14,25 @@ function question(rl: readline.Interface, query: string): Promise<string> {
   return new Promise(resolve => rl.question(query, resolve));
 }
 
+// ── Simple spinner for scanning ──
+async function spin(text: string, fn: () => Promise<any>): Promise<any> {
+  const spinner = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+  let i = 0;
+  const interval = setInterval(() => {
+    process.stdout.write(`\r  ${spinner[i++ % spinner.length]} ${text}`);
+  }, 100);
+  try {
+    const result = await fn();
+    clearInterval(interval);
+    process.stdout.write('\r  ✅ ' + text + '\n');
+    return result;
+  } catch (error) {
+    clearInterval(interval);
+    process.stdout.write('\r  ❌ ' + text + '\n');
+    throw error;
+  }
+}
+
 // ── Check if any model is actually reachable ──
 
 async function hasAnyHealthyModel(config: DaedalusConfig): Promise<boolean> {
@@ -99,6 +118,13 @@ export async function runOnboarding(force = false): Promise<void> {
   console.log(pc.gray('  I need at least one LLM backend to start chatting.'));
   console.log(pc.gray('  Let me help you get connected.'));
   console.log();
+  console.log(pc.gray('  You have two options:'));
+  console.log(pc.gray('    1) Use a local LLM server (like LM Studio, Ollama, llama.cpp, or vLLM)'));
+  console.log(pc.gray('    2) Connect to a remote API (OpenAI, Groq, OpenRouter, Anthropic, etc.)'));
+  console.log();
+  console.log(pc.gray('  Local servers run on your computer and are free to use.'));
+  console.log(pc.gray('  Remote APIs require an API key but offer more models and capabilities.'));
+  console.log();
 
   // ── Step 1: Auto-discover ──
   console.log(pc.bold('[SCAN] Scanning for local LLM servers...'));
@@ -122,6 +148,11 @@ export async function runOnboarding(force = false): Promise<void> {
     }
   } else {
     console.log(pc.yellow('  No local servers detected.'));
+    console.log(pc.gray('  Need help? Download and start one of these:'));
+    console.log(pc.gray('    • LM Studio — https://lmstudio.ai/ (start server on :1234)'));
+    console.log(pc.gray('    • Ollama — https://ollama.ai/ (run "ollama serve")'));
+    console.log(pc.gray('    • llama.cpp — https://github.com/ggerganov/llama.cpp (run "./server" default :8080)'));
+    console.log(pc.gray('    • vLLM — https://github.com/vllm-project/vllm (run "vllm serve" default :8000)'));
     console.log();
   }
 
@@ -143,8 +174,11 @@ export async function runOnboarding(force = false): Promise<void> {
   if (healthy) {
     console.log(pc.green('  [OK] Connection successful! Ready to chat.'));
   } else {
-    console.log(pc.yellow('  [WARN] Still no healthy model. Run /doctor anytime to diagnose.'));
-    console.log(pc.gray('  You can also type /config to see current settings.'));
+    console.log(pc.yellow('  [WARN] No healthy model detected.'));
+    console.log(pc.gray('  • Run /doctor to diagnose the issue.'));
+    console.log(pc.gray('  • Verify your server is running and reachable.'));
+    console.log(pc.gray('  • Check your API keys in ~/.daedalus/config.json.'));
+    console.log(pc.gray('  • Use /config to view current configuration.'));
   }
 
   console.log(pc.gray('\n  Tip: type /help or /commands anytime to see what I can do.'));
@@ -219,6 +253,12 @@ async function configureRemoteProvider(rl: readline.Interface, config: DaedalusC
   console.log('    3)  OpenRouter     — https://openrouter.ai/api/v1');
   console.log('    4)  Anthropic      — https://api.anthropic.com/v1');
   console.log('    5)  Custom URL');
+  console.log();
+  console.log(pc.gray('  Need help getting started? Visit:'));
+  console.log(pc.gray('    • OpenAI — https://platform.openai.com/api-keys'));
+  console.log(pc.gray('    • Groq   — https://console.groq.com/keys'));
+  console.log(pc.gray('    • OpenRouter — https://openrouter.ai/keys'));
+  console.log(pc.gray('    • Anthropic — https://console.anthropic.com/settings/keys'));
   console.log();
 
   const presets: Record<string, { name: string; endpoint: string }> = {
