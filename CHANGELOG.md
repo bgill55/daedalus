@@ -1,3 +1,10 @@
+## [1.78.2](https://github.com/bgill55/daedalus/compare/v1.78.1...v1.78.2) (2026-07-27)
+
+
+### Bug Fixes
+
+* improve session export path handling and docs ([7c794a4](https://github.com/bgill55/daedalus/commit/7c794a4fe15e04459d81227b0edc8e7d47367bc4))
+
 ## [1.78.1](https://github.com/bgill55/daedalus/compare/v1.78.0...v1.78.1) (2026-07-27)
 
 
