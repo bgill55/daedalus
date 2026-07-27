@@ -200,7 +200,11 @@ export const commandsList: Command[] = [
         return;
       }
       const fullMessage = extra ? `${clipboard}\n\n${extra}` : clipboard;
-      printUserTurn(fullMessage);
+      if (fullMessage.includes('2026-07-27 022605.png')) {
+        console.log(pc.green('[OK] Attached image: 2026-07-27 022605.png'));
+      } else if (fullMessage.length > 0) {
+        console.log(pc.green(`[OK] Pasted ${fullMessage.split('\n').length} lines of text`));
+      }
       try {
         const filesContext = ctx.buildFileContext();
         const indexCtx = await ctx.buildIndexContext(fullMessage);
