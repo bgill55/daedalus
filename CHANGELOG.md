@@ -1,3 +1,10 @@
+# [1.77.0](https://github.com/bgill55/daedalus/compare/v1.76.2...v1.77.0) (2026-07-27)
+
+
+### Features
+
+* **cli:** add /autopilot command for autonomous feature branching & self-PR ([b479658](https://github.com/bgill55/daedalus/commit/b479658680b58ed1146b139492b921f44c21593a))
+
 ## [1.76.3](https://github.com/bgill55/daedalus/compare/v1.76.2...v1.76.3) (2026-07-27)
 
 
