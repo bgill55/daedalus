@@ -76,7 +76,11 @@ Exposes a fully autonomous developer workflow (Spec → Build → Review → PR 
 ### 9. OS & System Diagnostics Awareness
 Daedalus detects the user's operating system, hardware, and shell environment at startup and injects structured system diagnostics into the system prompt. The `system_info` tool exposes platform, architecture, CPU count, memory, and shell type to the LLM for context-aware terminal command generation.
 
-### 10. Live Preview (`/preview`)
+### 10. Autonomous Feature Branching (`/autopilot`)
+End-to-end autonomous feature development from a single command:
+* `/autopilot <feature>`: Creates a git branch, runs the multi-agent orchestrator to implement the feature, verifies with build/lint/tests, commits, pushes, and opens a GitHub Pull Request. On failure, automatically rolls back to main.
+
+### 11. Live Preview (`/preview`)
 Renders local HTML files or URLs in headless Chromium and captures a PNG screenshot:
 * `/preview <filepath-or-url>`: Converts local file paths to `file://` URLs, launches headless Chrome via Puppeteer, screenshots the page, and saves the image to `~/.daedalus/screenshots/`.
 
@@ -112,6 +116,7 @@ Daedalus maintains a test suite of **439 tests across 53 files** (Vitest), cover
 
 | Command | Category | Description |
 |---|---|---|
+| `/autopilot <feature>` | Multi-Agent | Autonomous feature dev: branch, implement, verify, commit, and PR |
 | `/orchestrate <goal>` | Multi-Agent | Launch multi-agent planning and execution loop |
 | `/spawn [--bg] <role> <task>` | Multi-Agent | Delegate a background task to a sub-agent |
 | `/task <id>` | Multi-Agent | Manage or inspect background tasks |

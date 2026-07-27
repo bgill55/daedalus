@@ -1,9 +1,9 @@
-## [1.76.2](https://github.com/bgill55/daedalus/compare/v1.76.1...v1.76.2) (2026-07-27)
+## [1.76.3](https://github.com/bgill55/daedalus/compare/v1.76.2...v1.76.3) (2026-07-27)
 
 
-### Bug Fixes
+### Features
 
-* **docs:** replace pipe in /preview usage to prevent table breakage ([8f753d3](https://github.com/bgill55/daedalus/commit/8f753d321fb2224a1f9299ace20908ae04db8cda))
+* **cli:** add /autopilot command for autonomous feature branching & self-PR
 
 ## [1.76.1](https://github.com/bgill55/daedalus/compare/v1.76.0...v1.76.1) (2026-07-27)
 

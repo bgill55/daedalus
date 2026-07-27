@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import fs from 'fs';
+import path from 'path';
+import os from 'os';
+import { execSync } from 'child_process';
 import { executeCommand, commandsList } from './commands.js';
 import type { CommandContext } from './commands.js';
 import type { DaedalusConfig } from './config/index.js';
@@ -11,6 +14,8 @@ vi.mock('./config/index.js', async (importOriginal) => {
     saveConfig: vi.fn(),
   };
 });
+
+let mockOrchestratorRun: ReturnType<typeof vi.fn>;
 
 describe('Config Command', () => {
   let mockContext: CommandContext;
@@ -503,6 +508,141 @@ describe('/summarize command', () => {
     await executeCommand('/summarize 1', mockContext);
     expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Successfully summarized'));
     expect(mockContext.sessionManager.saveSessionState).toHaveBeenCalled();
+  });
+});
+
+describe('/autopilot command', () => {
+  let mockContext: CommandContext;
+  let tmpDir: string;
+
+  beforeEach(async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'autopilot-test-'));
+    execSync('git init --initial-branch=main', { cwd: tmpDir });
+    execSync('git config user.email test@test.com', { cwd: tmpDir });
+    execSync('git config user.name Test', { cwd: tmpDir });
+    execSync('git remote add origin https://github.com/test/test-repo.git', { cwd: tmpDir });
+    fs.mkdirSync(path.join(tmpDir, 'packages'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, 'packages', 'initial.txt'), 'initial content');
+    execSync('git add . && git commit -m "initial"', { cwd: tmpDir });
+
+    mockOrchestratorRun = vi.fn();
+
+    vi.doMock('./agents/orchestrator.js', () => ({
+      Orchestrator: class {
+        run = ((goal: string) => {
+          const root = mockContext?.toolContext?.projectRoot;
+          if (root) {
+            fs.writeFileSync(path.join(root, 'autopilot-output.txt'), goal, 'utf8');
+          }
+          const result = mockOrchestratorRun(goal);
+          return result instanceof Promise ? result : Promise.resolve(result);
+        }) as typeof mockOrchestratorRun;
+      },
+    }));
+
+    mockContext = {
+      config: { router: { chain: [] } } as unknown as DaedalusConfig,
+      configDir: tmpDir,
+      cliTempDir: tmpDir,
+      router: {
+        chat: { completions: { create: vi.fn() } },
+        updateConfig: vi.fn(),
+      } as any,
+      sessionManager: {
+        projectRoot: tmpDir,
+        sessionId: 'test',
+        saveState: vi.fn(),
+        getState: vi.fn().mockReturnValue(null),
+      } as any,
+      userProfile: {} as any,
+      projectHash: 'testhash',
+      messages: [],
+      activeFiles: new Map(),
+      toolContext: {
+        projectRoot: tmpDir,
+        patchHistory: [],
+        abortSignal: new AbortController().signal,
+        activeFiles: new Map(),
+        agentRole: 'user',
+        sessionId: 'test',
+        projectHash: 'testhash',
+      },
+      getSystemPromptWithMemory: () => '',
+      callModelWithTools: async () => ({ content: '', toolCalls: [] }),
+      callModelWithFallback: async () => '',
+      rl: {} as any,
+      initializeSessionState: () => {},
+      buildFileContext: () => '',
+      askLine: async () => '',
+      buildIndexContext: async () => '',
+      getIndexDbPath: () => '',
+    };
+
+    mockOrchestratorRun.mockResolvedValue('## Orchestration Complete: test feature\n\n[OK] **coder**: implemented test');
+  });
+
+  afterEach(() => {
+    try {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    } catch { /* cleanup temp dir */ }
+    vi.restoreAllMocks();
+  });
+
+  it('warns when no feature description is given', async () => {
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    await executeCommand('/autopilot', mockContext);
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Usage'));
+  });
+
+  it('creates branch, runs orchestrator, and commits on success', async () => {
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    await executeCommand('/autopilot add a test feature', mockContext);
+
+    expect(mockOrchestratorRun).toHaveBeenCalledTimes(1);
+    expect(mockOrchestratorRun).toHaveBeenCalledWith('Implement the following feature: add a test feature');
+
+    const branches = execSync('git branch', { cwd: tmpDir }).toString();
+    expect(branches).toContain('daedalus-autopilot');
+
+    const message = execSync('git log -1 --pretty=%s', { cwd: tmpDir }).toString().trim();
+    expect(message).toBe('feat: add a test feature');
+  });
+
+  it('rolls back to main branch and deletes feature branch on orchestrator failure', async () => {
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    mockOrchestratorRun.mockResolvedValue('Orchestration failed: something broke');
+
+    await executeCommand('/autopilot rollback test', mockContext);
+
+    const branch = execSync('git rev-parse --abbrev-ref HEAD', { cwd: tmpDir }).toString().trim();
+    expect(branch).toBe('main');
+
+    const branches = execSync('git branch', { cwd: tmpDir }).toString();
+    expect(branches).not.toContain('daedalus-autopilot');
+  });
+
+  it('rolls back on partial verification failure', async () => {
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    mockOrchestratorRun.mockResolvedValue('## Orchestration Hit Verification Failures: fix bug\n\n[ERROR] **coder**: something failed');
+
+    await executeCommand('/autopilot fix a bug', mockContext);
+
+    const branch = execSync('git rev-parse --abbrev-ref HEAD', { cwd: tmpDir }).toString().trim();
+    expect(branch).toBe('main');
+  });
+
+  it('goes into local-only mode when no git remote is configured', async () => {
+    execSync('git remote remove origin', { cwd: tmpDir });
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    mockOrchestratorRun.mockResolvedValue('## Orchestration Complete: local test\n\n[OK] **coder**: done');
+
+    await executeCommand('/autopilot local feature', mockContext);
+
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('No GitHub remote found'));
+    expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('committed locally'));
+    const message = execSync('git log -1 --pretty=%s', { cwd: tmpDir }).toString().trim();
+    expect(message).toBe('feat: local feature');
   });
 });
 

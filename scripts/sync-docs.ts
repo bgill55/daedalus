@@ -53,6 +53,7 @@ const COMMAND_USAGES: Record<string, string> = {
   '/prune': '/prune [budget]',
   '/fact': '/fact [text]',
   '/convention': '/convention [text]',
+  '/autopilot': '/autopilot <feature>',
   '/session': '/session [name]',
   '/preview': '/preview <filepath-or-url>',
 };
@@ -60,7 +61,7 @@ const COMMAND_USAGES: Record<string, string> = {
 const COMMAND_GROUPS: { name: string; commands: string[] }[] = [
   {
     name: 'Multi-Agent & Orchestration',
-    commands: ['/orchestrate', '/spawn', '/task', '/tasks', '/ensemble', '/debug', '/spec']
+    commands: ['/orchestrate', '/autopilot', '/spawn', '/task', '/tasks', '/ensemble', '/debug', '/spec']
   },
   {
     name: 'Codebase Search & Live Watcher',

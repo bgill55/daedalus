@@ -13,11 +13,11 @@
 - `src/config/` — Zod-schema validated config at `~/.daedalus/config.json`
 - `src/router/` — Model routing (priority/round-robin/fastest), health checks, rate limiting
 - `src/session/` — SQLite-backed session persistence, project memory, JSONL export
-- `src/agents/` — Multi-agent orchestration (planner, coder, reviewer, debugger, researcher)
+- `src/agents/` — Multi-agent orchestration (planner, coder, reviewer, debugger, researcher); `/autopilot` command orchestrates end-to-end feature branches
 - `src/tools/` — 16 built-in tools + MCP transport (stdio + HTTP/SSE)
 - `src/indexing/` — FTS5 codebase indexing (TS/JS, Python, Go, Rust, Java, C/C++, C#, PHP, Ruby, Elixir) ## Testing
 - Framework: vitest
-- Run: `npm test` (vitest run, 347+ tests across 40 files)
+- Run: `npm test` (vitest run, 444+ tests across 53 files)
 - Tests co-located as `*.test.ts` under `src/` ## Lint
 - Framework: eslint v10 (flat config)
 - Run: `npm run lint` (eslint src --ext .ts) ## CI/CD

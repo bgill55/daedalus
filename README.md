@@ -119,6 +119,7 @@ AI assistance without:
 | Command | Description |
 |---------|-------------|
 | `/orchestrate <goal>` / `/orc` / `/run` / `/o` | Orchestrate agents for a goal |
+| `/autopilot <feature>` | Autonomously implement a feature: branch, code, test, commit, and PR |
 | `/spawn [--bg] <role> <task>` / `/delegate` | Spawn sub-agent: /spawn [--bg] <role> <task> |
 | `/task <id>` | Manage background task: /task <id> | /task kill <id> |
 | `/tasks` | List background agent tasks |

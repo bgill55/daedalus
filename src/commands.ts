@@ -1,6 +1,7 @@
 // Command Registry and Router for Daedalus CLI
 import fs from 'fs';
 import path from 'path';
+import { execSync } from 'child_process';
 import readline from 'readline';
 import pc from 'picocolors';
 
@@ -19,7 +20,7 @@ import { extractAndSave } from './extraction.js';
 import { printUserTurn, turnSeparator } from './formatting.js';
 import { getClipboardText, getClipboardImage } from './clipboard.js';
 import { spawnBackgroundAgent } from './agents/background.js';
-import { handleSpecCommand } from './agents/loop.js';
+import { handleSpecCommand, getGitRepoInfo } from './agents/loop.js';
 import {
   createSessionBranch,
   checkoutSessionBranch,
@@ -2503,6 +2504,134 @@ Once you have finished making changes, I will automatically re-run the command t
       } else {
         console.log(pc.red(`\n✗ Image generation failed: ${res.error}`));
       }
+    }
+  },
+  {
+    name: '/autopilot',
+    description: 'Autonomously implement a feature: branch, code, test, commit, and PR',
+    usage: '/autopilot <feature description>',
+    helpText: 'End-to-end autonomous feature development. Creates a branch, plans and implements the feature, runs verification, commits, pushes, and opens a pull request.\n\nFlow:\n  1. Interactive Q&A to refine the feature spec\n  2. Creates a git branch (daedalus-autopilot-<slug>)\n  3. Runs the multi-agent orchestrator to implement it\n  4. Verifies with build/lint/tests\n  5. Commits and pushes to GitHub\n  6. Opens a Pull Request against main\n\nRequires a GitHub repository with a configured remote origin.',
+    execute: async (args, ctx) => {
+      const idea = args.trim();
+      if (!idea) {
+        console.log(pc.red('[WARN] Usage: /autopilot <feature description>'));
+        return;
+      }
+
+      const repoInfo = getGitRepoInfo(ctx.toolContext.projectRoot);
+      if (!repoInfo) {
+        console.log(pc.yellow('[INFO] No GitHub remote found. Running in local-only mode (no PR will be created).'));
+      }
+
+      const slug = idea.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
+      const branchName = `daedalus-autopilot-${slug}`;
+
+      try {
+        execSync(`git checkout -B ${branchName}`, { cwd: ctx.toolContext.projectRoot });
+        console.log(pc.green(`[OK] Created branch: ${branchName}`));
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.log(pc.red(`[ERROR] Failed to create branch: ${msg}`));
+        return;
+      }
+
+      const goal = `Implement the following feature: ${idea}`;
+
+      console.log(pc.cyan(`\n[AUTOPILOT] Starting autonomous implementation...`));
+      process.env.DAEDALUS_AUTO_APPROVE = 'true';
+
+      try {
+        const { Orchestrator } = await import('./agents/orchestrator.js');
+        const orchestrator = new Orchestrator(ctx.router, ctx.messages, ctx.toolContext, ctx.sessionManager);
+        const result = await orchestrator.run(goal);
+        console.log(pc.white(`\n${result}`));
+
+        const orchestrationFailed = result.startsWith('Orchestration failed') || result.includes('## Orchestration Hit Verification Failures');
+        const wasAborted = result.includes('## Orchestration Paused');
+        if (orchestrationFailed || wasAborted) {
+          throw new Error(orchestrationFailed ? 'Orchestration reported failure' : 'Orchestration was paused/aborted');
+        }
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.log(pc.red(`\n[ERROR] Implementation failed: ${msg}`));
+        console.log(pc.yellow('[ROLLBACK] Rolling back to main branch...'));
+        try {
+          execSync('git reset --hard', { cwd: ctx.toolContext.projectRoot });
+          execSync('git checkout main', { cwd: ctx.toolContext.projectRoot });
+          execSync(`git branch -D ${branchName}`, { cwd: ctx.toolContext.projectRoot });
+          console.log(pc.green('[OK] Rolled back to main. Branch deleted.'));
+        } catch (rollbackErr: unknown) {
+          const rbMsg = rollbackErr instanceof Error ? rollbackErr.message : String(rollbackErr);
+          console.log(pc.red(`[ERROR] Rollback failed: ${rbMsg}. Manual cleanup may be needed.`));
+        }
+        return;
+      }
+
+      console.log(pc.cyan('\n[AUTOPILOT] Committing changes...'));
+      try {
+        execSync('git add .', { cwd: ctx.toolContext.projectRoot });
+        const cleanTitle = idea.replace(/[^a-zA-Z0-9 ]/g, '').trim();
+        execSync(`git commit -m "feat: ${cleanTitle}"`, { cwd: ctx.toolContext.projectRoot });
+        console.log(pc.green('[OK] Changes committed.'));
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        if (msg.includes('nothing to commit')) {
+          console.log(pc.yellow('[INFO] No changes to commit.'));
+        } else {
+          console.log(pc.red(`[ERROR] Failed to commit: ${msg}`));
+          return;
+        }
+      }
+
+      if (repoInfo) {
+        console.log(pc.cyan('\n[AUTOPILOT] Pushing branch and creating PR...'));
+        let token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
+        if (!token) {
+          try {
+            token = execSync('gh auth token', { encoding: 'utf8' }).trim();
+          } catch {
+            console.log(pc.yellow('[INFO] No GitHub token found. Run `gh auth login` or set GITHUB_TOKEN.'));
+            console.log(pc.yellow(`[INFO] Branch ${branchName} is ready locally. Push manually.`));
+            return;
+          }
+        }
+
+        try {
+          execSync(`git push -u origin ${branchName} --force`, { cwd: ctx.toolContext.projectRoot });
+
+          const prResponse = await fetch(`https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}/pulls`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              title: `[Autopilot] ${idea}`,
+              head: branchName,
+              base: 'main',
+              body: `## Description\n\nAutonomously implemented by Daedalus Autopilot.\n\n**Feature:** ${idea}\n\n---\n_Generated by \`/autopilot\`_`,
+            }),
+          });
+
+          if (prResponse.ok) {
+            const pr = await prResponse.json() as { html_url: string };
+            console.log(pc.green(`\n[OK] Pull Request created: ${pr.html_url}`));
+          } else {
+            const errText = await prResponse.text();
+            console.log(pc.red(`[ERROR] Failed to create PR: ${prResponse.status} ${errText}`));
+            console.log(pc.yellow(`[INFO] Branch ${branchName} is pushed. Create PR manually.`));
+          }
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.log(pc.red(`[ERROR] Push/PR failed: ${msg}`));
+          console.log(pc.yellow(`[INFO] Branch ${branchName} is ready locally.`));
+        }
+      } else {
+        console.log(pc.yellow('\n[INFO] No GitHub remote configured. Implementation is committed locally.'));
+        console.log(pc.yellow(`[INFO] Branch: ${branchName}`));
+      }
+
+      console.log(pc.cyan(`\n[AUTOPILOT] Done! Run 'git checkout main' to return to main branch.`));
     }
   },
   {

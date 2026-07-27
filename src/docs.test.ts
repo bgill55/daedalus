@@ -92,6 +92,7 @@ describe('Documentation Sync Verification', () => {
       '/prune': '/prune [budget]',
       '/fact': '/fact [text]',
       '/convention': '/convention [text]',
+      '/autopilot': '/autopilot <feature>',
       '/session': '/session [name]',
       '/preview': '/preview <filepath-or-url>',
     };
@@ -99,7 +100,7 @@ describe('Documentation Sync Verification', () => {
     const COMMAND_GROUPS: { name: string; commands: string[] }[] = [
       {
         name: 'Multi-Agent & Orchestration',
-        commands: ['/orchestrate', '/spawn', '/task', '/tasks', '/ensemble', '/debug', '/spec']
+        commands: ['/orchestrate', '/autopilot', '/spawn', '/task', '/tasks', '/ensemble', '/debug', '/spec']
       },
       {
         name: 'Codebase Search & Live Watcher',
