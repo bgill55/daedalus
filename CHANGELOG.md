@@ -1,3 +1,10 @@
+# [1.80.0](https://github.com/bgill55/daedalus/compare/v1.79.0...v1.80.0) (2026-07-27)
+
+
+### Features
+
+* **tui:** enhance scrolling with scrollbar and arrow key support for laptops ([ce46abc](https://github.com/bgill55/daedalus/commit/ce46abc1d4bf1842c3b3abe377e37701c29cd1eb))
+
 # [1.79.0](https://github.com/bgill55/daedalus/compare/v1.78.2...v1.79.0) (2026-07-27)
 
 
