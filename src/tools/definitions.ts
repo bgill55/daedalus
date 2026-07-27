@@ -451,6 +451,19 @@ export const POWER_TOOLS: ToolDefinition[] = [
   {
     type: 'function',
     function: {
+      name: 'system_info',
+      description: 'Get the user\'s operating system, hardware, and shell environment. Use this when you need to know what OS, architecture, CPU count, memory, or shell the user is running on.',
+      parameters: {
+        type: 'object',
+        properties: {},
+        required: [],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'generate_image',
       description: 'Generate an image using local Stable Diffusion WebUI or Pollinations AI and save it to disk.',
       parameters: {
@@ -499,5 +512,6 @@ export const TOOL_IMPLEMENTATIONS: Record<string, string> = {
   kill_process: 'tools/builtin/process-watcher.killProcess',
   eval_code: 'tools/builtin/eval.evalCode',
   ask_user: 'tools/builtin/ask_user.askUser',
+  system_info: 'tools/builtin/system.systemInfo',
   generate_image: 'tools/builtin/image.generateImage',
 };
