@@ -1,3 +1,10 @@
+## [1.83.8](https://github.com/bgill55/daedalus/compare/v1.83.7...v1.83.8) (2026-07-28)
+
+
+### Bug Fixes
+
+* consolidate multiple tool-turn blocks into one per user turn ([0801d2d](https://github.com/bgill55/daedalus/commit/0801d2def4fe37a2ba9ee2e2c35583752745125a))
+
 ## [1.83.7](https://github.com/bgill55/daedalus/compare/v1.83.6...v1.83.7) (2026-07-28)
 
 
