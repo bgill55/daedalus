@@ -1,6 +1,6 @@
 - **Getting Started**
   - [Quick Start](getting-started.md)
-  - [Architecture Overview](notebooklm-summary.md)
+  - [NotebookLM & Architecture](notebooklm-summary.md)
   - [Configuration](configuration-reference.md)
 
 - **Core Features**
