@@ -299,13 +299,39 @@
       margin: 20px 0;
     }
 
-    /* ---- Navigation ---- */
+    /* ---- Sidebar toggle (top-left, themed) ---- */
+    .sidebar-toggle {
+      bottom: auto;
+      top: 10px;
+      left: 10px;
+      width: auto;
+      height: auto;
+      padding: 8px 10px;
+      background: var(--daedalus-surface-2);
+      border: 1px solid var(--daedalus-border);
+      border-radius: 6px;
+      z-index: 200;
+      transition: all 0.2s ease;
+    }
+    .sidebar-toggle:hover {
+      background: var(--daedalus-cyan);
+      border-color: var(--daedalus-cyan);
+    }
+    .sidebar-toggle span {
+      background: var(--daedalus-muted);
+      transition: background 0.2s ease;
+    }
+    .sidebar-toggle:hover span {
+      background: #0f0f1a;
+    }
+    body.close .sidebar-toggle {
+      left: 10px;
+    }
+
+    /* ---- Mobile navbar (removed border-line across page) ---- */
     .app-nav {
       background: var(--daedalus-surface);
-      border-bottom: 1px solid var(--daedalus-border);
-      position: sticky;
-      top: 0;
-      z-index: 100;
+      border-bottom: none;
     }
     .app-nav > ul > li > a {
       color: var(--daedalus-muted);
@@ -404,8 +430,7 @@
     @media (max-width: 768px) {
       .sidebar { background: var(--daedalus-surface); }
       .sidebar-toggle {
-        background: var(--daedalus-surface);
-        border: 1px solid var(--daedalus-border);
+        padding: 8px 10px;
       }
       .features { grid-template-columns: 1fr; }
       .cover-main h1 { font-size: 2.2em; }
@@ -419,7 +444,7 @@
   <script>
     window.$docsify = {
       name: 'Daedalus',
-      repo: 'https://github.com/bgill55/daedalus',
+      // repo: 'https://github.com/bgill55/daedalus', // removed — was adding GitHub corner ribbon + line
       loadSidebar: true,
       loadNavbar: true,
       coverpage: true,

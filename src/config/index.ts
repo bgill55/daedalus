@@ -155,6 +155,8 @@ export const ConfigSchema = z.object({
     diffStyle: z.enum(['unified', 'side-by-side']).default('unified'),
     theme: z.enum(['dark', 'light', 'auto']).default('dark'),
     tui: z.boolean().default(false),
+    compactMode: z.boolean().default(true),
+    collapseCommentary: z.boolean().default(true),
   }).default({
     streaming: true,
     showTokens: true,
@@ -162,6 +164,8 @@ export const ConfigSchema = z.object({
     diffStyle: 'unified',
     theme: 'dark',
     tui: false,
+    compactMode: true,
+    collapseCommentary: true,
   }),
   safety: z.object({
     protectGit: z.boolean().default(true),
@@ -242,6 +246,8 @@ export const DEFAULT_CONFIG: DaedalusConfig = {
     diffStyle: 'unified',
     theme: 'dark',
     tui: false,
+    compactMode: true,
+    collapseCommentary: true,
   },
   safety: {
     protectGit: true,

@@ -80,6 +80,8 @@ This guide describes all configuration options available in Daedalus. You can vi
 *   **`ui.diffStyle`**: (Description needed)
 *   **`ui.theme`**: (Description needed)
 *   **`ui.tui`**: (Description needed)
+*   **`ui.compactMode`**: (Description needed)
+*   **`ui.collapseCommentary`**: (Description needed)
 
 ---
 

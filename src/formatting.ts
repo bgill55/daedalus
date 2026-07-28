@@ -12,8 +12,6 @@ function sepLine(char = '─', len = 40): string {
   return pc.dim(char.repeat(len));
 }
 
-// ── Line wrapping ──────────────────────────────────────────────
-
 function wrapLine(line: string, maxW: number): string[] {
   if (stripAnsi(line).length <= maxW) return [line];
   const words = line.split(' ');
@@ -38,7 +36,7 @@ function wrapLine(line: string, maxW: number): string[] {
 export function printUserTurn(userMessage: string): void {
   const isTui = (globalThis as any).isTui;
   const cols = process.stdout.columns ?? 80;
-  const targetWidth = isTui 
+  const targetWidth = isTui
     ? Math.max(40, Math.floor(cols * 0.8) - 8)
     : Math.max(50, cols - 5);
 
@@ -55,43 +53,77 @@ export function printUserTurn(userMessage: string): void {
   console.log(`  ${pc.dim('─'.repeat(lineLen + 2))}\n`);
 }
 
+// ── Tool call buffer (stored per-turn for compact display + review) ──
+
+export interface ToolBufferEntry {
+  name: string;
+  success?: boolean;
+  error?: string;
+  contentPreview?: string;
+}
+
+let _toolBuffer: ToolBufferEntry[] = [];
+let _commentaryLines = 0;
+let _collapseEnabled = true;
+let _compactMode = true;
+
+export function setFormattingConfig(config: { ui?: { collapseCommentary?: boolean; compactMode?: boolean } & Record<string, unknown> }): void {
+  if (config?.ui?.collapseCommentary === false) _collapseEnabled = false;
+  if (config?.ui?.compactMode === false) _compactMode = false;
+}
+
+export function getToolBuffer(): ToolBufferEntry[] {
+  return _toolBuffer;
+}
+
+export function clearToolBuffer(): void {
+  _toolBuffer = [];
+  _commentaryLines = 0;
+}
+
 // ── Assistant message ──────────────────────────────────────────
 
 let _buf = '';
 let _inCode = false;
 let _codeLines: string[] = [];
 
-let _commentaryLines = 0;
-const _toolsRun: { name: string; success: boolean }[] = [];
-let _collapseEnabled = true;
-
-export function setFormattingConfig(config: { ui?: { collapseCommentary?: boolean } & Record<string, unknown> }): void {
-  if (config?.ui?.collapseCommentary === false) {
-    _collapseEnabled = false;
-  }
-}
-
 export function collapseCommentary(): void {
   if (!_collapseEnabled) {
     _commentaryLines = 0;
-    _toolsRun.length = 0;
     return;
   }
-  if (_commentaryLines === 0) return;
+  if (_commentaryLines === 0 && _toolBuffer.length === 0) return;
 
-  process.stdout.write('\u001b[1A\u001b[2K'.repeat(_commentaryLines));
+  if (_compactMode) {
+    if (_toolBuffer.length > 0) {
+      const allSuccess = _toolBuffer.every(t => t.success !== false);
+      const badge = allSuccess ? pc.green('✔') : pc.yellow('✗');
+      const summary = _toolBuffer.map(t => {
+        return t.success !== false ? pc.dim(t.name) : pc.red(t.name);
+      }).join(', ');
+      console.log(`  ${badge} ${pc.dim('Executed tools:')} ${summary}`);
 
-  if (_toolsRun.length > 0) {
-    const allSuccess = _toolsRun.every(t => t.success);
-    const badge = allSuccess ? pc.green('✔') : pc.yellow('✗');
-    const summary = _toolsRun.map(t => {
-      return t.success ? pc.dim(t.name) : pc.red(t.name);
-    }).join(', ');
-    console.log(`  ${badge} ${pc.dim('Executed tools:')} ${summary}`);
+      for (const entry of _toolBuffer) {
+        if (entry.contentPreview) {
+          console.log(`  ${pc.dim('  ')}${pc.gray(entry.contentPreview)}`);
+        }
+      }
+    }
+  } else {
+    process.stdout.write('\u001b[1A\u001b[2K'.repeat(_commentaryLines));
+
+    if (_toolBuffer.length > 0) {
+      const allSuccess = _toolBuffer.every(t => t.success !== false);
+      const badge = allSuccess ? pc.green('✔') : pc.yellow('✗');
+      const summary = _toolBuffer.map(t => {
+        return t.success !== false ? pc.dim(t.name) : pc.red(t.name);
+      }).join(', ');
+      console.log(`  ${badge} ${pc.dim('Executed tools:')} ${summary}`);
+    }
   }
 
+  _toolBuffer = [];
   _commentaryLines = 0;
-  _toolsRun.length = 0;
 }
 
 export function openAssistantBlock(): void {
@@ -148,7 +180,6 @@ export function closeAssistantBlock(
   toolCount?: number,
   modelName?: string,
 ): void {
-  // Flush remaining buffer
   if (_buf) {
     const line = _buf.trimEnd();
     if (_inCode) {
@@ -168,7 +199,6 @@ export function closeAssistantBlock(
   _inCode = false;
   _buf = '';
 
-  // Compact metadata line — single dim line, no wrapping
   const parts: string[] = [];
   if (modelName) parts.push(pc.dim(modelName));
   if (toolCount !== undefined) parts.push(pc.dim(`${toolCount} tool(s)`));
@@ -187,12 +217,10 @@ export function closeAssistantBlock(
 // ── Inline markdown ────────────────────────────────────────────
 
 export function formatMarkdownLine(line: string): string {
-  // Headings
   if (line.startsWith('### ')) return pc.bold(pc.cyan(line.slice(4)));
   if (line.startsWith('## ')) return pc.bold(pc.cyan(line.slice(3)));
   if (line.startsWith('# ')) return pc.bold(pc.cyan(line.slice(2)));
 
-  // Blockquotes
   if (line.startsWith('> ')) return `${pc.gray('│')} ${pc.italic(line.slice(2))}`;
 
   let indent = '';
@@ -203,7 +231,6 @@ export function formatMarkdownLine(line: string): string {
     body = list[3];
   }
 
-  // Horizontal rules
   if (/^[-*_]{3,}$/.test(body.trim())) return pc.dim('─'.repeat(termW));
 
   body = body
@@ -244,38 +271,53 @@ export function printContextPrune(pruned: number, truncated: number, savedKt: nu
 // ── Tool execution ─────────────────────────────────────────────
 
 export function printToolStart(count: number, names: string[]): void {
-  const label = count === 1 ? names[0] : `${names.join(', ')}`;
-  console.log(`  ${pc.dim('▸')} ${pc.dim(label)}`);
-  _commentaryLines++;
+  if (!_compactMode) {
+    const label = count === 1 ? names[0] : `${names.join(', ')}`;
+    console.log(`  ${pc.dim('▸')} ${pc.dim(label)}`);
+    _commentaryLines++;
+  }
+
   for (const name of names) {
-    if (!_toolsRun.some(t => t.name === name)) {
-      _toolsRun.push({ name, success: true });
+    if (!_toolBuffer.some(t => t.name === name)) {
+      _toolBuffer.push({ name, success: true });
     }
   }
 }
 
 export function printToolResult(name: string, success: boolean, error?: string): void {
-  const t = _toolsRun.find(x => x.name === name);
-  if (t) t.success = success;
-
-  if (success) {
-    console.log(`  ${pc.green('✔')} ${pc.dim(name)}`);
-  } else {
-    console.log(`  ${pc.red('✗')} ${pc.dim(name)}${error ? `  ${pc.red(error)}` : ''}`);
+  const t = _toolBuffer.find(x => x.name === name);
+  if (t) {
+    t.success = success;
+    if (error) t.error = error;
   }
-  _commentaryLines++;
+
+  if (!_compactMode) {
+    if (success) {
+      console.log(`  ${pc.green('✔')} ${pc.dim(name)}`);
+    } else {
+      console.log(`  ${pc.red('✗')} ${pc.dim(name)}${error ? `  ${pc.red(error)}` : ''}`);
+    }
+    _commentaryLines++;
+  }
 }
 
 export function printToolContentPreview(content: string): void {
   if (!content) return;
+
+  let preview: string;
   if (content.startsWith('{"type":"vision"')) {
-    console.log(`  ${pc.dim('  ')}${pc.gray('[Image data...]')}`);
-    _commentaryLines++;
-    return;
+    preview = '[Image data...]';
+  } else {
+    const lines = content.split('\n').filter(l => l.trim());
+    preview = lines.slice(0, 1).map(l => l.length > 100 ? l.slice(0, 100) + '…' : l).join('\n');
   }
-  const lines = content.split('\n').filter(l => l.trim());
-  const preview = lines.slice(0, 1).map(l => l.length > 100 ? l.slice(0, 100) + '…' : l).join('\n');
-  if (preview) {
+
+  if (_compactMode) {
+    const last = _toolBuffer[_toolBuffer.length - 1];
+    if (last && last.contentPreview === undefined) {
+      last.contentPreview = preview;
+    }
+  } else {
     console.log(`  ${pc.dim('  ')}${pc.gray(preview)}`);
     _commentaryLines++;
   }
@@ -329,7 +371,6 @@ export function parseTextToolCalls(text: string): ToolCall[] {
     });
   }
 
-  // LM Studio `tool` block fallback: ```tool\nfunc_name(key="value", ...)\n```
   if (toolCalls.length === 0) {
     const toolBlockRe = /```tool\s*\n(\w+)\(([\s\S]*?)\)\s*\n```/;
     const blockMatch = text.match(toolBlockRe);
@@ -358,7 +399,6 @@ export function parseTextToolCalls(text: string): ToolCall[] {
     }
   }
 
-  // Natural-language fallback: detect model saying "use the `write_file` tool" + code block
   const toolNameRe = /\buse\s+(?:the\s+)?`?(\w+)`?\s+(?:tool|function|command)\b/i;
   const bodyMatch = text.match(toolNameRe);
   if (bodyMatch && toolCalls.length === 0) {
@@ -391,7 +431,6 @@ export function parseTextToolCalls(text: string): ToolCall[] {
     }
   }
 
-  // Code-block fallback: if the text contains a TS/TSX/JS code block and mentions a .ts/.tsx/.js file path without any tool call
   if (toolCalls.length === 0) {
     const cleanText = text.replace(/`/g, '');
     const hasCodeBlock = /```(?:tsx?|jsx?|javascript|typescript)[\s\S]*?```/i.test(text) || /```[\s\S]*?\b(import|export|const|function|return)\b[\s\S]*?```/i.test(text);
@@ -419,4 +458,3 @@ export function parseTextToolCalls(text: string): ToolCall[] {
 
   return toolCalls;
 }
-

@@ -15,6 +15,7 @@ import type { UserProfile } from './profile.js';
 import type { SqliteTodo } from './session/sqlite.js';
 
 import { getSessionTodos } from './tools/builtin/todo.js';
+import { getTurns } from './session/sqlite.js';
 import { saveProfile } from './profile.js';
 import { extractAndSave } from './extraction.js';
 import { printUserTurn, turnSeparator } from './formatting.js';
@@ -2680,8 +2681,51 @@ Once you have finished making changes, I will automatically re-run the command t
     }
   },
   {
+    name: '/history',
+    aliases: ['/h'],
+    description: 'Show recent turns with tool calls from the session log',
+    usage: '/history [n]',
+    helpText: 'Display the last N assistant/user turns from the SQLite session log, including tool calls and response previews. Default: 5.',
+    execute: async (args, ctx) => {
+      const n = parseInt((args || '5').trim(), 10);
+      if (isNaN(n) || n < 1) { console.log(pc.red('[ERROR] Provide a positive number')); return; }
+
+      const turns = getTurns(ctx.sessionManager.db);
+      const recent = turns.slice(-n);
+
+      for (const t of recent) {
+        const roleColor = t.role === 'assistant' ? pc.cyan : t.role === 'tool' ? pc.yellow : pc.white;
+        const roleLabel = t.role === 'assistant' ? 'Assistant' : t.role === 'tool' ? 'Tool' : 'User';
+        const meta = [];
+        if (t.model) meta.push(pc.dim(t.model));
+        if (t.tokens_output) meta.push(pc.dim(`~${Math.round(t.tokens_output / 4)} tok out`));
+        if (t.latency_ms) {
+          const el = t.latency_ms >= 1000 ? `${(t.latency_ms / 1000).toFixed(1)}s` : `${t.latency_ms}ms`;
+          meta.push(pc.dim(el));
+        }
+        const metaStr = meta.length ? ` ${meta.join(' · ')}` : '';
+        console.log(`\n  ${roleColor(pc.bold(`#${t.id ?? '?'} ${roleLabel}`))}${metaStr}`);
+
+        if (t.tool_calls) {
+          try {
+            const parsed = JSON.parse(t.tool_calls) as Array<{ function?: { name?: string } }>;
+            const names = parsed.map(c => c.function?.name ?? '?');
+            console.log(`  ${pc.dim('Tools:')} ${names.join(', ')}`);
+          } catch { /* not JSON, skip */ }
+        }
+
+        if (t.content) {
+          const preview = t.content.replace(/```[\s\S]*?```/g, '[code block]').split('\n').slice(0, 3).join('\n  ').slice(0, 300);
+          if (preview) console.log(`  ${preview}`);
+        }
+      }
+
+      if (recent.length === 0) console.log(pc.gray('  No turns in session yet.'));
+    }
+  },
+  {
     name: '/exit',
-    aliases: ['/exit', '/quit', 'quit'],
+    aliases: ['/quit', '/bye'],
     description: 'Save session and exit',
     execute: async (args, ctx) => {
       const todos = getSessionTodos(ctx.toolContext.sessionId);
