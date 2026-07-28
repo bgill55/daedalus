@@ -1,12 +1,24 @@
-- [Getting Started](getting-started.md)
-- [NotebookLM Overview](notebooklm-summary.md)
-- [Configuration](configuration-reference.md)
-- [Model Routing & Tuning](routing-and-tuning.md)
-- [Orchestration](orchestration.md)
-- [Autonomous Finn Loop](finn-loop.md)
-- [Gold Standard Spec Example](example-spec-stats.md)
-- [MCP Integration](mcp.md)
-- [Sandboxing](sandboxing.md)
-- [Example Run](social-media-manager-sprint.md)
-- [Case Study: Daedalus-Lite](daedalus-lite-sprint.md)
-- [💬 Discord Community](https://discord.gg/GPH2ZH57up)
+- **Getting Started**
+  - [Quick Start](getting-started.md)
+  - [Architecture Overview](notebooklm-summary.md)
+  - [Configuration](configuration-reference.md)
+
+- **Core Features**
+  - [Model Routing & Tuning](routing-and-tuning.md)
+  - [Multi-Agent Orchestration](orchestration.md)
+  - [Autonomous Finn Loop](finn-loop.md)
+  - [Execution Sandboxing](sandboxing.md)
+  - [MCP Integration](mcp.md)
+
+- **Case Studies**
+  - [Gold Standard Spec](example-spec-stats.md)
+  - [Social Media Manager](social-media-manager-sprint.md)
+  - [Daedalus-Lite](daedalus-lite-sprint.md)
+
+- **Developer**
+  - [Contributing](CONTRIBUTING.md)
+  - [Code of Conduct](CODE_OF_CONDUCT.md)
+
+- **Community**
+  - [Discord](https://discord.gg/GPH2ZH57up)
+  - [GitHub](https://github.com/bgill55/daedalus)

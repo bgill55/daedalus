@@ -11,7 +11,14 @@
 # Daedalus <small>AI Coding Assistant</small>
 
 <div class="hero-text">
-  <p>Your open-source, local-first AI pair programmer.<br>Orchestrate agents, manage MCP servers, and ship code<br>— all from your terminal.</p>
+  <p>Your open-source, local-first AI pair programmer.<br>Orchestrate agents, manage MCP servers, and ship code<br />— all from your terminal.</p>
+</div>
+
+<div class="badges">
+  <img src="https://img.shields.io/npm/v/daedalus-cli?color=%2300d4aa&label=daedalus-cli" alt="npm version">
+  <img src="https://img.shields.io/github/languages/top/bgill55/daedalus?color=%237c3aed" alt="TypeScript">
+  <img src="https://img.shields.io/npm/l/daedalus-cli?color=%2394a3b8" alt="MIT License">
+  <img src="https://img.shields.io/github/stars/bgill55/daedalus?color=%2300d4aa" alt="GitHub Stars">
 </div>
 
 <div class="buttons">

@@ -26,7 +26,7 @@
     "prepublishOnly": "npm run build",
     "test": "vitest run",
     "audit": "npm run lint && npm run build && npm run test && node -e \"const { validateConfig } = require('./dist/config/validate'); const { DEFAULT_CONFIG } = require('./dist/config/index'); validateConfig(DEFAULT_CONFIG); console.log('Config validation passed')\"",
-    "docs": "typedoc --out docs src",
+    "docs": "typedoc --out docs/api src",
     "sync-docs": "tsx scripts/sync-docs.ts",
     "post-infographic": "node scripts/post-infographic.js",
     "postinstall": "node scripts/postinstall.js"
