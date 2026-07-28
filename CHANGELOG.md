@@ -1,3 +1,10 @@
+## [1.83.3](https://github.com/bgill55/daedalus/compare/v1.83.2...v1.83.3) (2026-07-28)
+
+
+### Bug Fixes
+
+* **docs:** remove GitHub corner ribbon, top border-line, move sidebar toggle to top ([2b914b0](https://github.com/bgill55/daedalus/commit/2b914b02e8549fbaabb7f35fb9d28cd3e7629e80))
+
 ## [1.83.2](https://github.com/bgill55/daedalus/compare/v1.83.1...v1.83.2) (2026-07-27)
 
 
