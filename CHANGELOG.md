@@ -1,3 +1,10 @@
+## [1.83.5](https://github.com/bgill55/daedalus/compare/v1.83.4...v1.83.5) (2026-07-28)
+
+
+### Bug Fixes
+
+* **docs:** rename sidebar link to NotebookLM so users can find it ([ee9f50f](https://github.com/bgill55/daedalus/commit/ee9f50f8ec571da8b0be4cc00037af18f2db0d07))
+
 ## [1.83.4](https://github.com/bgill55/daedalus/compare/v1.83.3...v1.83.4) (2026-07-28)
 
 
