@@ -1,3 +1,11 @@
+# [1.84.0](https://github.com/bgill55/daedalus/compare/v1.83.8...v1.84.0) (2026-07-28)
+
+
+### Features
+
+* add /feedback command with GitHub label support and tests ([a3b3df8](https://github.com/bgill55/daedalus/commit/a3b3df8119a6cee14d1f785fcc8f95a26f9fbb06))
+* add /hunt command for autonomous bug fixing ([dbba7a0](https://github.com/bgill55/daedalus/commit/dbba7a013d55745f3a96d106c529cf253a7ea2d0))
+
 ## [1.83.8](https://github.com/bgill55/daedalus/compare/v1.83.7...v1.83.8) (2026-07-28)
 
 
