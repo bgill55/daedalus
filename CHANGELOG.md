@@ -1,3 +1,10 @@
+## [1.83.7](https://github.com/bgill55/daedalus/compare/v1.83.6...v1.83.7) (2026-07-28)
+
+
+### Bug Fixes
+
+* **docs:** set explicit dark bg on table cells, fix white background readability ([fa31f24](https://github.com/bgill55/daedalus/commit/fa31f24249639c63a342d2f95446a1d49d35fdd6))
+
 ## [1.83.6](https://github.com/bgill55/daedalus/compare/v1.83.5...v1.83.6) (2026-07-28)
 
 
