@@ -1,3 +1,10 @@
+## [1.83.4](https://github.com/bgill55/daedalus/compare/v1.83.3...v1.83.4) (2026-07-28)
+
+
+### Bug Fixes
+
+* **docs:** move sidebar toggle to right side to fix overlap with search bar ([b452e75](https://github.com/bgill55/daedalus/commit/b452e75e03d6bbebc4563e706b8384acd003e97e))
+
 ## [1.83.3](https://github.com/bgill55/daedalus/compare/v1.83.2...v1.83.3) (2026-07-28)
 
 
