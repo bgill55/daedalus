@@ -2,6 +2,7 @@ import pc from 'picocolors';
 
 import { contextCommands } from './context.js';
 import { agentCommands } from './agents.js';
+import { feedbackCommand } from './feedback.js';
 import { devCommands } from './dev.js';
 import type { Command, CommandContext } from './types.js';
 
@@ -62,6 +63,7 @@ export const commandsList: Command[] = [
   ...contextCommands,
   ...agentCommands,
   ...devCommands,
+  feedbackCommand,
   helpCommand,
 ];
 
