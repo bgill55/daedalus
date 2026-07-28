@@ -96,7 +96,7 @@ Enables non-linear exploration of coding tasks by snapshotting and branching ses
 ## 3. Real-World Benchmarks & Practical Case Studies
 
 ### Test Suite Growth
-Daedalus maintains a test suite of **439 tests across 53 files** (Vitest), covering the model router, session branching, tool execution, config validation, codebase indexing, MCP transport, CLI commands, the git-based merge system, and system diagnostics.
+Daedalus maintains a test suite of **468 tests across 56 files** (Vitest), covering the model router, session branching, tool execution, config validation, codebase indexing, MCP transport, CLI commands, the git-based merge system, and system diagnostics.
 
 ### Case Study A: Autonomous Feature Engineering (`/health` Command)
 * **Objective**: Implement a new `/health` command in Daedalus CLI to display model router provider latency, health status, and API key statuses.
@@ -124,6 +124,7 @@ Daedalus maintains a test suite of **439 tests across 53 files** (Vitest), cover
 | `/ensemble <goal>` | Multi-Agent | Run multi-model ensemble drafting pipeline |
 | `/spec <idea>` | Workflow | Interactively flesh out a feature spec and open GitHub Issue |
 | `/debug <command>` | Workflow | Run a command and autonomously debug failures |
+| `/undo [count\|list]` | Workflow | Revert the last N file patches or list recent patches |
 | `/watch [start\|stop\|status]` | Codebase | Background file watcher for automatic symbol re-indexing |
 | `/index` | Codebase | Manually index codebase symbols into SQLite FTS5 |
 | `/find <query>` | Codebase | Search indexed symbols in project |
@@ -135,10 +136,12 @@ Daedalus maintains a test suite of **439 tests across 53 files** (Vitest), cover
 | `/pr [base]` | Dev Tools | Generate PR description compared to base branch |
 | `/mcp <explore\|search\|install\|list>` | MCP | Manage MCP servers (explore marketplace, search, install) |
 | `/image <prompt>` | Image Gen | Generate UI assets using Stable Diffusion WebUI or Pollinations AI |
-| `/undo` | Safety | Revert the last applied file patch |
 | `/preview <filepath-or-url>` | Utilities | Screenshot a local HTML file or URL and save the image |
-| `/lite` | Utilities | Show Daedalus Lite documentation |
 | `/stats` | Utilities | Display session analytics, token usage, index count, router status |
+| `/history [n]` | Utilities | Show recent N turns with tool calls from the session log |
+| `/lite` | Utilities | Show Daedalus Lite documentation |
+| `/help [command]` | Utilities | Show available commands or detailed help for a specific command |
+| `/exit` | Utilities | Save session and exit |
 | `/onboard` | Setup | First-time setup: discover local models, configure, test |
 | `/tui` | UI | Toggle the Terminal User Interface (TUI) dashboard |
 | `/add <file>` | Context | Add file to active prompt context |
@@ -148,9 +151,11 @@ Daedalus maintains a test suite of **439 tests across 53 files** (Vitest), cover
 | `/clear` | Context | Clear conversation history |
 | `/summarize` | Context | Summarize the current conversation |
 | `/tokens` | Context | Display estimated token count for current session |
+| `/system` | Context | Print the current active system prompt |
 | `/health` | Diagnostics | Display router provider latency, health status, and API key statuses |
 | `/doctor` | Diagnostics | Run full system diagnostics and health checks |
 | `/models` | Diagnostics | List all configured models and tiers |
+| `/changelog` | Diagnostics | View the latest CLI changes |
 | `/config [set <key>=<val>]` | Config | View or modify global configuration settings |
 | `/project [set <key>=<val>]` | Config | View or set project-level config settings (`.daedalusrc`) |
 | `/profile` | Config | View or edit user profile (tone, experience, shell) |
@@ -159,7 +164,7 @@ Daedalus maintains a test suite of **439 tests across 53 files** (Vitest), cover
 | `/fact <text>` | Memory | Add a fact to project memory |
 | `/convention <text>` | Memory | Add a coding convention to project memory |
 | `/extract` | Memory | Manually trigger fact extraction from current session |
-| `/session [name]` | Session | Manage, save, restore, or export chat sessions |
+| `/session [subcommand]` | Session | Manage, save, load, branch, merge, or export chat sessions |
 | `/prune [budget]` | Session | Prune old messages to stay within token budget |
 
 ---
@@ -203,7 +208,8 @@ The global configuration governs model priority chains, UI preferences, and safe
     "showTokens": true,
     "theme": "dark",
     "tui": false,
-    "collapseCommentary": true
+    "collapseCommentary": true,
+    "compactMode": true
   },
   "safety": {
     "protectGit": true,
