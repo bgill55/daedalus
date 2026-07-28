@@ -1,3 +1,10 @@
+## [1.83.6](https://github.com/bgill55/daedalus/compare/v1.83.5...v1.83.6) (2026-07-28)
+
+
+### Bug Fixes
+
+* **docs:** resolve 404s — copy root docs into docs/, disable unused navbar ([923683c](https://github.com/bgill55/daedalus/commit/923683cb86c3b53a42235b8999d6929df12b55d8))
+
 ## [1.83.5](https://github.com/bgill55/daedalus/compare/v1.83.4...v1.83.5) (2026-07-28)
 
 
