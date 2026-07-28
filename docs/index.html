@@ -243,6 +243,11 @@
         const apiLink = document.createElement('li');
         apiLink.innerHTML = '<a href="modules.html">API Reference</a>';
         nav.querySelector('ul').appendChild(apiLink);
+        
+        // Also add hierarchy link
+        const hierarchyLink = document.createElement('li');
+        hierarchyLink.innerHTML = '<a href="hierarchy.html">Class Hierarchy</a>';
+        nav.querySelector('ul').appendChild(hierarchyLink);
       }
       
       // Add API Reference to sidebar
@@ -251,6 +256,11 @@
         const apiItem = document.createElement('li');
         apiItem.innerHTML = '<a href="modules.html">API Reference</a>';
         sidebar.querySelector('ul').appendChild(apiItem);
+        
+        // Also add hierarchy item
+        const hierarchyItem = document.createElement('li');
+        hierarchyItem.innerHTML = '<a href="hierarchy.html">Class Hierarchy</a>';
+        sidebar.querySelector('ul').appendChild(hierarchyItem);
       }
     });
   </script>
