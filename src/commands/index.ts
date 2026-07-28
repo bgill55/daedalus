@@ -46,15 +46,55 @@ const helpCommand: Command = {
       return;
     }
 
-    console.log(pc.bold('\n--- Available Commands ---'));
+    // Categorized help output for better readability
+    const categories: Record<string, Command[]> = {
+      Core: [],
+      Context: [],
+      Agents: [],
+      Development: [],
+      Session: [],
+      Help: [],
+      Other: [],
+    };
     for (const cmd of commandsList) {
-      const aliasList = cmd.aliases ? cmd.aliases.map(a => a.startsWith('/') ? a : `/${a}`) : [];
-      const nameAndAliases = [cmd.name, ...aliasList].join(', ');
-      console.log(`  ${pc.cyan(nameAndAliases.padEnd(30))} - ${cmd.description}`);
+      const name = cmd.name.replace('/', '');
+      if (['add', 'remove', 'context', 'paste', 'clear'].includes(name)) {
+        categories.Core.push(cmd);
+      } else if (['memory', 'fact', 'convention', 'extract', 'summarize', 'compress', 'profile', 'style', 'lite'].includes(name)) {
+        categories.Context.push(cmd);
+      } else if (['spawn', 'delegate', 'tasks', 'task', 'orchestrate', 'orc', 'run', 'o', 'ensemble', 'spec', 'mcp', 'onboard', 'feedback'].includes(name)) {
+        categories.Agents.push(cmd);
+      } else if (['tui', 'image', 'autopilot', 'preview', 'branch', 'pr', 'debug', 'commit', 'project', 'test', 'watch', 'index', 'find', 'refs', 'def', 'changelog', 'models', 'config', 'doctor', 'stats', 'health'].includes(name)) {
+        categories.Development.push(cmd);
+      } else if (['session', 'undo', 'history', 'h', 'exit', 'quit', 'bye'].includes(name)) {
+        categories.Session.push(cmd);
+      } else if (['help', '?'].includes(name)) {
+        categories.Help.push(cmd);
+      } else {
+        categories.Other.push(cmd);
+      }
     }
-    console.log(pc.bold('--------------------------'));
-    console.log(pc.gray('  Detailed documentation: ') + pc.underline(pc.cyan('https://bgill55.github.io/daedalus/#/')));
-    console.log(pc.gray('  Tip: Type ') + pc.cyan('/help <command>') + pc.gray(' for detailed usage and subcommands (e.g. /help config)'));
+
+    console.log(pc.bold('\n=== Daedalus Commands ==='));
+    const printCategory = (title: string, list: Command[]) => {
+      if (!list.length) return;
+      console.log(pc.cyan(`\n${title}:`));
+      for (const cmd of list) {
+        const aliasList = cmd.aliases ? cmd.aliases.map(a => a.startsWith('/') ? a : `/${a}`).join(', ') : '';
+        const nameAndAlias = aliasList ? `${cmd.name} (${aliasList})` : cmd.name;
+        console.log(`  ${pc.cyan(nameAndAlias.padEnd(35))} - ${cmd.description}`);
+      }
+    };
+    printCategory('Core', categories.Core);
+    printCategory('Context', categories.Context);
+    printCategory('Agents', categories.Agents);
+    printCategory('Development', categories.Development);
+    printCategory('Session', categories.Session);
+    printCategory('Help', categories.Help);
+    printCategory('Other', categories.Other);
+
+    console.log(pc.gray('\n  Detailed documentation: ') + pc.underline(pc.cyan('https://bgill55.github.io/daedalus/#/')));
+    console.log(pc.gray('  Tip: Type ') + pc.cyan('/help <command>') + pc.gray(' for detailed usage and subcommands.'));
     console.log();
   }
 };
