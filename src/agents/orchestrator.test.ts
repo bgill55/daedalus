@@ -2,6 +2,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Orchestrator } from './orchestrator.js';
 import type { ToolContext, ChatMessage } from '../types.js';
 import type { LocalRouter } from '../router/index.js';
+import {
+  requiresRealArtifacts, verifyArtifacts, isBuildErrorRelated,
+  generateBuildErrorHint, attemptRepair, rollbackTaskPatches,
+  runBuildVerification, AgentExecutionContext,
+} from './orchestrator-verification.js';
 import fs from 'fs';
 
 // Global mock for child_process exec
@@ -122,45 +127,33 @@ describe('Orchestrator artifact verification', () => {
   });
 
   it('requiresRealArtifacts is false for non-coder roles', async () => {
-    const { router: localRouter } = createMockRouter([]);
-    const orch = new Orchestrator(localRouter, messages, toolContext);
-    expect((orch as any).requiresRealArtifacts('planner', 'implement thing')).toBe(false);
+    expect(requiresRealArtifacts('planner', 'implement thing')).toBe(false);
   });
 
   it('requiresRealArtifacts is true for coder implementation keywords', async () => {
-    const { router: localRouter } = createMockRouter([]);
-    const orch = new Orchestrator(localRouter, messages, toolContext);
-    expect((orch as any).requiresRealArtifacts('coder', 'implement CLI')).toBe(true);
+    expect(requiresRealArtifacts('coder', 'implement CLI')).toBe(true);
   });
 
   it('verifyArtifacts returns false when coder claims success without artifacts', async () => {
-    const { router: localRouter } = createMockRouter([]);
     const chat = vi.spyOn(console, 'log').mockImplementation(() => {});
-    const orch = new Orchestrator(localRouter, messages, toolContext);
-    expect(await (orch as any).verifyArtifacts('coder', 'implement CLI', 'Implemented the full CLI utility.')).toBe(false);
+    expect(await verifyArtifacts(toolContext, 'coder', 'implement CLI', 'Implemented the full CLI utility.')).toBe(false);
     chat.mockRestore();
   });
 
   it('verifyArtifacts returns false when failure is explicitly declared', async () => {
-    const { router: localRouter } = createMockRouter([]);
-    const orch = new Orchestrator(localRouter, messages, toolContext);
-    expect(await (orch as any).verifyArtifacts('coder', 'implement CLI', 'Failed to write the requested CLI files.')).toBe(false);
+    expect(await verifyArtifacts(toolContext, 'coder', 'implement CLI', 'Failed to write the requested CLI files.')).toBe(false);
   });
 
   it('verifyArtifacts returns true when patchHistory exists', async () => {
     toolContext.patchHistory = [
       { filePath: '/tmp/foo.ts', oldContent: '', newContent: '', timestamp: Date.now(), description: 'wrote file' },
     ];
-    const { router: localRouter } = createMockRouter([]);
-    const orch = new Orchestrator(localRouter, messages, toolContext);
-    expect(await (orch as any).verifyArtifacts('coder', 'implement CLI', 'Wrote /tmp/foo.ts.')).toBe(true);
+    expect(await verifyArtifacts(toolContext, 'coder', 'implement CLI', 'Wrote /tmp/foo.ts.')).toBe(true);
   });
 
   it('verifyArtifacts returns false for pending write paths unrelated to goal', async () => {
-    const { router: localRouter } = createMockRouter([]);
-    const orch = new Orchestrator(localRouter, messages, toolContext);
     // No patchHistory set, so this should fail even with a plausible path in the result
-    expect(await (orch as any).verifyArtifacts('coder', 'build web app', 'Wrote /tmp/other_service.ts.')).toBe(false);
+    expect(await verifyArtifacts(toolContext, 'coder', 'build web app', 'Wrote /tmp/other_service.ts.')).toBe(false);
   });
 });
 
@@ -231,13 +224,8 @@ describe('Orchestrator repair attempts', () => {
   });
 
   it('repairs a failed task and marks it successful when repair shows artifacts', async () => {
-    chatMock = vi.fn();
-    chatMock.mockImplementationOnce(() =>
-      Promise.resolve({
-        choices: [{ message: { content: 'Failed to write initial file.', tool_calls: null } }],
-      } as any),
-    );
-    chatMock.mockImplementationOnce(() => {
+    const runAgent = vi.fn();
+    runAgent.mockImplementationOnce(() => {
       toolContext.patchHistory?.push({
         filePath: '/tmp/cli.ts',
         oldContent: '',
@@ -245,20 +233,12 @@ describe('Orchestrator repair attempts', () => {
         timestamp: Date.now(),
         description: 'wrote file',
       });
-      return Promise.resolve({
-        choices: [{ message: { content: 'Created the CLI entrypoint and supporting files.', tool_calls: null } }],
-      } as any);
+      return Promise.resolve('Created the CLI entrypoint and supporting files.');
     });
 
-    router = {
-      chat: { completions: { create: chatMock } },
-      chatStream: vi.fn(),
-      chatCompletion: chatMock,
-      getModels: vi.fn().mockReturnValue([{ name: 'test', model: 'test' }]),
-    } as unknown as LocalRouter;
-
-    const orch = new Orchestrator(router, messages, toolContext);
-    const repaired = await (orch as any).attemptRepair(
+    const ctx: AgentExecutionContext = { toolContext, runAgent };
+    const repaired = await attemptRepair(
+      ctx,
       { goal: 'implement a tiny CLI utility', context: '', role: 'coder' },
       { role: 'coder', goal: 'implement a tiny CLI utility', summary: 'Failed to write initial file.', success: false },
     );
@@ -266,57 +246,41 @@ describe('Orchestrator repair attempts', () => {
   });
 
   it('stops retrying after maxRetries', async () => {
-    chatMock = vi.fn();
+    const runAgent = vi.fn();
     for (let i = 0; i < 2; i++) {
-      chatMock.mockImplementationOnce(() =>
-        Promise.resolve({
-          choices: [{ message: { content: 'Repair attempt failed again.', tool_calls: null } }],
-        } as any),
+      runAgent.mockImplementationOnce(() =>
+        Promise.resolve('Repair attempt failed again.'),
       );
     }
 
-    router = {
-      chat: { completions: { create: chatMock } },
-      chatStream: vi.fn(),
-      chatCompletion: chatMock,
-      getModels: vi.fn().mockReturnValue([{ name: 'test', model: 'test' }]),
-    } as unknown as LocalRouter;
-
-    const orch = new Orchestrator(router, messages, toolContext);
+    const ctx: AgentExecutionContext = { toolContext, runAgent };
     const previous = { role: 'coder', goal: 'implement CLI', summary: 'failed', success: false };
-    const repaired = await (orch as any).attemptRepair(
+    const repaired = await attemptRepair(
+      ctx,
       { goal: 'implement CLI', context: '', role: 'coder' },
       previous as any,
     );
     expect(repaired.success).toBe(false);
-    expect(chatMock).toHaveBeenCalledTimes(2);
+    expect(runAgent).toHaveBeenCalledTimes(2);
   });
 
   it('stops repair attempts immediately if aborted', async () => {
     const controller = new AbortController();
     toolContext.abortSignal = controller.signal;
-    chatMock = vi.fn().mockImplementation(() => {
+    const runAgent = vi.fn().mockImplementation(() => {
       controller.abort();
-      return Promise.resolve({
-        choices: [{ message: { content: 'Wrote some files', tool_calls: null } }],
-      } as any);
+      return Promise.resolve('Wrote some files');
     });
 
-    router = {
-      chat: { completions: { create: chatMock } },
-      chatStream: vi.fn(),
-      chatCompletion: chatMock,
-      getModels: vi.fn().mockReturnValue([{ name: 'test', model: 'test' }]),
-    } as unknown as LocalRouter;
-
-    const orch = new Orchestrator(router, messages, toolContext);
+    const ctx: AgentExecutionContext = { toolContext, runAgent };
     const previous = { role: 'coder', goal: 'implement CLI', summary: 'failed', success: false };
-    const repaired = await (orch as any).attemptRepair(
+    const repaired = await attemptRepair(
+      ctx,
       { goal: 'implement CLI', context: '', role: 'coder' },
       previous as any,
     );
     expect(repaired.success).toBe(false);
-    expect(chatMock).toHaveBeenCalledTimes(1);
+    expect(runAgent).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -499,16 +463,13 @@ describe('Orchestrator Loop Engineering features', () => {
     const fsMockWrite = vi.spyOn(fs, 'writeFileSync').mockImplementation(() => {});
     const fsMockExists = vi.spyOn(fs, 'existsSync').mockReturnValue(true);
 
-    const { router: localRouter } = createMockRouter([]);
-    const orch = new Orchestrator(localRouter, messages, toolContext);
-
     toolContext.patchHistory = [
       { filePath: 'src/file1.ts', oldContent: 'old1', newContent: 'new1', timestamp: 1, description: 'patch1' },
       { filePath: 'src/file2.ts', oldContent: 'old2', newContent: 'new2', timestamp: 2, description: 'patch2' },
       { filePath: 'src/file3.ts', oldContent: 'old3', newContent: 'new3', timestamp: 3, description: 'patch3' },
     ];
 
-    await (orch as any).rollbackTaskPatches(1);
+    await rollbackTaskPatches(toolContext, 1);
 
     expect(fsMockWrite).toHaveBeenCalledTimes(2);
     expect(fsMockWrite).toHaveBeenNthCalledWith(1, 'src/file3.ts', 'old3', 'utf8');
@@ -542,10 +503,7 @@ describe('Orchestrator Loop Engineering features', () => {
       cb(null, 'build success', '');
     });
 
-    const { router: localRouter } = createMockRouter([]);
-    const orch = new Orchestrator(localRouter, messages, toolContext);
-
-    const verifyResult = await (orch as any).runBuildVerification();
+    const verifyResult = await runBuildVerification(toolContext);
     expect(verifyResult.success).toBe(true);
     expect(mockExec).toHaveBeenCalledWith('npx tsc --noEmit', expect.any(Object), expect.any(Function));
 
@@ -574,10 +532,7 @@ describe('Orchestrator Loop Engineering features', () => {
       cb(new Error('Compile Error'), 'stdout logs', 'stderr errors');
     });
 
-    const { router: localRouter } = createMockRouter([]);
-    const orch = new Orchestrator(localRouter, messages, toolContext);
-
-    const verifyResult = await (orch as any).runBuildVerification();
+    const verifyResult = await runBuildVerification(toolContext);
     expect(verifyResult.success).toBe(false);
     expect(verifyResult.errorLogs).toContain('stdout logs');
     expect(verifyResult.errorLogs).toContain('stderr errors');
@@ -588,35 +543,29 @@ describe('Orchestrator Loop Engineering features', () => {
 
   describe('build check filtering and error hints', () => {
     it('isBuildErrorRelated matches related errors correctly', () => {
-      const { router: localRouter } = createMockRouter([]);
-      const orch = new Orchestrator(localRouter, messages, toolContext);
-      
       const modifiedFiles = [
         'D:/projects/my-app/src/pages/api/download.ts',
         'D:/projects/my-app/src/utils/helpers.ts'
       ];
       
-      expect((orch as any).isBuildErrorRelated('Error in download.ts: Cannot find module', modifiedFiles)).toBe(true);
-      expect((orch as any).isBuildErrorRelated('Error: Cannot find module in src/pages/api/download.ts', modifiedFiles)).toBe(true);
-      expect((orch as any).isBuildErrorRelated('error in HELPERS.ts: strict mode', modifiedFiles)).toBe(true);
-      expect((orch as any).isBuildErrorRelated('Error in unrelated.ts: syntax error', modifiedFiles)).toBe(false);
+      expect(isBuildErrorRelated('Error in download.ts: Cannot find module', modifiedFiles)).toBe(true);
+      expect(isBuildErrorRelated('Error: Cannot find module in src/pages/api/download.ts', modifiedFiles)).toBe(true);
+      expect(isBuildErrorRelated('error in HELPERS.ts: strict mode', modifiedFiles)).toBe(true);
+      expect(isBuildErrorRelated('Error in unrelated.ts: syntax error', modifiedFiles)).toBe(false);
     });
 
-    it('generateBuildErrorHint produces correct hints', () => {
-      const { router: localRouter } = createMockRouter([]);
-      const orch = new Orchestrator(localRouter, messages, toolContext);
-      
-      const hint1 = (orch as any).generateBuildErrorHint("Error: Cannot find module 'googleapis' or its types");
+    it('generateBuildErrorHint produces correct hints', () => {      
+      const hint1 = generateBuildErrorHint("Error: Cannot find module 'googleapis' or its types");
       expect(hint1).toContain('googleapis');
       expect(hint1).toContain('npm install googleapis');
       
-      const hint2 = (orch as any).generateBuildErrorHint("Duplicate page detected: pages/stats.tsx and src/pages/stats.tsx");
+      const hint2 = generateBuildErrorHint("Duplicate page detected: pages/stats.tsx and src/pages/stats.tsx");
       expect(hint2).toContain('duplicate files in the root pages/ directory');
       
-      const hint3 = (orch as any).generateBuildErrorHint("No overload matches this call.");
+      const hint3 = generateBuildErrorHint("No overload matches this call.");
       expect(hint3).toContain('options as any');
       
-      const hint4 = (orch as any).generateBuildErrorHint("Some generic syntax error at line 5");
+      const hint4 = generateBuildErrorHint("Some generic syntax error at line 5");
       expect(hint4).toBe('');
     });
   });

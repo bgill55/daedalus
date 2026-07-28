@@ -8,9 +8,8 @@ import { ToolContext, ChatMessage } from '../types.js';
 import { getAgentRole, filterToolsForRole } from './roles.js';
 import { BUILTIN_TOOLS } from '../tools/definitions.js';
 import { executeToolCalls } from '../tools/executor.js';
+import { getFrameworkGuidance } from './orchestrator-validation.js';
 import { detectProjectStack } from '../config/stack.js';
-import { Orchestrator } from './orchestrator.js';
-
 interface CandidateResult {
   diff: string;
   score: number;
@@ -213,7 +212,7 @@ export async function runEnsembleWorkflow(
         cand.testsPass = testsPass;
 
         const projectStack = detectProjectStack(context.projectRoot || process.cwd());
-        const frameworkRules = Orchestrator.getFrameworkGuidance(projectStack, context.projectRoot);
+        const frameworkRules = getFrameworkGuidance(projectStack, context.projectRoot);
 
         const criticGoal = `You are evaluating a candidate code draft to solve the following goal:
 

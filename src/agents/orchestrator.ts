@@ -13,31 +13,24 @@ import pc from 'picocolors';
 import { DaedalusSpinner } from '../tools/daedalus-spinner.js';
 import { SessionManager } from '../session/manager.js';
 import { parseTextToolCalls } from '../formatting.js';
+import {
+  filterValidTasks, stripCodeBlocks, stripToolRequestArtifacts, VAGUE_GOAL_RE,
+  isComplexGoal, validateTasks, cleanTaskText, cleanPlanOutput, truncateGoal,
+  extractFilePaths, buildDependencyGraph, getTaskFilePaths, hasFileConflict, groupIndependent,
+  isUnnecessaryConfigTask, extractRequirements, getFrameworkGuidance,
+} from './orchestrator-validation.js';
+import {
+  isDeclaredError, requiresRealArtifacts, extractPendingWrites,
+  verifyArtifacts, hasRealWrites, verifyArtifactsThoroughly,
+  checkPlaceholders, fillPlaceholders, buildCleanSummary,
+  isBuildErrorRelated, generateBuildErrorHint, runBuildVerification,
+  attemptRepair, rollbackTaskPatches,
+} from './orchestrator-verification.js';
+import type { DelegationTask, AgentResult } from './orchestrator-types.js';
 
-interface DelegationTask {
-  goal: string;
-  context: string;
-  role: string;
-  toolsets?: string[];
-  dependencies?: string[];  // file paths this task depends on (auto-detected)
-  status?: 'pending' | 'in_progress' | 'completed' | 'failed' | 'skipped';
-  error?: string;
-  splitDepth?: number;
-}
-
-interface AgentResult {
-  role: string;
-  goal: string;
-  summary: string;
-  success: boolean;
-  evidence?: string;
-}
 
 // Simplified placeholder regexes for common auto-fill tokens only
-const PLACEHOLDER_RE = /\[(?:YEAR|Year|year|YYYY|yyyy|DATE|Date|date|TODAY|Today|today|YOUR\s+NAME|Your\s+Name|your\s+name|FULLNAME|Fullname|fullname|AUTHOR|Author|author|USERNAME|Username|username|OWNER|Owner|owner)\]/i;
 // Simplified HTML placeholder regex for same tokens inside comments
-const HTML_PLACEHOLDER_RE = /<!--[^>]*?(?:YEAR|Year|year|DATE|Date|date|YOUR\s+NAME|Your\s+Name|your\s+name)\s*-->/i;
-
 export class Orchestrator {
   private router: LocalRouter;
   private messages: ChatMessage[];
@@ -139,12 +132,12 @@ export class Orchestrator {
           projectContext,
           `Simplify to at most ${this.MAX_INITIAL_TASKS} focused steps. Merge related steps. Each step must produce real output.`
         );
-        tasks = Orchestrator.filterValidTasks(this.parseDelegationTasks(plan, goal));
+        tasks = filterValidTasks(this.parseDelegationTasks(plan, goal));
         if (tasks.length > this.MAX_INITIAL_TASKS) {
           tasks = tasks.slice(0, this.MAX_INITIAL_TASKS);
         }
       } else {
-        tasks = Orchestrator.filterValidTasks(tasks);
+        tasks = filterValidTasks(tasks);
       }
 
       if (this.sessionManager) {
@@ -248,7 +241,7 @@ export class Orchestrator {
       const simplifyBlock = simplifyHint ? `\n\n${simplifyHint}` : '';
       const messages: ChatMessage[] = [
         { role: 'system', content: systemPrompt + (attempts > 1 ? `\n\nIMPORTANT: You MUST create a valid plan. Each subtask needs an explicit file path and concrete wording.${retryHint}` : '') + simplifyBlock },
-        { role: 'user', content: `Create a step-by-step plan with one subtask per file for: ${goal}\n\nProject context:\n${projectContext || '(none discovered)'}${Orchestrator.getFrameworkGuidance(projectContext, this.toolContext.projectRoot)}\n\n${this.toolContext.activeFiles.size > 0 ? 'Files in context: ' + Array.from(this.toolContext.activeFiles.values()).join(', ') : ''}\n\nRemember: one subtask per file, include the exact file path in each subtask, order by dependencies.` },
+        { role: 'user', content: `Create a step-by-step plan with one subtask per file for: ${goal}\n\nProject context:\n${projectContext || '(none discovered)'}${getFrameworkGuidance(projectContext, this.toolContext.projectRoot)}\n\n${this.toolContext.activeFiles.size > 0 ? 'Files in context: ' + Array.from(this.toolContext.activeFiles.values()).join(', ') : ''}\n\nRemember: one subtask per file, include the exact file path in each subtask, order by dependencies.` },
       ];
 
       const planSpinner = new DaedalusSpinner({ text: `planner generating plan`, color: (s) => pc.blue(s) });
@@ -318,7 +311,7 @@ export class Orchestrator {
 
       // Validate the plan
       const testTasks = this.parseDelegationTasks(planText || `- delegate to coder: ${goal}`, goal);
-      const validationError = Orchestrator.validateTasks(testTasks, goal, this.toolContext.projectRoot);
+      const validationError = validateTasks(testTasks, goal, this.toolContext.projectRoot);
       if (!validationError) {
         return planText || `- delegate to coder: ${goal}`;
       }
@@ -450,37 +443,6 @@ export class Orchestrator {
     return batch;
   }
 
-  private static getTaskFilePaths(task: DelegationTask): string[] {
-    return Orchestrator.extractFilePaths(task.goal);
-  }
-
-  private static hasFileConflict(a: DelegationTask, b: DelegationTask): boolean {
-    const aPaths = Orchestrator.getTaskFilePaths(a);
-    const bPaths = Orchestrator.getTaskFilePaths(b);
-    // If either has no detected paths, assume conflict (conservative)
-    if (aPaths.length === 0 || bPaths.length === 0) return true;
-    return aPaths.some(ap => bPaths.includes(ap));
-  }
-
-  private static groupIndependent(tasks: DelegationTask[]): DelegationTask[][] {
-    const groups: DelegationTask[][] = [];
-    for (const t of tasks) {
-      let placed = false;
-      for (const group of groups) {
-        const noConflict = group.every(g => !Orchestrator.hasFileConflict(g, t));
-        if (noConflict) {
-          group.push(t);
-          placed = true;
-          break;
-        }
-      }
-      if (!placed) {
-        groups.push([t]);
-      }
-    }
-    return groups;
-  }
-
   private async executeSingleTask(
     task: DelegationTask,
     tasks: DelegationTask[],
@@ -578,7 +540,7 @@ export class Orchestrator {
     let lastReplanCount = 0;
 
     // Build dependency graph from file paths
-    Orchestrator.buildDependencyGraph(tasks);
+    buildDependencyGraph(tasks);
 
     for (let i = startIndex; i < tasks.length; /* increment inside */) {
       if (this.toolContext.abortSignal.aborted) {
@@ -604,7 +566,7 @@ export class Orchestrator {
       }
 
       // Skip unnecessary config tasks for file-based routing frameworks
-      if (Orchestrator.isUnnecessaryConfigTask(task, projectContext)) {
+      if (isUnnecessaryConfigTask(task, projectContext)) {
         console.log(pc.yellow(`\nSkipping task ${i + 1}: Next.js uses file-based routing — no config changes needed`));
         task.status = 'skipped';
         task.error = 'Unnecessary config task for file-based routing framework';
@@ -622,7 +584,7 @@ export class Orchestrator {
 
       // In auto-approve mode, run independent tasks concurrently
       if (process.env.DAEDALUS_AUTO_APPROVE === 'true') {
-        const groups = Orchestrator.groupIndependent(batch);
+        const groups = groupIndependent(batch);
         for (const group of groups) {
           await Promise.all(
             group.map(t => this.executeSingleTask(t, tasks, originalGoal, projectContext))
@@ -654,7 +616,7 @@ export class Orchestrator {
           lastReplanCount = completedCount;
           await this.replanRemaining(tasks, originalGoal, projectContext);
           // Rebuild dependency graph after replan
-          Orchestrator.buildDependencyGraph(tasks);
+          buildDependencyGraph(tasks);
         }
       }
 
@@ -716,7 +678,7 @@ export class Orchestrator {
     const completedFiles = done.flatMap(t => {
       const r = this.results.find(rr => rr.goal === t.goal && rr.role === t.role);
       if (!r) return [];
-      const paths = Orchestrator.extractFilePaths(r.summary);
+      const paths = extractFilePaths(r.summary);
       return paths;
     });
 
@@ -743,18 +705,18 @@ export class Orchestrator {
     let newTasks = this.parseDelegationTasks(subPlan, originalGoal);
     newTasks = newTasks.filter(nt => {
       if (done.length === 0 || nt.role !== 'coder') return true;
-      const newPaths = Orchestrator.extractFilePaths(nt.goal).map(p => p.toLowerCase());
+      const newPaths = extractFilePaths(nt.goal).map(p => p.toLowerCase());
       if (newPaths.length === 0) return true;
       const keep = !done.some(d => {
         if (d.role !== 'coder') return false;
-        const donePaths = Orchestrator.extractFilePaths(d.goal).map(p => p.toLowerCase());
+        const donePaths = extractFilePaths(d.goal).map(p => p.toLowerCase());
         return donePaths.some(dp => newPaths.includes(dp));
       });
       return keep;
     });
 
     // Enforce task cap and filter out non-actionable tasks
-    newTasks = Orchestrator.filterValidTasks(newTasks).slice(0, this.MAX_INITIAL_TASKS);
+    newTasks = filterValidTasks(newTasks).slice(0, this.MAX_INITIAL_TASKS);
 
     // Fallback: if replan produced no valid tasks, restore original pending tasks
     if (newTasks.length === 0 && originalPending.length > 0) {
@@ -774,145 +736,14 @@ export class Orchestrator {
     this.printTaskList(tasks);
   }
 
-  private static filterValidTasks(tasks: DelegationTask[]): DelegationTask[] {
-    const doneRe = /\b(open|launch|start|run|execute)\b.*\b(file|editor|IDE|app|application|browser|window)\b|\b(commit|push|pull|merge)\b|\b(researcher)\b.*\b(identify and install)\b/i;
-    const filtered = tasks.filter(t => !doneRe.test(t.goal));
-    const metaRe = /\b(save changes|save the file|ensure that|ensure the)\b/i;
-    const metaSaveRe = /(?:save|write)\s+the\s+(?:changes|file)/i;
-    const guiTestRe = /\b(cypress|playwright|puppeteer|selenium)\b/i;
-    const fileSimpleRe = /\b(create|write|build|make|generate|add)\b.*\b(file|component|page|layout|module|function|class|route)\b/i;
-    const pathRe = /([a-z0-9_\-./\\:]+\\.[a-z0-9]+)/i;
-
-    const seen = new Map<string, DelegationTask>();
-    const out: DelegationTask[] = [];
-
-    for (const t of filtered) {
-      const rawGoal = t.goal;
-      const cleanedGoal = Orchestrator.cleanTaskText(rawGoal) || rawGoal;
-
-      if (doneRe.test(cleanedGoal)) continue;
-      if (metaRe.test(cleanedGoal)) continue;
-      if (metaSaveRe.test(cleanedGoal)) continue;
-      if (guiTestRe.test(cleanedGoal)) continue;
-      if (/\b(open|view|check)\b/i.test(cleanedGoal) && cleanedGoal.length < 25) continue;
-
-      const lower = cleanedGoal.toLowerCase();
-      if (t.role === 'coder') {
-        const pathMatch = lower.match(pathRe);
-        const key = pathMatch ? `${t.role}:${pathMatch[1]}` : `${t.role}:${lower}`;
-
-        if (seen.has(key)) {
-          const existing = seen.get(key)!;
-          if (cleanedGoal.length > existing.goal.length) existing.goal = cleanedGoal;
-          continue;
-        }
-        seen.set(key, t);
-
-        const isSimpleFileTask = fileSimpleRe.test(lower);
-        if (isSimpleFileTask) {
-          const simpleFileCount = out.filter(o => {
-            if (o.role !== 'coder') return false;
-            const p = o.goal.toLowerCase().match(pathRe);
-            return p && pathMatch && p[1] === pathMatch[1];
-          }).length;
-          if (simpleFileCount >= 2) continue;
-        }
-      }
-
-      t.goal = cleanedGoal;
-      out.push(t);
-    }
-
-    return out;
-  }
-
-  private static stripCodeBlocks(text: string): string {
-    // Strip triple-backtick code fences (language identifier + code block)
-    let result = text.replace(/```[\s\S]*?```/g, '').trim();
-    // Unwrap inline backticks — keep the content (e.g. `src/pages/about.tsx` stays)
-    result = result.replace(/`([^`]+)`/g, '$1').trim();
-    return result;
-  }
-
-  private static stripToolRequestArtifacts(text: string): string {
-    // Remove [TOOL_REQUEST]...[END_TOOL_REQUEST] blocks (including trailing JSON)
-    let result = text.replace(/\[TOOL_REQUEST\][\s\S]*?\[END_TOOL_REQUEST\]/gi, '').trim();
-    // Remove trailing whitespace / stray colons left behind
-    result = result.replace(/[:\s]+$/g, '').trim();
-    return result;
-  }
-
-  private static VAGUE_GOAL_RE = /\b(add the necessary|add the required|install the necessary|install the required|appropriate packages|suitable packages)\b/i;
-
-  private static isComplexGoal(goal: string): boolean {
-    const lines = goal.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-    const hasBullets = lines.filter(l => /^[-*•\d+]/.test(l)).length >= 2;
-    const isLong = goal.length > 400;
-    return hasBullets || isLong;
-  }
-
-  private static validateTasks(tasks: DelegationTask[], goal: string, projectRoot?: string): string | null {
-    if (tasks.length === 0) return 'No tasks generated';
-    const isSplit = goal.toLowerCase().includes('continue the remaining work');
-    const coderTasks = tasks.filter(t => t.role === 'coder');
-    if (!isSplit && coderTasks.length === 1 && Orchestrator.extractFilePaths(goal).length > 3) {
-      return `Expected multiple coder tasks for goal with many file paths`;
-    }
-    if (!isSplit && tasks.length === 1 && Orchestrator.isComplexGoal(goal)) {
-      return `Expected multiple tasks (one per file/component) to delegate a complex goal, but the plan only has 1 task. Please break it down into at least 2-3 focused subtasks.`;
-    }
-    // Whether this is a last-resort single-task fallback plan (goal === task goal, no file path in goal)
-    const isFallbackSingleTask = tasks.length === 1 && tasks[0].goal.trim() === goal.trim();
-    for (const t of tasks) {
-      if (Orchestrator.VAGUE_GOAL_RE.test(t.goal)) {
-        return `Task "${t.goal.slice(0, 80)}" contains vague wording — be concrete`;
-      }
-      const paths = Orchestrator.extractFilePaths(t.goal);
-      const isNonFileOp = /\b(install|npm|yarn|pnpm|compile|build|setup|initialize|init|run|test|lint)\b/i.test(t.goal);
-      if ((t.role === 'coder' || t.role === 'debugger') && paths.length === 0 && !isFallbackSingleTask && !isNonFileOp) {
-        return `Task "${t.goal.slice(0, 80)}" has no file path — each task must target a specific file`;
-      }
-      if (projectRoot) {
-        for (const p of paths) {
-          const basename = path.basename(p);
-          const normalizedP = p.replace(/\\/g, '/');
-          if (normalizedP.startsWith('src/') || normalizedP.startsWith('lib/')) {
-            const rootPath = path.join(projectRoot, basename);
-            const srcPath = path.join(projectRoot, p);
-            if (fs.existsSync(rootPath) && !fs.existsSync(srcPath)) {
-              return `Task "${t.goal.slice(0, 80)}" targets "${p}" but the file actually exists at the root level ("${basename}"). Correct the path.`;
-            }
-          }
-        }
-      }
-    }
-    return null;
-  }
-
-  private static cleanTaskText(text: string): string {
-    const withoutBlocks = Orchestrator.stripCodeBlocks(text);
-    const withoutToolRequests = Orchestrator.stripToolRequestArtifacts(withoutBlocks);
-    return withoutToolRequests || withoutBlocks || text;
-  }
-
-  private static cleanPlanOutput(text: string): string {
-    // Clean the entire planner output before parsing to remove all tool request clutter
-    return Orchestrator.stripToolRequestArtifacts(text);
-  }
-
-  private truncateGoal(text: string): string {
-    if (text.length <= 200) return text;
-    return text.slice(0, 197) + '...';
-  }
-
   private parseDelegationTasks(plan: string, goal: string): DelegationTask[] {
-    const cleanedPlan = Orchestrator.cleanPlanOutput(plan);
+    const cleanedPlan = cleanPlanOutput(plan);
     const tasks: DelegationTask[] = [];
     const seenGoals = new Set<string>();
     const activeFilesText = this.toolContext.activeFiles.size > 0
       ? `Files in context: ${Array.from(this.toolContext.activeFiles.values()).join(', ')}`
       : '';
-    const originalPaths = Orchestrator.extractFilePaths(goal);
+    const originalPaths = extractFilePaths(goal);
     const pathsBlock = originalPaths.length > 0
       ? `\nOriginal goal file paths (MUST preserve in subtask):\n${originalPaths.map(p => `  - ${p}`).join('\n')}\n`
       : '';
@@ -925,11 +756,11 @@ export class Orchestrator {
     let currentGoal = '';
     
     const pushTask = (role: string, goalText: string, ctx: string, depth: number) => {
-      const clean = Orchestrator.cleanTaskText(goalText) || goalText;
+      const clean = cleanTaskText(goalText) || goalText;
       const goalKey = clean.trim().toLowerCase().replace(/\s+/g, ' ');
       if (seenGoals.has(goalKey)) return;
       seenGoals.add(goalKey);
-      tasks.push({ goal: this.truncateGoal(clean || goalText), context: ctx, role, status: 'pending', splitDepth: depth });
+      tasks.push({ goal: truncateGoal(clean || goalText), context: ctx, role, status: 'pending', splitDepth: depth });
     };
 
     const guessRole = (text: string): string => {
@@ -993,7 +824,7 @@ export class Orchestrator {
 
     if (tasks.length === 0) {
       tasks.push({
-        goal: this.truncateGoal(goal),
+        goal: truncateGoal(goal),
         context: baseCtx,
         role: 'coder',
         status: 'pending',
@@ -1002,355 +833,6 @@ export class Orchestrator {
     }
 
     return tasks;
-  }
-
-  private isDeclaredError(result: string): boolean {
-    const normalized = result.trim().toLowerCase();
-    return /^(error|failed)/.test(normalized);
-  }
-
-  private requiresRealArtifacts(role: string, goal: string): boolean {
-    if (role !== 'coder') return false;
-    const keywords = ['implement', 'create', 'write', 'add', 'make', 'build', 'update', 'change', 'modify', 'generate', 'setup', 'fix'];
-    const lower = goal.toLowerCase();
-    return keywords.some(k => lower.includes(k));
-  }
-
-  private extractPendingWrites(result: string): string[] {
-    const paths: string[] = [];
-    const regex = /(?:created|wrote|added|updated|modified|in)\s+([A-Za-z0-9_\-./\\:]+\.[A-Za-z0-9]+)/gi;
-    let match;
-    while ((match = regex.exec(result)) !== null) {
-      paths.push(match[1]);
-    }
-    const standaloneRegex = /\b([A-Za-z0-9_\-./\\:]+\.[a-zA-Z0-9]+)\b/g;
-    let standaloneMatch;
-    while ((standaloneMatch = standaloneRegex.exec(result)) !== null) {
-      const p = standaloneMatch[1];
-      if (!paths.includes(p) && (p.includes('/') || p.includes('\\') || p.includes('.'))) {
-        paths.push(p);
-      }
-    }
-    return paths;
-  }
-
-  private async verifyArtifacts(role: string, goal: string, result: string, historyStartIndex: number = 0): Promise<boolean> {
-    if (!this.requiresRealArtifacts(role, goal)) return true;
-    if (this.isDeclaredError(result)) return false;
-
-    // Terminal-only tasks (npm install, tsc, npx commands) produce no patchHistory entries — accept them
-    // Only apply when the goal is a bare process invocation, not a creative task like "build web app"
-    const isTerminalOnlyGoal = /^\s*(run|install|execute|compile)\b/i.test(goal)
-      && !/\b(create|write|generate|add|make|implement|build|setup|configure)\b/i.test(goal);
-    if (isTerminalOnlyGoal) return true;
-
-    if (!this.toolContext.patchHistory || this.toolContext.patchHistory.length <= historyStartIndex) {
-      return false;
-    }
-
-    const rawPaths = this.extractPendingWrites(result);
-    const paths = rawPaths.map(p => p.replace(/\\/g, '/'));
-
-    const currentPatches = this.toolContext.patchHistory.slice(historyStartIndex);
-    const normalizedHistory = currentPatches.map(h => ({
-      ...h,
-      normalizedPath: h.filePath.replace(/\\/g, '/')
-    }));
-
-    const hasPatchedMentioned = normalizedHistory.some(h =>
-      paths.includes(h.normalizedPath) || paths.some(p => h.normalizedPath.endsWith('/' + p))
-    );
-    if (hasPatchedMentioned) return true;
-
-    const hasRelevantPatch = normalizedHistory.some(h => {
-      const base = h.normalizedPath.split('/').pop() || '';
-      const goalLower = goal.toLowerCase();
-      return goalLower.includes(base.split('.')[0].toLowerCase());
-    });
-    if (hasRelevantPatch) return true;
-
-    return false;
-  }
-
-  private async checkPlaceholders(historyStartIndex: number): Promise<string[]> {
-    const history = this.toolContext.patchHistory || [];
-    const placeholders: string[] = [];
-    for (let i = historyStartIndex; i < history.length; i++) {
-      const entry = history[i];
-      if (!entry.filePath) continue;
-      try {
-        const content = fs.readFileSync(entry.filePath, 'utf8');
-        const lines = content.split('\n');
-        for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
-          const bracketMatch = lines[lineIdx].match(PLACEHOLDER_RE);
-          if (bracketMatch) {
-            placeholders.push(`${entry.filePath}:${lineIdx + 1} — ${bracketMatch[0].trim()}`);
-          }
-          const htmlMatch = lines[lineIdx].match(HTML_PLACEHOLDER_RE);
-          if (htmlMatch) {
-            placeholders.push(`${entry.filePath}:${lineIdx + 1} — HTML comment placeholder`);
-          }
-        }
-      } catch {
-        // file might have been deleted — skip
-      }
-    }
-    return placeholders;
-  }
-
-  private async fillPlaceholders(historyStartIndex: number): Promise<number> {
-    const history = this.toolContext.patchHistory || [];
-    let filled = 0;
-    const year = new Date().getFullYear().toString();
-    const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-    let userName: string;
-    try { userName = os.userInfo().username; } catch { userName = 'user'; }
-
-    for (let i = historyStartIndex; i < history.length; i++) {
-      const entry = history[i];
-      if (!entry.filePath) continue;
-      try {
-        const content = fs.readFileSync(entry.filePath, 'utf8');
-        const newContent = content
-          // Year/date — universally guessable
-          .replace(/\[(?:YEAR|Year|year|YYYY|yyyy)\]/g, year)
-          .replace(/\[(?:DATE|Date|date|TODAY|Today|today)\]/g, today)
-          // Name/author/owner — use system account name
-          .replace(/\[(?:YOUR\s+NAME|Your\s+Name|your\s+name|FULLNAME|Fullname|fullname|AUTHOR|Author|author|USERNAME|Username|username|OWNER|Owner|owner)\]/g, userName);
-        if (newContent !== content) {
-          fs.writeFileSync(entry.filePath, newContent, 'utf8');
-          const bracketCount = (content.match(/\[/g) || []).length;
-          const newBracketCount = (newContent.match(/\[/g) || []).length;
-          filled += bracketCount - newBracketCount;
-        }
-      } catch {
-        // skip
-      }
-    }
-    return filled;
-  }
-
-  private async attemptRepair(
-    task: DelegationTask,
-    previous: AgentResult,
-    customContext?: string
-  ): Promise<{ success: boolean; summary: string; evidence?: string }> {
-    const role = getAgentRole(task.role);
-    const tools = filterToolsForRole(BUILTIN_TOOLS, task.role);
-    const maxRetries = 2;
-    let attempt = 0;
-    let currentSummary = previous.summary;
-    let currentCustomContext = customContext;
-
-    while (attempt < maxRetries) {
-      if (this.toolContext.abortSignal.aborted) {
-        break;
-      }
-      attempt++;
-      console.log(`\n[REPAIR] Attempt ${attempt}/${maxRetries} to repair task: ${task.goal}`);
-
-      const baseCtx = currentCustomContext || task.context;
-      const historyStartIndex = this.toolContext.patchHistory?.length || 0;
-      let repairHint = '';
-      const noRealWork = (this.toolContext.patchHistory?.length ?? 0) <= historyStartIndex;
-      if (noRealWork) {
-        repairHint = `\n\nCRITICAL: Your previous response did not produce any file writes. You MUST call write_file or patch — do not describe what you did, just do it now. Call the tool immediately.`;
-      } else if (currentSummary && currentSummary.toLowerCase().includes('i will') && !currentSummary.includes('`write_file`') && !currentSummary.includes('`patch`') && !currentSummary.includes('`terminal`')) {
-        repairHint = `\n\nCRITICAL: Your previous response described the work as text but did not actually call any tools. Do not describe WHAT you will do — directly EXECUTE the write_file or patch tool now. Your response must contain a tool call, not a plan or explanation.`;
-      }
-      const repairContext = `${baseCtx}\n\nPrevious attempt failed verification. Output was:\n${currentSummary}\n\nPlease retry and ensure you actually write the required files/artifacts.${repairHint}`;
-      const result = await this.runAgent(role, task.goal, repairContext, tools);
-
-      if (this.toolContext.abortSignal.aborted) {
-        return { success: false, summary: 'Task aborted by user' };
-      }
-
-      let verified = await this.verifyArtifacts(task.role, task.goal, result, historyStartIndex);
-      let repairCheckLogs = '';
-      if (verified && (task.role === 'coder' || task.role === 'debugger') && (this.toolContext.patchHistory?.length ?? 0) > historyStartIndex) {
-        const checkResult = await this.runBuildVerification(historyStartIndex);
-        if (!checkResult.success) {
-          const modifiedFiles = this.toolContext.patchHistory!.slice(historyStartIndex).map(p => p.filePath);
-          const isRelated = this.isBuildErrorRelated(checkResult.errorLogs || '', modifiedFiles);
-          if (isRelated) {
-            verified = false;
-            repairCheckLogs = (checkResult.errorLogs || 'Build check failed') + this.generateBuildErrorHint(checkResult.errorLogs || '');
-          } else {
-            console.log(pc.yellow(`\n[VERIFY] Build check failed, but errors appear to be in unrelated files. Ignoring build failure for this task.`));
-          }
-        }
-      }
-
-      if (verified && !this.isDeclaredError(result)) {
-        return { success: true, summary: result };
-      }
-
-      if (repairCheckLogs) {
-        currentCustomContext = (customContext || task.context) + `\n\nAdditionally, the build/compilation check failed with error output:\n\`\`\`\n${repairCheckLogs}\n\`\`\``;
-      }
-      currentSummary = result;
-    }
-
-    return { success: false, summary: currentSummary, evidence: 'no artifacts' };
-  }
-
-  private hasRealWrites(result: string): boolean {
-    const claimed = this.extractPendingWrites(result);
-    if (claimed.length === 0) return false;
-    const history = this.toolContext.patchHistory || [];
-    const historyPaths = new Set(history.map(h => (h.filePath || '').replace(/\\/g, '/')));
-    return claimed.some(p => historyPaths.has(p.replace(/\\/g, '/')));
-  }
-
-  private verifyArtifactsThoroughly(role: string, goal: string, result: string, historyStartIndex: number = 0): boolean {
-    if (!this.requiresRealArtifacts(role, goal)) return true;
-    if (this.hasRealWrites(result)) return true;
-    // Fallback: accept if patchHistory has new entries since task start (agent wrote files but result text didn't mention paths)
-    const history = this.toolContext.patchHistory || [];
-    if (history.length > historyStartIndex) return true;
-    // No writes detected anywhere — agent only talked, did not act
-    return false;
-  }
-
-  private buildCleanSummary(task: DelegationTask, result: string, historyStartIndex: number): string | null {
-    const history = this.toolContext.patchHistory || [];
-    const newPatches = [];
-    for (let i = historyStartIndex; i < history.length; i++) {
-      newPatches.push(history[i]);
-    }
-    if (newPatches.length === 0 || result.split(/\s+/).length < 30) return null;
-    const files = [...new Set(newPatches.map(p => p.filePath).filter(Boolean))];
-    if (files.length === 0) return null;
-    return `Completed: ${task.goal} — Files: ${files.join(', ')}`;
-  }
-
-  private static isUnnecessaryConfigTask(task: DelegationTask, projectContext?: string): boolean {
-    if (!projectContext) return false;
-    const goal = task.goal.toLowerCase();
-    const isNextJs = /\bNext\.js\b/i.test(projectContext);
-    const isVue = /\b(Vue|Nuxt)\b/i.test(projectContext);
-
-    if (isNextJs && /\bnext\.config\b/i.test(goal)) return true;
-    if (isVue && /\b(vue|nuxt)\.config\b/i.test(goal)) return true;
-
-    return false;
-  }
-
-  public static getFrameworkGuidance(projectContext?: string, projectRoot?: string): string {
-    if (!projectContext) return '';
-    const ctx = projectContext;
-    if (/\bNext\.js\b/i.test(ctx)) {
-      const majorMatch = ctx.match(/Next\.js\s+(\d+)/);
-      const major = majorMatch ? parseInt(majorMatch[1]) : 13;
-      const isModern = major >= 13;
-      const linkRule = isModern
-        ? 'Use <Link href="...">visible text</Link>. Do NOT nest an <a> tag inside <Link> — Next.js 13+ renders the anchor automatically.'
-        : 'Use <Link href="..."><a className="...">text</a></Link> for Next.js 12 and earlier.';
-      const isAppRouter = fs.existsSync(path.join(projectRoot || process.cwd(), 'app'));
-      const jsxRule = isAppRouter
-        ? 'Do NOT add `import React from \'react\'` at the top of .tsx files. Next.js App Router uses the automatic JSX runtime.'
-        : 'If other files in the project (e.g. index.tsx) import React, or if ESLint has react/react-in-jsx-scope enabled, you MUST add `import React from \'react\'` at the top of .tsx files.';
-
-      return `\n\nNEXT.JS ${major} PRODUCTION CODING RULES (MANDATORY — follow these before writing any code):
-- ROUTING: Pages live in pages/ or src/pages/ (or app/ for App Router). No edits to next.config.js or router config needed for new pages.
-- LINK: ${linkRule}
-- JSX TRANSFORM: ${jsxRule}
-- APOSTROPHES: Escape apostrophes in JSX text as &apos; or use a JS template literal. Writing raw ' inside JSX text (e.g., <p>don't</p>) is a lint error.
-- COMPONENT STRUCTURE: Every .tsx page file must export a single default function component. Do NOT write raw JSX tags outside a function body.
-- IMPORTS: Use next/link for navigation, next/image for images. Do not use react-router-dom.
-- TAILWIND: If Tailwind CSS is detected, use Tailwind utility classes for all styling. Do not write inline styles or separate .css files for component styling.\n`;
-
-    }
-    if (/\b(React)\b/i.test(ctx) && !/\bNext\.js\b/i.test(ctx)) {
-      return `\n\nREACT SPA PRODUCTION CODING RULES (MANDATORY):
-- ROUTING: Use react-router-dom v6+ with createBrowserRouter/RouterProvider. Lazy-load routes with React.lazy() and Suspense if possible.
-- STATE: Use React hooks (useState, useReducer, useContext) for local state. For complex global state, use a lightweight manager like Zustand or Redux Toolkit.
-- DATA FETCHING: Use custom hooks wrapping fetch/axios. Keep API calls out of UI component bodies.
-- COMPONENT STRUCTURE: Export a single default component per file. Avoid mixing business logic directly with presentation components.\n`;
-    }
-    if (/\b(Vue|Nuxt)\b/i.test(ctx)) {
-      return `\n\nVUE/NUXT PRODUCTION CODING RULES (MANDATORY):
-- ROUTING: Vue Router (or file-based pages/ in Nuxt). New pages typically need route entries added to the router config, not config files like vue.config.js.
-- COMPONENTS: Use Single File Components (.vue). Match the existing \`<script setup>\` or Options API style exactly.
-- STATE: Use Pinia or Vuex for global state. Use standard refs/computed for local reactive state.\n`;
-    }
-    if (/\bExpress\b/i.test(ctx)) {
-      return `\n\nEXPRESS PRODUCTION CODING RULES (MANDATORY):
-- ROUTING: Express requires explicit route handlers. New endpoints must be added to the server/ or routes/ directory, and registered on the main express application.
-- CONTROLLERS: Keep request/response handler functions in controller files, separate from route definitions.
-- ERROR HANDLING: Always wrap route logic in try/catch or async-error-handler middleware and forward to next(err).\n`;
-    }
-    if (/\b(Python|Flask|Django|FastAPI)\b/i.test(ctx)) {
-      return `\n\nPYTHON PRODUCTION CODING RULES (MANDATORY):
-- STRUCTURE: Follow the framework's conventional project layout.
-- TYPING: Use type hints on all function signatures. Use Pydantic models for request/response schemas.
-- ASYNC: Use async/await where the framework supports it (FastAPI, async Django views).\n`;
-    }
-    if (/\b(Vanilla JS|HTML)\b/i.test(ctx)) {
-      return `\n\nVANILLA JS/HTML PRODUCTION CODING RULES (MANDATORY):
-- STRUCTURE: Keep JS in separate .js files, CSS in separate .css files. Use ES modules (type="module") for scripts.
-- DOM: Use querySelector/querySelectorAll. Never use document.write or innerHTML for user-supplied content.
-- EVENTS: Use addEventListener, never inline event handlers (onclick="...").\n`;
-    }
-    return '';
-  }
-
-  private static extractRequirements(text: string): string[] {
-    if (!text) return [];
-    const reqs: string[] = [];
-    const m = text.match(/(?:with|including|containing|that\s+(?:has|includes|contains|features?)|featuring)\s+(.+)/i);
-    if (!m) return reqs;
-
-    const items = m[1]
-      .split(/\s*(?:,\s*|\sand\s|\s*&)\s*/)
-      .map(s => s.replace(/^(?:an?\s+|the\s+)/i, '').replace(/\.$/, '').trim())
-      .filter(Boolean);
-
-    const filler = new Set(['the following content', 'the specified content', 'appropriate content', 'content', 'your code']);
-    for (const item of items) {
-      const lower = item.toLowerCase();
-      if (!filler.has(lower) && lower.length > 2) {
-        reqs.push(item);
-      }
-    }
-    return reqs;
-  }
-
-  private static extractFilePaths(text: string): string[] {
-    if (!text) return [];
-    const paths: string[] = [];
-    const re = /(?:\(|\[|\s|^)((?:[A-Za-z0-9_\-./\\]+[\\/])?[A-Za-z0-9_\-]+\.(?:tsx?|jsx?|vue|svelte|css|scss|json|md|csv|txt|yaml|yml|toml|py|rs|go|java|sh|env|html|xml|sql|tf|lock|dart))(?:[)\s,;.]|$)/g;
-    let m: RegExpExecArray | null;
-    const excludedNames = new Set(['next.js', 'node.js', 'react.js', 'vue.js', 'nest.js', 'nuxt.js', 'express.js', 'alpine.js', 'svelte.js', 'deno.js', 'three.js', 'chart.js', 'socket.io']);
-    while ((m = re.exec(text)) !== null) {
-      const p = m[1].replace(/\\/g, '/');
-      if (excludedNames.has(p.toLowerCase())) {
-        continue;
-      }
-      if (!p.startsWith('http') && !p.startsWith('node_modules') && p.length < 200) {
-        paths.push(p);
-      }
-    }
-    return [...new Set(paths)];
-  }
-
-  private static buildDependencyGraph(tasks: DelegationTask[]): void {
-    // Auto-detect dependencies: if task B mentions a file path that is the
-    // primary target file of an earlier task A, then B depends on A.
-    for (let i = 0; i < tasks.length; i++) {
-      const laterPaths = Orchestrator.extractFilePaths(tasks[i].goal);
-      for (let j = 0; j < i; j++) {
-        const earlierPaths = Orchestrator.extractFilePaths(tasks[j].goal);
-        const shared = earlierPaths.some(ep => laterPaths.includes(ep));
-        if (shared) {
-          if (!tasks[i].dependencies) tasks[i].dependencies = [];
-          // Only add if not already present
-          if (!tasks[i].dependencies!.includes(tasks[j].goal)) {
-            tasks[i].dependencies!.push(tasks[j].goal);
-          }
-        }
-      }
-    }
   }
 
   private findStyleReference(taskGoal: string): string | null {
@@ -1514,7 +996,7 @@ export class Orchestrator {
     }
 
     // Extract explicit requirements from the task goal only
-    const taskReqs = Orchestrator.extractRequirements(task.goal);
+    const taskReqs = extractRequirements(task.goal);
     if (taskReqs.length > 0) {
       enrichedContext += `\nRequirements:\n${taskReqs.slice(0, 4).map(r => `  - ${r}`).join('\n')}\n`;
     }
@@ -1524,13 +1006,13 @@ export class Orchestrator {
     }
 
     // Extract explicit file paths from the goal and inject a concise scope boundary
-    const scopePaths = Orchestrator.extractFilePaths(task.goal);
+    const scopePaths = extractFilePaths(task.goal);
     if (scopePaths.length > 0) {
       enrichedContext += `\nSCOPE: only touch ${scopePaths.join(', ')}\n`;
     }
 
     enrichedContext += `\n${frameworkBlock}${task.context}`;
-    const frameworkRules = Orchestrator.getFrameworkGuidance(projectContext, this.toolContext.projectRoot);
+    const frameworkRules = getFrameworkGuidance(projectContext, this.toolContext.projectRoot);
     const systemExtra = `Project context:\n${projectContext || '(none discovered)'}${frameworkRules}\n`;
 
     // Prepend a terse override reminder so the rules land in the user message too,
@@ -1581,7 +1063,7 @@ export class Orchestrator {
       task.status = 'failed';
       task.error = result.split('\n')[0];
       if (task.role === 'coder' || task.role === 'debugger') {
-        await this.rollbackTaskPatches(historyStartIndex);
+        await rollbackTaskPatches(this.toolContext, historyStartIndex);
       }
       this.results.push({ role: task.role, goal: task.goal, summary: result, success: false });
       console.log(`[${pc.red('FAILED')}] ${role.name}: ${task.error}`);
@@ -1615,11 +1097,11 @@ export class Orchestrator {
         const doneBeforeSplit = (tasks || []).filter((t, idx) => t.status === 'completed' && idx < currentIndex);
         const deduped = subTasks.filter(st => {
           if (doneBeforeSplit.length === 0 || st.role !== 'coder') return true;
-          const newPaths = Orchestrator.extractFilePaths(st.goal).map(p => p.toLowerCase());
+          const newPaths = extractFilePaths(st.goal).map(p => p.toLowerCase());
           if (newPaths.length === 0) return true;
           return !doneBeforeSplit.some(d => {
             if (d.role !== 'coder') return false;
-            const donePaths = Orchestrator.extractFilePaths(d.goal).map(p => p.toLowerCase());
+            const donePaths = extractFilePaths(d.goal).map(p => p.toLowerCase());
             return donePaths.some(dp => newPaths.includes(dp));
           });
         });
@@ -1642,7 +1124,7 @@ export class Orchestrator {
         ? `Task still too large after ${depth} splits — manual review needed`
         : 'Task too large and no work completed';
       if (task.role === 'coder' || task.role === 'debugger') {
-        await this.rollbackTaskPatches(historyStartIndex);
+        await rollbackTaskPatches(this.toolContext, historyStartIndex);
       }
       this.results.push({
         role: task.role,
@@ -1653,22 +1135,22 @@ export class Orchestrator {
       return;
     }
 
-    let verified = await this.verifyArtifacts(task.role, task.goal, result, historyStartIndex);
+    let verified = await verifyArtifacts(this.toolContext, task.role, task.goal, result, historyStartIndex);
     let evidence = '';
     let placeholderSites: string[] = [];
     let checkLogs = '';
 
     if (verified) {
-      placeholderSites = await this.checkPlaceholders(historyStartIndex);
+      placeholderSites = await checkPlaceholders(this.toolContext, historyStartIndex);
       if (placeholderSites.length > 0) {
         console.log(pc.yellow(`\nFound ${placeholderSites.length} placeholder(s) in written files`));
         // Auto-fill trivial placeholders like [Year], [Your Name]
-        const filled = await this.fillPlaceholders(historyStartIndex);
+        const filled = await fillPlaceholders(this.toolContext, historyStartIndex);
         if (filled > 0) {
           console.log(pc.green(`  Auto-filled ${filled} trivial placeholder(s) (year, name, etc.)`));
         }
         // Re-check for remaining (structural) placeholders
-        placeholderSites = await this.checkPlaceholders(historyStartIndex);
+        placeholderSites = await checkPlaceholders(this.toolContext, historyStartIndex);
         if (placeholderSites.length === 0) {
           verified = true;
         } else {
@@ -1678,13 +1160,13 @@ export class Orchestrator {
     }
 
     if (verified && (task.role === 'coder' || task.role === 'debugger') && (this.toolContext.patchHistory?.length ?? 0) > historyStartIndex) {
-      const checkResult = await this.runBuildVerification(historyStartIndex);
+      const checkResult = await runBuildVerification(this.toolContext, historyStartIndex);
       if (!checkResult.success) {
         const modifiedFiles = this.toolContext.patchHistory!.slice(historyStartIndex).map(p => p.filePath);
-        const isRelated = this.isBuildErrorRelated(checkResult.errorLogs || '', modifiedFiles);
+        const isRelated = isBuildErrorRelated(checkResult.errorLogs || '', modifiedFiles, this.toolContext.projectRoot);
         if (isRelated) {
           verified = false;
-          checkLogs = (checkResult.errorLogs || 'Build check failed') + this.generateBuildErrorHint(checkResult.errorLogs || '');
+          checkLogs = (checkResult.errorLogs || 'Build check failed') + generateBuildErrorHint(checkResult.errorLogs || '');
         } else {
           console.log(pc.yellow(`\n[VERIFY] Build check failed, but errors appear to be in unrelated files. Ignoring build failure for this task.`));
         }
@@ -1700,7 +1182,7 @@ export class Orchestrator {
       if (checkLogs) {
         repairCtx += `\n\nPrevious attempt failed build/compilation verification. The check failed with the following error output:\n\`\`\`\n${checkLogs}\n\`\`\`\nPlease fix the build/compilation errors listed above.`;
       }
-      const repaired = await this.attemptRepair(task, {
+      const repaired = await attemptRepair({ toolContext: this.toolContext, runAgent: (role, goal, context, tools) => this.runAgent(role, goal, context, tools) }, task, {
         role: task.role,
         goal: task.goal,
         summary: result,
@@ -1711,12 +1193,12 @@ export class Orchestrator {
       evidence = repaired.evidence || '';
 
       if (verified) {
-        const stillPlaceholders = await this.checkPlaceholders(historyStartIndex);
+        const stillPlaceholders = await checkPlaceholders(this.toolContext, historyStartIndex);
         if (stillPlaceholders.length > 0) {
           // Try auto-fill one more time after repair
-          const filled = await this.fillPlaceholders(historyStartIndex);
+          const filled = await fillPlaceholders(this.toolContext, historyStartIndex);
           if (filled > 0) console.log(pc.green(`  Auto-filled ${filled} remaining trivial placeholder(s)`));
-          const remain = await this.checkPlaceholders(historyStartIndex);
+          const remain = await checkPlaceholders(this.toolContext, historyStartIndex);
           if (remain.length > 0) {
             verified = false;
             evidence = `Placeholders remain: ${remain.join('; ')}`;
@@ -1726,9 +1208,9 @@ export class Orchestrator {
     }
 
     const resultForCheck = result.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
-    const success = verified && !this.isDeclaredError(resultForCheck) && this.verifyArtifactsThoroughly(task.role, task.goal, resultForCheck, historyStartIndex);
+    const success = verified && !isDeclaredError(resultForCheck) && verifyArtifactsThoroughly(this.toolContext, task.role, task.goal, resultForCheck, historyStartIndex);
     if (success) {
-      const clean = this.buildCleanSummary(task, result, historyStartIndex);
+      const clean = buildCleanSummary(this.toolContext, task, result, historyStartIndex);
       if (clean) result = clean;
     }
     task.status = success ? 'completed' : 'failed';
@@ -1737,7 +1219,7 @@ export class Orchestrator {
 
       // Rollback patches made during this task to keep codebase clean
       if (task.role === 'coder' || task.role === 'debugger') {
-        await this.rollbackTaskPatches(historyStartIndex);
+        await rollbackTaskPatches(this.toolContext, historyStartIndex);
       }
 
       // Log failure as a lesson for self-improvement
@@ -2036,159 +1518,5 @@ export class Orchestrator {
     }
   }
 
-  private async rollbackTaskPatches(historyStartIndex: number): Promise<void> {
-    const history = this.toolContext.patchHistory;
-    if (!history || history.length <= historyStartIndex) return;
-
-    console.log(pc.yellow(`\n[ROLLBACK] Task failed verification. Rolling back changes to preserve workspace health...`));
-
-    // Revert patches in reverse order
-    for (let i = history.length - 1; i >= historyStartIndex; i--) {
-      const patch = history[i];
-      try {
-        if (fs.existsSync(patch.filePath)) {
-          fs.writeFileSync(patch.filePath, patch.oldContent, 'utf8');
-          console.log(pc.gray(`  Reverted changes to ${path.relative(this.toolContext.projectRoot || process.cwd(), patch.filePath)}`));
-        }
-      } catch (err: any) {
-        console.log(pc.red(`  Failed to revert changes to ${patch.filePath}: ${err.message}`));
-      }
-    }
-
-    // Truncate the patch history
-    history.length = historyStartIndex;
-  }
-
-  private async runBuildVerification(historyStartIndex: number = 0): Promise<{ success: boolean; errorLogs?: string }> {
-    const cwd = this.toolContext.projectRoot || process.cwd();
-    const history = this.toolContext.patchHistory || [];
-    const touchedFiles = history.slice(historyStartIndex).map(p => p.filePath);
-    const hasSourceFiles = touchedFiles.some(f => {
-      const ext = path.extname(f).toLowerCase();
-      return ['.ts', '.tsx', '.js', '.jsx', '.go', '.rs', '.py', '.cpp', '.c', '.h', '.java'].includes(ext);
-    });
-    if (touchedFiles.length > 0 && !hasSourceFiles) {
-      console.log(pc.gray(`  [VERIFY] Skipping build check (only config/docs files modified).`));
-      return { success: true };
-    }
-
-    let command = '';
-    let lintCommand = '';
-
-    // Auto-discover verification command
-    if (fs.existsSync(path.join(cwd, 'package.json'))) {
-      try {
-        const pkg = JSON.parse(fs.readFileSync(path.join(cwd, 'package.json'), 'utf8'));
-        if (pkg.scripts) {
-          if (pkg.scripts['daedalus-check']) {
-            command = 'npm run daedalus-check';
-          } else if (fs.existsSync(path.join(cwd, 'tsconfig.json'))) {
-            command = 'npx tsc --noEmit';
-          } else if (pkg.scripts.build) {
-            command = 'npm run build';
-          }
-
-          if (pkg.scripts.lint) {
-            lintCommand = 'npm run lint';
-          }
-        }
-      } catch { /* ignored */ }
-    } else if (fs.existsSync(path.join(cwd, 'Cargo.toml'))) {
-      command = 'cargo check';
-    } else if (fs.existsSync(path.join(cwd, 'go.mod'))) {
-      command = 'go build ./...';
-    }
-
-    if (!command && !lintCommand) {
-      return { success: true };
-    }
-
-    const { exec } = await import('child_process');
-
-    const runCmd = (cmd: string): Promise<{ success: boolean; logs?: string }> => {
-      return new Promise((resolve) => {
-        exec(cmd, { cwd, timeout: 30000 }, (error, stdout, stderr) => {
-          if (error) {
-            resolve({ success: false, logs: (stdout + '\n' + stderr).trim() });
-          } else {
-            resolve({ success: true });
-          }
-        });
-      });
-    };
-
-    if (command) {
-      console.log(pc.cyan(`\n[VERIFY] Running verification command: "${command}"...`));
-      const res = await runCmd(command);
-      if (!res.success) {
-        console.log(pc.red(`[VERIFY] Verification failed!`));
-        return { success: false, errorLogs: res.logs };
-      }
-      console.log(pc.green(`[VERIFY] Verification passed.`));
-    }
-
-    if (lintCommand) {
-      console.log(pc.cyan(`\n[VERIFY] Running linter command: "${lintCommand}"...`));
-      const res = await runCmd(lintCommand);
-      if (!res.success) {
-        console.log(pc.red(`[VERIFY] Linter failed!`));
-        return { success: false, errorLogs: res.logs };
-      }
-      console.log(pc.green(`[VERIFY] Linter passed.`));
-    }
-
-    if (fs.existsSync(path.join(cwd, 'package.json'))) {
-      try {
-        const pkg = JSON.parse(fs.readFileSync(path.join(cwd, 'package.json'), 'utf8'));
-        if (pkg.scripts && pkg.scripts['sync-docs']) {
-          console.log(pc.cyan(`[VERIFY] Syncing documentation with latest command registry...`));
-          await runCmd('npm run sync-docs');
-        }
-      } catch { /* ignored */ }
-    }
-
-    return { success: true };
-  }
-
-  private isBuildErrorRelated(errorLogs: string, modifiedFiles: string[]): boolean {
-    if (!errorLogs) return false;
-    const lowerLogs = errorLogs.toLowerCase();
-    const configFiles = ['tsconfig.json', 'package.json', 'package-lock.json', 'cargo.toml', 'go.mod', 'requirements.txt'];
-    for (const file of modifiedFiles) {
-      const basename = path.basename(file).toLowerCase();
-      if (configFiles.includes(basename)) {
-        return true;
-      }
-      const relativePath = path.relative(this.toolContext.projectRoot || process.cwd(), file).replace(/\\/g, '/').toLowerCase();
-      if (lowerLogs.includes(basename) || lowerLogs.includes(relativePath)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  private generateBuildErrorHint(errorLogs: string): string {
-    if (!errorLogs) return '';
-    const hints: string[] = [];
-
-    const missingModuleMatch = errorLogs.match(/cannot find module ['"]([^'"]+)['"]/i) ||
-                               errorLogs.match(/could not resolve ['"]([^'"]+)['"]/i);
-    if (missingModuleMatch) {
-      const pkg = missingModuleMatch[1];
-      hints.push(`Hint: A required package "${pkg}" is missing. Use the terminal tool to install it (e.g., "npm install ${pkg}").`);
-    }
-
-    if (errorLogs.toLowerCase().includes('duplicate page detected') || 
-        (errorLogs.includes('pages/') && errorLogs.includes('src/pages/'))) {
-      hints.push('Hint: Next.js detected duplicate pages in both pages/ and src/pages/. You must delete the duplicate files in the root pages/ directory to resolve the conflict.');
-    }
-
-    if (errorLogs.toLowerCase().includes('overload') || errorLogs.toLowerCase().includes('no overload matches')) {
-      hints.push('Hint: TypeScript has type overload resolution issues. Try casting the options/arguments as "any" (e.g., "options as any") to bypass strict type checking.');
-    }
-
-    if (hints.length === 0) return '';
-    return '\n\n' + hints.join('\n');
-  }
 }
 

@@ -182,7 +182,7 @@ AI assistance without:
 | `/models` | List available and healthy models |
 | `/doctor` | Diagnose connection and discovery |
 | `/changelog` | View the latest CLI changes |
-| `/help` / `?` / `help` | Show available commands or detailed info for a specific command |
+| `/help` / `?` / `help` | Show available commands or detailed help for a specific command |
 | `/exit` / `/quit` / `/bye` | Save session and exit |
 | `/preview <filepath-or-url>` | Screenshot a local HTML file or URL and save the image |
 
@@ -191,10 +191,10 @@ AI assistance without:
 | Command | Description |
 |---------|-------------|
 | `/lite` | Show Daedalus Lite documentation |
-| `/stats` / `stats` | Display session analytics, token usage, index count, and router status |
+| `/history` / `/h` | Show recent turns with tool calls from the session log |
 | `/onboard` | First-time setup — discover local models, configure, and test |
 | `/tui` | Toggle the Terminal User Interface (TUI) dashboard |
-| `/history` / `/h` | Show recent turns with tool calls from the session log |
+| `/stats` / `stats` | Display session analytics, token usage, index count, and router status |
 
 <!-- END_COMMANDS_TABLE -->
 
