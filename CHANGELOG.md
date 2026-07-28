@@ -1,3 +1,10 @@
+## [1.84.1](https://github.com/bgill55/daedalus/compare/v1.84.0...v1.84.1) (2026-07-28)
+
+
+### Bug Fixes
+
+* update docs and tests for /feedback command and help categorization ([b203a63](https://github.com/bgill55/daedalus/commit/b203a63c4bf111e8f2bf2ca36c06879c0727dc0b))
+
 # [1.84.0](https://github.com/bgill55/daedalus/compare/v1.83.8...v1.84.0) (2026-07-28)
 
 
