@@ -157,7 +157,7 @@ describe('Help Command', () => {
     expect(h3).toBe(true);
 
     expect(logSpy).toHaveBeenCalled();
-    const calls = logSpy.mock.calls.filter(c => c[0] && c[0].includes('Available Commands'));
+    const calls = logSpy.mock.calls.filter(c => c[0] && c[0].includes('Daedalus Commands'));
     expect(calls.length).toBe(3);
   });
 });

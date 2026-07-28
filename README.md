@@ -194,7 +194,9 @@ AI assistance without:
 | `/history` / `/h` | Show recent turns with tool calls from the session log |
 | `/onboard` | First-time setup — discover local models, configure, and test |
 | `/tui` | Toggle the Terminal User Interface (TUI) dashboard |
+| `/hunt` / `/bug` | Autonomously hunt down and fix a bug: reproduce, locate root cause, fix, verify |
 | `/stats` / `stats` | Display session analytics, token usage, index count, and router status |
+| `/feedback` / `report` | Send bug reports or feature requests to the Daedalus team |
 
 <!-- END_COMMANDS_TABLE -->
 
