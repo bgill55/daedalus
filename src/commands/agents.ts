@@ -558,7 +558,7 @@ export const agentCommands: Command[] = [
         default:
           console.log(pc.bold('\n  MCP Server Manager'));
           console.log(`  ${pc.cyan('/mcp explore')}           ${pc.dim('Browse available servers in the registry')}`);
-          console.log(`  ${pc.cyan('/mcp search <query>')}    ${pc.dim('Search the official MCP registry')}`);
+           console.log(`  ${pc.cyan('/mcp search <query>')}    ${pc.dim('Search MCP registry + Smithery')}`);
           console.log(`  ${pc.cyan('/mcp install <name>')}   ${pc.dim('Install a server from the registry')}`);
           console.log(`  ${pc.cyan('/mcp list')}             ${pc.dim('List installed servers')}`);
           console.log(`  ${pc.cyan('/mcp remove <name>')}    ${pc.dim('Remove an installed server')}`);
