@@ -1,3 +1,10 @@
+# [1.90.0](https://github.com/bgill55/daedalus/compare/v1.89.0...v1.90.0) (2026-07-29)
+
+
+### Features
+
+* add /shortcut command for custom slash-command aliases ([9e83e46](https://github.com/bgill55/daedalus/commit/9e83e46d2825856a30611322ff145ee6d07d1c95))
+
 # [1.89.0](https://github.com/bgill55/daedalus/compare/v1.88.0...v1.89.0) (2026-07-29)
 
 
