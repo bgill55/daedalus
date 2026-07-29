@@ -18,8 +18,11 @@ export async function runHeadlessCiReview(
 ): Promise<CiReviewResult> {
   const dummyContext: ToolContext = {
     projectRoot,
-    configDir: path.join(process.env.HOME || process.env.USERPROFILE || '', '.daedalus'),
-    isDaemon: true,
+    activeFiles: new Map(),
+    sessionId: 'ci-session',
+    projectHash: 'ci-hash',
+    agentRole: 'coder',
+    get abortSignal() { return new AbortController().signal; },
   };
 
   let typeCheckPassed = true;
@@ -31,8 +34,8 @@ export async function runHeadlessCiReview(
   // 1. Run tsc check if tsconfig.json exists
   if (fs.existsSync(path.join(projectRoot, 'tsconfig.json'))) {
     const tscRes = await termExec({ command: 'npx tsc --noEmit', timeout: 60, workdir: projectRoot }, dummyContext);
-    typeCheckPassed = tscRes.exitCode === 0;
-    typeCheckOutput = tscRes.stdout || tscRes.stderr || '';
+    typeCheckPassed = tscRes.success;
+    typeCheckOutput = tscRes.content || tscRes.error || '';
   }
 
   // 2. Run lint if package.json has lint script
@@ -41,8 +44,8 @@ export async function runHeadlessCiReview(
       const pkg = JSON.parse(fs.readFileSync(path.join(projectRoot, 'package.json'), 'utf8'));
       if (pkg.scripts?.lint) {
         const lintRes = await termExec({ command: 'npm run lint', timeout: 60, workdir: projectRoot }, dummyContext);
-        lintPassed = lintRes.exitCode === 0;
-        lintOutput = lintRes.stdout || lintRes.stderr || '';
+        lintPassed = lintRes.success;
+        lintOutput = lintRes.content || lintRes.error || '';
       }
     } catch {
       // Ignore JSON parse errors in tests or edge cases
@@ -52,8 +55,8 @@ export async function runHeadlessCiReview(
   // 3. Run git diff against base branch to inspect touched files
   let diffSummary = '';
   const diffRes = await termExec({ command: `git diff --stat origin/${baseBranch}...HEAD`, timeout: 15, workdir: projectRoot }, dummyContext);
-  if (diffRes.exitCode === 0 && diffRes.stdout) {
-    diffSummary = diffRes.stdout.trim();
+  if (diffRes.success && diffRes.content) {
+    diffSummary = diffRes.content.trim();
   }
 
   const passed = typeCheckPassed && lintPassed && testsPassed;
@@ -98,8 +101,11 @@ export async function runHeadlessCiFix(
 
   const dummyContext: ToolContext = {
     projectRoot,
-    configDir: path.join(process.env.HOME || process.env.USERPROFILE || '', '.daedalus'),
-    isDaemon: true,
+    activeFiles: new Map(),
+    sessionId: 'ci-session',
+    projectHash: 'ci-hash',
+    agentRole: 'coder',
+    get abortSignal() { return new AbortController().signal; },
   };
 
   await termExec({ command: 'npx eslint --fix src', timeout: 30, workdir: projectRoot }, dummyContext);

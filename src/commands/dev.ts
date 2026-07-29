@@ -716,11 +716,11 @@ Once you have finished making changes, I will automatically re-run the command t
 
       if (mode === 'fix') {
         console.log(pc.bold('\n--- Running Daedalus CI Auto-Fix ---'));
-        const res = await runHeadlessCiFix(ctx.projectRoot);
+        const res = await runHeadlessCiFix(process.cwd());
         console.log(res.message);
       } else {
         console.log(pc.bold('\n--- Running Daedalus CI PR Review ---'));
-        const res = await runHeadlessCiReview(ctx.projectRoot);
+        const res = await runHeadlessCiReview(process.cwd());
         console.log(`\n${res.markdownReport}\n`);
       }
     }
