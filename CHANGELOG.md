@@ -1,3 +1,10 @@
+# [1.87.0](https://github.com/bgill55/daedalus/compare/v1.86.3...v1.87.0) (2026-07-29)
+
+
+### Features
+
+* add AST-aware call graph (/callgraph), impact engine (/impact), and get_call_graph tool ([6f722e6](https://github.com/bgill55/daedalus/commit/6f722e6c8ee0e6b0b5d180e8805f1c169df1f9ab))
+
 ## [1.86.3](https://github.com/bgill55/daedalus/compare/v1.86.2...v1.86.3) (2026-07-29)
 
 
