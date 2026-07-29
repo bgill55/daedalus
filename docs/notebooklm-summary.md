@@ -84,7 +84,13 @@ End-to-end autonomous feature development from a single command:
 Renders local HTML files or URLs in headless Chromium and captures a PNG screenshot:
 * `/preview <filepath-or-url>`: Converts local file paths to `file://` URLs, launches headless Chrome via Puppeteer, screenshots the page, and saves the image to `~/.daedalus/screenshots/`.
 
-### 11. Chat-History Branching System ("What-if" Sessions)
+### 11. AST-Aware Call Graph & Refactoring Blast-Radius Engine (`/callgraph`, `/impact`)
+Performs bidirectional call-graph traversal (inbound callers and outbound callees) and blast-radius risk scoring (`LOW`, `MEDIUM`, `HIGH`) from SQLite FTS5 symbol indexes to predict affected files and callers before refactoring. Exposes `get_call_graph` tool to LLM sub-agents for structural dependency analysis.
+
+### 12. Headless CI/CD PR Reviewer & Automated Fix Bot (`daedalus --ci`, `/ci`)
+Runs Daedalus in headless non-interactive mode (`daedalus --ci`) inside GitHub Actions workflows or local developer sessions (`/ci`). Executes type-checking (`npx tsc`), linter checks (`npm run lint`), and git diff security audits, posting automated Markdown review reports directly to GitHub Pull Requests and executing automated linter repairs (`/ci fix`).
+
+### 13. Chat-History Branching System ("What-if" Sessions)
 Enables non-linear exploration of coding tasks by snapshotting and branching sessions:
 * `/session branch <name>`: Takes an immutable snapshot of conversation turns and active context up to step $N$, saved as JSONL.
 * `/session checkout <name>`: Switches active REPL context to an existing branch.
@@ -130,10 +136,13 @@ Daedalus maintains a test suite of **468 tests across 56 files** (Vitest), cover
 | `/find <query>` | Codebase | Search indexed symbols in project |
 | `/refs <symbol>` | Codebase | Find symbol caller references |
 | `/def <symbol>` | Codebase | Jump to symbol definition |
+| `/callgraph <symbol> [depth]` | Codebase | Display bidirectional function call graph and blast radius |
+| `/impact <symbol>` | Codebase | Analyze refactoring impact & blast radius for a symbol |
 | `/test [n] [-g]` | Dev Tools | Run test loop and repair failures (`-g` for git-aware smart testing) |
 | `/commit [msg]` | Dev Tools | Stage and commit git changes |
 | `/branch [name]` | Dev Tools | Git branch operations |
 | `/pr [base]` | Dev Tools | Generate PR description compared to base branch |
+| `/ci [review\|fix]` | Dev Tools | Run headless CI/CD PR review or auto-fix simulation locally |
 | `/mcp <explore\|search\|install\|list>` | MCP | Manage MCP servers (explore marketplace, search, install) |
 | `/image <prompt>` | Image Gen | Generate UI assets using Stable Diffusion WebUI or Pollinations AI |
 | `/preview <filepath-or-url>` | Utilities | Screenshot a local HTML file or URL and save the image |
