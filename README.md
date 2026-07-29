@@ -200,6 +200,7 @@ AI assistance without:
 | `/tui` | Toggle the Terminal User Interface (TUI) dashboard |
 | `/hunt` / `/bug` | Autonomously hunt down and fix a bug: reproduce, locate root cause, fix, verify |
 | `/stats` / `stats` | Display session analytics, token usage, index count, and router status |
+| `/shortcut` / `/sc` | Manage custom slash-command aliases |
 | `/feedback` / `report` | Send bug reports or feature requests to the Daedalus team |
 
 <!-- END_COMMANDS_TABLE -->
