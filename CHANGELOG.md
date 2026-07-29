@@ -1,3 +1,10 @@
+## [1.86.3](https://github.com/bgill55/daedalus/compare/v1.86.2...v1.86.3) (2026-07-29)
+
+
+### Bug Fixes
+
+* **types:** resolve TypeScript compiler errors in CI workflow ([82b618c](https://github.com/bgill55/daedalus/commit/82b618cbda7c0956df2ee55066a74af350d6bc31))
+
 ## [1.86.2](https://github.com/bgill55/daedalus/compare/v1.86.1...v1.86.2) (2026-07-29)
 
 
