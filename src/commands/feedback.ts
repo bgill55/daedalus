@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import pc from 'picocolors';
-import { execSync } from 'child_process';
+import { execSync, spawn } from 'child_process';
 
 import { getConfigDirPath } from '../config/index.js';
 import { getSystemDiagnostics } from '../config/systemInfo.js';
@@ -55,12 +55,10 @@ async function openGitHubUrl(url: string): Promise<void> {
       execSync(`powershell -noprofile -command "Start-Process $(Get-Content \"${tempPath}\")"`, { stdio: 'inherit' });
       fs.unlinkSync(tempPath);
     } else if (process.platform === 'darwin') {
-      const child = require('child_process');
-      const cp = child.spawn('open', ['-n', '-g', '--args', url]);
+      const cp = spawn('open', ['-n', '-g', '--args', url]);
       await new Promise(resolve => cp.on('close', resolve));
     } else {
-      const child = require('child_process');
-      const cp = child.spawn('xdg-open', [url]);
+      const cp = spawn('xdg-open', [url]);
       await new Promise(resolve => cp.on('close', resolve));
     }
   } catch (err) {
@@ -76,13 +74,11 @@ async function copyToClipboard(text: string): Promise<void> {
       execSync(`powershell -noprofile -command "Set-Clipboard -Path \"${tempPath}\""`, { stdio: 'inherit' });
       fs.unlinkSync(tempPath);
     } else if (process.platform === 'darwin') {
-      const child = require('child_process');
-      const cp = child.spawn('pbcopy', { stdio: ['pipe', 'pipe', 'pipe'] });
+      const cp = spawn('pbcopy', { stdio: ['pipe', 'pipe', 'pipe'] });
       cp.stdin.end(text);
       await new Promise(resolve => cp.on('close', resolve));
     } else {
-      const child = require('child_process');
-      const cp = child.spawn('xclip', ['-selection', 'clipboard', '-t', 'text/plain']);
+      const cp = spawn('xclip', ['-selection', 'clipboard', '-t', 'text/plain']);
       cp.stdin.end(text);
       await new Promise(resolve => cp.on('close', resolve));
     }
