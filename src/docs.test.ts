@@ -138,8 +138,9 @@ describe('Documentation Sync Verification', () => {
         if (cmd.aliases) {
           allNames.push(...cmd.aliases);
         }
-        const commandCell = allNames.map(n => `\`${n}\``).join(' / ');
-        content += `| ${commandCell} | ${cmd.description} |\n`;
+        const commandCell = allNames.map(n => `\`${n.replace(/\|/g, '\\|')}\``).join(' / ');
+        const descCell = cmd.description.replace(/\|/g, '\\|');
+        content += `| ${commandCell} | ${descCell} |\n`;
       }
     }
 
@@ -154,8 +155,9 @@ describe('Documentation Sync Verification', () => {
         if (cmd.aliases) {
           allNames.push(...cmd.aliases);
         }
-        const commandCell = allNames.map(n => `\`${n}\``).join(' / ');
-        content += `| ${commandCell} | ${cmd.description} |\n`;
+        const commandCell = allNames.map(n => `\`${n.replace(/\|/g, '\\|')}\``).join(' / ');
+        const descCell = cmd.description.replace(/\|/g, '\\|');
+        content += `| ${commandCell} | ${descCell} |\n`;
       }
     }
 

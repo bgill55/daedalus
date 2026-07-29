@@ -125,7 +125,7 @@ AI assistance without:
 | `/orchestrate <goal>` / `/orc` / `/run` / `/o` | Orchestrate agents for a goal |
 | `/autopilot <feature>` | Autonomously implement a feature: branch, code, test, commit, and PR |
 | `/spawn [--bg] <role> <task>` / `/delegate` | Spawn sub-agent: /spawn [--bg] <role> <task> |
-| `/task <id>` | Manage background task: /task <id> | /task kill <id> |
+| `/task <id>` | Manage background task: /task <id> \| /task kill <id> |
 | `/tasks` | List background agent tasks |
 | `/ensemble <goal>` | Ensemble model drafting pipeline |
 | `/debug <command>` | Run command and autonomously debug failures |
@@ -135,7 +135,7 @@ AI assistance without:
 
 | Command | Description |
 |---------|-------------|
-| `/watch [start|stop|status]` / `watch` | Start or stop background codebase file-watcher for automatic FTS5 symbol re-indexing |
+| `/watch [start\|stop\|status]` / `watch` | Start or stop background codebase file-watcher for automatic FTS5 symbol re-indexing |
 | `/index` | Index codebase for symbol search |
 | `/find <query>` | Search indexed symbols |
 | `/refs <symbol>` | Find symbol references (callers) |
@@ -149,9 +149,9 @@ AI assistance without:
 | `/commit [msg]` | Stage and commit changes |
 | `/branch [name]` | Git branch operations |
 | `/pr [base]` | Generate PR description Compared to base branch |
-| `/mcp <explore|search|install|list|rm>` | Manage MCP servers: explore, search, install, list, remove, info |
+| `/mcp <explore\|search\|install\|list\|rm>` | Manage MCP servers: explore, search, install, list, remove, info |
 | `/image` | Generate an image using local Stable Diffusion WebUI or Pollinations AI |
-| `/undo` | Undo file edits (usage: /undo [count|list]) |
+| `/undo` | Undo file edits (usage: /undo [count\|list]) |
 
 ### Memory, Conventions & Config
 
@@ -165,7 +165,7 @@ AI assistance without:
 | `/convention [text]` | Add a project convention to memory |
 | `/memory` | View project memory (facts & conventions) |
 | `/extract` | Manually extract facts from session |
-| `/session [name]` | Manage chat sessions & branches: /session <list|load|new|branch|checkout|merge|export> |
+| `/session [name]` | Manage chat sessions & branches: /session <list\|load\|new\|branch\|checkout\|merge\|export> |
 
 ### Context & CLI Utilities
 
