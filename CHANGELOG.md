@@ -1,3 +1,11 @@
+# [1.88.0](https://github.com/bgill55/daedalus/compare/v1.87.0...v1.88.0) (2026-07-29)
+
+
+### Features
+
+* add headless CI/CD PR reviewer (daedalus --ci), /ci command, and GitHub Action workflow template ([bfd0488](https://github.com/bgill55/daedalus/commit/bfd0488d6cfb9d40b2f4f210a855f4d50e2796f2))
+* add headless CI/CD PR reviewer (daedalus --ci), /ci command, and GitHub Action workflow template ([1a0f734](https://github.com/bgill55/daedalus/commit/1a0f73498cec750f99aa00f1301578a338a21d5c))
+
 # [1.87.0](https://github.com/bgill55/daedalus/compare/v1.86.3...v1.87.0) (2026-07-29)
 
 
