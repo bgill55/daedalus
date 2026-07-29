@@ -1,3 +1,10 @@
+## [1.86.1](https://github.com/bgill55/daedalus/compare/v1.86.0...v1.86.1) (2026-07-29)
+
+
+### Bug Fixes
+
+* expand ~ in file tool paths to support home directory access ([b8c366d](https://github.com/bgill55/daedalus/commit/b8c366db088067899dc468097005dc5e99b336b6))
+
 # [1.86.0](https://github.com/bgill55/daedalus/compare/v1.85.1...v1.86.0) (2026-07-29)
 
 
