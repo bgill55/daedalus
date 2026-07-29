@@ -1,3 +1,10 @@
+## [1.86.2](https://github.com/bgill55/daedalus/compare/v1.86.1...v1.86.2) (2026-07-29)
+
+
+### Bug Fixes
+
+* add READ BEFORE WRITE hint to MCP system prompt to prevent model confusion ([8b08163](https://github.com/bgill55/daedalus/commit/8b08163db06999e037d5df1ba244abbf6651d694))
+
 ## [1.86.1](https://github.com/bgill55/daedalus/compare/v1.86.0...v1.86.1) (2026-07-29)
 
 
