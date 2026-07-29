@@ -1,3 +1,10 @@
+# [1.89.0](https://github.com/bgill55/daedalus/compare/v1.88.0...v1.89.0) (2026-07-29)
+
+
+### Features
+
+* add /badge command for automatic and custom Shields.io badges (closes [#12](https://github.com/bgill55/daedalus/issues/12)) ([2075122](https://github.com/bgill55/daedalus/commit/2075122ef0e6b6a6b0c16e078e495db372405ce8))
+
 # [1.88.0](https://github.com/bgill55/daedalus/compare/v1.87.0...v1.88.0) (2026-07-29)
 
 
