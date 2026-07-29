@@ -4,6 +4,7 @@ import { contextCommands } from './context.js';
 import { agentCommands } from './agents.js';
 import { feedbackCommand } from './feedback.js';
 import { devCommands } from './dev.js';
+import { shortcutCommand, normalizeAlias, createShortcutManager } from './shortcut.js';
 import type { Command, CommandContext } from './types.js';
 
 export type { Command, CommandContext } from './types.js';
@@ -64,7 +65,7 @@ const helpCommand: Command = {
         categories.Context.push(cmd);
       } else if (['spawn', 'delegate', 'tasks', 'task', 'orchestrate', 'orc', 'run', 'o', 'ensemble', 'spec', 'mcp', 'onboard', 'feedback'].includes(name)) {
         categories.Agents.push(cmd);
-      } else if (['tui', 'image', 'autopilot', 'preview', 'branch', 'pr', 'debug', 'commit', 'project', 'test', 'watch', 'index', 'find', 'refs', 'def', 'callgraph', 'impact', 'ci', 'badge', 'changelog', 'models', 'config', 'doctor', 'stats', 'health'].includes(name)) {
+      } else if (['tui', 'image', 'autopilot', 'preview', 'branch', 'pr', 'debug', 'commit', 'project', 'test', 'watch', 'index', 'find', 'refs', 'def', 'callgraph', 'impact', 'ci', 'badge', 'changelog', 'models', 'config', 'doctor', 'stats', 'health', 'shortcut', 'sc'].includes(name)) {
         categories.Development.push(cmd);
       } else if (['session', 'undo', 'history', 'h', 'exit', 'quit', 'bye'].includes(name)) {
         categories.Session.push(cmd);
@@ -103,11 +104,12 @@ export const commandsList: Command[] = [
   ...contextCommands,
   ...agentCommands,
   ...devCommands,
+  shortcutCommand,
   feedbackCommand,
   helpCommand,
 ];
 
-export async function executeCommand(input: string, ctx: CommandContext): Promise<boolean> {
+export async function executeCommand(input: string, ctx: CommandContext, _depth = 0): Promise<boolean> {
   const trimmed = input.trim();
   if (!trimmed) return false;
 
@@ -118,6 +120,20 @@ export async function executeCommand(input: string, ctx: CommandContext): Promis
   let mappedName = commandName;
   if (commandName === '?' || commandName === 'help') {
     mappedName = '/help';
+  }
+
+  // Expand shortcut aliases before looking up the command registry
+  // Recursion protection: max expansion depth of 5 to prevent /a -> /b -> /a loops
+  if (mappedName.startsWith('/') && _depth < 5) {
+    try {
+      const manager = createShortcutManager(ctx.configDir);
+      const normalizedInput = normalizeAlias(mappedName);
+      const resolved = manager.resolve(normalizedInput);
+      if (resolved) {
+        const expanded = args ? `${resolved} ${args}` : resolved;
+        return executeCommand(expanded, ctx, _depth + 1);
+      }
+    } catch { /* shortcut expansion failed, fall through to normal lookup */ }
   }
 
   const command = commandsList.find(c =>

@@ -20,6 +20,18 @@ const SHARED_CODER_GUARDRAILS = `\
 - STACK AWARENESS: Before modifying or creating code, check the project's root files (like package.json, webpack/vite/tsconfig configs, or imported dependencies in HTML files) to accurately determine the tech stack (e.g. React/Vue/Vite vs Vanilla JS, Next.js vs Express). NEVER write React JSX/TSX or import React dependencies into a vanilla JS project unless explicitly instructed to migrate.
 - STATELESS/SERVERLESS RULES: Serverless environments (like Cloudflare Pages/Workers, AWS Lambda, Vercel edge/serverless routes) have read-only and stateless filesystems/environments at runtime. Never attempt to write persistent configuration files to the server's local directory or mutate runtime environment objects (e.g. process.env, context.env). Use client-side storage (e.g., LocalStorage) or database KV stores for persisting configuration.`;
 
+const BUG_PREVENTION_CHECKLIST = `\
+
+CRITICAL BUG PREVENTION CHECKLIST — violations cause silent runtime failures that compile and lint clean:
+1. SCHEMA CONSISTENCY: If you create or read a JSON file AND write code that parses it, the on-disk format MUST exactly match the parser.
+   - Writing \`JSON.parse(content) as Foo[]\` requires the file to contain a JSON array \`[]\`, never an object \`{}\`.
+   - Writing \`const r = JSON.parse(content); r.items.map(...)\` requires the file to be \`{ "items": [] }\`, not \`[]\`.
+   - If you ship a default/seed file, confirm its format matches EVERY call site that reads it.
+2. EMPTY STRING SPLITTING: \`''.split(' ')\` yields \`['']\` (length 1), NOT \`[]\` (length 0). NEVER rely on \`parts.length === 0\` to detect empty input. Always check \`str.trim() === ''\` BEFORE splitting.
+3. UNREACHABLE BRANCHES: Before writing an if/else chain, trace realistic inputs. If a condition can never be true with real input, it is a logic bug — not dead code.
+4. KEY NORMALIZATION: If add/set/remove/resolve operations on a key-value store use different key formats (e.g. \`/qt\` vs \`qt\`), lookups will silently miss. Normalize keys at a single point using a shared helper.
+5. BACKWARDS-COMPATIBLE PARSING: When writing code that reads persisted data (files, DBs, localStorage), always handle both old and new formats. Use a try/both-format parser rather than hard-casting.`;
+
 export const AGENT_ROLES: Record<string, AgentRole> = {
   orchestrator: {
     name: 'orchestrator',
@@ -141,7 +153,7 @@ GUIDELINES:
 - Make minimal, focused changes. No scope creep.
 - Follow existing code style. You're a guest in their codebase, act like it.
 - NEVER use code placeholders, comments like "// ...", or ellipses in your edits. You must output the complete code.
-${SHARED_CODER_GUARDRAILS}
+${SHARED_CODER_GUARDRAILS}${BUG_PREVENTION_CHECKLIST}
 - DEPENDENCY FRESHNESS: When adding or updating dependencies (e.g. in package.json, requirements.txt, etc.), always verify and use the latest stable versions of libraries instead of hardcoding outdated versions from your training data. Use web_search or CLI queries to check the latest versions if needed.
 - ACKNOWLEDGE TOOL OUTPUTS: When a tool call (such as a write_file, patch, or terminal command) completes, you will receive its output in the chat history on the next turn. You MUST read this output and report the actual outcome. Do not describe the action as pending (e.g., "I will run the command") if the command has already finished executing. Report the final success or failure.
 - Do NOT run test or verification commands (npm test, npx vitest, etc.) — testing is handled by the reviewer role after your changes are complete. Running tests from the coder role wastes turn budget and the test script may not exist or may be a placeholder.
@@ -178,6 +190,9 @@ REVIEW CHECKLIST (check ALL of these):
 9. SPECIFICATION COMPLETENESS: Check if the specification issue requested multiple entry points or interfaces (e.g., both CLI REPL and Discord slash commands). Ensure ALL specified entry points and files mentioned in the spec are implemented!
 10. TYPE LOCATION: Ensure all new TypeScript interfaces and shared types are declared in src/types.ts per AGENTS.md conventions, not fragmented in sub-modules.
 11. DEFENSIVE GUARDS & ASCII: Verify helper functions handle null, undefined, and empty string "" cleanly. Ensure output text uses standard ASCII characters (e.g. standard hyphen - instead of unicode non-breaking hyphens \u2011).
+12. SCHEMA CONSISTENCY: If the diff writes a JSON seed/default file AND parses it elsewhere, verify the on-disk format exactly matches EVERY call site. Mismatched formats (array vs object) crash silently at runtime.
+13. EMPTY STRING SPLITTING: If the diff calls \`str.split(...)\`, verify empty-string handling. \`''.split(' ')\` yields \`['']\` (length 1). Empty input MUST be detected via \`str.trim() === ''\` before any split.
+14. KEY NORMALIZATION: If the diff implements add/remove/resolve on a key-value store, verify all operations normalize keys the same way. Mismatched formats cause silent lookup failures.
 
 OUTPUT FORMAT:
 STATUS: PASS | NEEDS_FIX | STOP
