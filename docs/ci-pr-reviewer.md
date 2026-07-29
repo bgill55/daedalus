@@ -2,6 +2,10 @@
 
 Daedalus includes a **Headless CI/CD Mode** that automates code reviews and bug fixes for Pull Requests. You can simulate PR reviews locally before opening a pull request, or run Daedalus automatically in GitHub Actions to comment on code reviews and repair broken builds.
 
+<p align="center">
+  <img src="images/daedalus_autonomous_factory.jpg" alt="Daedalus: The Autonomous AI Software Engineering Factory Infographic" width="100%"/>
+</p>
+
 ---
 
 ## Architecture Overview
