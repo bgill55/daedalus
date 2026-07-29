@@ -1,3 +1,10 @@
+# [1.86.0](https://github.com/bgill55/daedalus/compare/v1.85.1...v1.86.0) (2026-07-29)
+
+
+### Features
+
+* sub-agents can now use MCP tools ([fb5cfe9](https://github.com/bgill55/daedalus/commit/fb5cfe97f59acaba0f3389b454f35bb5a95cdac1))
+
 ## [1.85.1](https://github.com/bgill55/daedalus/compare/v1.85.0...v1.85.1) (2026-07-29)
 
 
