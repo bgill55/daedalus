@@ -84,13 +84,13 @@ End-to-end autonomous feature development from a single command:
 Renders local HTML files or URLs in headless Chromium and captures a PNG screenshot:
 * `/preview <filepath-or-url>`: Converts local file paths to `file://` URLs, launches headless Chrome via Puppeteer, screenshots the page, and saves the image to `~/.daedalus/screenshots/`.
 
-### 11. AST-Aware Call Graph & Refactoring Blast-Radius Engine (`/callgraph`, `/impact`)
+### 12. AST-Aware Call Graph & Refactoring Blast-Radius Engine (`/callgraph`, `/impact`)
 Performs bidirectional call-graph traversal (inbound callers and outbound callees) and blast-radius risk scoring (`LOW`, `MEDIUM`, `HIGH`) from SQLite FTS5 symbol indexes to predict affected files and callers before refactoring. Exposes `get_call_graph` tool to LLM sub-agents for structural dependency analysis.
 
-### 12. Headless CI/CD PR Reviewer & Automated Fix Bot (`daedalus --ci`, `/ci`)
+### 13. Headless CI/CD PR Reviewer & Automated Fix Bot (`daedalus --ci`, `/ci`)
 Runs Daedalus in headless non-interactive mode (`daedalus --ci`) inside GitHub Actions workflows or local developer sessions (`/ci`). Executes type-checking (`npx tsc`), linter checks (`npm run lint`), and git diff security audits, posting automated Markdown review reports directly to GitHub Pull Requests and executing automated linter repairs (`/ci fix`).
 
-### 13. Chat-History Branching System ("What-if" Sessions)
+### 14. Chat-History Branching System ("What-if" Sessions)
 Enables non-linear exploration of coding tasks by snapshotting and branching sessions:
 * `/session branch <name>`: Takes an immutable snapshot of conversation turns and active context up to step $N$, saved as JSONL.
 * `/session checkout <name>`: Switches active REPL context to an existing branch.
