@@ -16,7 +16,7 @@ function getCpuTimes() {
   return { idle, total };
 }
 
-export function initMonitor(parent: any) {
+export function initMonitor(parent: blessed.Widgets.BoxElement) {
   const box = blessed.box({
     parent,
     top: 0,

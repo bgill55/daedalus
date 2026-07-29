@@ -25,14 +25,14 @@ export function createTuiRepl(deps: ReplDeps): () => Promise<void> {
   let sessionId = sessionManager.sessionId;
 
   // Set TUI active flag
-  (globalThis as any).isTui = true;
+  globalThis.isTui = true;
 
   // Wrapper so blessed writes bypass the tuiWrite override of process.stdout.write
   const originalStdoutWrite = process.stdout.write.bind(process.stdout);
   const originalStderrWrite = process.stderr.write.bind(process.stderr);
 
-  (globalThis as any).originalStdoutWrite = originalStdoutWrite;
-  (globalThis as any).originalStderrWrite = originalStderrWrite;
+  globalThis.originalStdoutWrite = originalStdoutWrite;
+  globalThis.originalStderrWrite = originalStderrWrite;
   const customStdout = new Writable({
     write(chunk, encoding, callback) {
       originalStdoutWrite(chunk, encoding);
@@ -41,15 +41,15 @@ export function createTuiRepl(deps: ReplDeps): () => Promise<void> {
   });
   Object.defineProperties(customStdout, {
     isTTY: { value: true },
-    columns: { value: (process.stdout as any).columns || 80 },
-    rows: { value: (process.stdout as any).rows || 24 },
+    columns: { value: (process.stdout as unknown as { columns?: number }).columns || 80 },
+    rows: { value: (process.stdout as unknown as { rows?: number }).rows || 24 },
   });
 
   const screen = blessed.screen({
     smartCSR: true,
     title: 'Daedalus TUI',
     fullUnicode: true,
-    output: customStdout as any,
+    output: customStdout as unknown as blessed.Widgets.Screen['output'],
     alternate: true,
     mouse: true,
   });
@@ -93,8 +93,8 @@ export function createTuiRepl(deps: ReplDeps): () => Promise<void> {
   });
 
   // Register TUI globals so spinners can access and update status
-  (globalThis as any).tuiScreen = screen;
-  (globalThis as any).tuiLogBox = logBox;
+  globalThis.tuiScreen = screen;
+  globalThis.tuiLogBox = logBox;
 
   // Create Input Box (Bottom Left)
   const inputField = blessed.textbox({
@@ -136,11 +136,10 @@ export function createTuiRepl(deps: ReplDeps): () => Promise<void> {
   modelList.on('focus', () => { focusIndex = 1; });
   fileList.on('focus', () => { focusIndex = 2; });
 
-
-
   // Prevent textbox from inserting tab spaces and manually switch focus on Tab/S-Tab
-  const originalListener = (inputField as any)._listener;
-  (inputField as any)._listener = function(ch: string, key: any) {
+  const inputFieldElement = inputField as unknown as { _listener: (ch: string, key: { name?: string } | undefined) => void };
+  const originalListener = inputFieldElement._listener;
+  inputFieldElement._listener = function(ch: string, key: { name?: string } | undefined) {
     if (key) {
       if (key.name === 'tab' || key.name === 'S-tab') {
         if (key.name === 'tab') {
@@ -201,7 +200,7 @@ export function createTuiRepl(deps: ReplDeps): () => Promise<void> {
   });
 
   // Redirection function for stdout/stderr
-  const tuiWrite = (chunk: any) => {
+  const tuiWrite = (chunk: string | Buffer) => {
     // Strip carriage returns and filter ANSI spinner animations that look weird in standard log boxes
     const cleanStr = chunk.toString().replace(/\r/g, '').replace(/\u001b\[\d+D/g, '');
     if (cleanStr.trim() !== '') {
@@ -217,11 +216,11 @@ export function createTuiRepl(deps: ReplDeps): () => Promise<void> {
   function restoreStreams() {
     process.stdout.write = originalStdoutWrite;
     process.stderr.write = originalStderrWrite;
-    delete (globalThis as any).isTui;
-    delete (globalThis as any).originalStdoutWrite;
-    delete (globalThis as any).originalStderrWrite;
-    delete (globalThis as any).tuiScreen;
-    delete (globalThis as any).tuiLogBox;
+    delete globalThis.isTui;
+    delete globalThis.originalStdoutWrite;
+    delete globalThis.originalStderrWrite;
+    delete globalThis.tuiScreen;
+    delete globalThis.tuiLogBox;
   }
 
   // Keyboard navigation / Global exit
@@ -265,7 +264,7 @@ export function createTuiRepl(deps: ReplDeps): () => Promise<void> {
     sessionId: string;
     turns: ChatMessage[];
     activeFiles: Map<string, string>;
-    todos: any[];
+    todos: unknown[];
   }) {
     sessionId = loaded.sessionId;
     toolContext.sessionId = loaded.sessionId;
@@ -285,7 +284,7 @@ export function createTuiRepl(deps: ReplDeps): () => Promise<void> {
       messages.push(...userOrAssistantTurns);
     }
 
-    setSessionTodos(loaded.sessionId, loaded.todos);
+    setSessionTodos(loaded.sessionId, loaded.todos as Parameters<typeof setSessionTodos>[1]);
 
     logBox.log(pc.gray(`Active files in context: ${activeFiles.size}`));
     logBox.log(pc.gray(`Loaded ${loaded.turns.length} message turn(s)`));
@@ -374,7 +373,7 @@ export function createTuiRepl(deps: ReplDeps): () => Promise<void> {
         getSystemPromptWithMemory,
         callModelWithTools,
         callModelWithFallback,
-        rl: null as any,
+        rl: null as unknown as readline.Interface,
         initializeSessionState,
         buildFileContext,
         askLine: (prompt: string) => toolContext.askLine!(prompt),
@@ -389,8 +388,9 @@ export function createTuiRepl(deps: ReplDeps): () => Promise<void> {
           screen.render();
           continue;
         }
-      } catch (err: any) {
-        if (err.message === 'SWITCH_MODE_CLI') {
+      } catch (err: unknown) {
+        const error = err as Error;
+        if (error.message === 'SWITCH_MODE_CLI') {
           restoreStreams();
           screen.destroy();
         }
@@ -424,8 +424,9 @@ export function createTuiRepl(deps: ReplDeps): () => Promise<void> {
             sessionManager.saveSessionState(messages, activeFiles, getSessionTodos(sessionId));
             await extractAndSave(router, sessionManager, messages);
           }
-        } catch (fallbackErr: any) {
-          const firstLine = (fallbackErr.message || '').split('\n')[0];
+        } catch (fallbackErr: unknown) {
+          const fallbackError = fallbackErr as Error;
+          const firstLine = (fallbackError.message || '').split('\n')[0];
           logBox.log(pc.red(`\n  ${pc.bold('[ERROR]')} Fallback also failed: ${firstLine}`));
         }
       }

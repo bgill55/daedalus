@@ -32,12 +32,12 @@ function sanitizeEnv(): NodeJS.ProcessEnv {
 
 export class StdioTransport implements MCPTransport {
   private process: ChildProcess | null = null;
-  private messageHandler: ((message: any) => void) | null = null;
+  private messageHandler: ((message: unknown) => void) | null = null;
   private closeHandler: (() => void) | null = null;
   private errorHandler: ((error: Error) => void) | null = null;
   private buffer = '';
   private requestId = 0;
-  private pendingRequests = new Map<number, (response: any) => void>();
+  private pendingRequests = new Map<number, (response: Record<string, unknown>) => void>();
   private config: MCPServerConfig;
 
   constructor(config: MCPServerConfig) {
@@ -122,9 +122,9 @@ export class StdioTransport implements MCPTransport {
     }
   }
 
-  private handleMessage(message: any): void {
+  private handleMessage(message: Record<string, unknown>): void {
     // Response to a request
-    if (message.id !== undefined && this.pendingRequests.has(message.id)) {
+    if (message.id !== undefined && typeof message.id === 'number' && this.pendingRequests.has(message.id)) {
       const resolver = this.pendingRequests.get(message.id)!;
       this.pendingRequests.delete(message.id);
       resolver(message);
@@ -135,7 +135,7 @@ export class StdioTransport implements MCPTransport {
     this.messageHandler?.(message);
   }
 
-  private waitForResponse(method: string): Promise<any> {
+  private waitForResponse(method: string): Promise<unknown> {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         this.messageHandler = originalHandler;
@@ -143,8 +143,9 @@ export class StdioTransport implements MCPTransport {
       }, 30000);
 
       const originalHandler = this.messageHandler;
-      this.messageHandler = (msg: any) => {
-        if (msg.method === method || (msg.id && msg.result)) {
+      this.messageHandler = (msg: unknown) => {
+        const messageObj = msg as Record<string, unknown>;
+        if (messageObj.method === method || (messageObj.id && messageObj.result)) {
           clearTimeout(timeout);
           this.messageHandler = originalHandler;
           resolve(msg);
@@ -155,16 +156,16 @@ export class StdioTransport implements MCPTransport {
     });
   }
 
-  async send(message: any): Promise<void> {
+  async send(message: unknown): Promise<void> {
     if (!this.process?.stdin?.writable) {
       throw new Error('Process not connected');
     }
     this.process.stdin.write(JSON.stringify(message) + '\n');
   }
 
-  async sendAndWait(message: any): Promise<any> {
+  async sendAndWait(message: unknown): Promise<Record<string, unknown>> {
     const id = this.nextId();
-    const msgWithId = { ...message, id };
+    const msgWithId = typeof message === 'object' && message !== null ? { ...message, id } : { message, id };
     
     return new Promise((resolve, reject) => {
       this.pendingRequests.set(id, resolve);
@@ -179,27 +180,29 @@ export class StdioTransport implements MCPTransport {
     });
   }
 
-  async listTools(): Promise<any[]> {
+  async listTools(): Promise<unknown[]> {
     const response = await this.sendAndWait({
       jsonrpc: '2.0',
       method: 'tools/list',
     });
-    return response.result?.tools || [];
+    const result = response.result as { tools?: unknown[] } | undefined;
+    return result?.tools || [];
   }
 
-  async callTool(name: string, args: any): Promise<any> {
+  async callTool(name: string, args: Record<string, unknown>): Promise<unknown> {
     const response = await this.sendAndWait({
       jsonrpc: '2.0',
       method: 'tools/call',
       params: { name, arguments: args },
     });
-    if (response.error) {
-      throw new Error(response.error.message);
+    if (response.error && typeof response.error === 'object') {
+      const errObj = response.error as { message?: string };
+      throw new Error(errObj.message || 'MCP tool call error');
     }
     return response.result;
   }
 
-  onMessage(handler: (message: any) => void): void {
+  onMessage(handler: (message: unknown) => void): void {
     this.messageHandler = handler;
   }
 

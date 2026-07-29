@@ -35,7 +35,7 @@ export interface ToolResult {
 
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant' | 'tool';
-  content: any;
+  content: unknown;
   tool_calls?: ToolCall[];
   tool_call_id?: string;
   name?: string;
@@ -80,4 +80,12 @@ export interface ProviderHealth {
 export interface HealthPayload {
   routerStrategy: string;
   providers: Record<string, ProviderHealth>;
+}
+
+declare global {
+  var isTui: boolean | undefined;
+  var originalStdoutWrite: typeof process.stdout.write | undefined;
+  var originalStderrWrite: typeof process.stderr.write | undefined;
+  var tuiScreen: unknown;
+  var tuiLogBox: unknown;
 }

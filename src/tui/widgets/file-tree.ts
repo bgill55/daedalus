@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import pc from 'picocolors';
 
-export function initFileTree(parent: any, projectRoot: string, activeFiles: Map<string, string>) {
+export function initFileTree(parent: blessed.Widgets.BoxElement, projectRoot: string, activeFiles: Map<string, string>) {
   const list = blessed.list({
     parent,
     top: 14, // Positioned below model select (height 6 monitor + 8 model select = 14)
@@ -107,7 +107,7 @@ export function initFileTree(parent: any, projectRoot: string, activeFiles: Map<
     }
   }
 
-  list.on('select', (item: any, index: number) => {
+  list.on('select', (_item: unknown, index: number) => {
     const node = treeNodes[index];
     if (!node) return;
 
@@ -117,13 +117,13 @@ export function initFileTree(parent: any, projectRoot: string, activeFiles: Map<
     } else {
       if (activeFiles.has(node.absolutePath)) {
         activeFiles.delete(node.absolutePath);
-        const logBox = parent.screen.children.find((c: any) => c.log);
+        const logBox = parent.screen?.children.find((c: unknown) => typeof (c as { log?: unknown }).log === 'function') as { log: (msg: string) => void } | undefined;
         if (logBox) {
           logBox.log(pc.red(`\n  [TUI] Removed from context: ${pc.bold(node.relativePath)}`));
         }
       } else {
         activeFiles.set(node.absolutePath, node.relativePath);
-        const logBox = parent.screen.children.find((c: any) => c.log);
+        const logBox = parent.screen?.children.find((c: unknown) => typeof (c as { log?: unknown }).log === 'function') as { log: (msg: string) => void } | undefined;
         if (logBox) {
           logBox.log(pc.green(`\n  [TUI] Added to context: ${pc.bold(node.relativePath)}`));
         }
@@ -139,12 +139,13 @@ export function initFileTree(parent: any, projectRoot: string, activeFiles: Map<
   });
 
   // Handle single click item selection and focus
-  list.on('element click', (el: any) => {
+  list.on('element click', (el: unknown) => {
     list.focus();
-    const index = (list as any).items.indexOf(el);
+    const listElement = list as unknown as { items: unknown[]; select: (i: number) => void; emit: (e: string, el: unknown, i: number) => void };
+    const index = listElement.items.indexOf(el);
     if (index !== -1) {
-      list.select(index);
-      list.emit('select', el, index);
+      listElement.select(index);
+      listElement.emit('select', el, index);
       parent.screen.render();
     }
   });

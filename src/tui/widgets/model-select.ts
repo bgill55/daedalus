@@ -1,10 +1,11 @@
 import blessed from 'neo-blessed';
 import pc from 'picocolors';
+import { DaedalusConfig } from '../../config/index.js';
 
-export function initModelSelect(parent: any, config: any, _router: any) {
+export function initModelSelect(parent: blessed.Widgets.BoxElement, config: DaedalusConfig, _router: unknown) {
   // Get active models from config
-  const enabledModels = config.router?.chain?.filter((m: any) => m.enabled) || [];
-  const modelNames = enabledModels.map((m: any) => m.name);
+  const enabledModels = config.router?.chain?.filter((m: { enabled?: boolean }) => m.enabled) || [];
+  const modelNames = enabledModels.map((m: { name: string }) => m.name);
   const options = ['Automatic Routing', ...modelNames];
 
   // Self-bordered list selector
@@ -48,8 +49,8 @@ export function initModelSelect(parent: any, config: any, _router: any) {
   }
 
   // Handle select event
-  list.on('select', (item: any, index: number) => {
-    const logBox = parent.screen.children.find((c: any) => c.log);
+  list.on('select', (_item: unknown, index: number) => {
+    const logBox = parent.screen?.children.find((c: unknown) => typeof (c as { log?: unknown }).log === 'function') as { log: (msg: string) => void } | undefined;
     
     if (index === 0) {
       config.modelOverride = undefined;
@@ -58,7 +59,7 @@ export function initModelSelect(parent: any, config: any, _router: any) {
       }
     } else {
       const selectedModelName = modelNames[index - 1];
-      const modelEntry = enabledModels.find((m: any) => m.name === selectedModelName);
+      const modelEntry = enabledModels.find((m: { name: string }) => m.name === selectedModelName);
       if (modelEntry) {
         config.modelOverride = modelEntry.name;
         if (logBox) {
@@ -77,12 +78,13 @@ export function initModelSelect(parent: any, config: any, _router: any) {
   });
 
   // Handle single click item selection and focus
-  list.on('element click', (el: any) => {
+  list.on('element click', (el: unknown) => {
     list.focus();
-    const index = (list as any).items.indexOf(el);
+    const listElement = list as unknown as { items: unknown[]; select: (i: number) => void; emit: (e: string, el: unknown, i: number) => void };
+    const index = listElement.items.indexOf(el);
     if (index !== -1) {
-      list.select(index);
-      list.emit('select', el, index);
+      listElement.select(index);
+      listElement.emit('select', el, index);
       parent.screen.render();
     }
   });

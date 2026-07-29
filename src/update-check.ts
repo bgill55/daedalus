@@ -33,7 +33,7 @@ export async function checkForUpdates(version: string, cachePath: string): Promi
 
     const res = await fetch('https://registry.npmjs.org/daedalus-cli/latest');
     if (!res.ok) return;
-    const data: any = await res.json();
+    const data = (await res.json()) as { version?: string };
     const latest = data.version;
 
     fs.mkdirSync(path.dirname(cachePath), { recursive: true });

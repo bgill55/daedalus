@@ -18,8 +18,9 @@ export class MCPRegistry {
     const connections = this.serverConfigs.map(async (config) => {
       try {
         await this.connectServer(config);
-      } catch (err: any) {
-        console.error(`Failed to connect MCP server ${config.name}: ${err.message}`);
+      } catch (err: unknown) {
+        const error = err as Error;
+        console.error(`Failed to connect MCP server ${config.name}: ${error.message}`);
       }
     });
     await Promise.all(connections);
@@ -44,7 +45,7 @@ export class MCPRegistry {
     await transport.connect();
     this.transports.set(config.name, transport);
 
-    const tools = await transport.listTools();
+    const tools = (await transport.listTools()) as MCPTool[];
     for (const tool of tools) {
       const prefixedName = `mcp_${config.name}_${tool.name}`;
       this.tools.set(prefixedName, { ...tool, name: prefixedName });
@@ -67,7 +68,7 @@ export class MCPRegistry {
     }
   }
 
-  async callTool(prefixedName: string, args: any): Promise<any> {
+  async callTool(prefixedName: string, args: Record<string, unknown>): Promise<unknown> {
     const match = prefixedName.match(/^mcp_([^_]+)_(.+)$/);
     if (!match) {
       throw new Error(`Invalid MCP tool name: ${prefixedName}`);

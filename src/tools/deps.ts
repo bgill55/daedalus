@@ -1,6 +1,5 @@
 import { Logger } from './logger.js';
 import * as child from 'child_process';
-import * as path from 'path';
 
 export class MissingDependencyError extends Error {
   constructor(message: string, public dependency?: string) {

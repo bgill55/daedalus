@@ -15,7 +15,7 @@ export class REPL {
   private context: REPLContext;
   private logger;
 
-  constructor(projectRoot: string = process.cwd()) {
+  constructor(_projectRoot: string = process.cwd()) {
     this.context = {
       history: [],
       activeFiles: new Set(),
@@ -110,7 +110,7 @@ export class REPL {
       return;
     }
 
-    const absolutePath = path.resolve(filePath);
+    const _absolutePath = path.resolve(filePath);
     this.context.lastFile = filePath;
     this.context.activeFiles.add(filePath);
 
@@ -130,7 +130,7 @@ export class REPL {
   private detectEditor(): string | null {
     // Simple editor detection (would be more comprehensive in production)
     const editors = ['code', 'vim', 'nano', 'notepad++'];
-    for (const editor of editors) {
+    for (const _editor of editors) {
       // This would check if editor is in PATH
       // For demo purposes, we'll just return a placeholder
     }

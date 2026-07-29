@@ -67,14 +67,14 @@ export class DaedalusSpinner {
   }
 
   private renderTui(): void {
-    const logBox = (globalThis as any).tuiLogBox;
-    const screen = (globalThis as any).tuiScreen;
+    const logBox = globalThis.tuiLogBox as { setLabel: (lbl: string) => void } | undefined;
+    const screen = globalThis.tuiScreen as { render: () => void } | undefined;
     if (logBox && screen) {
       try {
         const frame = this.frames[this.frameIndex % this.frames.length];
         logBox.setLabel(` CONSOLE (${frame} ${this.text}...) `);
         screen.render();
-      } catch (e) {
+      } catch {
         // Silently fail if TUI isn't ready or has been destroyed
       }
     }
@@ -89,13 +89,13 @@ export class DaedalusSpinner {
       this.timer = null;
     }
     if (this.isTui()) {
-      const logBox = (globalThis as any).tuiLogBox;
-      const screen = (globalThis as any).tuiScreen;
+      const logBox = globalThis.tuiLogBox as { setLabel: (lbl: string) => void } | undefined;
+      const screen = globalThis.tuiScreen as { render: () => void } | undefined;
       if (logBox && screen) {
         try {
           logBox.setLabel('');
           screen.render();
-        } catch (e) {
+        } catch {
           // Ignore errors during cleanup
         }
       }

@@ -44,7 +44,7 @@ export interface RegistryServerEntry {
 interface RegistryResponse {
   servers: Array<{
     server: RegistryServerEntry;
-    _meta: Record<string, any>;
+    _meta: Record<string, unknown>;
   }>;
   metadata: {
     count: number;
@@ -331,13 +331,13 @@ function packageToCommand(pkg: { registryType: string; identifier: string }): st
 /** Add an MCP server config to the Daedalus config file */
 export function addServerToConfig(config: MCPServerInstallConfig): { success: boolean; message: string } {
   const cfg = loadConfig();
-  const servers = cfg.tools.mcpServers as Record<string, any>;
+  const servers = cfg.tools.mcpServers as Record<string, unknown>;
 
   if (servers[config.name]) {
     return { success: false, message: `Server "${config.name}" is already installed. Use /mcp remove first or edit config.json directly.` };
   }
 
-  const entry: Record<string, any> = {
+  const entry: Record<string, unknown> = {
     transport: config.transport,
     enabled: config.enabled,
   };
@@ -358,7 +358,7 @@ export function addServerToConfig(config: MCPServerInstallConfig): { success: bo
 /** Remove an MCP server from the config */
 export function removeServerFromConfig(name: string): { success: boolean; message: string } {
   const cfg = loadConfig();
-  const servers = cfg.tools.mcpServers as Record<string, any>;
+  const servers = cfg.tools.mcpServers as Record<string, unknown>;
 
   if (!servers[name]) {
     return { success: false, message: `Server "${name}" is not installed.` };
@@ -372,24 +372,27 @@ export function removeServerFromConfig(name: string): { success: boolean; messag
 /** List installed MCP servers */
 export function listInstalledServers(): Array<{ name: string; transport: string; enabled: boolean }> {
   const cfg = loadConfig();
-  const servers = cfg.tools.mcpServers as Record<string, any>;
-  return Object.entries(servers).map(([name, s]) => ({
-    name,
-    transport: s.transport || 'unknown',
-    enabled: s.enabled !== false,
-  }));
+  const servers = cfg.tools.mcpServers as Record<string, unknown>;
+  return Object.entries(servers).map(([name, s]) => {
+    const serverObj = s as { transport?: string; enabled?: boolean };
+    return {
+      name,
+      transport: serverObj.transport || 'unknown',
+      enabled: serverObj.enabled !== false,
+    };
+  });
 }
 
 /** Toggle an MCP server on/off */
 export function toggleServer(name: string, enabled: boolean): { success: boolean; message: string } {
   const cfg = loadConfig();
-  const servers = cfg.tools.mcpServers as Record<string, any>;
+  const servers = cfg.tools.mcpServers as Record<string, unknown>;
 
   if (!servers[name]) {
     return { success: false, message: `Server "${name}" is not installed.` };
   }
 
-  servers[name].enabled = enabled;
+  (servers[name] as { enabled?: boolean }).enabled = enabled;
   saveConfig(cfg);
   return { success: true, message: `${enabled ? 'Enabled' : 'Disabled'} MCP server: ${name}` };
 }

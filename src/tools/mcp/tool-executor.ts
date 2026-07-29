@@ -3,7 +3,7 @@
 import { ToolContext, ToolResult } from '../../types.js';
 import { mcpRegistry } from './registry.js';
 
-export async function executeMCPTool(prefixedName: string, args: any, _context: ToolContext): Promise<ToolResult> {
+export async function executeMCPTool(prefixedName: string, args: Record<string, unknown>, _context: ToolContext): Promise<ToolResult> {
   try {
     const result = await mcpRegistry.callTool(prefixedName, args);
     return {
@@ -12,13 +12,14 @@ export async function executeMCPTool(prefixedName: string, args: any, _context: 
       success: true,
       content: JSON.stringify(result, null, 2),
     };
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
     return {
       toolCallId: '',
       name: prefixedName,
       success: false,
       content: '',
-      error: `MCP tool error: ${err.message}`,
+      error: `MCP tool error: ${errorMessage}`,
     };
   }
 }

@@ -51,9 +51,10 @@ class SSEClient {
           }
         }
       }
-    } catch (err: any) {
-      if (err.name !== 'AbortError') {
-        this.dispatch('error', { data: err.message });
+    } catch (err: unknown) {
+      const error = err as Error;
+      if (error.name !== 'AbortError') {
+        this.dispatch('error', { data: error.message });
       }
     } finally {
       this._readyState = 2;
@@ -85,11 +86,11 @@ class SSEClient {
 
 export class HttpTransport implements MCPTransport {
   private config: MCPServerConfig;
-  private messageHandler: ((message: any) => void) | null = null;
+  private messageHandler: ((message: unknown) => void) | null = null;
   private errorHandler: ((error: Error) => void) | null = null;
   private sseClient: SSEClient | null = null;
   private requestId = 0;
-  private pendingRequests = new Map<number, (response: any) => void>();
+  private pendingRequests = new Map<number, (response: Record<string, unknown>) => void>();
 
   constructor(config: MCPServerConfig) {
     this.config = config;
@@ -136,8 +137,8 @@ export class HttpTransport implements MCPTransport {
     return ++this.requestId;
   }
 
-  private handleMessage(message: any): void {
-    if (message.id !== undefined && this.pendingRequests.has(message.id)) {
+  private handleMessage(message: Record<string, unknown>): void {
+    if (message.id !== undefined && typeof message.id === 'number' && this.pendingRequests.has(message.id)) {
       const resolver = this.pendingRequests.get(message.id)!;
       this.pendingRequests.delete(message.id);
       resolver(message);
@@ -146,7 +147,7 @@ export class HttpTransport implements MCPTransport {
     this.messageHandler?.(message);
   }
 
-  private async sendPOST(message: any): Promise<any> {
+  private async sendPOST(message: unknown): Promise<Record<string, unknown>> {
     if (!this.config.url) throw new Error('Not connected');
 
     const res = await fetch(this.config.url, {
@@ -162,16 +163,16 @@ export class HttpTransport implements MCPTransport {
       throw new Error(`HTTP ${res.status}: ${await res.text()}`);
     }
 
-    return res.json();
+    return (await res.json()) as Record<string, unknown>;
   }
 
-  async send(message: any): Promise<void> {
+  async send(message: unknown): Promise<void> {
     await this.sendPOST(message);
   }
 
-  async sendAndWait(message: any): Promise<any> {
+  async sendAndWait(message: unknown): Promise<Record<string, unknown>> {
     const id = this.nextId();
-    const msgWithId = { ...message, id };
+    const msgWithId = typeof message === 'object' && message !== null ? { ...message, id } : { message, id };
 
     return new Promise((resolve, reject) => {
       this.pendingRequests.set(id, resolve);
@@ -186,27 +187,29 @@ export class HttpTransport implements MCPTransport {
     });
   }
 
-  async listTools(): Promise<any[]> {
+  async listTools(): Promise<unknown[]> {
     const response = await this.sendAndWait({
       jsonrpc: '2.0',
       method: 'tools/list',
     });
-    return response.result?.tools || [];
+    const result = response.result as { tools?: unknown[] } | undefined;
+    return result?.tools || [];
   }
 
-  async callTool(name: string, args: any): Promise<any> {
+  async callTool(name: string, args: Record<string, unknown>): Promise<unknown> {
     const response = await this.sendAndWait({
       jsonrpc: '2.0',
       method: 'tools/call',
       params: { name, arguments: args },
     });
-    if (response.error) {
-      throw new Error(response.error.message);
+    if (response.error && typeof response.error === 'object') {
+      const errObj = response.error as { message?: string };
+      throw new Error(errObj.message || 'MCP tool call error');
     }
     return response.result;
   }
 
-  onMessage(handler: (message: any) => void): void {
+  onMessage(handler: (message: unknown) => void): void {
     this.messageHandler = handler;
   }
 
