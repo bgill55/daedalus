@@ -98,6 +98,7 @@ describe('Documentation Sync Verification', () => {
       '/session': '/session [name]',
       '/preview': '/preview <filepath-or-url>',
       '/ci': '/ci [review|fix]',
+      '/badge': '/badge [custom <label> <message> [color]] [--write]',
     };
 
     const COMMAND_GROUPS: { name: string; commands: string[] }[] = [
@@ -111,7 +112,7 @@ describe('Documentation Sync Verification', () => {
       },
       {
         name: 'Developer Tools, Git & MCP',
-        commands: ['/test', '/commit', '/branch', '/pr', '/mcp', '/image', '/undo', '/ci']
+        commands: ['/test', '/commit', '/branch', '/pr', '/mcp', '/image', '/undo', '/ci', '/badge']
       },
       {
         name: 'Memory, Conventions & Config',

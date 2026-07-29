@@ -726,6 +726,14 @@ Once you have finished making changes, I will automatically re-run the command t
     }
   },
   {
+    name: '/badge',
+    description: 'Generate Shields.io README badges or build custom badges',
+    execute: async (args, _ctx) => {
+      const { handleBadgeCommand } = await import('./badge.js');
+      await handleBadgeCommand(args, process.cwd());
+    }
+  },
+  {
     name: '/changelog',
     description: 'View the latest CLI changes',
     execute: async (_args, _ctx) => {

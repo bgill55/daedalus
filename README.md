@@ -155,6 +155,7 @@ AI assistance without:
 | `/image` | Generate an image using local Stable Diffusion WebUI or Pollinations AI |
 | `/undo` | Undo file edits (usage: /undo [count\|list]) |
 | `/ci [review\|fix]` | Run headless CI/CD PR review or auto-fix simulation locally |
+| `/badge [custom <label> <message> [color]] [--write]` | Generate Shields.io README badges or build custom badges |
 
 ### Memory, Conventions & Config
 
