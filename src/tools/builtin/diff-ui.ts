@@ -5,6 +5,14 @@ import pc from 'picocolors';
 import * as diff from 'diff';
 import { ToolContext } from '../../types.js';
 
+export interface DiffHunk {
+  oldStart: number;
+  oldLines: number;
+  newStart: number;
+  newLines: number;
+  lines: string[];
+}
+
 export type DiffDecision = 'yes' | 'no' | 'all' | 'skip' | 'diff' | 'edit' | 'chunks';
 
 export interface DiffOptions {
@@ -233,7 +241,7 @@ export async function openEditor(content: string): Promise<string> {
 }
 
 export function formatHunk(
-  hunk: diff.StructuredPatchHunk,
+  hunk: DiffHunk,
   index: number,
   total: number,
   filePath: string
@@ -272,7 +280,7 @@ export function formatHunk(
 }
 
 export async function promptHunkDecision(
-  hunk: diff.StructuredPatchHunk,
+  hunk: DiffHunk,
   index: number,
   total: number,
   filePath: string
