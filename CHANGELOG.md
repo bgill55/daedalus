@@ -1,3 +1,18 @@
+# [1.85.0](https://github.com/bgill55/daedalus/compare/v1.84.0...v1.85.0) (2026-07-29)
+
+
+### Bug Fixes
+
+* replace require() calls with ESM import in feedback.ts ([e024af8](https://github.com/bgill55/daedalus/commit/e024af83ba4bc4cb5e8723f6c45b4217298e3221))
+* resolve TypeScript build errors (diff.Hunk -> diff.StructuredPatchHunk, mock type fix) ([66aa80f](https://github.com/bgill55/daedalus/commit/66aa80f09cd007014cab4ce36a657e38cf413af9))
+* update docs and tests for /feedback command and help categorization ([b203a63](https://github.com/bgill55/daedalus/commit/b203a63c4bf111e8f2bf2ca36c06879c0727dc0b))
+* use local DiffHunk type instead of diff.StructuredPatchHunk for CI compat ([13c13d2](https://github.com/bgill55/daedalus/commit/13c13d2f5c17ab974edab24157f55b492a6faa07))
+
+
+### Features
+
+* add Smithery.ai as a second MCP server registry ([cf6854a](https://github.com/bgill55/daedalus/commit/cf6854a2c09c2dbd02115d96aa0fc7d6131472c3))
+
 ## [1.84.1](https://github.com/bgill55/daedalus/compare/v1.84.0...v1.84.1) (2026-07-29)
 
 
