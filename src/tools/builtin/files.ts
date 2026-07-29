@@ -30,6 +30,11 @@ function resolvePath(p: string, projectRoot: string): string {
   }
 
   let normalizedPath = p;
+  // Expand ~ to home directory
+  if (normalizedPath.startsWith('~')) {
+    const home = process.env.USERPROFILE || process.env.HOME || '';
+    normalizedPath = home + normalizedPath.slice(1);
+  }
   // Convert /c/path or /d/path (Git Bash / WSL style) to C:/path or D:/path
   if (/^[\/\\]([a-zA-Z])[\/\\]/.test(normalizedPath)) {
     const drive = normalizedPath[1].toUpperCase();
