@@ -92,7 +92,7 @@ describe('HttpTransport', () => {
     ));
 
     const result = await resultPromise;
-    expect(result.result.data).toBe('ok');
+    expect((result as any).result.data).toBe('ok');
   });
 
   it('sendAndWait rejects on timeout', async () => {

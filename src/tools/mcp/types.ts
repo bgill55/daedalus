@@ -4,9 +4,9 @@ export interface MCPTransport {
   connect(): Promise<void>;
   disconnect(): Promise<void>;
   send(message: unknown): Promise<void>;
-  sendAndWait(message: unknown): Promise<unknown>;
+  sendAndWait(message: unknown): Promise<any>;
   listTools(): Promise<unknown[]>;
-  callTool(name: string, args: Record<string, unknown>): Promise<unknown>;
+  callTool(name: string, args: Record<string, unknown>): Promise<any>;
   onMessage(handler: (message: unknown) => void): void;
   onClose(handler: () => void): void;
   onError(handler: (error: Error) => void): void;
@@ -25,5 +25,5 @@ export interface MCPServerConfig {
 export interface MCPTool {
   name: string;
   description: string;
-  inputSchema: Record<string, unknown>;
+  inputSchema: any;
 }

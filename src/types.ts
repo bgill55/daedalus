@@ -35,7 +35,7 @@ export interface ToolResult {
 
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant' | 'tool';
-  content: unknown;
+  content: any;
   tool_calls?: ToolCall[];
   tool_call_id?: string;
   name?: string;

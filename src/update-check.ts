@@ -39,7 +39,7 @@ export async function checkForUpdates(version: string, cachePath: string): Promi
     fs.mkdirSync(path.dirname(cachePath), { recursive: true });
     fs.writeFileSync(cachePath, JSON.stringify({ latest, timestamp: Date.now() }), 'utf8');
 
-    if (isNewerVersion(latest, version)) {
+    if (latest && isNewerVersion(latest, version)) {
       console.log(pc.cyan(`\n  Upgrade available: ${pc.bold(latest)} (you have ${version})`));
       console.log(pc.dim(`  Run ${pc.cyan('npm update -g daedalus-cli')} to upgrade`));
     }

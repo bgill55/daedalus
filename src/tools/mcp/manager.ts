@@ -44,7 +44,7 @@ export interface RegistryServerEntry {
 interface RegistryResponse {
   servers: Array<{
     server: RegistryServerEntry;
-    _meta: Record<string, unknown>;
+    _meta: Record<string, any>;
   }>;
   metadata: {
     count: number;

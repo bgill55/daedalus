@@ -2,7 +2,7 @@ import blessed from 'neo-blessed';
 import pc from 'picocolors';
 import { DaedalusConfig } from '../../config/index.js';
 
-export function initModelSelect(parent: blessed.Widgets.BoxElement, config: DaedalusConfig, _router: unknown) {
+export function initModelSelect(parent: blessed.Widgets.BoxElement, config: DaedalusConfig & { modelOverride?: string }, _router: unknown) {
   // Get active models from config
   const enabledModels = config.router?.chain?.filter((m: { enabled?: boolean }) => m.enabled) || [];
   const modelNames = enabledModels.map((m: { name: string }) => m.name);
