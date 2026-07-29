@@ -515,6 +515,22 @@ async function main() {
     } else {
       const res = await runHeadlessCiReview(sessionManager.projectRoot);
       console.log(res.markdownReport);
+
+      // Post to GitHub PR if gh CLI is available — write to temp file to avoid shell escaping issues
+      const prNumber = process.env.PR_NUMBER || process.argv.find(a => /^\d+$/.test(a));
+      if (prNumber) {
+        try {
+          const tmpFile = path.join(os.tmpdir(), `daedalus-ci-review-${Date.now()}.md`);
+          fs.writeFileSync(tmpFile, res.markdownReport, 'utf8');
+          const { execSync } = await import('child_process');
+          execSync(`gh pr comment ${prNumber} --body-file "${tmpFile}"`, { cwd: sessionManager.projectRoot });
+          fs.unlinkSync(tmpFile);
+          console.log(`\n✔ Posted CI review comment to PR #${prNumber}`);
+        } catch {
+          // gh CLI not available or not in a PR context, skip posting
+        }
+      }
+
       process.exit(res.passed ? 0 : 1);
     }
   }
