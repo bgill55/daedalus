@@ -288,6 +288,7 @@ function getSystemPromptWithMemory(): string {
         prompt += '- /mcp search <query> — search for a server\n';
         prompt += '- /mcp install <name> — install a server\n';
         prompt += '- /mcp reconnect — connect newly installed servers\n';
+        prompt += '\nREAD BEFORE WRITE: If the user asks you to read a file, listing a directory, or any read-only operation, use the appropriate read/query tool. Do NOT call write_file (or any MCP equivalent) to output the contents — they are returned automatically by the read tool. write_file is only for creating or modifying files.\n';
       }
     } catch {
       // MCP tools unavailable — skip
