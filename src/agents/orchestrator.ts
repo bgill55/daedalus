@@ -6,6 +6,7 @@ import os from 'os';
 import readline from 'readline';
 import { LocalRouter } from '../router/index.js';
 import { BUILTIN_TOOLS } from '../tools/definitions.js';
+import { mcpRegistry } from '../tools/mcp/registry.js';
 import { executeToolCalls } from '../tools/executor.js';
 import { getAgentRole, filterToolsForRole, AgentRole } from './roles.js';
 import { ToolContext, ToolCall, ChatMessage } from '../types.js';
@@ -204,7 +205,7 @@ export class Orchestrator {
 
   private async createPlan(goal: string, projectContext?: string, simplifyHint?: string): Promise<string> {
     const plannerRole = getAgentRole('planner');
-    const tools = filterToolsForRole(BUILTIN_TOOLS, 'planner');
+    const tools = filterToolsForRole([...BUILTIN_TOOLS, ...mcpRegistry.getToolDefinitions()], 'planner');
 
     let systemPrompt = plannerRole.systemPrompt;
     const projectRoot = this.toolContext.projectRoot || this.sessionManager?.projectRoot;
@@ -962,7 +963,7 @@ export class Orchestrator {
     const role = getAgentRole(task.role);
     console.log(`\n[SPAWN] Delegating to ${role.name}: ${task.goal}`);
 
-    const tools = filterToolsForRole(BUILTIN_TOOLS, task.role);
+    const tools = filterToolsForRole([...BUILTIN_TOOLS, ...mcpRegistry.getToolDefinitions()], task.role);
     const historyStartIndex = this.toolContext.patchHistory?.length || 0;
 
     // Inject user metadata so the agent has real values instead of guessing
@@ -1261,7 +1262,7 @@ export class Orchestrator {
             ? `\nFILES_TOUCHED: ${touchedFiles.join(', ')}`
             : '';
           const reviewContext = `TASK: ${task.goal}\n\nAgent result:\n${result}${fileList}\n\nReview the files that were touched for this task. Use git_diff or list files modified recently. Check for syntax errors, correctness, and project health.`;
-          const reviewTools = filterToolsForRole(BUILTIN_TOOLS, 'reviewer');
+          const reviewTools = filterToolsForRole([...BUILTIN_TOOLS, ...mcpRegistry.getToolDefinitions()], 'reviewer');
           const review = await this.runAgent(reviewerRole, `Review files from task: ${task.goal}`, reviewContext, reviewTools);
           // Update project status from review
           try {

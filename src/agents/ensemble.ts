@@ -7,6 +7,7 @@ import { DaedalusConfig } from '../config/index.js';
 import { ToolContext, ChatMessage } from '../types.js';
 import { getAgentRole, filterToolsForRole } from './roles.js';
 import { BUILTIN_TOOLS } from '../tools/definitions.js';
+import { mcpRegistry } from '../tools/mcp/registry.js';
 import { executeToolCalls } from '../tools/executor.js';
 import { getFrameworkGuidance } from './orchestrator-validation.js';
 import { detectProjectStack } from '../config/stack.js';
@@ -30,7 +31,7 @@ async function executeAgentRole(
   temperatureOverride?: number
 ): Promise<string> {
   const role = getAgentRole(roleName);
-  const tools = filterToolsForRole(BUILTIN_TOOLS, roleName);
+  const tools = filterToolsForRole([...BUILTIN_TOOLS, ...mcpRegistry.getToolDefinitions()], roleName);
   const messages: ChatMessage[] = [
     { role: 'system', content: role.systemPrompt },
     { role: 'user', content: `${context}\n\nTask: ${goal}` },

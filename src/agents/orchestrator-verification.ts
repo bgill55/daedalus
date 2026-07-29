@@ -311,9 +311,10 @@ export async function attemptRepair(
 ): Promise<{ success: boolean; summary: string; evidence?: string }> {
   const { getAgentRole, filterToolsForRole } = await import('./roles.js');
   const { BUILTIN_TOOLS } = await import('../tools/definitions.js');
+  const { mcpRegistry } = await import('../tools/mcp/registry.js');
 
   const role = getAgentRole(task.role);
-  const tools = filterToolsForRole(BUILTIN_TOOLS, task.role);
+  const tools = filterToolsForRole([...BUILTIN_TOOLS, ...mcpRegistry.getToolDefinitions()], task.role);
   const maxRetries = 2;
   let attempt = 0;
   let currentSummary = previous.summary;
