@@ -26,7 +26,7 @@ import {
 const userMessageHistory = new Map<string, number[]>();
 
 async function imageAttachmentToBase64(attachment: { url: string; contentType: string | null; name: string | null }): Promise<{ mime: string; base64: string } | null> {
-  let mime = attachment.contentType || inferMimeType(attachment.name);
+  const mime = attachment.contentType || inferMimeType(attachment.name);
   if (!mime || !mime.startsWith('image/')) return null;
   try {
     // Some CDNs require a User-Agent; add a generic one

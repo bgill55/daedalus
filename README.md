@@ -154,6 +154,7 @@ AI assistance without:
 | `/mcp <explore\|search\|install\|list\|rm>` | Manage MCP servers: explore, search, install, list, remove, info |
 | `/image` | Generate an image using local Stable Diffusion WebUI or Pollinations AI |
 | `/undo` | Undo file edits (usage: /undo [count\|list]) |
+| `/ci [review\|fix]` | Run headless CI/CD PR review or auto-fix simulation locally |
 
 ### Memory, Conventions & Config
 

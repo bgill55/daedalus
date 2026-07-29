@@ -58,6 +58,7 @@ const COMMAND_USAGES: Record<string, string> = {
   '/autopilot': '/autopilot <feature>',
   '/session': '/session [name]',
   '/preview': '/preview <filepath-or-url>',
+  '/ci': '/ci [review|fix]',
 };
 
 const COMMAND_GROUPS: { name: string; commands: string[] }[] = [
@@ -71,7 +72,7 @@ const COMMAND_GROUPS: { name: string; commands: string[] }[] = [
   },
   {
     name: 'Developer Tools, Git & MCP',
-    commands: ['/test', '/commit', '/branch', '/pr', '/mcp', '/image', '/undo']
+    commands: ['/test', '/commit', '/branch', '/pr', '/mcp', '/image', '/undo', '/ci']
   },
   {
     name: 'Memory, Conventions & Config',

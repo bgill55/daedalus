@@ -504,6 +504,21 @@ async function main() {
     return;
   }
 
+  const isCi = process.argv.includes('--ci');
+  if (isCi) {
+    const { runHeadlessCiReview, runHeadlessCiFix } = await import('./ci.js');
+    const isFix = process.argv.includes('fix');
+    if (isFix) {
+      const res = await runHeadlessCiFix(sessionManager.projectRoot);
+      console.log(res.message);
+      process.exit(res.success ? 0 : 1);
+    } else {
+      const res = await runHeadlessCiReview(sessionManager.projectRoot);
+      console.log(res.markdownReport);
+      process.exit(res.passed ? 0 : 1);
+    }
+  }
+
   const isTui = process.argv.includes('--tui') || config.ui?.tui === true;
   let currentMode: 'cli' | 'tui' = isTui ? 'tui' : 'cli';
 

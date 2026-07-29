@@ -708,6 +708,24 @@ Once you have finished making changes, I will automatically re-run the command t
     }
   },
   {
+    name: '/ci',
+    description: 'Run headless CI/CD PR review or auto-fix simulation locally',
+    execute: async (args, ctx) => {
+      const mode = args.trim().toLowerCase();
+      const { runHeadlessCiReview, runHeadlessCiFix } = await import('../ci.js');
+
+      if (mode === 'fix') {
+        console.log(pc.bold('\n--- Running Daedalus CI Auto-Fix ---'));
+        const res = await runHeadlessCiFix(ctx.projectRoot);
+        console.log(res.message);
+      } else {
+        console.log(pc.bold('\n--- Running Daedalus CI PR Review ---'));
+        const res = await runHeadlessCiReview(ctx.projectRoot);
+        console.log(`\n${res.markdownReport}\n`);
+      }
+    }
+  },
+  {
     name: '/changelog',
     description: 'View the latest CLI changes',
     execute: async (_args, _ctx) => {
