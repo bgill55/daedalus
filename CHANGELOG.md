@@ -1,3 +1,10 @@
+## [1.85.1](https://github.com/bgill55/daedalus/compare/v1.85.0...v1.85.1) (2026-07-29)
+
+
+### Bug Fixes
+
+* update mcp help with npm template, add filesystem to local config ([c875992](https://github.com/bgill55/daedalus/commit/c8759920a92e49a750fcd7b3e7fb72848ced52e4))
+
 # [1.85.0](https://github.com/bgill55/daedalus/compare/v1.84.0...v1.85.0) (2026-07-29)
 
 
