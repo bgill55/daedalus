@@ -186,3 +186,52 @@ export async function get_references(
     };
   }
 }
+
+/** Returns bidirectional call graph (inbound callers and outbound callees) and blast-radius impact. */
+export async function get_call_graph(
+  args: { symbol: string; depth?: number },
+  context: ToolContext
+): Promise<ToolResult> {
+  try {
+    const db = getDb(context);
+    const projectHash = context.projectHash || getProjectHash(context.projectRoot);
+    const depth = args.depth ?? 2;
+
+    const { getCallGraph, getImpactAnalysis } = await import('../../indexing/fts.js');
+    const graph = getCallGraph(db, args.symbol, projectHash, depth);
+    const impact = getImpactAnalysis(db, args.symbol, projectHash);
+
+    if (graph.inbound.length === 0 && graph.outbound.length === 0 && graph.definitions.length === 0) {
+      return {
+        toolCallId: '',
+        name: 'get_call_graph',
+        success: true,
+        content: `No call graph data found for "${args.symbol}". Run index_codebase first to populate the index.`,
+      };
+    }
+
+    let out = `Call Graph for "${args.symbol}" (depth: ${depth}):\n`;
+    if (graph.inbound.length > 0) {
+      out += `\nInbound Callers:\n` + graph.inbound.map(i => `  • ${i.caller_name} (${i.caller_file}:${i.caller_line})`).join('\n');
+    }
+    if (graph.outbound.length > 0) {
+      out += `\nOutbound Calls:\n` + graph.outbound.map(o => `  • ${o.callee_name} (${o.callee_file}:${o.callee_line})`).join('\n');
+    }
+    out += `\n\nImpact Blast Radius: [${impact.riskScore}] (${impact.totalTransitiveCallers} caller(s), ${impact.affectedFiles.length} file(s) affected)`;
+
+    return {
+      toolCallId: '',
+      name: 'get_call_graph',
+      success: true,
+      content: out,
+    };
+  } catch (err: any) {
+    return {
+      toolCallId: '',
+      name: 'get_call_graph',
+      success: false,
+      content: '',
+      error: `Failed to build call graph: ${err.message}`,
+    };
+  }
+}

@@ -140,6 +140,8 @@ AI assistance without:
 | `/find <query>` | Search indexed symbols |
 | `/refs <symbol>` | Find symbol references (callers) |
 | `/def <symbol>` | Get symbol definition |
+| `/callgraph <symbol> [depth]` | Display bidirectional call graph for a symbol |
+| `/impact <symbol>` | Analyze refactoring impact & blast radius for a symbol |
 
 ### Developer Tools, Git & MCP
 

@@ -34,4 +34,11 @@ describe('Indexing tool helpers', () => {
     expect(path).toContain(hash);
   });
 
+  it('get_call_graph returns formatted string or fallback message', async () => {
+    const { get_call_graph } = await import('./indexing.js');
+    const res = await get_call_graph({ symbol: 'UnknownSymbol' }, { projectRoot: process.cwd() } as any);
+    expect(res.success).toBe(true);
+    expect(res.content).toContain('No call graph data found');
+  });
+
 });

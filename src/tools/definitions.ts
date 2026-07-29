@@ -282,6 +282,22 @@ export const BUILTIN_TOOLS: ToolDefinition[] = [
   {
     type: 'function',
     function: {
+      name: 'get_call_graph',
+      description: 'Retrieve bidirectional function call graph (inbound callers and outbound calls) and blast-radius impact analysis.',
+      parameters: {
+        type: 'object',
+        properties: {
+          symbol: { type: 'string', description: 'Function or symbol name' },
+          depth: { type: 'integer', description: 'Traversal depth (default: 2)', default: 2 },
+        },
+        required: ['symbol'],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'ask_user',
       description: 'Ask the user a question or present a list of choices, and wait for their input. Use this to clarify requirements or get user feedback before making critical decisions.',
       parameters: {
@@ -502,6 +518,7 @@ export const TOOL_IMPLEMENTATIONS: Record<string, string> = {
   find_symbol: 'tools/builtin/indexing.find_symbol',
   get_definition: 'tools/builtin/indexing.get_definition',
   get_references: 'tools/builtin/indexing.get_references',
+  get_call_graph: 'tools/builtin/indexing.get_call_graph',
   lsp_diagnostics: 'tools/builtin/lsp.lspDiagnostics',
   lsp_hover: 'tools/builtin/lsp.lspHover',
   lsp_rename: 'tools/builtin/lsp.lspRename',

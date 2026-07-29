@@ -150,3 +150,105 @@ export function findReferences(db: Database.Database, calleeName: string, projec
     WHERE project_hash = ? AND callee_name = ?
   `).all(projectHash, calleeName) as ReferenceRow[];
 }
+
+/** Find functions/symbols called by a specific caller name */
+export function findCallees(db: Database.Database, callerName: string, projectHash: string): ReferenceRow[] {
+  return db.prepare(`
+    SELECT caller_name, caller_file, caller_line, callee_name, callee_file, callee_line, project_hash
+    FROM "references"
+    WHERE project_hash = ? AND caller_name = ?
+  `).all(projectHash, callerName) as ReferenceRow[];
+}
+
+export interface CallGraphTree {
+  symbol: string;
+  definitions: SymbolRow[];
+  inbound: { caller_name: string; caller_file: string; caller_line: number; depth: number }[];
+  outbound: { callee_name: string; callee_file: string; callee_line: number; depth: number }[];
+}
+
+export function getCallGraph(db: Database.Database, symbol: string, projectHash: string, maxDepth: number = 2): CallGraphTree {
+  const definitions = findDefinitions(db, symbol, projectHash);
+
+  const inbound: { caller_name: string; caller_file: string; caller_line: number; depth: number }[] = [];
+  const outbound: { callee_name: string; callee_file: string; callee_line: number; depth: number }[] = [];
+
+  const visitedInbound = new Set<string>();
+  const visitedOutbound = new Set<string>();
+
+  function traverseInbound(name: string, currentDepth: number) {
+    if (currentDepth > maxDepth || visitedInbound.has(name)) return;
+    visitedInbound.add(name);
+
+    const refs = findReferences(db, name, projectHash);
+    for (const r of refs) {
+      inbound.push({
+        caller_name: r.caller_name,
+        caller_file: r.caller_file,
+        caller_line: r.caller_line,
+        depth: currentDepth,
+      });
+      traverseInbound(r.caller_name, currentDepth + 1);
+    }
+  }
+
+  function traverseOutbound(name: string, currentDepth: number) {
+    if (currentDepth > maxDepth || visitedOutbound.has(name)) return;
+    visitedOutbound.add(name);
+
+    const callees = findCallees(db, name, projectHash);
+    for (const c of callees) {
+      outbound.push({
+        callee_name: c.callee_name,
+        callee_file: c.callee_file,
+        callee_line: c.callee_line,
+        depth: currentDepth,
+      });
+      traverseOutbound(c.callee_name, currentDepth + 1);
+    }
+  }
+
+  traverseInbound(symbol, 1);
+  traverseOutbound(symbol, 1);
+
+  return {
+    symbol,
+    definitions,
+    inbound,
+    outbound,
+  };
+}
+
+export interface ImpactAnalysis {
+  symbol: string;
+  totalDirectCallers: number;
+  totalTransitiveCallers: number;
+  affectedFiles: string[];
+  riskScore: 'LOW' | 'MEDIUM' | 'HIGH';
+}
+
+export function getImpactAnalysis(db: Database.Database, symbol: string, projectHash: string): ImpactAnalysis {
+  const graph = getCallGraph(db, symbol, projectHash, 3);
+  const directCallers = new Set(graph.inbound.filter(i => i.depth === 1).map(i => i.caller_name));
+  const allCallers = new Set(graph.inbound.map(i => i.caller_name));
+  const affectedFiles = new Set(graph.inbound.map(i => i.caller_file));
+
+  for (const def of graph.definitions) {
+    affectedFiles.add(def.file_path);
+  }
+
+  let riskScore: 'LOW' | 'MEDIUM' | 'HIGH' = 'LOW';
+  if (allCallers.size >= 10 || affectedFiles.size >= 5) {
+    riskScore = 'HIGH';
+  } else if (allCallers.size >= 3 || affectedFiles.size >= 2) {
+    riskScore = 'MEDIUM';
+  }
+
+  return {
+    symbol,
+    totalDirectCallers: directCallers.size,
+    totalTransitiveCallers: allCallers.size,
+    affectedFiles: Array.from(affectedFiles),
+    riskScore,
+  };
+}

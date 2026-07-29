@@ -81,6 +81,8 @@ describe('Documentation Sync Verification', () => {
       '/find': '/find <query>',
       '/refs': '/refs <symbol>',
       '/def': '/def <symbol>',
+      '/callgraph': '/callgraph <symbol> [depth]',
+      '/impact': '/impact <symbol>',
       '/commit': '/commit [msg]',
       '/test': '/test [n] [-g]',
       '/watch': '/watch [start|stop|status]',
@@ -104,7 +106,7 @@ describe('Documentation Sync Verification', () => {
       },
       {
         name: 'Codebase Search & Live Watcher',
-        commands: ['/watch', '/index', '/find', '/refs', '/def']
+        commands: ['/watch', '/index', '/find', '/refs', '/def', '/callgraph', '/impact']
       },
       {
         name: 'Developer Tools, Git & MCP',

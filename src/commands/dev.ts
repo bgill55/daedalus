@@ -621,6 +621,93 @@ Once you have finished making changes, I will automatically re-run the command t
     }
   },
   {
+    name: '/callgraph',
+    description: 'Display bidirectional call graph for a symbol',
+    execute: async (args, ctx) => {
+      const parts = args.trim().split(/\s+/).filter(Boolean);
+      if (parts.length === 0) {
+        console.log(pc.red('[WARN] Usage: /callgraph <symbol> [depth]'));
+        return;
+      }
+      const symbol = parts[0];
+      const depth = parts[1] ? parseInt(parts[1], 10) : 2;
+
+      const indexDbPath = ctx.getIndexDbPath();
+      if (!fs.existsSync(indexDbPath)) {
+        console.log(pc.yellow('[WARN] No index found. Run /index first.'));
+        return;
+      }
+
+      const { initIndexDb, getCallGraph, getImpactAnalysis } = await import('../indexing/fts.js');
+      const db = initIndexDb(indexDbPath);
+
+      console.log(pc.bold(`\n--- Call Graph: ${symbol} (depth: ${depth}) ---`));
+      const graph = getCallGraph(db, symbol, ctx.projectHash, depth);
+
+      if (graph.definitions.length > 0) {
+        const d = graph.definitions[0];
+        console.log(pc.cyan(`Symbol: `) + pc.bold(d.name) + pc.dim(` (${d.file_path}:${d.line_start})`));
+      }
+
+      if (graph.inbound.length === 0 && graph.outbound.length === 0) {
+        console.log(pc.gray('  No call relationships indexed for this symbol.'));
+        return;
+      }
+
+      if (graph.inbound.length > 0) {
+        console.log(pc.yellow('\n  ▲ Inbound Callers (who calls this):'));
+        for (const inb of graph.inbound) {
+          const indent = '    ' + '  '.repeat(inb.depth - 1);
+          console.log(`${indent}├── ${pc.bold(inb.caller_name)} ${pc.dim(`(${inb.caller_file}:${inb.caller_line})`)}`);
+        }
+      }
+
+      if (graph.outbound.length > 0) {
+        console.log(pc.green('\n  ▼ Outbound Calls (called by this):'));
+        for (const outb of graph.outbound) {
+          const indent = '    ' + '  '.repeat(outb.depth - 1);
+          console.log(`${indent}└── ${pc.bold(outb.callee_name)} ${pc.dim(`(${outb.callee_file}:${outb.callee_line})`)}`);
+        }
+      }
+
+      const impact = getImpactAnalysis(db, symbol, ctx.projectHash);
+      const riskColor = impact.riskScore === 'HIGH' ? pc.red : impact.riskScore === 'MEDIUM' ? pc.yellow : pc.green;
+      console.log(pc.bold(`\n  Impact Blast Radius: `) + riskColor(`[${impact.riskScore}]`) + pc.dim(` (${impact.totalTransitiveCallers} caller(s), ${impact.affectedFiles.length} file(s))`));
+    }
+  },
+  {
+    name: '/impact',
+    description: 'Analyze refactoring impact & blast radius for a symbol',
+    execute: async (args, ctx) => {
+      const symbol = args.trim();
+      if (!symbol) {
+        console.log(pc.red('[WARN] Usage: /impact <symbol>'));
+        return;
+      }
+
+      const indexDbPath = ctx.getIndexDbPath();
+      if (!fs.existsSync(indexDbPath)) {
+        console.log(pc.yellow('[WARN] No index found. Run /index first.'));
+        return;
+      }
+
+      const { initIndexDb, getImpactAnalysis } = await import('../indexing/fts.js');
+      const db = initIndexDb(indexDbPath);
+
+      const impact = getImpactAnalysis(db, symbol, ctx.projectHash);
+
+      console.log(pc.bold(`\n--- Refactoring Impact Analysis: ${symbol} ---`));
+      const riskColor = impact.riskScore === 'HIGH' ? pc.red : impact.riskScore === 'MEDIUM' ? pc.yellow : pc.green;
+      console.log(`  Risk Score: ` + riskColor(`[${impact.riskScore}]`));
+      console.log(`  Direct Callers: ${impact.totalDirectCallers}`);
+      console.log(`  Transitive Callers: ${impact.totalTransitiveCallers}`);
+      console.log(`  Affected Files (${impact.affectedFiles.length}):`);
+      for (const f of impact.affectedFiles) {
+        console.log(pc.dim(`    - ${f}`));
+      }
+    }
+  },
+  {
     name: '/changelog',
     description: 'View the latest CLI changes',
     execute: async (_args, _ctx) => {

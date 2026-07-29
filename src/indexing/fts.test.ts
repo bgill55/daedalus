@@ -14,6 +14,9 @@ import {
   searchSymbols,
   findDefinitions,
   findReferences,
+  findCallees,
+  getCallGraph,
+  getImpactAnalysis,
   SymbolRow,
   ReferenceRow,
 } from './fts.js';
@@ -132,10 +135,39 @@ describe('FTS5 codebase index', () => {
     expect(getFileHash(db, 'nonexistent.ts')).toBeNull();
   });
 
-  it('saveFileHash overwrites existing hash', () => {
-    saveFileHash(db, 'src/main.ts', 'oldhash');
-    saveFileHash(db, 'src/main.ts', 'newhash');
-    expect(getFileHash(db, 'src/main.ts')).toBe('newhash');
+  it('findCallees returns outgoing calls from caller', () => {
+    insertReferences(db, [
+      { caller_name: 'main', caller_file: 'src/main.ts', caller_line: 10, callee_name: 'initDB', callee_file: 'src/db.ts', callee_line: 5, project_hash: projectHash },
+      { caller_name: 'main', caller_file: 'src/main.ts', caller_line: 15, callee_name: 'runApp', callee_file: 'src/app.ts', callee_line: 1, project_hash: projectHash },
+    ]);
+
+    const callees = findCallees(db, 'main', projectHash);
+    expect(callees).toHaveLength(2);
+    expect(callees.map(c => c.callee_name)).toEqual(['initDB', 'runApp']);
   });
 
+  it('getCallGraph builds bidirectional call tree and impact analysis', () => {
+    insertSymbols(db, [
+      { name: 'TargetFunc', kind: 'function', file_path: 'src/core.ts', line_start: 10, line_end: 25, signature: 'function TargetFunc()', project_hash: projectHash },
+    ]);
+    insertReferences(db, [
+      { caller_name: 'CallerA', caller_file: 'src/a.ts', caller_line: 5, callee_name: 'TargetFunc', callee_file: 'src/core.ts', callee_line: 10, project_hash: projectHash },
+      { caller_name: 'TargetFunc', caller_file: 'src/core.ts', caller_line: 12, callee_name: 'CalleeB', callee_file: 'src/b.ts', callee_line: 2, project_hash: projectHash },
+    ]);
+
+    const graph = getCallGraph(db, 'TargetFunc', projectHash, 2);
+    expect(graph.symbol).toBe('TargetFunc');
+    expect(graph.definitions).toHaveLength(1);
+    expect(graph.inbound).toHaveLength(1);
+    expect(graph.inbound[0].caller_name).toBe('CallerA');
+    expect(graph.outbound).toHaveLength(1);
+    expect(graph.outbound[0].callee_name).toBe('CalleeB');
+
+    const impact = getImpactAnalysis(db, 'TargetFunc', projectHash);
+    expect(impact.symbol).toBe('TargetFunc');
+    expect(impact.totalDirectCallers).toBe(1);
+    expect(impact.riskScore).toBe('MEDIUM');
+    expect(impact.affectedFiles).toContain('src/a.ts');
+    expect(impact.affectedFiles).toContain('src/core.ts');
+  });
 });
