@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import type { Mock } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
@@ -15,7 +16,7 @@ vi.mock('./config/index.js', async (importOriginal) => {
   };
 });
 
-let mockOrchestratorRun: ReturnType<typeof vi.fn>;
+let mockOrchestratorRun: Mock;
 
 describe('Config Command', () => {
   let mockContext: CommandContext;

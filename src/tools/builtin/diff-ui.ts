@@ -233,7 +233,7 @@ export async function openEditor(content: string): Promise<string> {
 }
 
 export function formatHunk(
-  hunk: diff.Hunk,
+  hunk: diff.StructuredPatchHunk,
   index: number,
   total: number,
   filePath: string
@@ -272,7 +272,7 @@ export function formatHunk(
 }
 
 export async function promptHunkDecision(
-  hunk: diff.Hunk,
+  hunk: diff.StructuredPatchHunk,
   index: number,
   total: number,
   filePath: string
