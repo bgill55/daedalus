@@ -566,15 +566,17 @@ export const agentCommands: Command[] = [
           console.log(`  ${pc.cyan('/mcp reconnect')}        ${pc.dim('Reconnect all enabled servers')}`);
           console.log(`  ${pc.cyan('/mcp enable <name>')}    ${pc.dim('Enable a disabled server')}`);
           console.log(`  ${pc.cyan('/mcp disable <name>')}   ${pc.dim('Disable a server without removing it')}`);
-          console.log(`\n  ${pc.bold('Zero-config starters (no API keys needed):')}`);
-          console.log(`  ${pc.gray('→')} ${pc.cyan('io.github/modelcontextprotocol/sequential-thinking')}  ${pc.dim('Step-by-step reasoning')}`);
-          console.log(`  ${pc.gray('→')} ${pc.cyan('io.github/modelcontextprotocol/filesystem')}           ${pc.dim('Read/write files in allowed dirs')}`);
-          console.log(`  ${pc.gray('→')} ${pc.cyan('io.github/modelcontextprotocol/memory')}               ${pc.dim('Persistent key-value store')}`);
-          console.log(`  ${pc.gray('→')} ${pc.cyan('io.github/modelcontextprotocol/fetch')}                ${pc.dim('Fetch URLs and extract content')}`);
-          console.log(`  ${pc.gray('→')} ${pc.cyan('io.github/modelcontextprotocol/puppeteer')}            ${pc.dim('Browser automation')}`);
-          console.log(`  ${pc.gray('→')} ${pc.cyan('ai.ankimcp/anki-mcp-server')}                         ${pc.dim('Anki flashcard management')}`);
-          console.log(`  ${pc.dim('  /mcp install <name> to install any of the above')}`);
-          console.log();
+           console.log(`\n  ${pc.bold('Popular npm MCP servers (add to ~/.daedalus/config.json):')}`);
+           console.log(`  ${pc.dim('  "server-name": { "transport": "stdio", "command": "npx", "args": ["-y", "@npm/package"], "enabled": true }')}`);
+           console.log(`  ${pc.gray('→')} ${pc.cyan('filesystem')}       ${pc.dim('npx -y @modelcontextprotocol/server-filesystem <allowed-dir>')}`);
+           console.log(`  ${pc.gray('→')} ${pc.cyan('puppeteer')}        ${pc.dim('npx -y @modelcontextprotocol/server-puppeteer')}`);
+           console.log(`  ${pc.gray('→')} ${pc.cyan('memory')}           ${pc.dim('npx -y @modelcontextprotocol/server-memory')}`);
+           console.log(`  ${pc.gray('→')} ${pc.cyan('fetch')}            ${pc.dim('npx -y @modelcontextprotocol/server-fetch')}`);
+           console.log(`  ${pc.gray('→')} ${pc.cyan('sequential-thinking')} ${pc.dim('npx -y @modelcontextprotocol/server-sequential-thinking')}`);
+           console.log(`  ${pc.gray('→')} ${pc.cyan('github')}           ${pc.dim('npx -y @github/github-mcp-server')}`);
+           console.log(`  ${pc.gray('→')} ${pc.cyan('sqlite')}           ${pc.dim('npx -y @modelcontextprotocol/server-sqlite <db-path>')}`);
+           console.log(`  ${pc.dim('  Then run /mcp reconnect to load them.')}`);
+           console.log();
       }
     }
   },
