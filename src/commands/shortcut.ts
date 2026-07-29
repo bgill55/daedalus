@@ -14,7 +14,8 @@ class ShortcutManager {
   private configPath: string;
 
   constructor(configDir: string) {
-    this.configPath = path.join(configDir, '.daedalus', 'shortcuts.json');
+    // Bug fix: configDir is already the .daedalus dir — do not append another .daedalus segment
+    this.configPath = path.join(configDir, 'shortcuts.json');
     this.shortcuts = this.loadShortcuts();
   }
 
@@ -24,12 +25,11 @@ class ShortcutManager {
         const content = fs.readFileSync(this.configPath, 'utf8');
         const parsed = JSON.parse(content);
 
-        // Bug 4 fix: handle both array format (legacy) and object format
         if (Array.isArray(parsed)) {
           return new Map((parsed as Shortcut[]).map(s => [s.alias, s.command]));
         }
 
-        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        if (parsed && typeof parsed === 'object') {
           const map = new Map<string, string>();
           for (const [alias, command] of Object.entries(parsed)) {
             if (typeof command === 'string') map.set(alias, command);
@@ -43,15 +43,17 @@ class ShortcutManager {
     return new Map();
   }
 
-  private saveShortcuts(): void {
+  private saveShortcuts(): boolean {
     try {
       const dir = path.dirname(this.configPath);
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
       const record: Record<string, string> = {};
       this.shortcuts.forEach((command, alias) => { record[alias] = command; });
       fs.writeFileSync(this.configPath, JSON.stringify(record, null, 2), 'utf8');
+      return true;
     } catch (err) {
       console.error(pc.red(`[ERROR] Failed to save shortcuts: ${err}`));
+      return false;
     }
   }
 
@@ -59,14 +61,14 @@ class ShortcutManager {
     return this.shortcuts;
   }
 
-  add(alias: string, command: string): void {
+  add(alias: string, command: string): boolean {
     this.shortcuts.set(alias, command);
-    this.saveShortcuts();
+    return this.saveShortcuts();
   }
 
-  remove(alias: string): void {
+  remove(alias: string): boolean {
     this.shortcuts.delete(alias);
-    this.saveShortcuts();
+    return this.saveShortcuts();
   }
 
   resolve(alias: string): string | undefined {
@@ -74,9 +76,13 @@ class ShortcutManager {
   }
 }
 
-function normalizeAlias(raw: string): string {
+export function normalizeAlias(raw: string): string {
   const trimmed = raw.trim();
   return trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+}
+
+export function createShortcutManager(configDir: string): ShortcutManager {
+  return new ShortcutManager(configDir);
 }
 
 export const shortcutCommand: Command = {
@@ -88,7 +94,6 @@ export const shortcutCommand: Command = {
   execute: async (args, ctx) => {
     const manager = new ShortcutManager(ctx.configDir);
 
-    // Bug 5 fix: check trimmed string before splitting to correctly detect empty args
     const trimmed = args.trim();
     if (trimmed === '' || trimmed === 'list') {
       const shortcuts = manager.getAll();
@@ -103,15 +108,13 @@ export const shortcutCommand: Command = {
       return;
     }
 
-    // Bug 5 fix: use whitespace-normalizing tokenization to avoid empty tokens
     const parts = trimmed.split(/\s+/).filter(Boolean);
 
     if (parts[0] === 'remove' && parts[1]) {
-      // Bug 5 fix: normalize alias on remove so 'remove qt' matches what '/shortcut qt = ...' stored
       const alias = normalizeAlias(parts[1]);
       if (manager.resolve(alias)) {
-        manager.remove(alias);
-        console.log(pc.green(`[OK] Removed shortcut: ${alias}`));
+        const saved = manager.remove(alias);
+        if (saved) console.log(pc.green(`[OK] Removed shortcut: ${alias}`));
       } else {
         console.log(pc.red(`[ERROR] Shortcut not found: ${alias}`));
       }
@@ -122,16 +125,14 @@ export const shortcutCommand: Command = {
     if (equalsIndex > 0) {
       const rawAlias = parts.slice(0, equalsIndex).join(' ');
       const command = parts.slice(equalsIndex + 1).join(' ');
-
-      // Bug 5 fix: normalize alias — accept 'qt' and store as '/qt', matching docs examples
       const alias = normalizeAlias(rawAlias);
 
       if (!command.startsWith('/')) {
         console.log(pc.red('[ERROR] Command must start with /'));
         return;
       }
-      manager.add(alias, command);
-      console.log(pc.green(`[OK] Added shortcut: ${alias} = ${command}`));
+      const saved = manager.add(alias, command);
+      if (saved) console.log(pc.green(`[OK] Added shortcut: ${alias} = ${command}`));
       return;
     }
 
