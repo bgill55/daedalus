@@ -244,8 +244,85 @@ export async function startLoopDaemon(ctx: ToolContext, config: any, router: any
         return;
       }
 
-      // 3. Orchestration Passed - push branch and open PR
-      console.log(pc.green('\n✔ Orchestration completed successfully. Pushing changes...'));
+      // 3. Orchestration Passed — run self-review gate before committing
+      console.log(pc.cyan('\n[SELF-REVIEW] Running semantic review gate before commit...'));
+
+      const MAX_REVIEW_RETRIES = 2;
+      let reviewGatePassed = false;
+
+      for (let attempt = 0; attempt <= MAX_REVIEW_RETRIES; attempt++) {
+        // Get full diff of working tree against the base branch
+        let diffPatch = '';
+        try {
+          diffPatch = execSync('git diff HEAD', { cwd: sessionManager.projectRoot, encoding: 'utf8' }).trim();
+          if (!diffPatch) {
+            diffPatch = execSync('git diff --cached', { cwd: sessionManager.projectRoot, encoding: 'utf8' }).trim();
+          }
+        } catch { /* no diff available */ }
+
+        if (!diffPatch) {
+          reviewGatePassed = true;
+          break;
+        }
+
+        // AI semantic review of the full diff
+        let findings = '';
+        try {
+          const aiRes = await router.chat.completions.create({
+            model: 'intelligence',
+            messages: [
+              {
+                role: 'system',
+                content: `You are an expert code reviewer. Analyze this git diff for show-stopping bugs: schema mismatches between JSON files and their parsers, unreachable code paths caused by incorrect empty-string detection (e.g. ''.split(' ') yields [''] not []), key normalization mismatches in add/remove operations, logic errors that compile clean.
+Output ONLY "PASS" if no real bugs found, or a numbered list of bugs starting with "BUGS:". Be concise. Do not report style issues.`,
+              },
+              {
+                role: 'user',
+                content: `Review this diff:\n\`\`\`diff\n${diffPatch.slice(0, 8000)}\n\`\`\``,
+              },
+            ],
+            temperature: 0.1,
+          });
+          findings = aiRes.choices[0]?.message?.content?.trim() || 'PASS';
+        } catch { findings = 'PASS'; }
+
+        if (findings === 'PASS' || findings.startsWith('PASS')) {
+          console.log(pc.green(`[SELF-REVIEW] ✔ Semantic gate passed (attempt ${attempt + 1})`));
+          reviewGatePassed = true;
+          break;
+        }
+
+        console.log(pc.yellow(`\n[SELF-REVIEW] Found issues (attempt ${attempt + 1}/${MAX_REVIEW_RETRIES + 1}):\n${findings}`));
+
+        if (attempt < MAX_REVIEW_RETRIES) {
+          // Spawn a repair coder pass
+          console.log(pc.cyan('[SELF-REVIEW] Spawning repair pass...'));
+          try {
+            const { Orchestrator } = await import('./orchestrator.js');
+            const repairOrchestrator = new Orchestrator(router, [], ctx, sessionManager);
+            const repairGoal = `Fix the following show-stopping bugs found in a semantic code review. Apply targeted fixes ONLY to the files mentioned. Do not rewrite unrelated code.\n\nBUGS TO FIX:\n${findings}`;
+            await repairOrchestrator.run(repairGoal);
+          } catch (repairErr: any) {
+            console.error(pc.red(`[SELF-REVIEW] Repair pass failed: ${repairErr.message}`));
+          }
+        }
+      }
+
+      if (!reviewGatePassed) {
+        console.error(pc.red(`\n✗ Self-review gate failed after ${MAX_REVIEW_RETRIES + 1} attempts. Reverting changes to keep codebase clean.`));
+        try {
+          execSync('git reset --hard && git clean -fd', { cwd: sessionManager.projectRoot });
+        } catch { /* ignore */ }
+        await fetch(`https://api.github.com/repos/${repo.owner}/${repo.repo}/issues/${issue.number}`, {
+          method: 'PATCH',
+          headers: { Authorization: `token ${token}`, 'Content-Type': 'application/json', 'User-Agent': 'Daedalus-CLI' },
+          body: JSON.stringify({ labels: ['daedalus-todo', 'daedalus-failed'] }),
+        });
+        return;
+      }
+
+      // 4. Gate passed — push branch and open PR
+      console.log(pc.green('\n✔ Self-review gate passed. Pushing changes...'));
       const branchName = `daedalus-issue-${issue.number}`;
       const cleanTitle = issue.title.replace(/"/g, "'");
       try {
@@ -257,6 +334,7 @@ export async function startLoopDaemon(ctx: ToolContext, config: any, router: any
         console.error(pc.red(`Git push failed: ${err.message}`));
         return;
       }
+
 
       // Create PR
       console.log(pc.cyan('Opening Pull Request...'));

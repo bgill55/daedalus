@@ -1250,7 +1250,7 @@ export class Orchestrator {
       console.log(`[${pc.red('FAILED')}] ${role.name}: ${task.error || 'verification failed'}`);
     }
 
-    // Post-task review if task touched files
+    // Post-task review if task touched files — now BLOCKING for coder tasks
     if (success && this.sessionManager && task.role !== 'reviewer') {
       try {
         const reviewerRole = getAgentRole('reviewer');
@@ -1264,6 +1264,25 @@ export class Orchestrator {
           const reviewContext = `TASK: ${task.goal}\n\nAgent result:\n${result}${fileList}\n\nReview the files that were touched for this task. Use git_diff or list files modified recently. Check for syntax errors, correctness, and project health.`;
           const reviewTools = filterToolsForRole([...BUILTIN_TOOLS, ...mcpRegistry.getToolDefinitions()], 'reviewer');
           const review = await this.runAgent(reviewerRole, `Review files from task: ${task.goal}`, reviewContext, reviewTools);
+
+          // Parse reviewer verdict
+          const statusMatch = review.match(/STATUS:\s*(PASS|NEEDS_FIX|STOP)/i);
+          const verdict = statusMatch?.[1]?.toUpperCase() || 'PASS';
+
+          // BLOCKING: if reviewer found issues on a coder task, trigger a repair pass
+          if ((verdict === 'NEEDS_FIX' || verdict === 'STOP') && (task.role === 'coder' || task.role === 'debugger')) {
+            console.log(pc.yellow(`\n[REVIEWER] Found issues — triggering repair pass...`));
+            const findingsMatch = review.match(/FINDINGS:([\s\S]*?)(?:RECOMMENDATION:|$)/i);
+            const findings = findingsMatch?.[1]?.trim() || review;
+            const repairGoal = `Fix the following reviewer findings in the files you just wrote for task: "${task.goal}"\n\nFINDINGS:\n${findings}\n\nApply targeted fixes only. Do not change unrelated code.`;
+            const coderRole = getAgentRole('coder');
+            if (coderRole) {
+              const repairTools = filterToolsForRole([...BUILTIN_TOOLS, ...mcpRegistry.getToolDefinitions()], 'coder');
+              await this.runAgent(coderRole, repairGoal, reviewContext, repairTools);
+              console.log(pc.green(`[REPAIR] Repair pass complete.`));
+            }
+          }
+
           // Update project status from review
           try {
             const buildStatus = /build.*pass|no errors|pass/i.test(review) ? 'passing' : 'needs_attention';
