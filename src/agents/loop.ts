@@ -328,9 +328,7 @@ export async function startLoopDaemon(ctx: ToolContext, config: any, router: any
       }
 
       // 3. Orchestration Passed — run self-review gate before committing
-      console.log(pc.bold(pc.cyan('\n┌─────────────────────────────────────────────────────────────┐')));
-      console.log(pc.bold(pc.cyan('│ 🛡️  DAEDALUS SELF-REVIEW GATE                               │')));
-      console.log(pc.bold(pc.cyan('└─────────────────────────────────────────────────────────────┘')));
+      console.log(`\n  ${pc.bold(pc.cyan('── Self-Review Gate ──'))} ${pc.dim('─'.repeat(42))}`);
 
       const MAX_REVIEW_RETRIES = 2;
       let reviewGatePassed = false;
@@ -346,13 +344,13 @@ export async function startLoopDaemon(ctx: ToolContext, config: any, router: any
         } catch { /* no diff available */ }
 
         if (!diffPatch) {
-          console.log(pc.gray('  [SELF-REVIEW] Working tree clean — skipping diff inspection.'));
+          console.log(pc.gray('  Working tree clean — skipping diff inspection.'));
           reviewGatePassed = true;
           break;
         }
 
         const diffLines = diffPatch.split('\n').length;
-        console.log(pc.cyan(`\n  🔎 [Attempt ${attempt + 1}/${MAX_REVIEW_RETRIES + 1}] Inspecting ${diffLines} diff lines for show-stopper bugs...`));
+        console.log(pc.cyan(`  [Attempt ${attempt + 1}/${MAX_REVIEW_RETRIES + 1}] Inspecting ${diffLines} diff lines for show-stopper bugs...`));
 
         // AI semantic review of the full diff
         let findings = '';
@@ -376,34 +374,36 @@ Output ONLY "PASS" if no real bugs found, or a numbered list of bugs starting wi
         } catch { findings = 'PASS'; }
 
         if (findings === 'PASS' || findings.startsWith('PASS')) {
-          console.log(pc.green(pc.bold('  ✔ [SELF-REVIEW] PASS: No show-stopping bugs detected in diff.')));
-          console.log(pc.gray('  ✔ Codebase integrity verified. Approved for commit & PR.\n'));
+          console.log(pc.green(pc.bold('  [PASS] No show-stopping bugs detected in diff.')));
+          console.log(pc.gray('  Codebase integrity verified. Approved for commit & PR.'));
+          console.log(`  ${pc.dim('─'.repeat(64))}\n`);
           reviewGatePassed = true;
           break;
         }
 
-        console.log(pc.yellow(pc.bold(`\n  ⚠️  [SELF-REVIEW] BUGS DETECTED (Attempt ${attempt + 1}/${MAX_REVIEW_RETRIES + 1}):`)));
+        console.log(pc.yellow(pc.bold(`\n  [BUGS DETECTED] (Attempt ${attempt + 1}/${MAX_REVIEW_RETRIES + 1}):`)));
         const findingLines = findings.split('\n').filter(Boolean);
         for (const line of findingLines) {
-          console.log(pc.yellow(`     ${line}`));
+          console.log(pc.yellow(`    ${line}`));
         }
 
         if (attempt < MAX_REVIEW_RETRIES) {
           // Spawn a repair coder pass
-          console.log(pc.cyan(pc.bold('\n  🔧 [SELF-REVIEW] Spawning automated repair pass to resolve issues...')));
+          console.log(pc.cyan(pc.bold('\n  [REPAIR] Spawning automated repair pass to resolve issues...')));
           try {
             const { Orchestrator } = await import('./orchestrator.js');
             const repairOrchestrator = new Orchestrator(router, [], ctx, sessionManager);
             const repairGoal = `Fix the following show-stopping bugs found in a semantic code review. Apply targeted fixes ONLY to the files mentioned. Do not rewrite unrelated code.\n\nBUGS TO FIX:\n${findings}`;
             await repairOrchestrator.run(repairGoal);
           } catch (repairErr: any) {
-            console.error(pc.red(`  [SELF-REVIEW] Repair pass error: ${repairErr.message}`));
+            console.error(pc.red(`  [REPAIR ERROR] ${repairErr.message}`));
           }
         }
       }
 
       if (!reviewGatePassed) {
-        console.error(pc.red(pc.bold(`\n  ✗ [SELF-REVIEW] FAILED after ${MAX_REVIEW_RETRIES + 1} attempts. Reverting workspace changes.`)));
+        console.error(pc.red(pc.bold(`\n  [FAILED] Self-review gate failed after ${MAX_REVIEW_RETRIES + 1} attempts. Reverting workspace changes.`)));
+        console.log(`  ${pc.dim('─'.repeat(64))}\n`);
         try {
           execSync('git reset --hard && git clean -fd', { cwd: sessionManager.projectRoot });
         } catch { /* ignore */ }
