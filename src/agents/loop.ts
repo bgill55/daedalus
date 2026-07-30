@@ -1,4 +1,6 @@
 import dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
 import { execSync } from 'child_process';
 import pc from 'picocolors';
 import { ToolContext } from '../types.js';
@@ -20,18 +22,66 @@ export function getGitRepoInfo(cwd: string): { owner: string; repo: string } | n
   return null;
 }
 
-export async function sendDiscordEmbed(webhookUrl: string, embed: any): Promise<boolean> {
+export function resolveDiscordWebhook(config?: any): string | null {
+  if (process.env.DISCORD_WEBHOOK_URL && process.env.DISCORD_WEBHOOK_URL.trim()) {
+    return process.env.DISCORD_WEBHOOK_URL.trim();
+  }
+  if (config?.discordWebhook && typeof config.discordWebhook === 'string') {
+    return config.discordWebhook.trim();
+  }
+  if (config?.integrations?.discordWebhook && typeof config.integrations.discordWebhook === 'string') {
+    return config.integrations.discordWebhook.trim();
+  }
   try {
+    const home = process.env.USERPROFILE || process.env.HOME || '';
+    const configPath = path.join(home, '.daedalus', 'config.json');
+    if (fs.existsSync(configPath)) {
+      const parsed = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+      if (parsed.discordWebhook) return String(parsed.discordWebhook).trim();
+      if (parsed.integrations?.discordWebhook) return String(parsed.integrations.discordWebhook).trim();
+    }
+  } catch {
+    // Ignore config read failures
+  }
+  return null;
+}
+
+export async function sendDiscordEmbed(webhookUrl: string, embed: any): Promise<boolean> {
+  if (!webhookUrl) return false;
+  try {
+    const cleanEmbed: any = { ...embed };
+
+    // Clean up empty URL which breaks Discord API
+    if (!cleanEmbed.url || typeof cleanEmbed.url !== 'string' || !cleanEmbed.url.startsWith('http')) {
+      delete cleanEmbed.url;
+    }
+
+    // Clean up empty fields which break Discord API
+    if (Array.isArray(cleanEmbed.fields)) {
+      cleanEmbed.fields = cleanEmbed.fields
+        .filter((f: any) => f && f.name && f.value)
+        .map((f: any) => ({
+          name: String(f.name),
+          value: String(f.value).trim() || 'N/A',
+          inline: Boolean(f.inline),
+        }));
+      if (cleanEmbed.fields.length === 0) {
+        delete cleanEmbed.fields;
+      }
+    }
+
     const res = await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ embeds: [embed] }),
+      body: JSON.stringify({ embeds: [cleanEmbed] }),
     });
+
     if (!res.ok) {
       const text = await res.text();
       console.error(pc.yellow(`[WARN] Discord webhook returned ${res.status}: ${text}`));
       return false;
     }
+    console.log(pc.green('✔ Sent Discord notification embed.'));
     return true;
   } catch (err: any) {
     console.error(pc.yellow(`[WARN] Failed to send Discord notification: ${err.message}`));
@@ -120,6 +170,21 @@ Include a summary, proposed file modifications/creations, and acceptance criteri
   if (createResp.ok) {
     const issueData = (await createResp.json()) as any;
     console.log(pc.green(`\n✔ Issue created successfully on GitHub: ${pc.bold(issueData.html_url)}`));
+
+    const discordWebhook = resolveDiscordWebhook(ctx.config);
+    if (discordWebhook) {
+      await sendDiscordEmbed(discordWebhook, {
+        title: `📋 New Spec Issue Queued: ${idea}`,
+        description: `Created issue **#${issueData.number}** and queued for autonomous loop processing.`,
+        url: issueData.html_url,
+        color: 3447003,
+        fields: [
+          { name: 'Repository', value: `${repoInfo.owner}/${repoInfo.repo}`, inline: true },
+          { name: 'Status', value: 'daedalus-todo', inline: true },
+        ],
+        timestamp: new Date().toISOString(),
+      });
+    }
   } else {
     const errText = await createResp.text();
     console.log(pc.red(`\nFailed to create issue on GitHub: ${errText}`));
@@ -140,7 +205,8 @@ export async function startLoopDaemon(ctx: ToolContext, config: any, router: any
       // Fallback
     }
   }
-  const discordWebhook = process.env.DISCORD_WEBHOOK_URL;
+
+  const discordWebhook = resolveDiscordWebhook(config);
 
   if (!repoInfo || !token) {
     console.error(pc.red('[ERROR] Daemon requires a Git repository with GITHUB_TOKEN/GH_TOKEN or gh CLI authenticated.'));
@@ -205,6 +271,21 @@ export async function startLoopDaemon(ctx: ToolContext, config: any, router: any
         }),
       });
 
+      // Send Discord Embed for work starting
+      if (discordWebhook) {
+        await sendDiscordEmbed(discordWebhook, {
+          title: `⚙️ Loop Work Started: Issue #${issue.number}`,
+          description: `Daedalus is implementing: **"${issue.title}"**`,
+          url: issue.html_url || `https://github.com/${repo.owner}/${repo.repo}/issues/${issue.number}`,
+          color: 3447003,
+          fields: [
+            { name: 'Repository', value: `${repo.owner}/${repo.repo}`, inline: true },
+            { name: 'Issue Link', value: issue.html_url || 'N/A', inline: true },
+          ],
+          timestamp: new Date().toISOString(),
+        });
+      }
+
       // 2. Run Orchestrator in auto-approve mode
       process.env.DAEDALUS_AUTO_APPROVE = 'true';
       console.log(pc.cyan(`Starting orchestration for Issue #${issue.number}...`));
@@ -238,7 +319,9 @@ export async function startLoopDaemon(ctx: ToolContext, config: any, router: any
           await sendDiscordEmbed(discordWebhook, {
             title: `❌ Build Failed: Issue #${issue.number}`,
             description: `Orchestrator failed to build: "${issue.title}". Workspace changes reverted.`,
+            url: issue.html_url,
             color: 16711680,
+            timestamp: new Date().toISOString(),
           });
         }
         return;
@@ -318,6 +401,16 @@ Output ONLY "PASS" if no real bugs found, or a numbered list of bugs starting wi
           headers: { Authorization: `token ${token}`, 'Content-Type': 'application/json', 'User-Agent': 'Daedalus-CLI' },
           body: JSON.stringify({ labels: ['daedalus-todo', 'daedalus-failed'] }),
         });
+
+        if (discordWebhook) {
+          await sendDiscordEmbed(discordWebhook, {
+            title: `⚠️ Review Gate Failed: Issue #${issue.number}`,
+            description: `Self-review gate failed after retries for: **"${issue.title}"**. Workspace changes reverted.`,
+            url: issue.html_url,
+            color: 16753920,
+            timestamp: new Date().toISOString(),
+          });
+        }
         return;
       }
 
@@ -334,7 +427,6 @@ Output ONLY "PASS" if no real bugs found, or a numbered list of bugs starting wi
         console.error(pc.red(`Git push failed: ${err.message}`));
         return;
       }
-
 
       // Create PR
       console.log(pc.cyan('Opening Pull Request...'));
@@ -356,10 +448,32 @@ Output ONLY "PASS" if no real bugs found, or a numbered list of bugs starting wi
       let prUrl = '';
       if (prResp.ok) {
         const prData = (await prResp.json()) as any;
-        prUrl = prData.html_url;
+        prUrl = prData.html_url || '';
         console.log(pc.green(`✔ PR opened: ${prUrl}`));
       } else {
-        console.error(pc.red(`Failed to open PR: ${await prResp.text()}`));
+        const errBody = await prResp.text();
+        console.error(pc.yellow(`PR creation notice: ${errBody.slice(0, 150)}`));
+
+        // Attempt to fetch existing PR for this head branch so prUrl is not empty
+        try {
+          const existingPrResp = await fetch(`https://api.github.com/repos/${repo.owner}/${repo.repo}/pulls?head=${repo.owner}:${branchName}&state=open`, {
+            headers: {
+              Authorization: `token ${token}`,
+              'User-Agent': 'Daedalus-CLI',
+            },
+          });
+          if (existingPrResp.ok) {
+            const prs = (await existingPrResp.json()) as any[];
+            if (prs.length > 0 && prs[0].html_url) {
+              prUrl = prs[0].html_url;
+              console.log(pc.green(`✔ Found existing PR: ${prUrl}`));
+            }
+          }
+        } catch { /* ignore fallback fetch error */ }
+
+        if (!prUrl) {
+          prUrl = `https://github.com/${repo.owner}/${repo.repo}/pulls`;
+        }
       }
 
       // Move Issue to done
@@ -375,16 +489,17 @@ Output ONLY "PASS" if no real bugs found, or a numbered list of bugs starting wi
         }),
       });
 
-      // 4. Send Discord Embed Notification
+      // 5. Send Discord Embed Notification
       if (discordWebhook) {
+        const issueUrl = issue.html_url || `https://github.com/${repo.owner}/${repo.repo}/issues/${issue.number}`;
         await sendDiscordEmbed(discordWebhook, {
-          title: `🚀 Code Review Ready: Issue #${issue.number}`,
+          title: `🚀 PR Ready for Review: Issue #${issue.number}`,
           description: `Successfully built and verified: **"${issue.title}"**`,
           url: prUrl,
           color: 65280,
           fields: [
-            { name: 'Issue Link', value: issue.html_url, inline: true },
-            { name: 'Pull Request', value: prUrl, inline: true },
+            { name: 'Issue', value: `[#${issue.number}](${issueUrl})`, inline: true },
+            { name: 'Pull Request', value: `[View PR](${prUrl})`, inline: true },
             { name: 'Branch', value: branchName, inline: true },
           ],
           timestamp: new Date().toISOString(),
