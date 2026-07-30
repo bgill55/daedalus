@@ -80,27 +80,27 @@ This case study documents an authentic, end-to-end execution of the **Daedalus A
 sequenceDiagram
     autonumber
     actor Dev as Developer
-    participant Spec as /spec Command
-    participant Issue as GitHub Issue (#15)
-    participant Loop as Daedalus Loop Daemon
-    participant Gate as Self-Review Gate
-    participant PR as GitHub Pull Request (#16)
-    participant CI as Headless CI Reviewer
+    participant Spec as "/spec Command"
+    participant Issue as "GitHub Issue #15"
+    participant Loop as "Daedalus Loop Daemon"
+    participant Gate as "Self-Review Gate"
+    participant PR as "GitHub PR #16"
+    participant CI as "Headless CI Reviewer"
 
-    Dev->>Spec: /spec "Add a helper function to validate version string format..."
+    Dev->>Spec: Run /spec for version validator
     Spec-->>Dev: Asks 3 clarification questions
     Dev->>Spec: Answers format, returns, and tests
-    Spec->>Issue: Creates Issue #15 (tagged `daedalus-todo`)
+    Spec->>Issue: Creates Issue #15 (tagged daedalus-todo)
 
-    Loop->>Issue: Polls & detects Issue #15 -> marks `daedalus-in-progress`
-    Loop->>Loop: Multi-agent orchestration (Coder: version.ts + version.test.ts)
-    Loop->>Gate: Runs magenta Self-Review Gate (recheck diff & lint)
+    Loop->>Issue: Polls & detects Issue #15 (marks in-progress)
+    Loop->>Loop: Multi-agent orchestration (Coder: version.ts + tests)
+    Loop->>Gate: Runs Self-Review Gate (diff & lint audit)
     Gate-->>Loop: Pass confirmed
 
-    Loop->>PR: Pushes branch `daedalus-issue-15` & opens PR #16
+    Loop->>PR: Pushes branch daedalus-issue-15 & opens PR #16
     
-    Dev->>CI: daedalus --ci 16
-    CI->>CI: Runs npx tsc + npm run lint + npm test + AI semantic diff
+    Dev->>CI: Run daedalus --ci 16
+    CI->>CI: Runs tsc, lint, test & AI semantic diff
     CI->>PR: Posts official review comment (#16)
 ```
 
