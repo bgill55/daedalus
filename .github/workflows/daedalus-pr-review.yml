@@ -29,8 +29,12 @@ jobs:
 
       - name: Run Daedalus Headless PR Review
         id: daedalus
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          DAEDALUS_ROUTER_KEY: ${{ secrets.DAEDALUS_ROUTER_KEY }}
         run: |
-          npx daedalus-cli --ci review > pr_review_report.md || true
+          npx tsx src/index.ts --ci ${{ github.event.pull_request.number }} > pr_review_report.md || true
           cat pr_review_report.md
 
       - name: Post PR Review Comment
@@ -38,9 +42,21 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            const report = fs.readFileSync('pr_review_report.md', 'utf8');
+            let report = '';
+            try {
+              if (fs.existsSync('pr_review_report.md')) {
+                report = fs.readFileSync('pr_review_report.md', 'utf8').trim();
+              }
+            } catch (err) {
+              console.log('Failed to read review report:', err.message);
+            }
             
-            github.rest.issues.createComment({
+            if (!report) {
+              console.log('Skipping GitHub comment: review report was empty.');
+              return;
+            }
+            
+            await github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
