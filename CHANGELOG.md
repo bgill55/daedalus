@@ -1,3 +1,10 @@
+# [1.95.0](https://github.com/bgill55/daedalus/compare/v1.94.4...v1.95.0) (2026-07-30)
+
+
+### Features
+
+* **demo:** add terminalizer auto-typer demo recording setup for YouTube showcase ([7e58c31](https://github.com/bgill55/daedalus/commit/7e58c3184137a51eabef2bbfb0aa6cc432939c0f))
+
 ## [1.94.4](https://github.com/bgill55/daedalus/compare/v1.94.3...v1.94.4) (2026-07-30)
 
 
