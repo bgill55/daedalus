@@ -1,3 +1,10 @@
+## [1.95.2](https://github.com/bgill55/daedalus/compare/v1.95.1...v1.95.2) (2026-07-30)
+
+
+### Bug Fixes
+
+* **demo:** type all spec answers as single line, increase API wait pauses, drop loop from demo ([d10b1d8](https://github.com/bgill55/daedalus/commit/d10b1d8e76aa8b84590224f4fb421f66564f9406))
+
 ## [1.95.1](https://github.com/bgill55/daedalus/compare/v1.95.0...v1.95.1) (2026-07-30)
 
 
