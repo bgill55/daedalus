@@ -1,3 +1,10 @@
+## [1.97.2](https://github.com/bgill55/daedalus/compare/v1.97.1...v1.97.2) (2026-07-30)
+
+
+### Bug Fixes
+
+* **sys-stats:** resolve Qodo review findings - replace df/wmic with fs.statfsSync, guard formatBytes against invalid ranges, and remove redundant JSDoc ([2350dc3](https://github.com/bgill55/daedalus/commit/2350dc3f39ce64f376756644cec35c9420c753b5))
+
 ## [1.97.1](https://github.com/bgill55/daedalus/compare/v1.97.0...v1.97.1) (2026-07-30)
 
 
