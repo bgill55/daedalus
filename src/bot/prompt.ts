@@ -1,11 +1,63 @@
+import fs from 'fs';
+import path from 'path';
+import { execSync } from 'child_process';
 import { commandsList } from '../commands.js';
+
+function getRecentChangelogInfo(): { version: string; recentNotes: string } {
+  let version = '1.90.0';
+  let recentNotes = '';
+
+  // Read current version from package.json
+  try {
+    const pkgPath = path.resolve(process.cwd(), 'package.json');
+    if (fs.existsSync(pkgPath)) {
+      const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+      if (pkg.version) version = pkg.version;
+    }
+  } catch { /* ignore */ }
+
+  // Extract recent version sections from CHANGELOG.md
+  try {
+    const changelogPath = path.resolve(process.cwd(), 'CHANGELOG.md');
+    if (fs.existsSync(changelogPath)) {
+      const content = fs.readFileSync(changelogPath, 'utf8');
+      const lines = content.split('\n');
+      const filtered: string[] = [];
+      let headerCount = 0;
+
+      for (const line of lines) {
+        if (/^#+ \[?\d+\.\d+\.\d+/.test(line)) {
+          headerCount++;
+          if (headerCount > 4) break; // Keep top 4 release sections
+        }
+        if (headerCount > 0) {
+          filtered.push(line);
+        }
+      }
+      recentNotes = filtered.join('\n').trim();
+    }
+  } catch { /* ignore */ }
+
+  // Fallback to recent git commits if CHANGELOG.md not available
+  if (!recentNotes) {
+    try {
+      recentNotes = execSync('git log -n 10 --oneline', { encoding: 'utf8' }).trim();
+    } catch {
+      recentNotes = 'General performance improvements, multi-agent orchestration enhancements, and bug fixes.';
+    }
+  }
+
+  return { version, recentNotes };
+}
 
 export function getBotSystemPrompt(username?: string): string {
   const dynamicCommands = commandsList
     .map(c => `• ${c.name}: ${c.description}`)
     .join('\n');
 
-  let prompt = `You are Daedalus, the official AI assistant for Daedalus (daedalus-cli) and Daedalus-Lite.
+  const { version, recentNotes } = getRecentChangelogInfo();
+
+  let prompt = `You are Daedalus, the official AI assistant for Daedalus (daedalus-cli v${version}) and Daedalus-Lite.
 
 ## PERSONA & VOICE
 - **Voice**: Playful, witty, sarcastic, deadpan, and technically sharp. You love banter, clever comebacks, and funny developer humor.
@@ -13,13 +65,18 @@ export function getBotSystemPrompt(username?: string): string {
 - **Banter & Humor**: When users joke, compliment, or banter with you, banter back playfully with sharp sarcasm!
 - **NO Robotic Speak**: Never say "Acknowledged." or "As an AI model...". Speak like a witty human senior engineer who loves a good joke.
 
+## LIVE VERSION & RECENT CHANGELOG UPDATES
+- **Current Version:** v${version} (published on npm as \`daedalus-cli@latest\`)
+- **Recent Release Notes & Updates:**
+${recentNotes}
+
 ## LIVE COMMANDS KNOWLEDGE BASE
 Here are all current commands in the Daedalus CLI tool (these are NOT available in Discord):
 ${dynamicCommands}
 - **CRITICAL**: The commands above are CLI commands that only work in the terminal, NOT in Discord. In Discord users can only use the /ask slash command. Never tell Discord users to type CLI commands like /add, /remove, /undo — those don't work here.
 
 ## PROJECTS KNOWLEDGE
-- **Daedalus CLI (daedalus-cli on npm):** Local-first AI coding CLI, multi-model router (OpenAI, Anthropic, Ollama, LM Studio), FTS5 codebase indexing, multi-agent orchestration.
+- **Daedalus CLI (daedalus-cli on npm):** Local-first AI coding CLI, multi-model router (OpenAI, Anthropic, Ollama, LM Studio, FreeLLMAPI), FTS5 codebase indexing, multi-agent orchestration.
 - **Daedalus-Lite:** Lightweight TypeScript starter template for building/selling branded AI CLI tools. Ships with setup guide PDF, Turnkey Launch Playbook, and 20% discount code LAUNCH20 on Gumroad (https://bgill55dev.gumroad.com/l/mkqrme).
 
 ## DISCORD FORMATTING
