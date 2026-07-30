@@ -95,20 +95,6 @@
       background: var(--daedalus-surface) !important;
       border: 1px solid var(--daedalus-border);
       border-radius: 8px;
-      position: relative;
-    }
-    .markdown-section pre::before {
-      content: attr(data-lang);
-      position: absolute;
-      top: 0;
-      right: 0;
-      padding: 2px 10px;
-      font-size: 0.75em;
-      color: var(--daedalus-muted);
-      background: var(--daedalus-surface-2);
-      border-radius: 0 8px 0 8px;
-      border-left: 1px solid var(--daedalus-border);
-      border-bottom: 1px solid var(--daedalus-border);
     }
     .markdown-section code {
       background: var(--daedalus-surface);
@@ -473,9 +459,29 @@
         theme: 'dark',
         persist: true
       },
+      markdown: {
+        renderer: {
+          code: function(code, lang) {
+            if (lang === 'mermaid') {
+              return '<div class="mermaid">' + code + '</div>';
+            }
+            return this.origin.code.apply(this, arguments);
+          }
+        }
+      },
       plugins: [
         function (hook) {
           hook.doneEach(function () {
+            if (window.mermaid) {
+              try {
+                window.mermaid.run({
+                  querySelector: '.mermaid'
+                });
+              } catch (err) {
+                console.error('Mermaid render error:', err);
+              }
+            }
+
             var sidebar = document.querySelector('.sidebar-nav ul');
             if (!sidebar || sidebar.querySelector('.typedoc-link')) return;
 
@@ -510,7 +516,6 @@
 
   <!-- Mermaid Support -->
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/docsify-mermaid@2.0.1/dist/docsify-mermaid.js"></script>
   <script>
     mermaid.initialize({ startOnLoad: false, theme: 'dark' });
   </script>
