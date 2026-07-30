@@ -112,6 +112,35 @@ function inferMimeType(filename: string | null): string | null {
   return ext ? map[ext] || null : null;
 }
 
+async function sendChunkedInteractionReply(interaction: any, text: string, prefix = ''): Promise<void> {
+  const fullText = prefix ? `${prefix}${text}` : text;
+
+  if (fullText.length <= 1950) {
+    if (interaction.deferred || interaction.replied) {
+      await interaction.editReply(fullText);
+    } else {
+      await interaction.reply(fullText);
+    }
+    return;
+  }
+
+  // Split into 1900-character chunks so long responses never get truncated
+  const chunks: string[] = [];
+  for (let i = 0; i < fullText.length; i += 1900) {
+    chunks.push(fullText.substring(i, i + 1900));
+  }
+
+  if (interaction.deferred || interaction.replied) {
+    await interaction.editReply(chunks[0]);
+  } else {
+    await interaction.reply(chunks[0]);
+  }
+
+  for (let i = 1; i < chunks.length; i++) {
+    await interaction.followUp(chunks[i]);
+  }
+}
+
 export function attachListeners(c: Client, router: LocalRouter, token: string) {
   c.once(Events.ClientReady, async (readyClient) => {
     console.log(`🤖 Daedalus Discord Bot logged in as ${readyClient.user.tag}`);
@@ -426,7 +455,7 @@ export function attachListeners(c: Client, router: LocalRouter, token: string) {
         });
 
         const roastText = response.choices?.[0]?.message?.content || "Your code is so broken even my roast generator crashed.";
-        await interaction.editReply(`🔥 **Roast of ${topic}:**\n${roastText.substring(0, 1800)}`);
+        await sendChunkedInteractionReply(interaction, roastText, `🔥 **Roast of ${topic}:**\n`);
       } catch (err: unknown) {
         await interaction.editReply(`Error delivering roast: ${err instanceof Error ? err.message : String(err)}`);
       }
@@ -447,7 +476,7 @@ export function attachListeners(c: Client, router: LocalRouter, token: string) {
         });
 
         const replyText = response.choices?.[0]?.message?.content || "Something went wrong in the machine.";
-        await interaction.editReply(replyText.substring(0, 1900));
+        await sendChunkedInteractionReply(interaction, replyText);
       } catch (err: unknown) {
         await interaction.editReply(`Error: ${err instanceof Error ? err.message : String(err)}`);
       }
@@ -464,7 +493,7 @@ export function attachListeners(c: Client, router: LocalRouter, token: string) {
           temperature: 0.8,
         });
         const tip = response.choices?.[0]?.message?.content || 'Use semicolons. Or don\'t. I\'m a bot, not a cop.';
-        await interaction.editReply(`💡 **Tip:** ${tip.substring(0, 1900)}`);
+        await sendChunkedInteractionReply(interaction, tip, '💡 **Tip:** ');
       } catch (err: unknown) {
         await interaction.editReply(`Error: ${err instanceof Error ? err.message : String(err)}`);
       }
@@ -482,7 +511,7 @@ export function attachListeners(c: Client, router: LocalRouter, token: string) {
           temperature: 0.9,
         });
         const msg = response.choices?.[0]?.message?.content || 'fix: the thing';
-        await interaction.editReply(`\`\`\`\n${msg.substring(0, 1900)}\n\`\`\``);
+        await sendChunkedInteractionReply(interaction, `\`\`\`\n${msg}\n\`\`\``);
       } catch (err: unknown) {
         await interaction.editReply(`Error: ${err instanceof Error ? err.message : String(err)}`);
       }
@@ -500,7 +529,7 @@ export function attachListeners(c: Client, router: LocalRouter, token: string) {
           temperature: 0.9,
         });
         const horoscope = response.choices?.[0]?.message?.content || 'The stars say your build will fail. They always do.';
-        await interaction.editReply(`🔮 **Developer Horoscope:**\n${horoscope.substring(0, 1900)}`);
+        await sendChunkedInteractionReply(interaction, horoscope, '🔮 **Developer Horoscope:**\n');
       } catch (err: unknown) {
         await interaction.editReply(`Error: ${err instanceof Error ? err.message : String(err)}`);
       }
@@ -519,7 +548,7 @@ export function attachListeners(c: Client, router: LocalRouter, token: string) {
           temperature: 0.5,
         });
         const recipe = response.choices?.[0]?.message?.content || 'I\'d tell you, but then I\'d have to refactor your codebase.';
-        await interaction.editReply(`📖 **Recipe:** ${recipe.substring(0, 1900)}`);
+        await sendChunkedInteractionReply(interaction, recipe, '📖 **Recipe:** ');
       } catch (err: unknown) {
         await interaction.editReply(`Error: ${err instanceof Error ? err.message : String(err)}`);
       }
@@ -537,7 +566,7 @@ export function attachListeners(c: Client, router: LocalRouter, token: string) {
           temperature: 0.9,
         });
         const quote = response.choices?.[0]?.message?.content || '"It worked on my machine." — every developer, ever.';
-        await interaction.editReply(`*${quote.substring(0, 1900)}*`);
+        await sendChunkedInteractionReply(interaction, `*${quote}*`);
       } catch (err: unknown) {
         await interaction.editReply(`Error: ${err instanceof Error ? err.message : String(err)}`);
       }
