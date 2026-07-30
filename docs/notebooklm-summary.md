@@ -278,5 +278,5 @@ Want to see all generated **NotebookLM Infographics, Architecture Flowcharts, Au
 Join our community Discord channel to browse the visual assets, discuss agent architectures, and share your specs:
 
 👉 **[Join the Daedalus Discord Knowledge Channel](https://discord.com/channels/1530095347651575939/1532496845035802795)**
-*(Official Discord Server: [https://discord.gg/weightnsee](https://discord.gg/weightnsee))*
+*(Official Discord Server: [https://discord.gg/74pCA68KGK](https://discord.gg/74pCA68KGK))*
 

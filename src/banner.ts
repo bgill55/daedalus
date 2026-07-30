@@ -81,6 +81,6 @@ export function printConfigInfo(
   console.log(bot);
   console.log('');
 
-  console.log(`  ${pc.dim('Type')} ${pc.cyan('?')} ${pc.dim('for commands  ·  ')} ${pc.cyan('https://discord.gg/GPH2ZH57up')} ${pc.dim('(Discord)')} ${pc.dim('  ·  ')} ${pc.cyan('https://github.com/bgill55/daedalus')} ${pc.dim('(Star us!)')}`);
+  console.log(`  ${pc.dim('Type')} ${pc.cyan('?')} ${pc.dim('for commands  ·  ')} ${pc.cyan('https://discord.gg/74pCA68KGK')} ${pc.dim('(Discord)')} ${pc.dim('  ·  ')} ${pc.cyan('https://github.com/bgill55/daedalus')} ${pc.dim('(Star us!)')}`);
   console.log('');
 }
