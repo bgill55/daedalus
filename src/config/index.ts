@@ -182,8 +182,10 @@ export const DEFAULT_CONFIG: DaedalusConfig = {
   router: {
     strategy: 'priority',
     chain: [
-      // LM Studio with gemma-4-e4b - vision-capable local model
-      { name: 'lmstudio-gemma', endpoint: 'http://127.0.0.1:1234/v1', model: 'google/gemma-4-e4b', priority: 0, enabled: true, supportsVision: true, supportsTools: true, tier: 'intelligence' },
+      // FreeLLMAPI - local proxy on port 3001
+      { name: 'freellmapi', endpoint: 'http://127.0.0.1:3001/v1', model: 'auto', priority: 0, enabled: true, supportsVision: true, supportsTools: true, tier: 'intelligence' },
+      // LM Studio with gemma-4-e4b - vision-capable local fallback
+      { name: 'lmstudio-gemma', endpoint: 'http://127.0.0.1:1234/v1', model: 'google/gemma-4-e4b', priority: 1, enabled: true, supportsVision: true, supportsTools: true, tier: 'intelligence' },
     ],
     healthCheckInterval: 30000,
     requestTimeout: 120000,
@@ -315,6 +317,8 @@ export function resetConfig(): DaedalusConfig {
 // Auto-discover local servers and suggest configs
 export async function discoverLocalServers(): Promise<Array<{ name: string; endpoint: string; models: string[] }>> {
   const candidates = [
+    { name: 'FreeLLMAPI', url: 'http://localhost:3001/v1/models', endpoint: 'http://localhost:3001/v1' },
+    { name: 'FreeLLMAPI (Dev)', url: 'http://localhost:5173/v1/models', endpoint: 'http://localhost:5173/v1' },
     { name: 'LM Studio', url: 'http://localhost:1234/v1/models', endpoint: 'http://localhost:1234/v1' },
     { name: 'Ollama', url: 'http://localhost:11434/api/tags', endpoint: 'http://localhost:11434/v1' },
     { name: 'llama.cpp', url: 'http://localhost:8080/v1/models', endpoint: 'http://localhost:8080/v1' },

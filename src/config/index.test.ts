@@ -137,7 +137,7 @@ describe('loadConfig', () => {
     const config = loadConfig();
     expect(config.version).toBe(1);
     expect(config.router.chain.length).toBeGreaterThan(0);
-    expect(config.router.chain[0].name).toBe('lmstudio-gemma');
+    expect(config.router.chain[0].name).toBe('freellmapi');
   });
 
   it('loads an existing config file', () => {
