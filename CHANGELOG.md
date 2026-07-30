@@ -1,3 +1,10 @@
+# [1.94.0](https://github.com/bgill55/daedalus/compare/v1.93.1...v1.94.0) (2026-07-30)
+
+
+### Features
+
+* **review:** add JSDoc contract mismatch and AGENTS.md comment rule audits to Reviewer agent, Self-Review Gate, and CI Reviewer ([2684a1c](https://github.com/bgill55/daedalus/commit/2684a1c19ac19826ba681f9b7c99d27361aa0347))
+
 ## [1.93.1](https://github.com/bgill55/daedalus/compare/v1.93.0...v1.93.1) (2026-07-30)
 
 
