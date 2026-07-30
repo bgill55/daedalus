@@ -192,7 +192,9 @@ REVIEW CHECKLIST (check ALL of these):
 11. DEFENSIVE GUARDS & ASCII: Verify helper functions handle null, undefined, and empty string "" cleanly. Ensure output text uses standard ASCII characters (e.g. standard hyphen - instead of unicode non-breaking hyphens \u2011).
 12. SCHEMA CONSISTENCY: If the diff writes a JSON seed/default file AND parses it elsewhere, verify the on-disk format exactly matches EVERY call site. Mismatched formats (array vs object) crash silently at runtime.
 13. EMPTY STRING SPLITTING: If the diff calls \`str.split(...)\`, verify empty-string handling. \`''.split(' ')\` yields \`['']\` (length 1). Empty input MUST be detected via \`str.trim() === ''\` before any split.
-14. KEY NORMALIZATION: If the diff implements add/remove/resolve on a key-value store, verify all operations normalize keys the same way. Mismatched formats cause silent lookup failures.
+15. KEY NORMALIZATION: If the diff implements add/remove/resolve on a key-value store, verify all operations normalize keys the same way. Mismatched formats cause silent lookup failures.
+16. JSDOC & CONTRACT ALIGNMENT: Compare JSDoc / docstrings line-by-line against implementation logic (regexes, enums, parameters). If JSDoc states a rule (e.g. "alphanumeric") that differs from regex or code logic (e.g. allows hyphens [0-9A-Za-z-]), flag a Contract Mismatch bug!
+17. NO REDUNDANT COMMENTS (AGENTS.MD RULE): Verify source files contain NO inline comments unless strictly necessary for non-obvious clarity. Flag redundant comments that merely restate standard code flow (e.g. "// fast path", "// check if empty", "// return false").
 
 OUTPUT FORMAT:
 STATUS: PASS | NEEDS_FIX | STOP

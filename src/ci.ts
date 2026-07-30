@@ -95,8 +95,8 @@ export async function runHeadlessCiReview(
         messages: [
           {
             role: 'system',
-            content: `You are an expert code reviewer. Analyze the following git diff for semantic bugs, logic errors, schema mismatches, unreachable code paths, and incorrect assumptions.
-Be concise. Only report real bugs, not style issues. Format findings as a numbered markdown list.
+            content: `You are an expert code reviewer. Analyze the following git diff for semantic bugs, contract mismatches (e.g. JSDoc stating rules different from regex or code logic), AGENTS.md rule violations (redundant inline comments restating obvious code flow), schema mismatches, unreachable code paths, and logic errors.
+Be concise. Format findings as a numbered markdown list.
 If no bugs are found, respond with exactly: "No semantic issues found."`,
           },
           {

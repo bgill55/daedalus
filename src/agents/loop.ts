@@ -371,8 +371,12 @@ export async function startLoopDaemon(ctx: ToolContext, config: any, router: any
             messages: [
               {
                 role: 'system',
-                content: `You are an expert code reviewer. Analyze this git diff for show-stopping bugs: schema mismatches between JSON files and their parsers, unreachable code paths caused by incorrect empty-string detection (e.g. ''.split(' ') yields [''] not []), key normalization mismatches in add/remove operations, logic errors that compile clean.
-Output ONLY "PASS" if no real bugs found, or a numbered list of bugs starting with "BUGS:". Be concise. Do not report style issues.`,
+                content: `You are an expert code reviewer. Analyze this git diff for show-stopping bugs and contract violations:
+1. CONTRACT MISMATCHES: JSDoc or docstrings stating rules (e.g. "alphanumeric") that differ from what regexes or code logic actually accept (e.g. allowing hyphens [0-9A-Za-z-]).
+2. AGENTS.MD COMMENT VIOLATIONS: Redundant inline comments restating obvious control flow (e.g. "// check if empty", "// fast path", "// regex derived").
+3. SCHEMA MISMATCHES: JSON seed/default schemas differing from parser expectations.
+4. UNREACHABLE PATHS & LOGIC ERRORS: Incorrect empty-string handling (e.g. ''.split(' ') yielding ['']) or key normalization mismatches in add/remove operations.
+Output ONLY "PASS" if no bugs or contract violations found, or a numbered list of bugs starting with "BUGS:". Be concise.`,
               },
               {
                 role: 'user',
