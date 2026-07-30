@@ -1,3 +1,10 @@
+## [1.97.1](https://github.com/bgill55/daedalus/compare/v1.97.0...v1.97.1) (2026-07-30)
+
+
+### Bug Fixes
+
+* **formatting:** add formatMarkdownPRReply helper to sanitize PR comments and automated review reports ([cb851f4](https://github.com/bgill55/daedalus/commit/cb851f423ede38d080c6cfc30bc5c8a36a43fc79))
+
 # [1.97.0](https://github.com/bgill55/daedalus/compare/v1.96.0...v1.97.0) (2026-07-30)
 
 
