@@ -13,6 +13,7 @@
   - [MCP Integration](mcp.md)
 
 - **Case Studies**
+  - [Finn Loop & CI Reviewer Case Study](finn-loop-case-study.md)
   - [Gold Standard Spec](example-spec-stats.md)
   - [Social Media Manager](social-media-manager-sprint.md)
   - [Daedalus-Lite](daedalus-lite-sprint.md)
