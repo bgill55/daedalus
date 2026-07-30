@@ -1,3 +1,11 @@
+# [1.97.0](https://github.com/bgill55/daedalus/compare/v1.96.0...v1.97.0) (2026-07-30)
+
+
+### Features
+
+* Add a system stats memory and disk usage utility in srcutilssysstatsts with unit tests ([d440f03](https://github.com/bgill55/daedalus/commit/d440f0301eab554d24b32ebc56dbfb32a76b3a91))
+* **sys-stats:** add system memory and disk usage utility with SpecFirst contract ([f00defc](https://github.com/bgill55/daedalus/commit/f00defc8d65da658c7c2d66e460875abcb7d370e))
+
 # [1.96.0](https://github.com/bgill55/daedalus/compare/v1.95.4...v1.96.0) (2026-07-30)
 
 
