@@ -1,3 +1,10 @@
+# [1.96.0](https://github.com/bgill55/daedalus/compare/v1.95.4...v1.96.0) (2026-07-30)
+
+
+### Features
+
+* **spec:** add SpecFirst architecture, spec contract generator, and verification engine ([336a2cb](https://github.com/bgill55/daedalus/commit/336a2cbfd4e7fba29883aec8a83cfceb17fc4e71))
+
 ## [1.95.4](https://github.com/bgill55/daedalus/compare/v1.95.3...v1.95.4) (2026-07-30)
 
 
