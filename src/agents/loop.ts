@@ -23,11 +23,20 @@ export function getGitRepoInfo(cwd: string): { owner: string; repo: string } | n
 }
 
 export function resolveDiscordWebhook(config?: any): string | null {
+  if (process.env.DISCORD_LOOP_WEBHOOK_URL && process.env.DISCORD_LOOP_WEBHOOK_URL.trim()) {
+    return process.env.DISCORD_LOOP_WEBHOOK_URL.trim();
+  }
   if (process.env.DISCORD_WEBHOOK_URL && process.env.DISCORD_WEBHOOK_URL.trim()) {
     return process.env.DISCORD_WEBHOOK_URL.trim();
   }
+  if (config?.discordLoopWebhook && typeof config.discordLoopWebhook === 'string') {
+    return config.discordLoopWebhook.trim();
+  }
   if (config?.discordWebhook && typeof config.discordWebhook === 'string') {
     return config.discordWebhook.trim();
+  }
+  if (config?.integrations?.discordLoopWebhook && typeof config.integrations.discordLoopWebhook === 'string') {
+    return config.integrations.discordLoopWebhook.trim();
   }
   if (config?.integrations?.discordWebhook && typeof config.integrations.discordWebhook === 'string') {
     return config.integrations.discordWebhook.trim();
@@ -37,7 +46,9 @@ export function resolveDiscordWebhook(config?: any): string | null {
     const configPath = path.join(home, '.daedalus', 'config.json');
     if (fs.existsSync(configPath)) {
       const parsed = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+      if (parsed.discordLoopWebhook) return String(parsed.discordLoopWebhook).trim();
       if (parsed.discordWebhook) return String(parsed.discordWebhook).trim();
+      if (parsed.integrations?.discordLoopWebhook) return String(parsed.integrations.discordLoopWebhook).trim();
       if (parsed.integrations?.discordWebhook) return String(parsed.integrations.discordWebhook).trim();
     }
   } catch {

@@ -114,8 +114,8 @@ export async function promptDiffDecision(
   globalAutoApply: 'prompt' | 'all' | 'skip' = 'prompt',
   context?: ToolContext
 ): Promise<DiffResult> {
-  // Check global auto-apply setting
-  if (globalAutoApply === 'all') {
+  // Check global auto-apply setting or DAEDALUS_AUTO_APPROVE env var for automated loop daemons
+  if (process.env.DAEDALUS_AUTO_APPROVE === 'true' || globalAutoApply === 'all') {
     return { decision: 'yes' };
   }
   if (globalAutoApply === 'skip') {
