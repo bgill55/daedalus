@@ -17,21 +17,21 @@ sequenceDiagram
     participant PR as "GitHub PR #16"
     participant CI as "Headless CI Reviewer"
 
-    Dev->>Spec: Run /spec for version validator
-    Spec-->>Dev: Asks 3 clarification questions
-    Dev->>Spec: Answers format, returns, and tests
-    Spec->>Issue: Creates Issue #15 (tagged daedalus-todo)
+    Dev->>Spec: "Run /spec for version validator"
+    Spec-->>Dev: "Asks 3 clarification questions"
+    Dev->>Spec: "Answers format, returns, and tests"
+    Spec->>Issue: "Creates Issue #15 (tagged daedalus-todo)"
 
-    Loop->>Issue: Polls & detects Issue #15 (marks in-progress)
-    Loop->>Loop: Multi-agent orchestration (Coder: version.ts + tests)
-    Loop->>Gate: Runs Self-Review Gate (diff & lint audit)
-    Gate-->>Loop: Pass confirmed
+    Loop->>Issue: "Polls & detects Issue #15 (marks in-progress)"
+    Loop->>Loop: "Multi-agent orchestration (Coder: version.ts + tests)"
+    Loop->>Gate: "Runs Self-Review Gate (diff & lint audit)"
+    Gate-->>Loop: "Pass confirmed"
 
-    Loop->>PR: Pushes branch daedalus-issue-15 & opens PR #16
+    Loop->>PR: "Pushes branch daedalus-issue-15 & opens PR #16"
     
-    Dev->>CI: Run daedalus --ci 16
-    CI->>CI: Runs tsc, lint, test & AI semantic diff
-    CI->>PR: Posts official review comment (#16)
+    Dev->>CI: "Run daedalus --ci 16"
+    CI->>CI: "Runs tsc, lint, test & AI semantic diff"
+    CI->>PR: "Posts official review comment (#16)"
 ```
 
 ---
