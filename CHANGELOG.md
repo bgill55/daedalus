@@ -1,3 +1,10 @@
+## [1.94.4](https://github.com/bgill55/daedalus/compare/v1.94.3...v1.94.4) (2026-07-30)
+
+
+### Bug Fixes
+
+* **docs:** resolve super-imposed code block labels and fix Docsify Mermaid rendering integration ([df942fe](https://github.com/bgill55/daedalus/commit/df942fe24bd8bee80c7aed9b6d368a142b934bf1))
+
 ## [1.94.3](https://github.com/bgill55/daedalus/compare/v1.94.2...v1.94.3) (2026-07-30)
 
 
