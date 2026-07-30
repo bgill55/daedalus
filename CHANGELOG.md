@@ -1,3 +1,10 @@
+## [1.95.3](https://github.com/bgill55/daedalus/compare/v1.95.2...v1.95.3) (2026-07-30)
+
+
+### Bug Fixes
+
+* **demo:** add exit pause so terminalizer saves recording before PTY exits ([35c883b](https://github.com/bgill55/daedalus/commit/35c883bb7f6ba4fa89f5afe8817b803b0b1d2407))
+
 ## [1.95.2](https://github.com/bgill55/daedalus/compare/v1.95.1...v1.95.2) (2026-07-30)
 
 
