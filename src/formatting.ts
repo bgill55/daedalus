@@ -458,3 +458,22 @@ export function parseTextToolCalls(text: string): ToolCall[] {
 
   return toolCalls;
 }
+
+export function formatMarkdownPRReply(text: string): string {
+  let cleaned = text.trim();
+
+  // Replace malformed HTML details/summary elements with clean markdown collapsibles or clean sections
+  cleaned = cleaned.replace(/<details\s+open>/gi, '<details>\n');
+  cleaned = cleaned.replace(/<br\s*\/?>/gi, '\n');
+  
+  // Convert HTML img shields or raw HTML tags outside code blocks to standard markdown
+  cleaned = cleaned.replace(/<img\s+src="([^"]+)"[^>]*>/gi, '![]($1)');
+
+  // Ensure double linebreaks around headers
+  cleaned = cleaned.replace(/\n(#+\s+.*)/g, '\n\n$1');
+
+  // Normalize excessive blank lines (cap at 2 consecutive newlines)
+  cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
+
+  return cleaned.trim();
+}
