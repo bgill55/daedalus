@@ -68,44 +68,144 @@ Daedalus features an embedded model router that handles failover, round-robin, p
 * Built-in Discord Bot engine (`npm run bot`) featuring live version and release notes self-awareness.
 * Rich color-coded Discord webhook embeds for spec queuing, loop work starts, self-review alerts, and PR readiness.
 
+### 5. AST-Aware Codebase Indexing (FTS5 SQLite) & Call Graph Engine
+* Indexes TypeScript/JavaScript, Python, Go, Rust, Java, C/C++, C#, PHP, Ruby, and Elixir into a local SQLite FTS5 database (`.daedalus/index.db`).
+* Supports exact symbol search (`/find`), definition lookups (`/def`), reference tracing (`/refs`), AST-aware call graph building (`/callgraph`), and blast-radius impact analysis (`/impact`).
+
+### 6. Built-in Tool Matrix (16 Tools + MCP Transport)
+* Includes built-in tools for file reading, writing, patching, terminal execution, web searching, screenshot previewing, image generation, and indexing.
+* Full Model Context Protocol (MCP) transport support over stdio and HTTP/SSE.
+
+### 7. Execution Sandboxing (Docker & WSL)
+* Supports executing shell commands inside Docker containers or Windows Subsystem for Linux (WSL) environments.
+
+### 8. Custom Command Shortcuts (`/shortcut` / `/sc`)
+* Create and manage custom slash-command aliases stored in `~/.daedalus/shortcuts.json`.
+
+### 9. Badge Generator (`/badge`)
+* Generate automatic and custom Shields.io badges for project READMEs.
+
+### 10. Autonomous Bug Hunting (`/hunt` / `/bug`)
+* Autonomously reproduces, isolates root causes, fixes, and verifies bug reports.
+
+### 11. Interactive Terminal User Interface (TUI) Dashboard (`/tui`)
+* Displays active agent status, model router latency, token usage gauges, and file-tree context selectors.
+
+### 12. Smart Git-Aware Testing Loop (`/test -g`)
+* Analyzes modified git files to run only relevant unit test suites for faster turn feedback.
+
+### 13. Persistent Project Memory & Fact Extraction
+* SQLite-backed session persistence (`~/.daedalus/session.db`) automatically extracts project facts and conventions across chat sessions.
+
+### 14. Chat-History Branching System ("What-if" Sessions)
+* Non-linear session branching (`/session branch`, `/session checkout`, `/session merge`) for exploring alternative implementation paths.
+
 ---
 
-## 3. Real-World Case Study: Autonomous Finn Loop & Headless CI Review Pipeline
+## 3. Real-World Benchmarks & Practical Case Studies
 
+### Test Suite Growth
+Daedalus maintains a test suite of **480+ tests across 60 files** (Vitest), covering the model router, session branching, tool execution, config validation, codebase indexing, MCP transport, CLI commands, git-based merge systems, and system diagnostics.
+
+### Case Study A: Autonomous Finn Loop & Headless CI Review Pipeline
 This case study documents an authentic, end-to-end execution of the **Daedalus Autonomous Finn Loop** (`daedalus --loop`) and **Headless CI Reviewer** (`daedalus --ci`), building and reviewing a real feature from interactive specification to GitHub Pull Request.
 
-### Architectural Workflow
-
+#### Architectural Workflow
 ![Architectural Workflow Sequence Diagram](media/finn-loop-architecture-workflow.png)
 
-### Stage 1: Interactive Requirement Specification (`/spec`)
+#### Stage 1: Interactive Requirement Specification (`/spec`)
 * **Session ID:** `session-1785387334336-a7b718`
 * **Target:** GitHub Issue [#15](https://github.com/bgill55/daedalus/issues/15)
 * User issues `/spec "Add a helper function to validate version string format and export it in version.ts"`.
 * System asks 3 interactive clarification questions (version pattern, return type, test requirements).
 * Automatically generates **GitHub Issue #15** tagged with `daedalus-todo`.
 
-### Stage 2: Autonomous Daemon Execution (`daedalus --loop`)
+#### Stage 2: Autonomous Daemon Execution (`daedalus --loop`)
 * Daemon polls GitHub, detects Issue #15, and dispatches a **⚙️ Loop Work Started** Discord webhook embed.
 * Multi-agent orchestrator delegates to Coder sub-agents to construct `src/version.ts` and `src/version.test.ts`.
 * Verification engine runs `npx tsc --noEmit` and `npm run lint` (both pass!).
-* **Self-Review Gate** executes AI semantic diff inspection, verifying code integrity.
+* **Magenta Self-Review Gate** executes AI semantic diff inspection, verifying code integrity.
 * Automatically creates branch `daedalus-issue-15`, pushes to origin, and opens **GitHub PR #16**.
 * Dispatches a **🚀 PR Ready** Discord embed with clickable links.
 
-### Stage 3: Headless CI/CD Reviewer (`daedalus --ci 16`)
+#### Stage 3: Headless CI/CD Reviewer (`daedalus --ci 16`)
 * Developer invokes `npx tsx src/index.ts --ci 16`.
 * Performs headless static verification (`npx tsc`, `npm run lint`, `npm test`) and AI semantic diff analysis.
 * Posts official automated review comment directly to [GitHub PR #16 (Issue Comment #5126853096)](https://github.com/bgill55/daedalus/pull/16#issuecomment-5126853096).
 
-### Verified Deliverables
+#### Verified Deliverables
 1. **`src/version.ts`**: Clean export of `isValidSemver(v: string): boolean` with JSDoc documentation.
 2. **`src/version.test.ts`**: Comprehensive Vitest test suite covering valid SemVer strings (`1.93.0`, `0.0.0`, `1.93.0-canary`, `2.0.1-beta.2`) and invalid inputs.
 3. **100% Automated Pipeline**: Zero manual code edits required—from `/spec` prompt to merge-ready PR comment!
 
 ---
 
-## 4. Configuration Reference (`~/.daedalus/config.json`)
+## 4. CLI Commands Reference
+
+| Command | Category | Description |
+|---|---|---|
+| `/autopilot <feature>` | Multi-Agent | Autonomous feature dev: branch, implement, verify, commit, and PR |
+| `/orchestrate <goal>` | Multi-Agent | Launch multi-agent planning and execution loop |
+| `/spawn [--bg] <role> <task>` | Multi-Agent | Delegate a background task to a sub-agent |
+| `/task <id>` | Multi-Agent | Manage or inspect background tasks |
+| `/tasks` | Multi-Agent | List active background tasks |
+| `/ensemble <goal>` | Multi-Agent | Run multi-model ensemble drafting pipeline |
+| `/spec <idea>` | Workflow | Interactively flesh out a feature spec and open GitHub Issue |
+| `/debug <command>` | Workflow | Run a command and autonomously debug failures |
+| `/undo [count\|list]` | Workflow | Revert the last N file patches or list recent patches |
+| `/watch [start\|stop\|status]` | Codebase | Background file watcher for automatic symbol re-indexing |
+| `/index` | Codebase | Manually index codebase symbols into SQLite FTS5 |
+| `/find <query>` | Codebase | Search indexed symbols in project |
+| `/refs <symbol>` | Codebase | Find symbol caller references |
+| `/def <symbol>` | Codebase | Jump to symbol definition |
+| `/callgraph <symbol> [depth]` | Codebase | Display bidirectional function call graph and blast radius |
+| `/impact <symbol>` | Codebase | Analyze refactoring impact & blast radius for a symbol |
+| `/test [n] [-g]` | Dev Tools | Run test loop and repair failures (`-g` for git-aware smart testing) |
+| `/commit [msg]` | Dev Tools | Stage and commit git changes |
+| `/branch [name]` | Dev Tools | Git branch operations |
+| `/pr [base]` | Dev Tools | Generate PR description compared to base branch |
+| `/ci [review\|fix]` | Dev Tools | Run headless CI/CD PR review or auto-fix simulation locally |
+| `/shortcut` / `/sc` | Dev Tools | Manage custom slash-command aliases |
+| `/badge` | Dev Tools | Generate automatic and custom Shields.io badges for READMEs |
+| `/hunt` / `/bug` | Dev Tools | Autonomously hunt down and fix a bug |
+| `/mcp <explore\|search\|install\|list>` | MCP | Manage MCP servers (explore marketplace, search, install) |
+| `/image <prompt>` | Image Gen | Generate UI assets using Stable Diffusion WebUI or Pollinations AI |
+| `/preview <filepath-or-url>` | Utilities | Screenshot a local HTML file or URL and save the image |
+| `/stats` | Utilities | Display session analytics, token usage, index count, router status |
+| `/history [n]` | Utilities | Show recent N turns with tool calls from the session log |
+| `/lite` | Utilities | Show Daedalus Lite documentation |
+| `/help [command]` | Utilities | Show available commands or detailed help for a specific command |
+| `/exit` | Utilities | Save session and exit |
+| `/onboard` | Setup | First-time setup: discover local models, configure, test |
+| `/tui` | UI | Toggle the Terminal User Interface (TUI) dashboard |
+| `/add <file>` | Context | Add file to active prompt context |
+| `/remove <file>` | Context | Remove file from active prompt context |
+| `/context` | Context | Show active file context |
+| `/paste` | Context | Paste clipboard text or image into prompt |
+| `/clear` | Context | Clear conversation history |
+| `/summarize` | Context | Summarize the current conversation |
+| `/tokens` | Context | Display estimated token count for current session |
+| `/system` | Context | Print the current active system prompt |
+| `/health` | Diagnostics | Display router provider latency, health status, and API key statuses |
+| `/doctor` | Diagnostics | Run full system diagnostics and health checks |
+| `/models` | Diagnostics | List all configured models and tiers |
+| `/changelog` | Diagnostics | View the latest CLI changes |
+| `/config [set <key>=<val>]` | Config | View or modify global configuration settings |
+| `/project [set <key>=<val>]` | Config | View or set project-level config settings (`.daedalusrc`) |
+| `/profile` | Config | View or edit user profile (tone, experience, shell) |
+| `/style` | Config | View or set coding style preferences |
+| `/memory` | Memory | View stored project facts and conventions |
+| `/fact <text>` | Memory | Add a fact to project memory |
+| `/convention <text>` | Memory | Add a coding convention to project memory |
+| `/extract` | Memory | Manually trigger fact extraction from current session |
+| `/session [subcommand]` | Session | Manage, save, load, branch, merge, or export chat sessions |
+| `/prune [budget]` | Session | Prune old messages to stay within token budget |
+
+---
+
+## 5. Configuration Reference (`~/.daedalus/config.json`)
+
+The global configuration governs model priority chains, UI preferences, and safety guidelines:
 
 ```json
 {
@@ -130,6 +230,15 @@ This case study documents an authentic, end-to-end execution of the **Daedalus A
         "enabled": true,
         "supportsTools": true,
         "tier": "intelligence"
+      },
+      {
+        "name": "ollama-fallback",
+        "endpoint": "http://localhost:11434/v1",
+        "model": "qwen2.5-coder",
+        "priority": 2,
+        "enabled": true,
+        "supportsTools": true,
+        "tier": "standard"
       }
     ]
   },
