@@ -1,3 +1,10 @@
+## [1.94.3](https://github.com/bgill55/daedalus/compare/v1.94.2...v1.94.3) (2026-07-30)
+
+
+### Bug Fixes
+
+* **docs:** update Docsify Mermaid configuration to startOnLoad:false and quote message strings ([c5e3197](https://github.com/bgill55/daedalus/commit/c5e3197130040d93dfd36fa9c8e31a9700ae67ed))
+
 ## [1.94.2](https://github.com/bgill55/daedalus/compare/v1.94.1...v1.94.2) (2026-07-30)
 
 
