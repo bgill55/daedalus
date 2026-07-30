@@ -1,3 +1,10 @@
+## [1.94.1](https://github.com/bgill55/daedalus/compare/v1.94.0...v1.94.1) (2026-07-30)
+
+
+### Bug Fixes
+
+* **ci:** prevent HTTP 422 Body cannot be blank when posting GitHub Action PR review comments ([12d5cc6](https://github.com/bgill55/daedalus/commit/12d5cc6acc992ec8dd8fa25f6a0ee9f5eaf367fa))
+
 # [1.94.0](https://github.com/bgill55/daedalus/compare/v1.93.1...v1.94.0) (2026-07-30)
 
 
