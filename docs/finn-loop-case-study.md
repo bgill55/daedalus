@@ -66,7 +66,12 @@ The CLI automatically compiled the specification and created **GitHub Issue #15*
 
 ## ⚙️ Stage 2: Autonomous Daemon Execution (`daedalus --loop`)
 
-The background loop daemon monitored the repository, picked up Issue #15, and executed the multi-agent task workflow:
+The background loop daemon monitored the repository, picked up Issue #15, and executed the multi-agent task workflow.
+
+### 🔔 Live Discord Webhook Notifications
+As the loop progressed, Daedalus dispatched rich color-coded status embeds to the Discord team channel for spec queuing, work start, and PR readiness:
+
+![Live Discord Webhook Embed Notifications for Issue #15 and PR #16](media/discord-loop-embeds.png)
 
 ### Terminal Execution Trace
 ```text
