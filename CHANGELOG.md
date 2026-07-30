@@ -1,3 +1,10 @@
+## [1.93.1](https://github.com/bgill55/daedalus/compare/v1.93.0...v1.93.1) (2026-07-30)
+
+
+### Bug Fixes
+
+* **loop:** auto-approve reviewer repair passes in loop mode and add DISCORD_LOOP_WEBHOOK_URL precedence ([5af4194](https://github.com/bgill55/daedalus/commit/5af4194cc50885f80717cf308f755461f7a33233))
+
 # [1.93.0](https://github.com/bgill55/daedalus/compare/v1.92.1...v1.93.0) (2026-07-30)
 
 
