@@ -1,3 +1,15 @@
+# [1.91.0](https://github.com/bgill55/daedalus/compare/v1.90.0...v1.91.0) (2026-07-30)
+
+
+### Bug Fixes
+
+* **loop:** sanitize Discord embed payload, resolve webhook from env/config, and fallback PR URL lookup ([a0e912c](https://github.com/bgill55/daedalus/commit/a0e912c464fc2893f17d1418687a632bc7fb17a6))
+
+
+### Features
+
+* **config:** add FreeLLMAPI to DEFAULT_CONFIG and auto-discovery candidates ([0f07b5f](https://github.com/bgill55/daedalus/commit/0f07b5f5a9c1790c8b71f8803430b7ee6fa91b75))
+
 # [1.90.0](https://github.com/bgill55/daedalus/compare/v1.89.0...v1.90.0) (2026-07-29)
 
 
