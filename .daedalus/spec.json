@@ -1,18 +1,60 @@
 {
-  "featureName": "do something",
-  "summary": "do something",
-  "interfaces": [],
-  "functions": [],
+  "featureName": "System Stats Utility",
+  "summary": "Adds a utility module at src/utils/sys-stats.ts that provides typed functions to retrieve memory and disk usage statistics and a helper to format byte values. Includes comprehensive unit tests.",
+  "interfaces": [
+    {
+      "name": "MemoryStats",
+      "filePath": "src/utils/sys-stats.ts",
+      "code": "export interface MemoryStats {\n  /** Total system memory in bytes */\n  total: number;\n  /** Free (available) memory in bytes */\n  free: number;\n  /** Used memory in bytes */\n  used: number;\n  /** Percentage of memory used (0‑100) */\n  usagePercent: number;\n}"
+    },
+    {
+      "name": "DiskStats",
+      "filePath": "src/utils/sys-stats.ts",
+      "code": "export interface DiskStats {\n  /** Path that was inspected, e.g. '/' or 'C:\\\\' */\n  path: string;\n  /** Total size of the disk/volume in bytes */\n  total: number;\n  /** Free space on the disk/volume in bytes */\n  free: number;\n  /** Used space on the disk/volume in bytes */\n  used: number;\n  /** Percentage of disk space used (0‑100) */\n  usagePercent: number;\n}"
+    }
+  ],
+  "functions": [
+    {
+      "name": "getMemoryStats",
+      "signature": "export async function getMemoryStats(): Promise<MemoryStats>",
+      "filePath": "src/utils/sys-stats.ts",
+      "description": "Collects system memory information using Node's os module and returns a MemoryStats object. The function is async to keep a consistent API with getDiskStats, which may perform I/O."
+    },
+    {
+      "name": "getDiskStats",
+      "signature": "export async function getDiskStats(path: string): Promise<DiskStats>",
+      "filePath": "src/utils/sys-stats.ts",
+      "description": "Retrieves total, free and used disk space for the supplied path. Uses the 'diskusage' npm package (or built‑in fs.statfs on supported platforms) and returns a DiskStats object."
+    },
+    {
+      "name": "formatBytes",
+      "signature": "export function formatBytes(bytes: number, decimals?: number): string",
+      "filePath": "src/utils/sys-stats.ts",
+      "description": "Converts a byte count into a human‑readable string (e.g., 1024 → \"1 KB\"). Optional decimals parameter controls precision."
+    }
+  ],
   "testCases": [
     {
-      "name": "Verify implementation files exist",
-      "description": "Ensure target source files are created and export valid modules",
-      "assertionType": "file_exists",
-      "targetFile": "src/index.ts"
+      "name": "MemoryStats returns valid percentages",
+      "description": "Calls getMemoryStats and asserts that total, free, used are numbers, that used = total - free (within a small delta), and that usagePercent is between 0 and 100.",
+      "assertionType": "unit_test",
+      "targetFile": "src/utils/__tests__/sys-stats.test.ts"
+    },
+    {
+      "name": "DiskStats works for root path",
+      "description": "Invokes getDiskStats('/') (or 'C:\\\\' on Windows) and checks that the returned object contains numeric total, free, used, usagePercent fields and that usagePercent is within 0‑100.",
+      "assertionType": "unit_test",
+      "targetFile": "src/utils/__tests__/sys-stats.test.ts"
+    },
+    {
+      "name": "formatBytes produces expected strings",
+      "description": "Verifies that formatBytes(0) === \"0 Bytes\", formatBytes(1024) === \"1 KB\", formatBytes(1536, 1) === \"1.5 KB\", and formatBytes(1048576) === \"1 MB\".",
+      "assertionType": "unit_test",
+      "targetFile": "src/utils/__tests__/sys-stats.test.ts"
     }
   ],
   "verificationCommands": [
-    "npx tsc --noEmit",
+    "npm run build",
     "npm test"
   ]
 }
