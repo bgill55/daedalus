@@ -59,10 +59,13 @@ await enter(shell, 12000);
 // Wait for spec generation + GitHub issue creation + Discord notification to complete
 await pause(5000);
 
-// Let the final screen linger so terminalizer captures it, then exit
+// Let the final screen linger so terminalizer captures it, then exit Daedalus
 await pause(4000);
 await type(shell, '/exit');
 await enter(shell, 1000);
 
-// Keep the PTY alive so terminalizer detects the natural exit and saves
+// Wait for inner PTY to fully close, then write 'exit' to the OUTER PowerShell
+// so terminalizer detects the PTY exit and saves the recording automatically
 await pause(3000);
+process.stdout.write('exit\r\n');
+await pause(1000);
