@@ -1,3 +1,10 @@
+## [1.95.1](https://github.com/bgill55/daedalus/compare/v1.95.0...v1.95.1) (2026-07-30)
+
+
+### Bug Fixes
+
+* **demo:** use absolute paths in terminalizer.yml for Windows compatibility ([67e69cb](https://github.com/bgill55/daedalus/commit/67e69cbe2e52dcf1bbdc3f1e5d1239372dfa0fa4))
+
 # [1.95.0](https://github.com/bgill55/daedalus/compare/v1.94.4...v1.95.0) (2026-07-30)
 
 
