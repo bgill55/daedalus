@@ -1,4 +1,4 @@
-command: node scripts/demo/demo.mjs
+command: node D:\Daedalus\scripts\demo\demo.mjs
 cwd: D:\Daedalus
 env:
   FORCE_COLOR: "3"

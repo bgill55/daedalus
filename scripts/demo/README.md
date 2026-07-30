@@ -26,7 +26,7 @@ npm install --save-dev node-pty
 
 ### Step 1 — Record the demo
 ```powershell
-terminalizer record daedalus-demo --config scripts/demo/terminalizer.yml
+terminalizer record daedalus-demo --config D:\Daedalus\scripts\demo\terminalizer.yml
 ```
 
 This opens a themed terminal window and runs `demo.mjs` automatically.
