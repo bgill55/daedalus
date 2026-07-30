@@ -3,7 +3,6 @@ import { setTimeout as sleep } from 'timers/promises';
 
 const CHAR_DELAY_MS  = 55;
 const CHAR_JITTER_MS = 25;
-const LINE_PAUSE_MS  = 800;
 
 function jitter() {
   return Math.floor(Math.random() * CHAR_JITTER_MS);
@@ -16,14 +15,9 @@ async function type(shell, text) {
   }
 }
 
-async function enter(shell, pauseAfterMs = LINE_PAUSE_MS) {
+async function enter(shell, pauseAfterMs = 800) {
   shell.write('\r');
   await sleep(pauseAfterMs);
-}
-
-async function line(shell, text, pauseAfterMs = LINE_PAUSE_MS) {
-  await type(shell, text);
-  await enter(shell, pauseAfterMs);
 }
 
 async function pause(ms) {
@@ -40,31 +34,31 @@ const shell = pty.spawn('powershell.exe', ['-NoLogo', '-NoProfile'], {
 
 shell.onData(data => process.stdout.write(data));
 
-await pause(1200);
+// Wait for shell to initialize
+await pause(1500);
 
-await line(shell, 'npx tsx src/index.ts', 6000);
+// Launch Daedalus
+await type(shell, 'npx tsx src/index.ts');
+await enter(shell, 8000);
 
-await pause(2000);
-
-await type(shell, '/spec "Add a helper function to validate version string format and export it in version.ts"');
-await pause(600);
-await enter(shell, 5000);
-
-await pause(2000);
-
-await line(shell, '1. Strict SemVer: major.minor.patch with optional pre-release (e.g. 1.0.0-beta)', 3000);
-
-await line(shell, '2. Return boolean true if valid, false if invalid', 3000);
-
-await line(shell, '3. Yes — Vitest unit tests covering valid and invalid inputs', 8000);
-
+// Wait for banner + REPL prompt to fully render
 await pause(3000);
 
-await line(shell, '/loop', 4000);
+// Type the /spec command
+await type(shell, '/spec "Add a helper function to validate version string format and export it in version.ts"');
+await enter(shell, 1000);
 
-await pause(15000);
+// Wait for Daedalus to fetch and display the 3 clarification questions
+// (API call + render takes a few seconds)
+await pause(9000);
 
-shell.write('\x03');
-await pause(1000);
+// /spec uses a SINGLE "Your answers:" prompt — type ALL answers on ONE line
+await type(shell, '1. Strict SemVer major.minor.patch with optional pre-release like 1.0.0-beta. 2. Return boolean true if valid false if invalid. 3. Yes Vitest unit tests covering valid and invalid inputs.');
+await enter(shell, 12000);
 
-await line(shell, 'exit', 1000);
+// Wait for spec generation + GitHub issue creation + Discord notification to complete
+await pause(5000);
+
+// Exit cleanly
+await type(shell, '/exit');
+await enter(shell, 2000);
