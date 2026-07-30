@@ -6,6 +6,9 @@ Daedalus (published on npm as `daedalus-cli`) is a local-first AI coding compani
   <img src="images/notebooklm_infographic.jpg" alt="Daedalus: The Architect of Autonomous Coding Infographic" width="100%"/>
 </p>
 
+> **🎨 Explore the Visual Knowledge Hub on Discord:**
+> Browse all NotebookLM infographics, architectural diagrams, audio summaries, and video demonstrations directly in our **[Discord Knowledge Channel](https://discord.com/channels/1530095347651575939/1532496845035802795)**!
+
 ---
 
 ## Core Philosophy & Design
@@ -265,3 +268,15 @@ The global configuration governs model priority chains, UI preferences, and safe
 * `GITHUB_TOKEN` / `GH_TOKEN`: GitHub authentication token for PR creation and issue tracking.
 * `DISCORD_WEBHOOK_URL` / `DISCORD_LOOP_WEBHOOK_URL`: Webhook URL for Discord status alerts and loop channel notifications.
 * `DAEDALUS_AUTO_APPROVE`: When set to `true`, enables non-interactive auto-approval for terminal commands and reviewer repair passes.
+
+---
+
+## 🎨 Explore the Visual Knowledge Hub
+
+Want to see all generated **NotebookLM Infographics, Architecture Flowcharts, Audio Summaries, and Video Demonstrations** produced by the Daedalus research pipeline?
+
+Join our community Discord channel to browse the visual assets, discuss agent architectures, and share your specs:
+
+👉 **[Join the Daedalus Discord Knowledge Channel](https://discord.com/channels/1530095347651575939/1532496845035802795)**
+*(Official Discord Server: [https://discord.gg/weightnsee](https://discord.gg/weightnsee))*
+
