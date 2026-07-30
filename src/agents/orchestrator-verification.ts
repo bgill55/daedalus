@@ -6,6 +6,7 @@ import pc from 'picocolors';
 import { PLACEHOLDER_RE, HTML_PLACEHOLDER_RE } from './orchestrator-types.js';
 import type { DelegationTask, AgentResult } from './orchestrator-types.js';
 import type { ToolContext } from '../types.js';
+import { loadSpecContract } from './spec.js';
 
 export function isDeclaredError(result: string): boolean {
   const normalized = result.trim().toLowerCase();
@@ -391,4 +392,38 @@ export async function rollbackTaskPatches(toolContext: ToolContext, historyStart
   }
 
   history.length = historyStartIndex;
+}
+
+export async function verifySpecAssertions(projectRoot: string): Promise<{ success: boolean; errorLogs?: string }> {
+  const spec = loadSpecContract(projectRoot);
+  if (!spec || !spec.testCases || spec.testCases.length === 0) {
+    return { success: true };
+  }
+
+  const failures: string[] = [];
+
+  for (const tc of spec.testCases) {
+    const fullPath = path.resolve(projectRoot, tc.targetFile);
+
+    if (tc.assertionType === 'file_exists') {
+      if (!fs.existsSync(fullPath)) {
+        failures.push(`Spec Assertion Failed [file_exists]: Target file '${tc.targetFile}' was not created.`);
+      }
+    } else if (tc.assertionType === 'export_check' || tc.assertionType === 'type_check') {
+      if (!fs.existsSync(fullPath)) {
+        failures.push(`Spec Assertion Failed [${tc.assertionType}]: Target file '${tc.targetFile}' does not exist.`);
+      } else {
+        const content = fs.readFileSync(fullPath, 'utf-8');
+        if (tc.expectedOutput && !content.includes(tc.expectedOutput)) {
+          failures.push(`Spec Assertion Failed [${tc.assertionType}]: '${tc.targetFile}' does not satisfy contract snippet: ${tc.expectedOutput}`);
+        }
+      }
+    }
+  }
+
+  if (failures.length > 0) {
+    return { success: false, errorLogs: failures.join('\n') };
+  }
+
+  return { success: true };
 }

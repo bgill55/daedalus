@@ -1,0 +1,867 @@
+# The configurations that used for the recording, feel free to edit them
+config:
+
+  command: powershell.exe
+  cwd: D:\Daedalus
+  env:
+    FORCE_COLOR: "3"
+    TERM: xterm-256color
+  cols: 110
+  rows: 36
+  repeat: 0
+  quality: 100
+  frameDelay: auto
+  maxIdleTime: 3000
+  
+  frameBox:
+    type: window
+    title: "Daedalus — AI Coding CLI"
+    style:
+      background: "#0f0f1a"
+  
+  cursorStyle: block
+  fontFamily: "Cascadia Code, Fira Code, Consolas, monospace"
+  fontSize: 14
+  lineHeight: 1.2
+  letterSpacing: 0
+  
+  theme:
+    background:    "#0f0f1a"
+    foreground:    "#e2e8f0"
+    cursor:        "#00d4aa"
+    cursorAccent:  "#0f0f1a"
+    selection:     "rgba(0, 212, 170, 0.15)"
+    black:         "#1a1a2e"
+    red:           "#ff6b6b"
+    green:         "#00d4aa"
+    yellow:        "#ffd93d"
+    blue:          "#7c3aed"
+    magenta:       "#a78bfa"
+    cyan:          "#00d4aa"
+    white:         "#e2e8f0"
+    brightBlack:   "#2a2a4a"
+    brightRed:     "#ff8787"
+    brightGreen:   "#20e5bb"
+    brightYellow:  "#ffe066"
+    brightBlue:    "#9d5cf5"
+    brightMagenta: "#c4b5fd"
+    brightCyan:    "#20e5bb"
+    brightWhite:   "#f8fafc"
+  
+# Records, feel free to edit them
+records:
+  - delay: 346
+    content: "\e[?9001h\e[?1004h"
+  - delay: 51
+    content: "\e[?25l\e[2J\e[m\e[HWindows PowerShell\r\nCopyright (C) Microsoft Corporation. All rights reserved.\e]0;C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\a\e[?25h"
+  - delay: 13
+    content: "\e[?25l\e[4;1H\e[?25h"
+  - delay: 100
+    content: 'PS D:\Daedalus> '
+  - delay: 23037
+    content: "\e[?25l"
+  - delay: 8
+    content: "\e[93mnode \e[37mD:\\Daedalus\\scripts\\demo\\demo.mjs\e[?25h"
+  - delay: 1747
+    content: "\e[m"
+  - delay: 24
+    content: "\r\n"
+  - delay: 287
+    content: "\e[?25l\e[2J\e[HPS D:\\Daedalus>\e[K\r\n\e[K\r\n\e[K\r\n\e[K\r\n\e[K\r\n\e[K\r\n\e[K\r\n\e[K\r\n\e[K\r\n\e[K\r\n\e[K\r\n\e[K\r\n\e[K\r\n\e[K\r\n\e[K\r\n\e[K\r\n\e[K\r\n\e[K\r\n\e[K\r\n\e[K\r\n\e[K\r\n\e[K\r\n\e[K\r\n\e[K\r\n\e[K\r\n\e[K\r\n\e[K\r\n\e[K\r\n\e[K\r\n\e[K\r\n\e[K\r\n\e[K\r\n\e[K\r\n\e[K\r\n\e[K\r\n\e[K\e[1;17H\e[?25h"
+  - delay: 1337
+    content: "\e[?25l"
+  - delay: 14
+    content: "\e[93mn\e[?25h"
+  - delay: 63
+    content: "\e[m\e[?25l"
+  - delay: 15
+    content: "\e[93m\bnp\e[?25h"
+  - delay: 15
+    content: "\e[m"
+  - delay: 32
+    content: "\e[?25l"
+  - delay: 15
+    content: "\e[93m\e[1;17Hnpx\e[?25h"
+  - delay: 64
+    content: "\e[m\e[?25l"
+  - delay: 13
+    content: "\e[93m\e[1;17Hnpx \e[?25h"
+  - delay: 47
+    content: "\e[m\e[?25l"
+  - delay: 14
+    content: "\e[93m\e[1;17Hnpx \e[37mt\e[?25h"
+  - delay: 16
+    content: "\e[m"
+  - delay: 46
+    content: "\e[?25l"
+  - delay: 15
+    content: "\e[93m\e[1;17Hnpx \e[37mts\e[?25h"
+  - delay: 64
+    content: "\e[m\e[?25l"
+  - delay: 16
+    content: "\e[93m\e[1;17Hnpx \e[37mtsx\e[?25h"
+  - delay: 64
+    content: "\e[m\e[?25l"
+  - delay: 15
+    content: "\e[93m\e[1;17Hnpx \e[37mtsx \e[?25h"
+  - delay: 65
+    content: "\e[m\e[?25l"
+  - delay: 15
+    content: "\e[93m\e[1;17Hnpx \e[37mtsx s\e[?25h"
+  - delay: 15
+    content: "\e[m"
+  - delay: 48
+    content: "\e[?25l"
+  - delay: 15
+    content: "\e[93m\e[1;17Hnpx \e[37mtsx sr\e[?25h"
+  - delay: 15
+    content: "\e[m"
+  - delay: 32
+    content: "\e[?25l"
+  - delay: 16
+    content: "\e[93m\e[1;17Hnpx \e[37mtsx src\e[?25h"
+  - delay: 15
+    content: "\e[m"
+  - delay: 48
+    content: "\e[?25l"
+  - delay: 16
+    content: "\e[93m\e[1;17Hnpx \e[37mtsx src/\e[?25h"
+  - delay: 63
+    content: "\e[m\e[?25l"
+  - delay: 15
+    content: "\e[93m\e[1;17Hnpx \e[37mtsx src/i\e[?25h"
+  - delay: 14
+    content: "\e[m"
+  - delay: 48
+    content: "\e[?25l"
+  - delay: 16
+    content: "\e[93m\e[1;17Hnpx \e[37mtsx src/in\e[?25h"
+  - delay: 47
+    content: "\e[m\e[?25l"
+  - delay: 16
+    content: "\e[93m\e[1;17Hnpx \e[37mtsx src/ind\e[?25h"
+  - delay: 15
+    content: "\e[m"
+  - delay: 31
+    content: "\e[?25l"
+  - delay: 15
+    content: "\e[93m\e[1;17Hnpx \e[37mtsx src/inde\e[?25h"
+  - delay: 15
+    content: "\e[m"
+  - delay: 49
+    content: "\e[?25l"
+  - delay: 15
+    content: "\e[93m\e[1;17Hnpx \e[37mtsx src/index\e[?25h"
+  - delay: 63
+    content: "\e[m\e[?25l"
+  - delay: 15
+    content: "\e[93m\e[1;17Hnpx \e[37mtsx src/index.\e[?25h"
+  - delay: 48
+    content: "\e[m\e[?25l"
+  - delay: 15
+    content: "\e[93m\e[1;17Hnpx \e[37mtsx src/index.t\e[?25h"
+  - delay: 15
+    content: "\e[m"
+  - delay: 48
+    content: "\e[?25l"
+  - delay: 15
+    content: "\e[93m\e[1;17Hnpx \e[37mtsx src/index.ts\e[?25h"
+  - delay: 61
+    content: "\e[m\r\n"
+  - delay: 237
+    content: "\e]0;npm\a"
+  - delay: 68
+    content: "\e]0;npm exec tsx src/index.ts\a"
+  - delay: 453
+    content: \
+  - delay: 10
+    content: "\r\e[K"
+  - delay: 20
+    content: "\e]0;C:\\WINDOWS\\system32\\cmd.exe \a"
+  - delay: 433
+    content: "◇ injected env (2) from .env \e[2m// tip: ⌘ custom filepath { path: '/custom/path/.env' }\r\n"
+  - delay: 15
+    content: "\e[22m"
+  - delay: 16
+    content: "\e[?25l\e[36m\r\n  Welcome to Daedalus version v\e[1m1.95.2\e[22m (upgraded from v1.95.1)!\e[m\e[1m\e[6;1H--- What's New in this Version ---\e[22m\r\n## [1.95.2](https://github.com/bgill55/daedalus/compare/v1.95.1...v1.95.2) (2026-07-30)\e[10;1H### Bug Fixes\e[12;1H* **demo:** type all spec answers as single line, increase API wait pauses, drop loop from demo ([d10b1d8](https://github.com/bgill55/daedalus/commit/d10b1d8e76aa8b84590224f4fb421f66564f9406))\e[1m\r\n----------------------------------\e[16;1H\e[?25h"
+  - delay: 12
+    content: "\e[?25l\e[22m\e[36m╔════════════════════════════════════════════════════════════════════════════╗\r\n║                                                                            ║\r\n║ ██████╗   █████╗  ███████╗ █\e[37m█████╗   █████╗  ██╗     ██╗   ██╗ ███████╗    \e[36m║\r\n║ ██╔══██╗ ██╔══██╗ ██╔════╝ ██╔═\e[37m═██╗ ██╔══██╗ ██║     ██║   ██║ ██╔════╝    \e[36m║\r\n║ ██║  ██║ ███████║ █████╗   ██║  ██\e[37m║ ███████║ ██║     ██║   ██║ ███████╗    \e[36m║\r\n║ ██║  ██║ ██╔══██║ ██╔══╝   ██║  ██║ \e[37m██╔══██║ ██║     ██║   ██║ ╚════██║    \e[36m║\r\n║ ██████╔╝ ██║  ██║ ███████╗ ██████╔╝ ██║  \e[37m██║ ███████╗╚██████╔╝ ███████║    \e[36m║\r\n║ ╚═════╝  ╚═╝  ╚═╝ ╚══════╝ ╚═════╝  ╚═╝  ╚\e[37m═╝ ╚══════╝ ╚═════╝  ╚══════╝    \e[36m║\r\n║                                                                            ║\r\n║   \e[m\e[2m⬡  local-first  ·  embedded router  ·  multi-agent  ·  not sentient  ⬡\e[22m   \e[36m║\r\n╚════════════════════════════════════════════════════════════════════════════╝\e[m\e[28;1H  \e[30m\e[46m\e[1m DAEDALUS \e[36m\e[40m  v1.95.2\e[39m\e[22m\e[2m · \e[37m\e[22mbgill55_dev  \e[m\e[2m\e[30;1H  ┌─ \e[36m\e[22mrouter\e[m\e[2m ────────────────────────────────────────────────────────────────────────┐\r\n  │ \e[37m\e[22mstrategy  priority    models  78   config  C:\\Users\\brica\\.daedalus/config.json\e[m\e[2m │\r\n  └─────────────────────────────────────────────────────────────────────────────────┘\e[22m\e[34;1H  \e[2mType\e[22m \e[36m? \e[m\e[2mfor commands  ·  \e[22m \e[36mhttps://discord.gg/GPH2ZH57up \e[m\e[2m(Discord)\e[22m \e[2m  ·  \e[22m \e[36mhttps://github.com/bgill55/daedalus \e[m\e[2m(Star us!)\r\n\e[?25h\e[22m\n\e[32m  ✔ Loaded project rules: \e[1mCLAUDE.md\e[m\e[K\r"
+  - delay: 15
+    content: |+
+
+  - delay: 90
+    content: "\e]0;npm\a"
+  - delay: 59
+    content: "\e]0;npm exec @modelcontextprotocol/server-filesystem C:\\\a"
+  - delay: 1714
+    content: "\e]0;C:\\WINDOWS\\system32\\cmd.exe \a"
+  - delay: 259
+    content: "[MCP:filesystem] stderr: Secure MCP Filesystem Server running on stdio\r\n\n"
+  - delay: 7
+    content: "\e[?25l[MCP:filesystem] stderr: Client does not support MCP Roots, using allowed directories set from server args: [ \e[36;1H\n\e[35;110H \e[32m'C:\\\\' \e[m]\e[K\r\e[?25h"
+  - delay: 5
+    content: "\n\nConnected to MCP server: filesystem (14 tools)\r\n\n\e[32mMCP connected: filesystem\r\e[m\n\e[2m  14 MCP tool(s) registered\e[22m\e[K\r\n"
+  - delay: 15
+    content: "\n\e[36m  ⬡ \e[37m\e[1m›\e[m\e[K\e[1C"
+  - delay: 7559
+    content: /
+  - delay: 62
+    content: s
+  - delay: 80
+    content: p
+  - delay: 62
+    content: e
+  - delay: 61
+    content: c
+  - delay: 80
+    content: ' '
+  - delay: 78
+    content: '"'
+  - delay: 63
+    content: A
+  - delay: 63
+    content: d
+  - delay: 78
+    content: d
+  - delay: 63
+    content: ' '
+  - delay: 61
+    content: a
+  - delay: 79
+    content: ' '
+  - delay: 77
+    content: h
+  - delay: 81
+    content: e
+  - delay: 78
+    content: l
+  - delay: 64
+    content: p
+  - delay: 62
+    content: e
+  - delay: 65
+    content: r
+  - delay: 62
+    content: ' '
+  - delay: 78
+    content: f
+  - delay: 62
+    content: u
+  - delay: 63
+    content: 'n'
+  - delay: 64
+    content: c
+  - delay: 76
+    content: t
+  - delay: 62
+    content: i
+  - delay: 77
+    content: o
+  - delay: 75
+    content: 'n'
+  - delay: 62
+    content: ' '
+  - delay: 79
+    content: t
+  - delay: 79
+    content: o
+  - delay: 66
+    content: ' '
+  - delay: 77
+    content: v
+  - delay: 77
+    content: a
+  - delay: 63
+    content: l
+  - delay: 63
+    content: i
+  - delay: 64
+    content: d
+  - delay: 78
+    content: a
+  - delay: 79
+    content: t
+  - delay: 78
+    content: e
+  - delay: 78
+    content: ' '
+  - delay: 79
+    content: v
+  - delay: 78
+    content: e
+  - delay: 78
+    content: r
+  - delay: 63
+    content: s
+  - delay: 80
+    content: i
+  - delay: 62
+    content: o
+  - delay: 63
+    content: 'n'
+  - delay: 77
+    content: ' '
+  - delay: 62
+    content: s
+  - delay: 63
+    content: t
+  - delay: 79
+    content: r
+  - delay: 61
+    content: i
+  - delay: 78
+    content: 'n'
+  - delay: 77
+    content: g
+  - delay: 78
+    content: ' '
+  - delay: 78
+    content: f
+  - delay: 77
+    content: o
+  - delay: 79
+    content: r
+  - delay: 79
+    content: m
+  - delay: 62
+    content: a
+  - delay: 80
+    content: t
+  - delay: 80
+    content: ' '
+  - delay: 77
+    content: a
+  - delay: 63
+    content: 'n'
+  - delay: 80
+    content: d
+  - delay: 77
+    content: ' '
+  - delay: 94
+    content: e
+  - delay: 78
+    content: x
+  - delay: 77
+    content: p
+  - delay: 79
+    content: o
+  - delay: 77
+    content: r
+  - delay: 79
+    content: t
+  - delay: 80
+    content: ' '
+  - delay: 78
+    content: i
+  - delay: 81
+    content: t
+  - delay: 78
+    content: ' '
+  - delay: 93
+    content: i
+  - delay: 76
+    content: 'n'
+  - delay: 92
+    content: ' '
+  - delay: 77
+    content: v
+  - delay: 78
+    content: e
+  - delay: 78
+    content: r
+  - delay: 65
+    content: s
+  - delay: 78
+    content: i
+  - delay: 79
+    content: o
+  - delay: 78
+    content: 'n'
+  - delay: 79
+    content: .
+  - delay: 79
+    content: t
+  - delay: 63
+    content: s
+  - delay: 78
+    content: '"'
+  - delay: 79
+    content: "\r"
+  - delay: 14
+    content: |+
+
+  - delay: 213
+    content: "\n\e[36mFleshing out spec for: \"\"Add a helper function to validate version string format and export it in version.ts\"\"\e[36;1H\e[m\n"
+  - delay: 22
+    content: "\e[2mGathering requirements...\r\e[22m"
+  - delay: 16
+    content: |+
+
+  - delay: 708
+    content: "\n\e[1m--- Clarification Questions ---\e[22m\e[K\r\n\e[?25l\e[?25l\e[?25l1. What exact version string pattern should the validator accept (e.g., `MAJOR.MINOR.PATCH`, optional prerelea\e[36;1H\n\e[35;110Hase/build metadata, semver strictness)?\r\e[?25h\n2. Should the function throw errors, return a boolean, or provide detailed validation results (e.g., error mes\e[36;1H\n\e[35;110Hssages)?\r\e[?25h\n3. Are there any existing utilities, linting rules, or runtime environments (Node, browser, Deno) that the imp\e[36;1H\n\e[35;110Hplementation must integrate with or conform to?\r\e[?25h\n\e[1m------------------------------\e[22m\e[K\r"
+  - delay: 17
+    content: |+
+
+  - delay: 15
+    content: "\n\e[1mYour answers: \e[22m\e[K"
+  - delay: 9009
+    content: '1'
+  - delay: 78
+    content: .
+  - delay: 77
+    content: ' '
+  - delay: 79
+    content: S
+  - delay: 63
+    content: t
+  - delay: 62
+    content: r
+  - delay: 62
+    content: i
+  - delay: 62
+    content: c
+  - delay: 79
+    content: t
+  - delay: 80
+    content: ' '
+  - delay: 78
+    content: S
+  - delay: 78
+    content: e
+  - delay: 79
+    content: m
+  - delay: 63
+    content: V
+  - delay: 79
+    content: e
+  - delay: 77
+    content: r
+  - delay: 77
+    content: ' '
+  - delay: 95
+    content: m
+  - delay: 76
+    content: a
+  - delay: 80
+    content: j
+  - delay: 79
+    content: o
+  - delay: 78
+    content: r
+  - delay: 78
+    content: .
+  - delay: 63
+    content: m
+  - delay: 79
+    content: i
+  - delay: 78
+    content: 'n'
+  - delay: 80
+    content: o
+  - delay: 78
+    content: r
+  - delay: 80
+    content: .
+  - delay: 64
+    content: p
+  - delay: 79
+    content: a
+  - delay: 79
+    content: t
+  - delay: 79
+    content: c
+  - delay: 78
+    content: h
+  - delay: 77
+    content: ' '
+  - delay: 80
+    content: w
+  - delay: 79
+    content: i
+  - delay: 79
+    content: t
+  - delay: 77
+    content: h
+  - delay: 77
+    content: ' '
+  - delay: 94
+    content: o
+  - delay: 78
+    content: p
+  - delay: 77
+    content: t
+  - delay: 78
+    content: i
+  - delay: 79
+    content: o
+  - delay: 93
+    content: 'n'
+  - delay: 78
+    content: a
+  - delay: 79
+    content: l
+  - delay: 79
+    content: ' '
+  - delay: 79
+    content: p
+  - delay: 78
+    content: r
+  - delay: 80
+    content: e
+  - delay: 77
+    content: '-'
+  - delay: 78
+    content: r
+  - delay: 62
+    content: e
+  - delay: 78
+    content: l
+  - delay: 62
+    content: e
+  - delay: 79
+    content: a
+  - delay: 80
+    content: s
+  - delay: 79
+    content: e
+  - delay: 64
+    content: ' '
+  - delay: 80
+    content: l
+  - delay: 77
+    content: i
+  - delay: 63
+    content: k
+  - delay: 78
+    content: e
+  - delay: 62
+    content: ' '
+  - delay: 79
+    content: '1'
+  - delay: 77
+    content: .
+  - delay: 62
+    content: '0'
+  - delay: 62
+    content: .
+  - delay: 63
+    content: '0'
+  - delay: 78
+    content: '-'
+  - delay: 62
+    content: b
+  - delay: 63
+    content: e
+  - delay: 64
+    content: t
+  - delay: 62
+    content: a
+  - delay: 78
+    content: .
+  - delay: 80
+    content: ' '
+  - delay: 78
+    content: '2'
+  - delay: 79
+    content: .
+  - delay: 62
+    content: ' '
+  - delay: 64
+    content: R
+  - delay: 62
+    content: e
+  - delay: 63
+    content: t
+  - delay: 78
+    content: u
+  - delay: 77
+    content: r
+  - delay: 80
+    content: 'n'
+  - delay: 63
+    content: ' '
+  - delay: 62
+    content: b
+  - delay: 79
+    content: o
+  - delay: 80
+    content: o
+  - delay: 62
+    content: l
+  - delay: 78
+    content: e
+  - delay: 77
+    content: a
+  - delay: 78
+    content: 'n'
+  - delay: 61
+    content: ' '
+  - delay: 15
+    content: "\r\n\e[35;110H \r\n"
+  - delay: 46
+    content: t
+  - delay: 62
+    content: r
+  - delay: 78
+    content: u
+  - delay: 64
+    content: e
+  - delay: 78
+    content: ' '
+  - delay: 79
+    content: i
+  - delay: 62
+    content: f
+  - delay: 80
+    content: ' '
+  - delay: 62
+    content: v
+  - delay: 79
+    content: a
+  - delay: 79
+    content: l
+  - delay: 63
+    content: i
+  - delay: 79
+    content: d
+  - delay: 77
+    content: ' '
+  - delay: 80
+    content: f
+  - delay: 78
+    content: a
+  - delay: 78
+    content: l
+  - delay: 77
+    content: s
+  - delay: 81
+    content: e
+  - delay: 78
+    content: ' '
+  - delay: 63
+    content: i
+  - delay: 64
+    content: f
+  - delay: 79
+    content: ' '
+  - delay: 63
+    content: i
+  - delay: 64
+    content: 'n'
+  - delay: 62
+    content: v
+  - delay: 61
+    content: a
+  - delay: 78
+    content: l
+  - delay: 77
+    content: i
+  - delay: 62
+    content: d
+  - delay: 79
+    content: .
+  - delay: 78
+    content: ' '
+  - delay: 79
+    content: '3'
+  - delay: 78
+    content: .
+  - delay: 79
+    content: ' '
+  - delay: 77
+    content: 'Y'
+  - delay: 78
+    content: e
+  - delay: 63
+    content: s
+  - delay: 79
+    content: ' '
+  - delay: 76
+    content: V
+  - delay: 64
+    content: i
+  - delay: 79
+    content: t
+  - delay: 79
+    content: e
+  - delay: 64
+    content: s
+  - delay: 93
+    content: t
+  - delay: 79
+    content: ' '
+  - delay: 79
+    content: u
+  - delay: 78
+    content: 'n'
+  - delay: 77
+    content: i
+  - delay: 78
+    content: t
+  - delay: 79
+    content: ' '
+  - delay: 79
+    content: t
+  - delay: 78
+    content: e
+  - delay: 63
+    content: s
+  - delay: 77
+    content: t
+  - delay: 93
+    content: s
+  - delay: 80
+    content: ' '
+  - delay: 78
+    content: c
+  - delay: 79
+    content: o
+  - delay: 77
+    content: v
+  - delay: 80
+    content: e
+  - delay: 78
+    content: r
+  - delay: 63
+    content: i
+  - delay: 78
+    content: 'n'
+  - delay: 79
+    content: g
+  - delay: 78
+    content: ' '
+  - delay: 77
+    content: v
+  - delay: 80
+    content: a
+  - delay: 78
+    content: l
+  - delay: 78
+    content: i
+  - delay: 80
+    content: d
+  - delay: 78
+    content: ' '
+  - delay: 63
+    content: a
+  - delay: 62
+    content: 'n'
+  - delay: 80
+    content: d
+  - delay: 62
+    content: ' '
+  - delay: 80
+    content: i
+  - delay: 79
+    content: 'n'
+  - delay: 91
+    content: v
+  - delay: 78
+    content: a
+  - delay: 62
+    content: l
+  - delay: 80
+    content: i
+  - delay: 74
+    content: d
+  - delay: 79
+    content: ' '
+  - delay: 78
+    content: i
+  - delay: 64
+    content: 'n'
+  - delay: 61
+    content: p
+  - delay: 64
+    content: u
+  - delay: 79
+    content: t
+  - delay: 79
+    content: s
+  - delay: 78
+    content: .
+  - delay: 79
+    content: "\r\n"
+  - delay: 15
+    content: "\n\e[36mGenerating final specification...\r\e[m"
+  - delay: 16
+    content: |+
+
+  - delay: 4922
+    content: "\e[36mCreating issue on GitHub...\r\e[m"
+  - delay: 15
+    content: |+
+
+  - delay: 791
+    content: "\n\e[32m✔ Issue created successfully on GitHub: \e[1mhttps://github.com/bgill55/daedalus/issues/19\e[22m\e[K\r\e[m\n"
+  - delay: 465
+    content: "\e[32m✔ Sent Discord notification embed.\r\e[m"
+  - delay: 13
+    content: |+
+
+  - delay: 15
+    content: "\n\e[36m  ⬡ \e[37m\e[1m›\e[m\e[K\e[1C"
+  - delay: 14776
+    content: /
+  - delay: 62
+    content: e
+  - delay: 77
+    content: x
+  - delay: 92
+    content: i
+  - delay: 96
+    content: t
+  - delay: 60
+    content: "\r"
+  - delay: 15
+    content: |+
+
+  - delay: 88
+    content: "\e[2m  [EXTRACT] Extracting facts from session...\r\e[22m\n\e[90mSession saved: session-1785395490147-ec0138\r\e[m\n\n\e[33mEnding session. Goodbye!\r"
+  - delay: 20
+    content: "\e[m\n"
+  - delay: 15
+    content: |+
+
+  - delay: 16
+    content: "PS D:\\Daedalus> \e]0;C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\powershell.exe\a"
+  - delay: 47574
+    content: "\r"
+  - delay: 18
+    content: "\nPS D:\\Daedalus>\e[1C"
+  - delay: 1645
+    content: "\e[?25l"
+  - delay: 10
+    content: "\e[93m^D\e[?25h"
+  - delay: 1481
+    content: "\e[m\e[?25l"
+  - delay: 17
+    content: "\e[36;17H  \e[36;17H\e[?25h"
+  - delay: 1452
+    content: "\e[?25l"
+  - delay: 19
+    content: "\e[93m^D\e[?25h"
+  - delay: 997
+    content: "\e[m\e[?25l"
+  - delay: 10
+    content: "\e[36;17H  \e[36;17H\e[?25h"
+  - delay: 162918
+    content: "\e[?25l"
+  - delay: 16
+    content: "\e[93me\e[?25h"
+  - delay: 245
+    content: "\e[m\e[?25l"
+  - delay: 17
+    content: "\e[93m\bex\e[?25h"
+  - delay: 614
+    content: "\e[m\e[?25l"
+  - delay: 20
+    content: "\e[93m\e[36;17Hexi\e[?25h"
+  - delay: 345
+    content: "\e[m\e[?25l"
+  - delay: 12
+    content: "\e[92m\e[36;17Hexit\e[?25h"
+  - delay: 850
+    content: "\e[m"
+  - delay: 14
+    content: "\r\n"

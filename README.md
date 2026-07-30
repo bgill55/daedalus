@@ -129,7 +129,7 @@ AI assistance without:
 | `/tasks` | List background agent tasks |
 | `/ensemble <goal>` | Ensemble model drafting pipeline |
 | `/debug <command>` | Run command and autonomously debug failures |
-| `/spec` | Flesh out a feature idea into a GitHub Issue spec (Finn Loop) |
+| `/spec` | Generate or view a SpecFirst contract (.daedalus/spec.json & spec.md) |
 
 ### Codebase Search & Live Watcher
 

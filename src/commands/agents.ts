@@ -6,6 +6,7 @@ import pc from 'picocolors';
 import { executeToolCalls } from '../tools/executor.js';
 import { spawnBackgroundAgent } from '../agents/background.js';
 import { handleSpecCommand, getGitRepoInfo } from '../agents/loop.js';
+import { generateSpecContract, loadSpecContract, formatSpecForPrompt } from '../agents/spec.js';
 import { turnSeparator } from '../formatting.js';
 import { execSync } from 'child_process';
 
@@ -267,11 +268,44 @@ export const agentCommands: Command[] = [
   },
   {
     name: '/spec',
-    description: 'Flesh out a feature idea into a GitHub Issue spec (Finn Loop)',
-    usage: '/spec <goal>',
-    helpText: 'Generate detailed specifications and requirements for a coding goal.\nRuns an interactive interview query chain to clarify goals, then saves the resulting specification format.',
+    description: 'Generate or view a SpecFirst contract (.daedalus/spec.json & spec.md)',
+    usage: '/spec [generate <goal> | view | <goal>]',
+    helpText: 'Generate formal SpecFirst interface contracts, TypeScript schemas, and test assertions before coding.\n\nSubcommands:\n  /spec view               Display the active feature specification contract\n  /spec generate <goal>    Generate a new SpecFirst contract for a goal\n  /spec <goal>            Generate spec contract and create GitHub issue',
     execute: async (args, ctx) => {
-      await handleSpecCommand(args, ctx);
+      const trimmed = args.trim();
+      const projectRoot = ctx.toolContext.projectRoot || process.cwd();
+
+      if (trimmed.toLowerCase() === 'view') {
+        const spec = loadSpecContract(projectRoot);
+        if (!spec) {
+          console.log(pc.yellow('\n[SpecFirst] No active spec contract found at .daedalus/spec.json'));
+          console.log(pc.gray('  Use /spec generate <goal> to create a new contract.'));
+          return;
+        }
+        console.log(pc.cyan(`\n${formatSpecForPrompt(spec)}`));
+        return;
+      }
+
+      let goal = trimmed;
+      if (trimmed.toLowerCase().startsWith('generate ')) {
+        goal = trimmed.substring(9).trim();
+      }
+
+      if (!goal) {
+        console.log(pc.yellow('\nUsage: /spec [generate <goal> | view | <goal>]'));
+        return;
+      }
+
+      console.log(pc.cyan(`\n[SpecFirst] Generating specification contract for: "${goal}"...`));
+      const spec = await generateSpecContract(goal, ctx.router, projectRoot);
+      console.log(pc.green(`✔ [SpecFirst] Spec contract created successfully!`));
+      console.log(pc.gray(`  Interfaces: ${spec.interfaces.length} | Functions: ${spec.functions.length} | Test Cases: ${spec.testCases.length}`));
+      console.log(pc.gray(`  Saved to .daedalus/spec.md & .daedalus/spec.json`));
+
+      if (!trimmed.toLowerCase().startsWith('generate ')) {
+        // Also run GitHub issue creation if desired
+        await handleSpecCommand(goal, ctx);
+      }
     }
   },
   {

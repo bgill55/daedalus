@@ -25,8 +25,9 @@ import {
   verifyArtifacts, hasRealWrites, verifyArtifactsThoroughly,
   checkPlaceholders, fillPlaceholders, buildCleanSummary,
   isBuildErrorRelated, generateBuildErrorHint, runBuildVerification,
-  attemptRepair, rollbackTaskPatches,
+  attemptRepair, rollbackTaskPatches, verifySpecAssertions,
 } from './orchestrator-verification.js';
+import { generateSpecContract, loadSpecContract, formatSpecForPrompt } from './spec.js';
 import type { DelegationTask, AgentResult } from './orchestrator-types.js';
 
 
@@ -116,6 +117,14 @@ export class Orchestrator {
       const projectContext = await this.discoverProjectContext();
       if (projectContext) {
         console.log(pc.gray(`\n${projectContext.split('\n').map(l => `  ${l}`).join('\n')}`));
+      }
+
+      const projectRoot = this.toolContext.projectRoot || this.sessionManager?.projectRoot || process.cwd();
+      if (process.env.DAEDALUS_SPEC_FIRST !== 'false') {
+        console.log(pc.cyan(`\n[SpecFirst] Generating formal feature specification contract...`));
+        const spec = await generateSpecContract(goal, this.router, projectRoot);
+        console.log(pc.green(`✔ [SpecFirst] Spec contract created (${spec.interfaces.length} interfaces, ${spec.testCases.length} test cases)`));
+        console.log(pc.gray(`  Spec saved to .daedalus/spec.md & .daedalus/spec.json`));
       }
 
       let plan = await this.createPlan(goal, projectContext);
@@ -970,6 +979,12 @@ export class Orchestrator {
     const currentDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
     let enrichedContext = `Current date: ${currentDate}\n`;
 
+    const projectRoot = this.toolContext.projectRoot || this.sessionManager?.projectRoot || process.cwd();
+    const specContract = loadSpecContract(projectRoot);
+    if (specContract) {
+      enrichedContext += `\n${formatSpecForPrompt(specContract)}\n`;
+    }
+
     // Build systemExtra with project context — system prompt is more authoritative than user message
     const frameworkBlock = projectContext
       ? `Follow the project framework conventions (e.g., Next.js pages go under pages/, Vue components under components/).\n`
@@ -1170,6 +1185,15 @@ export class Orchestrator {
           checkLogs = (checkResult.errorLogs || 'Build check failed') + generateBuildErrorHint(checkResult.errorLogs || '');
         } else {
           console.log(pc.yellow(`\n[VERIFY] Build check failed, but errors appear to be in unrelated files. Ignoring build failure for this task.`));
+        }
+      }
+
+      if (verified) {
+        const specResult = await verifySpecAssertions(this.toolContext.projectRoot || process.cwd());
+        if (!specResult.success) {
+          console.log(pc.yellow(`\n[SpecFirst] Spec contract assertion check failed!`));
+          verified = false;
+          checkLogs = (specResult.errorLogs || 'Spec contract check failed');
         }
       }
     }

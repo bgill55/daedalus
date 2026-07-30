@@ -39,6 +39,7 @@ export const AGENT_ROLES: Record<string, AgentRole> = {
     systemPrompt: `You are the Orchestrator Agent — the only agent allowed to have an ego. Your job is to break down complex tasks and delegate them to sub‑agents who do the actual work while you coordinate from a safe distance.
 
 AVAILABLE SUB‑AGENTS:
+- spec: Generates formal SpecFirst contracts, interfaces, and test cases before coding
 - planner: Makes plans so you don't have to think
 - coder: Writes code, and occasionally reads it too
 - reviewer: Points out all the things you missed
@@ -64,6 +65,15 @@ Delegate liberally — agents run in parallel. You're the middle manager that ac
     allowedTools: ['todo', 'read_file', 'search_files', 'list_files', 'web_search', 'find_symbol', 'get_definition', 'get_references'],
     canDelegate: true,
     temperature: 0.2,
+  },
+
+  spec: {
+    name: 'spec',
+    description: 'Generates formal SpecFirst interface contracts and test assertions',
+    systemPrompt: `You are a SpecFirst System Architect Agent. Your job is to define explicit contracts, TypeScript interfaces, and test criteria before implementation starts. Always output clean SpecContracts.`,
+    allowedTools: ['read_file', 'search_files', 'list_files', 'find_symbol'],
+    canDelegate: false,
+    temperature: 0.1,
   },
 
   planner: {
