@@ -328,7 +328,7 @@ export async function startLoopDaemon(ctx: ToolContext, config: any, router: any
       }
 
       // 3. Orchestration Passed — run self-review gate before committing
-      console.log(`\n  ${pc.bold(pc.cyan('── Self-Review Gate ──'))} ${pc.dim('─'.repeat(42))}`);
+      console.log(`\n  ${pc.bold(pc.magenta('── Self-Review Gate ──'))} ${pc.dim('─'.repeat(42))}`);
 
       const MAX_REVIEW_RETRIES = 2;
       let reviewGatePassed = false;
