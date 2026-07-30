@@ -1,3 +1,10 @@
+# [1.92.0](https://github.com/bgill55/daedalus/compare/v1.91.0...v1.92.0) (2026-07-30)
+
+
+### Features
+
+* **bot:** dynamically inject current package version and recent changelog updates into Discord bot prompt ([3c0dd03](https://github.com/bgill55/daedalus/commit/3c0dd038eae8bf70f00da4e85a5e50c9d641960c))
+
 # [1.91.0](https://github.com/bgill55/daedalus/compare/v1.90.0...v1.91.0) (2026-07-30)
 
 
