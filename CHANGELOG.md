@@ -1,3 +1,10 @@
+# [1.93.0](https://github.com/bgill55/daedalus/compare/v1.92.1...v1.93.0) (2026-07-30)
+
+
+### Features
+
+* **bot:** add anti-repetition & banter variety guardrails to Discord bot prompt ([bbc0fcf](https://github.com/bgill55/daedalus/commit/bbc0fcfef58c8dadde154ab650180858e6779f89))
+
 ## [1.92.1](https://github.com/bgill55/daedalus/compare/v1.92.0...v1.92.1) (2026-07-30)
 
 
