@@ -1,3 +1,10 @@
+## [1.94.2](https://github.com/bgill55/daedalus/compare/v1.94.1...v1.94.2) (2026-07-30)
+
+
+### Bug Fixes
+
+* **docs:** fix Mermaid sequence diagram syntax for Docsify rendering ([05cee21](https://github.com/bgill55/daedalus/commit/05cee21bd9cefb5461f6f334bdb431c08ef5c89c))
+
 ## [1.94.1](https://github.com/bgill55/daedalus/compare/v1.94.0...v1.94.1) (2026-07-30)
 
 
