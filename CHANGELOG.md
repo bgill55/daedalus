@@ -1,3 +1,10 @@
+## [1.92.1](https://github.com/bgill55/daedalus/compare/v1.92.0...v1.92.1) (2026-07-30)
+
+
+### Bug Fixes
+
+* **bot:** chunk slash command interaction replies so long responses follow up without truncating mid-sentence ([8392e46](https://github.com/bgill55/daedalus/commit/8392e46b53b7461f48e47dfe933f79e21262c824))
+
 # [1.92.0](https://github.com/bgill55/daedalus/compare/v1.91.0...v1.92.0) (2026-07-30)
 
 
