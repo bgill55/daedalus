@@ -23,8 +23,9 @@ Daedalus (published on npm as `daedalus-cli`) is a local-first AI coding compani
 
 ## 1. System Architecture & Agent Roles
 
-Daedalus coordinates five specialized sub-agents to divide and conquer coding goals:
+Daedalus coordinates six specialized sub-agents to divide and conquer coding goals:
 
+* **Spec**: Generates formal SpecFirst interface contracts (`.daedalus/spec.json` & `spec.md`), TypeScript schemas, and test assertions before coding.
 * **Planner**: Explores requirements, creates step-by-step task lists, and determines acceptance criteria for verification.
 * **Coder**: Writes new files, makes surgical edits using a patch tool, and executes shell scripts.
 * **Researcher**: Explores the local workspace, reads documentation, and searches the web.
@@ -102,6 +103,12 @@ Daedalus features an embedded model router that handles failover, round-robin, p
 
 ### 14. Chat-History Branching System ("What-if" Sessions)
 * Non-linear session branching (`/session branch`, `/session checkout`, `/session merge`) for exploring alternative implementation paths.
+
+### 15. SpecFirst Architecture & Contract Verification Engine (`/spec`)
+* Enforces formal specification gathering, type contracts, and automated assertion verification before code is written or committed.
+* Generates `.daedalus/spec.json` and `.daedalus/spec.md` with explicit TypeScript interfaces, function signatures, and test cases.
+* Injects spec contracts into sub-agent contexts (`coder`, `planner`, `reviewer`) to ensure 100% cross-file type alignment.
+* Runs `verifySpecAssertions()` during build verification to validate file existence, export signatures, and contract snippets.
 
 ---
 
