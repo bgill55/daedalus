@@ -1,3 +1,10 @@
+## [1.95.4](https://github.com/bgill55/daedalus/compare/v1.95.3...v1.95.4) (2026-07-30)
+
+
+### Bug Fixes
+
+* **demo:** write exit to outer PowerShell so terminalizer saves recording automatically ([785017a](https://github.com/bgill55/daedalus/commit/785017afb5aab48c3a70f3ee752623f864639d42))
+
 ## [1.95.3](https://github.com/bgill55/daedalus/compare/v1.95.2...v1.95.3) (2026-07-30)
 
 
