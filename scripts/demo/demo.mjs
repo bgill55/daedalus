@@ -59,6 +59,10 @@ await enter(shell, 12000);
 // Wait for spec generation + GitHub issue creation + Discord notification to complete
 await pause(5000);
 
-// Exit cleanly
+// Let the final screen linger so terminalizer captures it, then exit
+await pause(4000);
 await type(shell, '/exit');
-await enter(shell, 2000);
+await enter(shell, 1000);
+
+// Keep the PTY alive so terminalizer detects the natural exit and saves
+await pause(3000);

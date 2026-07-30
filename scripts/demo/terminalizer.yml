@@ -1,5 +1,5 @@
-command: node D:\Daedalus\scripts\demo\demo.mjs
-cwd: D:\Daedalus
+command: powershell.exe
+cwd: D:/Daedalus
 env:
   FORCE_COLOR: "3"
   TERM: xterm-256color
@@ -15,10 +15,6 @@ frameBox:
   title: "Daedalus — AI Coding CLI"
   style:
     background: "#0f0f1a"
-    boxShadow: "0 0 60px rgba(0, 212, 170, 0.15)"
-
-watermark:
-  imagePath: null
 
 cursorStyle: block
 fontFamily: "Cascadia Code, Fira Code, Consolas, monospace"
