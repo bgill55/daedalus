@@ -738,7 +738,8 @@ export function attachListeners(c: Client, router: LocalRouter, token: string) {
       });
       console.log(`[ROUTER] Received response from: ${router.lastRoutedModel}`);
 
-      const replyText = response.choices?.[0]?.message?.content || "Something went wrong in the machine.";
+      let replyText = response.choices?.[0]?.message?.content || "Something went wrong in the machine.";
+      replyText = replyText.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
 
       if (replyText.length <= 2000) {
         await message.reply(replyText);
@@ -762,7 +763,8 @@ export function attachListeners(c: Client, router: LocalRouter, token: string) {
             ],
             temperature: 0.7,
           });
-          const text = fallback.choices?.[0]?.message?.content || '';
+          let text = fallback.choices?.[0]?.message?.content || '';
+          text = text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
           if (text) {
             await message.reply(text);
             return;
