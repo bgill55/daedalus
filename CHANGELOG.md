@@ -1,3 +1,10 @@
+## [1.97.3](https://github.com/bgill55/daedalus/compare/v1.97.2...v1.97.3) (2026-07-31)
+
+
+### Bug Fixes
+
+* **bot:** prioritize directly answering user questions in system prompt over canned opening greetings ([52bf801](https://github.com/bgill55/daedalus/commit/52bf801af5dc513ad26ac6eafd09823502a27cbf))
+
 ## [1.97.2](https://github.com/bgill55/daedalus/compare/v1.97.1...v1.97.2) (2026-07-30)
 
 
