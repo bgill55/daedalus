@@ -835,6 +835,26 @@ export const agentCommands: Command[] = [
         const orchestrationFailed = result.startsWith('Orchestration failed') || result.includes('## Orchestration Hit Verification Failures');
         const wasAborted = result.includes('## Orchestration Paused');
         if (orchestrationFailed || wasAborted) {
+          // Print Self-Evaluating Autopilot Post-Mortem Report before rolling back
+          console.log(pc.bold(pc.red('\n╔════════════════════════════════════════════════════════════════════════════╗')));
+          console.log(pc.bold(pc.red('║                   DAEDALUS AUTOPILOT POST-MORTEM REPORT                   ║')));
+          console.log(pc.bold(pc.red('╚════════════════════════════════════════════════════════════════════════════╝\n')));
+
+          const failed = orchestrator.results?.filter((r: any) => !r.success) || [];
+          if (failed.length > 0) {
+            failed.forEach((f: any, idx: number) => {
+              console.log(pc.bold(pc.red(`  ❌ Failed Step ${idx + 1}: [${f.role}] ${f.goal}`)));
+              console.log(pc.yellow(`     📌 Diagnostic: ${f.summary.split('\n')[0]}`));
+            });
+          } else {
+            console.log(pc.yellow('  ❌ Verification check failed — required files failed artifact or build checks.'));
+          }
+
+          console.log(pc.cyan('\n  💡 Next Step Options:'));
+          console.log(pc.cyan(`     - Target specific missing file: /task create <file>`));
+          console.log(pc.cyan(`     - Re-run with simplified goal: /autopilot ${idea}`));
+          console.log(pc.bold(pc.red('\n----------------------------------------------------------------------------')));
+
           throw new Error(orchestrationFailed ? 'Orchestration reported failure' : 'Orchestration was paused/aborted');
         }
       } catch (err: unknown) {

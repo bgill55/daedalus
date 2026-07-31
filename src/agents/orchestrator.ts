@@ -38,7 +38,7 @@ export class Orchestrator {
   private messages: ChatMessage[];
   private toolContext: ToolContext;
   private sessionManager?: SessionManager;
-  private results: AgentResult[] = [];
+  public results: AgentResult[] = [];
   private readonly MAX_INITIAL_TASKS = 8;
   private readonly MAX_TOTAL_TASKS = 20;
   private readonly REPLAN_INTERVAL = 2;
