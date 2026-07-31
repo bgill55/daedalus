@@ -2,6 +2,10 @@
 
 Daedalus v3.0.0 introduces **Zero-Setup Autopilot**, allowing users to specify a high-level application feature (or complete greenfield application idea) and walk away while autonomous agents architect, code, test, and style the app end-to-end.
 
+<p align="center">
+  <img src="images/notebooklm_v3_infographic.jpg" alt="Daedalus v3.0.0: The Greenfield Autopilot Workflow Infographic" width="100%"/>
+</p>
+
 ---
 
 ## 📺 Live CLI Terminal Flow Mockup

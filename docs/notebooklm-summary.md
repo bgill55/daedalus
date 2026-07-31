@@ -276,6 +276,10 @@ The global configuration governs model priority chains, UI preferences, and safe
 
 ## 3. Daedalus v3.0.0 Milestone: Zero-Setup Greenfield Autopilot & Web UI Engine
 
+<p align="center">
+  <img src="images/notebooklm_v3_infographic.jpg" alt="Daedalus v3.0.0: The Greenfield Autopilot Workflow Infographic" width="100%"/>
+</p>
+
 The landmark **v3.0.0 release** of Daedalus (`daedalus-cli@3.0.0`) brings complete zero-setup autonomous development and production web application styling to the CLI:
 
 ### 1. Non-Git & Blank Directory Auto-Initialization
