@@ -833,13 +833,23 @@ export class Orchestrator {
     }
 
     if (tasks.length === 0) {
-      tasks.push({
-        goal: truncateGoal(goal),
-        context: baseCtx,
-        role: 'coder',
-        status: 'pending',
-        splitDepth: 0,
-      });
+      // Auto-extract multiple file mentions if present in goal (e.g. public/index.html, src/server.ts)
+      const fileMatches = Array.from(goal.matchAll(/([A-Za-z0-9_\-/\\]+\.[a-zA-Z0-9]+)/g)).map(m => m[1]);
+      const uniqueFiles = Array.from(new Set(fileMatches)).filter(f => !f.endsWith('.md') && !f.endsWith('.json'));
+
+      if (uniqueFiles.length > 1) {
+        for (const file of uniqueFiles) {
+          pushTask('coder', `Create/update ${file} for feature: ${goal}`, baseCtx, 0);
+        }
+      } else {
+        tasks.push({
+          goal: truncateGoal(goal),
+          context: baseCtx,
+          role: 'coder',
+          status: 'pending',
+          splitDepth: 0,
+        });
+      }
     }
 
     return tasks;
@@ -1285,7 +1295,8 @@ export class Orchestrator {
           const fileList = touchedFiles.length > 0
             ? `\nFILES_TOUCHED: ${touchedFiles.join(', ')}`
             : '';
-          const reviewContext = `TASK: ${task.goal}\n\nAgent result:\n${result}${fileList}\n\nReview the files that were touched for this task. Use git_diff or list files modified recently. Check for syntax errors, correctness, and project health.`;
+          const truncatedResult = result.length > 6000 ? result.slice(0, 6000) + '\n...[result truncated for review]' : result;
+          const reviewContext = `TASK: ${task.goal}\n\nAgent result:\n${truncatedResult}${fileList}\n\nReview the files that were touched for this task. Use git_diff or list files modified recently. Check for syntax errors, correctness, and project health.`;
           const reviewTools = filterToolsForRole([...BUILTIN_TOOLS, ...mcpRegistry.getToolDefinitions()], 'reviewer');
           const review = await this.runAgent(reviewerRole, `Review files from task: ${task.goal}`, reviewContext, reviewTools);
 
