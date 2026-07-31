@@ -43,7 +43,10 @@ graph TD
     SpecMD --> Execution["/autopilot or /orchestrate"]
     SpecJSON --> Execution
     
-    Execution --> Result["Autonomous Code Synthesis & Contract Verification"]
+    Execution --> PreFlight["Pre-Flight Codebase Audit<br/>(Checks workspace for pre-existing errors)"]
+    PreFlight -->|Errors Found| Task0["Task 0: Debugger Auto-Repair<br/>(Fixes existing bugs first)"]
+    PreFlight -->|Clean Workspace| Synthesis["Autonomous Code Synthesis & Contract Verification"]
+    Task0 --> Synthesis
 ```
 
 ---
