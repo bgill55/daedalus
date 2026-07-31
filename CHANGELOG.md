@@ -1,3 +1,10 @@
+## [1.99.3](https://github.com/bgill55/daedalus/compare/v1.99.2...v1.99.3) (2026-07-31)
+
+
+### Bug Fixes
+
+* **verification:** enforce isRealFile check to prevent 30-byte placeholder comments from passing file existence checks ([109aaf4](https://github.com/bgill55/daedalus/commit/109aaf4ef49b977dcc34413e930c4eba199c47db))
+
 ## [1.99.2](https://github.com/bgill55/daedalus/compare/v1.99.1...v1.99.2) (2026-07-31)
 
 
