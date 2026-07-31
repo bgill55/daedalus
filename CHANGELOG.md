@@ -1,3 +1,10 @@
+## [3.0.1](https://github.com/bgill55/daedalus/compare/v3.0.0...v3.0.1) (2026-07-31)
+
+
+### Bug Fixes
+
+* **bot:** strip <think> reasoning blocks in Discord bot responses ([b16345a](https://github.com/bgill55/daedalus/commit/b16345a52d2d9626ec81fe81198f5be3274c8bd1))
+
 # [3.0.0](https://github.com/bgill55/daedalus/compare/v1.104.2...v3.0.0) (2026-07-31)
 
 ### Features
