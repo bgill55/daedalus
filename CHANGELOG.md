@@ -1,3 +1,10 @@
+## [1.104.2](https://github.com/bgill55/daedalus/compare/v1.104.1...v1.104.2) (2026-07-31)
+
+
+### Bug Fixes
+
+* **orchestrator:** cap sub-agent concurrency to max 2 parallel tasks to prevent 429 rate-limit storms ([af4717b](https://github.com/bgill55/daedalus/commit/af4717b5ea229bf9e7c1b5b49f52c4c000d51d57))
+
 ## [1.104.1](https://github.com/bgill55/daedalus/compare/v1.104.0...v1.104.1) (2026-07-31)
 
 
