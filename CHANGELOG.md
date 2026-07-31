@@ -1,3 +1,10 @@
+# [1.100.0](https://github.com/bgill55/daedalus/compare/v1.99.3...v1.100.0) (2026-07-31)
+
+
+### Features
+
+* **ux:** add animated DaedalusSpinner for third-party npm package installations ([77a631c](https://github.com/bgill55/daedalus/commit/77a631c99f949087c9ac1d280feac30dc9cf9935))
+
 ## [1.99.3](https://github.com/bgill55/daedalus/compare/v1.99.2...v1.99.3) (2026-07-31)
 
 
