@@ -1,3 +1,10 @@
+## [1.104.1](https://github.com/bgill55/daedalus/compare/v1.104.0...v1.104.1) (2026-07-31)
+
+
+### Bug Fixes
+
+* **router:** parse 429 rate limit backoff seconds and failover immediately on 400 invalid model errors ([baad8ec](https://github.com/bgill55/daedalus/commit/baad8eca3699e5aa1d806c44b37bf07dbf5efc7b))
+
 # [1.104.0](https://github.com/bgill55/daedalus/compare/v1.103.0...v1.104.0) (2026-07-31)
 
 
