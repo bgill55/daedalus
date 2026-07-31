@@ -418,7 +418,20 @@ export class Orchestrator {
     return lines.join('\n' + indent);
   }
 
-  private printTaskList(tasks: DelegationTask[]): void {
+  private printTaskList(tasks: DelegationTask[], forceFull: boolean = false): void {
+    const completed = tasks.filter(t => t.status === 'completed').length;
+    const running = tasks.filter(t => t.status === 'in_progress').length;
+    const failed = tasks.filter(t => t.status === 'failed').length;
+    const total = tasks.length;
+
+    // Only print full task list on initial plan, re-plan, or forced summary
+    if (!forceFull && tasks.length > 5 && (running > 0 || completed > 0)) {
+      const activeTask = tasks.find(t => t.status === 'in_progress');
+      const activeText = activeTask ? ` | Active: [${activeTask.role}] ${activeTask.goal.slice(0, 50)}...` : '';
+      console.log(pc.cyan(`\n[AUTOPILOT] Progress: ${completed}/${total} completed${failed > 0 ? ` (${failed} failed)` : ''}${activeText}`));
+      return;
+    }
+
     console.log(pc.bold(pc.cyan('\n--- Orchestration Task List ---')));
     tasks.forEach((task, idx) => {
       let icon = pc.gray('[ ]');
