@@ -731,12 +731,10 @@ export class Orchestrator {
       if (done.length === 0 || nt.role !== 'coder') return true;
       const newPaths = extractFilePaths(nt.goal).map(p => p.toLowerCase());
       if (newPaths.length === 0) return true;
-      const keep = !done.some(d => {
-        if (d.role !== 'coder') return false;
-        const donePaths = extractFilePaths(d.goal).map(p => p.toLowerCase());
-        return donePaths.some(dp => newPaths.includes(dp));
-      });
-      return keep;
+      // Only drop task if ALL mentioned files actually exist on disk
+      const root = this.toolContext.projectRoot || process.cwd();
+      const allExist = newPaths.every(p => fs.existsSync(path.resolve(root, p)));
+      return !allExist;
     });
 
     // Enforce task cap and filter out non-actionable tasks
