@@ -1,3 +1,10 @@
+## [1.98.1](https://github.com/bgill55/daedalus/compare/v1.98.0...v1.98.1) (2026-07-31)
+
+
+### Bug Fixes
+
+* **orchestration:** truncate reviewer context to prevent 413 entity too large & decompose fallback tasks by file targets ([b0cfb50](https://github.com/bgill55/daedalus/commit/b0cfb507a77447d41debae7c1f2eaa31731fe95a))
+
 # [1.98.0](https://github.com/bgill55/daedalus/compare/v1.97.3...v1.98.0) (2026-07-31)
 
 
