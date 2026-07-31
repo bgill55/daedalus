@@ -150,6 +150,20 @@ export class Orchestrator {
         tasks = filterValidTasks(tasks);
       }
 
+      // Pre-Flight Codebase Audit: Check if workspace has pre-existing compilation/build errors
+      const preFlight = await runBuildVerification(this.toolContext, 0);
+      if (!preFlight.success && preFlight.errorLogs) {
+        console.log(pc.yellow(`\n[Pre-Flight] Pre-existing build errors detected in workspace. Prepending Task 0 to repair existing code first...`));
+        const firstErrorLine = preFlight.errorLogs.split('\n')[0].slice(0, 120);
+        tasks.unshift({
+          goal: `Fix pre-existing compilation/build error in codebase before implementing feature: ${firstErrorLine}`,
+          context: projectContext || '',
+          role: 'debugger',
+          status: 'pending',
+          splitDepth: 0,
+        });
+      }
+
       if (this.sessionManager) {
         this.sessionManager.saveState('orchestrate_plan', tasks);
         this.sessionManager.saveState('orchestrate_goal', goal);
