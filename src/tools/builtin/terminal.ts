@@ -3,6 +3,8 @@
 import { spawn, execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
+import pc from 'picocolors';
+import { DaedalusSpinner } from '../daedalus-spinner.js';
 import { ToolContext, ToolResult } from '../../types.js';
 import { loadConfig } from '../../config/index.js';
 import { guardGitCommand } from '../git-guard.js';
@@ -239,6 +241,16 @@ export async function execute(args: { command: string; timeout?: number; workdir
 
     const { shell, args: shellArgs } = getExecutionShell();
 
+    const isInstallCmd = INSTALL_COMMAND_RE.test(command);
+    let installSpinner: DaedalusSpinner | null = null;
+    if (isInstallCmd) {
+      installSpinner = new DaedalusSpinner({
+        text: `Installing dependencies (${command.slice(0, 60)}...)`,
+        color: (s) => pc.cyan(s),
+      });
+      installSpinner.start();
+    }
+
     const child = spawn(shell, shellArgs, {
       cwd: workdir,
       env: sanitizeEnv(),
@@ -250,6 +262,10 @@ export async function execute(args: { command: string; timeout?: number; workdir
     const killTimer = setTimeout(() => {
       if (!exited) {
         exited = true;
+        if (installSpinner) {
+          installSpinner.stop();
+          console.log(pc.red(`[FAIL] Package installation timed out after ${timeout}s`));
+        }
         if (process.platform === 'win32') {
           try {
             execSync(`taskkill /F /T /PID ${child.pid}`, { stdio: 'ignore' });
@@ -286,6 +302,10 @@ export async function execute(args: { command: string; timeout?: number; workdir
       if (!exited) {
         exited = true;
         clearTimeout(killTimer);
+        if (installSpinner) {
+          installSpinner.stop();
+          console.log(pc.red(`[FAIL] Package installation error: ${err.message}`));
+        }
         resolve({
           toolCallId: '',
           name: 'terminal',
@@ -301,6 +321,14 @@ export async function execute(args: { command: string; timeout?: number; workdir
       if (!exited) {
         exited = true;
         clearTimeout(killTimer);
+        if (installSpinner) {
+          installSpinner.stop();
+          if (code === 0) {
+            console.log(pc.green(`\n[OK] Package installation completed successfully.`));
+          } else {
+            console.log(pc.red(`\n[FAIL] Package installation failed with exit code ${code}.`));
+          }
+        }
         const fullOutput = output + (errorOutput ? `\n[stderr]\n${errorOutput}` : '');
         let diagHint = '';
         if (code !== 0 && (fullOutput.includes('ERR_MODULE_NOT_FOUND') || fullOutput.includes('Cannot find package') || fullOutput.includes('Cannot find module'))) {
