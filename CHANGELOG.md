@@ -1,3 +1,10 @@
+# [1.104.0](https://github.com/bgill55/daedalus/compare/v1.103.0...v1.104.0) (2026-07-31)
+
+
+### Features
+
+* **architecture:** enforce DOM/CSS selector sync contract in SpecFirst and add cross-agent style reviewer gate ([b2be4ce](https://github.com/bgill55/daedalus/commit/b2be4ce7e23d7ab940169cbdaaf1341934bdda40))
+
 # [1.103.0](https://github.com/bgill55/daedalus/compare/v1.102.0...v1.103.0) (2026-07-31)
 
 
