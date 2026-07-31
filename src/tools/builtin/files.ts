@@ -29,7 +29,9 @@ function resolvePath(p: string, projectRoot: string): string {
     throw new Error('Path argument is empty or undefined');
   }
 
-  let normalizedPath = p;
+  // Strip surrounding quotes or whitespace if injected by LLM tool arguments
+  let normalizedPath = p.trim().replace(/^["']|["']$/g, '');
+
   // Expand ~ to home directory
   if (normalizedPath.startsWith('~')) {
     const home = process.env.USERPROFILE || process.env.HOME || '';

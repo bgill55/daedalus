@@ -268,7 +268,30 @@ export async function runBuildVerification(toolContext: ToolContext, historyStar
 
   if (command) {
     console.log(pc.cyan(`\n[VERIFY] Running verification command: "${command}"...`));
-    const res = await runCmd(command);
+    let res = await runCmd(command);
+    if (!res.success && res.logs) {
+      const missingMatch = res.logs.match(/cannot find module ['"]([^'"]+)['"]/i) ||
+                           res.logs.match(/could not resolve ['"]([^'"]+)['"]/i);
+      if (missingMatch) {
+        const missingPkg = missingMatch[1];
+        // If it's an npm package (not relative path)
+        if (missingPkg && !missingPkg.startsWith('.') && !missingPkg.startsWith('/')) {
+          const cleanPkg = missingPkg.split('/')[0].startsWith('@') 
+            ? missingPkg.split('/').slice(0, 2).join('/') 
+            : missingPkg.split('/')[0];
+          
+          console.log(pc.yellow(`[Auto-Install] Missing module "${cleanPkg}" detected during build. Auto-installing via npm...`));
+          const installCmd = cleanPkg.startsWith('@types/') 
+            ? `npm install -D ${cleanPkg}` 
+            : `npm install ${cleanPkg} && npm install -D @types/${cleanPkg}`;
+          
+          await runCmd(installCmd);
+          console.log(pc.cyan(`[VERIFY] Re-running verification command: "${command}"...`));
+          res = await runCmd(command);
+        }
+      }
+    }
+
     if (!res.success) {
       console.log(pc.red(`[VERIFY] Verification failed!`));
       return { success: false, errorLogs: res.logs };
