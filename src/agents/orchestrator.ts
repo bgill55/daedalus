@@ -425,7 +425,7 @@ export class Orchestrator {
     const total = tasks.length;
 
     // Only print full task list on initial plan, re-plan, or forced summary
-    if (!forceFull && tasks.length > 5 && (running > 0 || completed > 0)) {
+    if (!forceFull && (running > 0 || completed > 0)) {
       const activeTask = tasks.find(t => t.status === 'in_progress');
       const activeText = activeTask ? ` | Active: [${activeTask.role}] ${activeTask.goal.slice(0, 50)}...` : '';
       console.log(pc.cyan(`\n[AUTOPILOT] Progress: ${completed}/${total} completed${failed > 0 ? ` (${failed} failed)` : ''}${activeText}`));
