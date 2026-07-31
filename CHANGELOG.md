@@ -1,3 +1,10 @@
+# [1.101.0](https://github.com/bgill55/daedalus/compare/v1.100.3...v1.101.0) (2026-07-31)
+
+
+### Features
+
+* **autopilot:** add self-evaluating Autopilot Post-Mortem Diagnostic Report on rollback ([89bd146](https://github.com/bgill55/daedalus/commit/89bd146b2a0db1371376c23e21289dd6d470f13c))
+
 ## [1.100.3](https://github.com/bgill55/daedalus/compare/v1.100.2...v1.100.3) (2026-07-31)
 
 
