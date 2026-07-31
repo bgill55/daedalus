@@ -836,24 +836,24 @@ export const agentCommands: Command[] = [
         const wasAborted = result.includes('## Orchestration Paused');
         if (orchestrationFailed || wasAborted) {
           // Print Self-Evaluating Autopilot Post-Mortem Report before rolling back
-          console.log(pc.bold(pc.red('\n╔════════════════════════════════════════════════════════════════════════════╗')));
-          console.log(pc.bold(pc.red('║                   DAEDALUS AUTOPILOT POST-MORTEM REPORT                   ║')));
-          console.log(pc.bold(pc.red('╚════════════════════════════════════════════════════════════════════════════╝\n')));
+          const cols = process.stdout.columns || 80;
+          const lineLen = Math.max(20, Math.min(70, cols - 6));
+          console.log(`\n  ${pc.bold(pc.red('─ Autopilot Post-Mortem ─'))} ${pc.dim('─'.repeat(Math.max(10, lineLen - 25)))}`);
 
           const failed = orchestrator.results?.filter((r: any) => !r.success) || [];
           if (failed.length > 0) {
             failed.forEach((f: any, idx: number) => {
-              console.log(pc.bold(pc.red(`  ❌ Failed Step ${idx + 1}: [${f.role}] ${f.goal}`)));
-              console.log(pc.yellow(`     📌 Diagnostic: ${f.summary.split('\n')[0]}`));
+              console.log(`  ${pc.bold(pc.red(`❌ Failed Step ${idx + 1}:`))} ${pc.bold(`[${f.role}]`)} ${f.goal}`);
+              console.log(`     ${pc.yellow(`📌 Diagnostic:`)} ${f.summary.split('\n')[0]}`);
             });
           } else {
-            console.log(pc.yellow('  ❌ Verification check failed — required files failed artifact or build checks.'));
+            console.log(`  ${pc.yellow('❌ Verification check failed — required files failed artifact or build checks.')}`);
           }
 
-          console.log(pc.cyan('\n  💡 Next Step Options:'));
-          console.log(pc.cyan(`     - Target specific missing file: /task create <file>`));
-          console.log(pc.cyan(`     - Re-run with simplified goal: /autopilot ${idea}`));
-          console.log(pc.bold(pc.red('\n----------------------------------------------------------------------------')));
+          console.log(`\n  ${pc.cyan('💡 Recommendations:')}`);
+          console.log(`     - Target missing file: ${pc.bold(`/task create <file>`)}`);
+          console.log(`     - Re-run autopilot:   ${pc.bold(`/autopilot ${idea}`)}`);
+          console.log(`  ${pc.dim('─'.repeat(lineLen + 2))}\n`);
 
           throw new Error(orchestrationFailed ? 'Orchestration reported failure' : 'Orchestration was paused/aborted');
         }
