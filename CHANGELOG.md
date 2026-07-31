@@ -1,3 +1,10 @@
+## [1.99.1](https://github.com/bgill55/daedalus/compare/v1.99.0...v1.99.1) (2026-07-31)
+
+
+### Bug Fixes
+
+* **verification:** track initialHistoryStartIndex in attemptRepair to correctly verify artifacts across repair passes ([c0e6aa2](https://github.com/bgill55/daedalus/commit/c0e6aa21a49794af16d87788cb10bfc6ba2d2c7e))
+
 # [1.99.0](https://github.com/bgill55/daedalus/compare/v1.98.2...v1.99.0) (2026-07-31)
 
 
