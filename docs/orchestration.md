@@ -17,6 +17,18 @@ The orchestrator manages six specialized sub-agents:
 
 ---
 
+## Pre-Flight Codebase Audit & Task 0 Auto-Repair
+
+Before executing feature tasks, Daedalus performs an automated **Pre-Flight Codebase Audit**. If existing code in the repository contains pre-existing TypeScript compilation or build errors, Daedalus automatically prepends **Task 0** to the plan:
+
+```text
+[ ] Task 0: [debugger] Fix pre-existing compilation/build error in codebase before implementing feature: ...
+```
+
+The `debugger` agent resolves all pre-existing syntax or type errors first, ensuring that new feature tasks are always built on a 100% healthy, bug-free codebase foundation.
+
+---
+
 ## Unified SpecFirst Specification Workflow
 
 Before code is generated, `/spec` compiles both human-readable Markdown and machine-readable type contracts:

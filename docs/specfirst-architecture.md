@@ -2,6 +2,19 @@
 
 Daedalus includes a built-in **SpecFirst Architecture** that enforces formal specification gathering, type contracts, and automated assertion verification before code is written or committed.
 
+## Self-Healing Build Verification & Pre-Flight Audits
+
+The SpecFirst Verification Engine (`runBuildVerification`) incorporates two self-healing mechanisms:
+
+1. **Pre-Flight Codebase Audit (Task 0):**
+   - Runs `npx tsc --noEmit` before any feature code is written.
+   - If pre-existing errors are found, Daedalus automatically prepends **Task 0** (`debugger` role) to repair existing compiler errors before starting the feature work.
+
+2. **Auto-NPM Dependency Resolution:**
+   - If a build failure occurs due to a missing package (`Cannot find module 'pkg'`), Daedalus automatically installs the package (`npm install pkg && npm install -D @types/pkg`) and re-runs build verification automatically.
+
+---
+
 <p align="center">
   <img src="images/specfirst_infographic.png" alt="The Labyrinth of Precision: Daedalus SpecFirst Architecture Infographic" width="100%"/>
 </p>
