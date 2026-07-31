@@ -57,9 +57,22 @@ export class Orchestrator {
         return await fn();
       } catch (err: any) {
         lastErr = err;
+        const msg = String(err?.message || err);
+
+        // If 400 Bad Request (e.g. model not in catalog), do not retry invalid model
+        if (msg.includes('400') || msg.includes('not in the catalog')) {
+          throw err;
+        }
+
         if (attempt < maxRetries) {
-          const delay = Math.min(1000 * Math.pow(2, attempt), 8000);
-          console.log(pc.yellow(`\nModel request failed — ${err.message}. Retrying in ${delay / 1000}s (attempt ${attempt + 1}/${maxRetries})...`));
+          // Check for explicit 429 backoff retry seconds (e.g. "Retry in 29s")
+          const rateLimitMatch = msg.match(/Retry in (\d+)s/i);
+          let delay = Math.min(1000 * Math.pow(2, attempt), 8000);
+          if (rateLimitMatch && rateLimitMatch[1]) {
+            delay = (parseInt(rateLimitMatch[1], 10) + 1) * 1000;
+          }
+
+          console.log(pc.yellow(`\n[API Backoff] ${label} failed — ${msg.split('\n')[0]}. Waiting ${Math.round(delay / 1000)}s before retry (attempt ${attempt + 1}/${maxRetries})...`));
           await new Promise(r => setTimeout(r, delay));
         }
       }
