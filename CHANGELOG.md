@@ -1,3 +1,10 @@
+## [1.100.3](https://github.com/bgill55/daedalus/compare/v1.100.2...v1.100.3) (2026-07-31)
+
+
+### Bug Fixes
+
+* **coder:** add single-file focus mandate to prevent sub-agent scope confusion during file creation ([8b9db91](https://github.com/bgill55/daedalus/commit/8b9db91d9b366e14226e62cbcd86357b4d857c37))
+
 ## [1.100.2](https://github.com/bgill55/daedalus/compare/v1.100.1...v1.100.2) (2026-07-31)
 
 
