@@ -272,6 +272,29 @@ The global configuration governs model priority chains, UI preferences, and safe
 }
 ```
 
+---
+
+## 3. Daedalus v3.0.0 Milestone: Zero-Setup Greenfield Autopilot & Web UI Engine
+
+The landmark **v3.0.0 release** of Daedalus (`daedalus-cli@3.0.0`) brings complete zero-setup autonomous development and production web application styling to the CLI:
+
+### 1. Non-Git & Blank Directory Auto-Initialization
+When running `/autopilot` in an un-initialized or non-git folder, Daedalus automatically detects the workspace, executes `git init`, generates `.gitignore` (`node_modules/`, `dist/`, `.daedalus/`), creates a baseline commit, and switches to an isolated feature branch (`daedalus-autopilot-<slug>`).
+
+### 2. Walk-Away Non-Blocking Autopilot (`DAEDALUS_ALLOW_INSTALL=true`)
+Package installation commands (`npm install`, `yarn add`, `pip install`) are automatically approved during autopilot runs. Developers can start an autopilot job, walk away from their terminal, and return to a fully installed, fully built project with zero blocking prompts.
+
+### 3. Pristine `.daedalus/` Project Isolation
+To ensure developer project root directories stay 100% clean, all generated walkthrough guides (`walkthrough.md`) and spec contracts (`spec.json` / `spec.md`) are stored inside `.daedalus/`.
+
+### 4. Production Web UI & CSS Guardrails
+- **Tag-Level `<svg>` CSS Rules**: Forces base element sizing on raw `<svg>` tags so inline icons never expand to 1000px layout-breaking graphics.
+- **Centered Backdrop-Blur Overlays**: Enforces fixed centered modal overlays (`position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; backdrop-filter: blur(8px); z-index: 1000;`).
+- **Express Static Path Resolution**: Enforces `path.join(process.cwd(), 'public')` to guarantee 100% reliable static asset loading.
+
+### 5. Benchmark Showcase Demo (`examples/prompt-vault/`)
+Included in the core repository is **PromptVault** — an official benchmark demonstration built 100% autonomously in a single `/autopilot` command. It features an Express REST backend, seed prompt templates, live search, tag filters, interactive variable substitution (`{{variable}}`), and one-click copy to clipboard.
+
 ### Key Environment Variables
 * `GITHUB_TOKEN` / `GH_TOKEN`: GitHub authentication token for PR creation and issue tracking.
 * `DISCORD_WEBHOOK_URL` / `DISCORD_LOOP_WEBHOOK_URL`: Webhook URL for Discord status alerts and loop channel notifications.
