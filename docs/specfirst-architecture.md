@@ -15,6 +15,25 @@ The **SpecFirst Engine** solves this by inserting a mandatory **Specification Ga
 
 ---
 
+## Unified Specification Workflow
+
+When you ask Daedalus to flesh out an idea with `/spec`, it generates **both** human-readable Markdown (`spec.md`) and machine-readable JSON type contracts (`spec.json`) in one unified step:
+
+```mermaid
+graph TD
+    UserSpec["/spec 'Flesh out feature X'"] --> BothDocs[Generates Both Output Formats]
+    
+    BothDocs --> SpecMD[".daedalus/spec.md<br/>(Human-readable Markdown for user review)"]
+    BothDocs --> SpecJSON[".daedalus/spec.json<br/>(Machine-readable Spec Contract for agents)"]
+    
+    SpecMD --> Execution["/autopilot or /orchestrate"]
+    SpecJSON --> Execution
+    
+    Execution --> Result["Autonomous Code Synthesis & Contract Verification"]
+```
+
+---
+
 ## How It Works: The 4-Stage SpecFirst Lifecycle
 
 ```

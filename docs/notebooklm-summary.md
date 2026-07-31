@@ -36,9 +36,10 @@ Daedalus coordinates six specialized sub-agents to divide and conquer coding goa
 
 ```mermaid
 graph TD
-    Goal[User Goal] --> Plan[Planner: Create Tasks]
+    Goal[User Goal] --> Spec["Spec: Generate Contract (.daedalus/spec.json & spec.md)"]
+    Spec --> Plan[Planner: Create Tasks]
     Plan --> Execute[Coder: Draft Patches]
-    Execute --> Verify[Verify: Compile & Test]
+    Execute --> Verify[Verify: Compile & Test + Spec Assertions]
     Verify -- Success --> Gate[Self-Review Gate: Semantic Diff & Contract Audit]
     Gate -- Pass --> Commit[Git: Commit Changes & Open PR]
     Gate -- Fail --> Repair[Debugger / Coder: Repair Pass]

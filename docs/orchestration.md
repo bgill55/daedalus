@@ -17,6 +17,25 @@ The orchestrator manages six specialized sub-agents:
 
 ---
 
+## Unified SpecFirst Specification Workflow
+
+Before code is generated, `/spec` compiles both human-readable Markdown and machine-readable type contracts:
+
+```mermaid
+graph TD
+    UserSpec["/spec 'Flesh out feature X'"] --> BothDocs[Generates Both Output Formats]
+    
+    BothDocs --> SpecMD[".daedalus/spec.md<br/>(Human-readable Markdown for user review)"]
+    BothDocs --> SpecJSON[".daedalus/spec.json<br/>(Machine-readable Spec Contract for agents)"]
+    
+    SpecMD --> Execution["/autopilot or /orchestrate"]
+    SpecJSON --> Execution
+    
+    Execution --> Result["Autonomous Code Synthesis & Contract Verification"]
+```
+
+---
+
 ## Orchestration Flow & Task Checklist
 
 Upon starting, the orchestrator prints a dynamically wrapped task checklist representing the current plan:
