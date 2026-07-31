@@ -1,3 +1,10 @@
+## [1.98.2](https://github.com/bgill55/daedalus/compare/v1.98.1...v1.98.2) (2026-07-31)
+
+
+### Bug Fixes
+
+* **verification:** ignore build failures in untouched files to prevent false-positive repair loops ([c11b4e5](https://github.com/bgill55/daedalus/commit/c11b4e5bff55479cf7090654e0db37a15a2f6892))
+
 ## [1.98.1](https://github.com/bgill55/daedalus/compare/v1.98.0...v1.98.1) (2026-07-31)
 
 
