@@ -1,3 +1,10 @@
+# [1.99.0](https://github.com/bgill55/daedalus/compare/v1.98.2...v1.99.0) (2026-07-31)
+
+
+### Features
+
+* **orchestration:** add pre-flight codebase audit and auto-repair task 0 for pre-existing errors ([c974797](https://github.com/bgill55/daedalus/commit/c97479700513e6d19c98e3ba207830f914a94848))
+
 ## [1.98.2](https://github.com/bgill55/daedalus/compare/v1.98.1...v1.98.2) (2026-07-31)
 
 
