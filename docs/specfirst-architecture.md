@@ -6,6 +6,10 @@ Daedalus includes a built-in **SpecFirst Architecture** that enforces formal spe
   <img src="images/specfirst_infographic.png" alt="The Labyrinth of Precision: Daedalus SpecFirst Architecture Infographic" width="100%"/>
 </p>
 
+<p align="center">
+  <video src="media/Daedalus_SpecFirst.mp4" width="100%" controls></video>
+</p>
+
 ---
 
 ## Why SpecFirst?
