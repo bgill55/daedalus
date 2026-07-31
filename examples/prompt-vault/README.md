@@ -1,6 +1,6 @@
-# ⚡ PromptVault — Daedalus v2.0.0 Autopilot Benchmark Demo
+# ⚡ PromptVault — Daedalus v3.0.0 Autopilot Benchmark Demo
 
-> **Built 100% autonomously by [Daedalus CLI v2.0.0](https://github.com/bgill55/daedalus) in a single `/autopilot` prompt.**
+> **Built 100% autonomously by [Daedalus CLI v3.0.0](https://github.com/bgill55/daedalus) in a single `/autopilot` prompt.**
 
 `PromptVault` is a modern, dark-mode glassmorphic prompt management web application built with **Express, TypeScript, and Vanilla CSS**. It serves as an official benchmark demonstration of Daedalus's multi-agent autonomous engineering capabilities.
 

@@ -1,6 +1,6 @@
-# 🤖 Autopilot v2.0.0 & Greenfield Web UI Showcase
+# 🤖 Autopilot v3.0.0 & Greenfield Web UI Showcase
 
-Daedalus v2.0.0 introduces **Zero-Setup Autopilot**, allowing users to specify a high-level application feature (or complete greenfield application idea) and walk away while autonomous agents architect, code, test, and style the app end-to-end.
+Daedalus v3.0.0 introduces **Zero-Setup Autopilot**, allowing users to specify a high-level application feature (or complete greenfield application idea) and walk away while autonomous agents architect, code, test, and style the app end-to-end.
 
 ---
 
