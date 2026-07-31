@@ -102,6 +102,21 @@ export function verifyArtifactsThoroughly(
   return false;
 }
 
+export function isRealFile(filePath: string): boolean {
+  if (!fs.existsSync(filePath)) return false;
+  try {
+    const stat = fs.statSync(filePath);
+    if (stat.size < 100) return false;
+    const content = fs.readFileSync(filePath, 'utf8').trim();
+    if (/^\/\*[\s\S]*?\*\/$/i.test(content) || /^<!--[\s\S]*?-->$/i.test(content) || /^\/\/\s*todo/i.test(content) || /add .* content here/i.test(content)) {
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function checkPlaceholders(toolContext: ToolContext, historyStartIndex: number): Promise<string[]> {
   const history = toolContext.patchHistory || [];
   const placeholders: string[] = [];

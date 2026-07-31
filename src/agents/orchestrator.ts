@@ -25,7 +25,7 @@ import {
   verifyArtifacts, hasRealWrites, verifyArtifactsThoroughly,
   checkPlaceholders, fillPlaceholders, buildCleanSummary,
   isBuildErrorRelated, generateBuildErrorHint, runBuildVerification,
-  attemptRepair, rollbackTaskPatches, verifySpecAssertions,
+  attemptRepair, rollbackTaskPatches, verifySpecAssertions, isRealFile,
 } from './orchestrator-verification.js';
 import { generateSpecContract, loadSpecContract, formatSpecForPrompt } from './spec.js';
 import type { DelegationTask, AgentResult } from './orchestrator-types.js';
@@ -731,9 +731,9 @@ export class Orchestrator {
       if (done.length === 0 || nt.role !== 'coder') return true;
       const newPaths = extractFilePaths(nt.goal).map(p => p.toLowerCase());
       if (newPaths.length === 0) return true;
-      // Only drop task if ALL mentioned files actually exist on disk
+      // Only drop task if ALL mentioned files are REAL files on disk (>100 bytes, no placeholder comment shells)
       const root = this.toolContext.projectRoot || process.cwd();
-      const allExist = newPaths.every(p => fs.existsSync(path.resolve(root, p)));
+      const allExist = newPaths.every(p => isRealFile(path.resolve(root, p)));
       return !allExist;
     });
 
