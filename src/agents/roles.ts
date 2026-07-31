@@ -209,6 +209,7 @@ REVIEW CHECKLIST (check ALL of these):
 15. KEY NORMALIZATION: If the diff implements add/remove/resolve on a key-value store, verify all operations normalize keys the same way. Mismatched formats cause silent lookup failures.
 16. JSDOC & CONTRACT ALIGNMENT: Compare JSDoc / docstrings line-by-line against implementation logic (regexes, enums, parameters). If JSDoc states a rule (e.g. "alphanumeric") that differs from regex or code logic (e.g. allows hyphens [0-9A-Za-z-]), flag a Contract Mismatch bug!
 17. NO REDUNDANT COMMENTS (AGENTS.MD RULE): Verify source files contain NO inline comments unless strictly necessary for non-obvious clarity. Flag redundant comments that merely restate standard code flow (e.g. "// fast path", "// check if empty", "// return false").
+18. CROSS-AGENT SELECTOR SYNC: For web UIs (HTML/CSS/JS), verify that CSS class names in index.html match class definitions in style.css, and element IDs match querySelectors in script.js. Mismatched selector names (e.g. .copy-button vs .copy-btn) render unstyled default HTML and are a CRITICAL failure!
 
 OUTPUT FORMAT:
 STATUS: PASS | NEEDS_FIX | STOP

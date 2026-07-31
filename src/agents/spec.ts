@@ -170,7 +170,8 @@ Rules:
 1. Provide exact, valid TypeScript code for interfaces and types.
 2. Provide exact function signatures (parameters with types, return type).
 3. Provide at least 3 concrete test cases covering inputs, outputs, and edge cases.
-4. Output ONLY clean JSON. No markdown fences.`;
+4. DOM & CSS SELECTOR SYNC: For web UI tasks (HTML/CSS/JS), include explicit test cases enforcing exact matching CSS class names and element IDs across index.html, style.css, and script.js (e.g. index.html uses class="prompt-card", style.css defines .prompt-card, and script.js queries .prompt-card).
+5. Output ONLY clean JSON. No markdown fences.`;
 
   const userPrompt = `Create a complete SpecFirst specification for the following goal:
   
