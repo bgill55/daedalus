@@ -2,6 +2,10 @@
 
 Daedalus includes a built-in **SpecFirst Architecture** that enforces formal specification gathering, type contracts, and automated assertion verification before code is written or committed.
 
+<p align="center">
+  <img src="images/specfirst_infographic.png" alt="The Labyrinth of Precision: Daedalus SpecFirst Architecture Infographic" width="100%"/>
+</p>
+
 ---
 
 ## Why SpecFirst?
