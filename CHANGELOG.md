@@ -1,3 +1,10 @@
+## [1.100.1](https://github.com/bgill55/daedalus/compare/v1.100.0...v1.100.1) (2026-07-31)
+
+
+### Bug Fixes
+
+* **cli:** compact task list printing to prevent log spam and mandate strict tool execution for coder sub-agents ([f1299dc](https://github.com/bgill55/daedalus/commit/f1299dc2f4c4ef27360fe80d28804e171691f99f))
+
 # [1.100.0](https://github.com/bgill55/daedalus/compare/v1.99.3...v1.100.0) (2026-07-31)
 
 
