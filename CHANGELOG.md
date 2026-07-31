@@ -1,3 +1,10 @@
+## [1.100.2](https://github.com/bgill55/daedalus/compare/v1.100.1...v1.100.2) (2026-07-31)
+
+
+### Bug Fixes
+
+* **cli:** enforce compact progress updates regardless of task list length ([804f4b0](https://github.com/bgill55/daedalus/commit/804f4b01b844037e713b371e91742270089bf64f))
+
 ## [1.100.1](https://github.com/bgill55/daedalus/compare/v1.100.0...v1.100.1) (2026-07-31)
 
 
