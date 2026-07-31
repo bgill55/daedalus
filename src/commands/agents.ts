@@ -804,7 +804,32 @@ export const agentCommands: Command[] = [
         return;
       }
 
-      const repoInfo = getGitRepoInfo(ctx.toolContext.projectRoot);
+      let isGitRepo = true;
+      try {
+        execSync('git rev-parse --is-inside-work-tree', { cwd: ctx.toolContext.projectRoot, stdio: 'ignore' });
+      } catch {
+        isGitRepo = false;
+      }
+
+      if (!isGitRepo) {
+        console.log(pc.cyan('[INFO] Non-git directory detected. Auto-initializing Git repository for autonomous branch safety...'));
+        try {
+          const cwd = ctx.toolContext.projectRoot || process.cwd();
+          execSync('git init', { cwd });
+          const gitIgnorePath = path.join(cwd, '.gitignore');
+          if (!fs.existsSync(gitIgnorePath)) {
+            fs.writeFileSync(gitIgnorePath, "node_modules/\ndist/\n.daedalus/\n", 'utf8');
+          }
+          execSync('git add .', { cwd });
+          execSync('git commit -m "initial clean setup"', { cwd });
+          isGitRepo = true;
+          console.log(pc.green('[OK] Git repository initialized with tracking branch support.'));
+        } catch {
+          console.log(pc.yellow('[WARNING] Working directory is not a git repository. Autonomous changes will NOT be tracked in a git branch.'));
+        }
+      }
+
+      const repoInfo = isGitRepo ? getGitRepoInfo(ctx.toolContext.projectRoot) : null;
       if (!repoInfo) {
         console.log(pc.yellow('[INFO] No GitHub remote found. Running in local-only mode (no PR will be created).'));
       }
@@ -812,19 +837,22 @@ export const agentCommands: Command[] = [
       const slug = idea.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
       const branchName = `daedalus-autopilot-${slug}`;
 
-      try {
-        execSync(`git checkout -B ${branchName}`, { cwd: ctx.toolContext.projectRoot });
-        console.log(pc.green(`[OK] Created branch: ${branchName}`));
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : String(err);
-        console.log(pc.red(`[ERROR] Failed to create branch: ${msg}`));
-        return;
+      if (isGitRepo) {
+        try {
+          execSync(`git checkout -B ${branchName}`, { cwd: ctx.toolContext.projectRoot });
+          console.log(pc.green(`[OK] Created branch: ${branchName}`));
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.log(pc.red(`[ERROR] Failed to create branch: ${msg}`));
+          return;
+        }
       }
 
       const goal = `Implement the following feature: ${idea}`;
 
       console.log(pc.cyan(`\n[AUTOPILOT] Starting autonomous implementation...`));
       process.env.DAEDALUS_AUTO_APPROVE = 'true';
+      process.env.DAEDALUS_ALLOW_INSTALL = 'true';
 
       try {
         const { Orchestrator } = await import('../agents/orchestrator.js');
@@ -860,33 +888,39 @@ export const agentCommands: Command[] = [
       } catch (err: unknown) {
         const msg = err instanceof Error ? err.message : String(err);
         console.log(pc.red(`\n[ERROR] Implementation failed: ${msg}`));
-        console.log(pc.yellow('[ROLLBACK] Rolling back to main branch...'));
-        try {
-          execSync('git reset --hard', { cwd: ctx.toolContext.projectRoot });
-          execSync('git checkout main', { cwd: ctx.toolContext.projectRoot });
-          execSync(`git branch -D ${branchName}`, { cwd: ctx.toolContext.projectRoot });
-          console.log(pc.green('[OK] Rolled back to main. Branch deleted.'));
-        } catch (rollbackErr: unknown) {
-          const rbMsg = rollbackErr instanceof Error ? rollbackErr.message : String(rollbackErr);
-          console.log(pc.red(`[ERROR] Rollback failed: ${rbMsg}. Manual cleanup may be needed.`));
+        if (isGitRepo) {
+          console.log(pc.yellow('[ROLLBACK] Rolling back to main branch...'));
+          try {
+            execSync('git reset --hard', { cwd: ctx.toolContext.projectRoot });
+            execSync('git checkout main', { cwd: ctx.toolContext.projectRoot });
+            execSync(`git branch -D ${branchName}`, { cwd: ctx.toolContext.projectRoot });
+            console.log(pc.green('[OK] Rolled back to main. Branch deleted.'));
+          } catch (rollbackErr: unknown) {
+            const rbMsg = rollbackErr instanceof Error ? rollbackErr.message : String(rollbackErr);
+            console.log(pc.red(`[ERROR] Rollback failed: ${rbMsg}. Manual cleanup may be needed.`));
+          }
         }
         return;
       }
 
-      console.log(pc.cyan('\n[AUTOPILOT] Committing changes...'));
-      try {
-        execSync('git add .', { cwd: ctx.toolContext.projectRoot });
-        const cleanTitle = idea.replace(/[^a-zA-Z0-9 ]/g, '').trim();
-        execSync(`git commit -m "feat: ${cleanTitle}"`, { cwd: ctx.toolContext.projectRoot });
-        console.log(pc.green('[OK] Changes committed.'));
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : String(err);
-        if (msg.includes('nothing to commit')) {
-          console.log(pc.yellow('[INFO] No changes to commit.'));
-        } else {
-          console.log(pc.red(`[ERROR] Failed to commit: ${msg}`));
-          return;
+      if (isGitRepo) {
+        console.log(pc.cyan('\n[AUTOPILOT] Committing changes...'));
+        try {
+          execSync('git add .', { cwd: ctx.toolContext.projectRoot });
+          const cleanTitle = idea.replace(/[^a-zA-Z0-9 ]/g, '').trim();
+          execSync(`git commit -m "feat: ${cleanTitle}"`, { cwd: ctx.toolContext.projectRoot });
+          console.log(pc.green('[OK] Changes committed.'));
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          if (msg.includes('nothing to commit')) {
+            console.log(pc.yellow('[INFO] No changes to commit.'));
+          } else {
+            console.log(pc.red(`[ERROR] Failed to commit: ${msg}`));
+            return;
+          }
         }
+      } else {
+        console.log(pc.yellow('\n[INFO] Non-git working directory. Autonomous implementation completed directly on files.'));
       }
 
       if (repoInfo) {

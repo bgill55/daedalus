@@ -39,7 +39,7 @@ export class Orchestrator {
   private toolContext: ToolContext;
   private sessionManager?: SessionManager;
   public results: AgentResult[] = [];
-  private readonly MAX_INITIAL_TASKS = 8;
+  private readonly MAX_INITIAL_TASKS = 12;
   private readonly MAX_TOTAL_TASKS = 20;
   private readonly REPLAN_INTERVAL = 2;
 
@@ -59,8 +59,8 @@ export class Orchestrator {
         lastErr = err;
         const msg = String(err?.message || err);
 
-        // If 400 Bad Request (e.g. model not in catalog), do not retry invalid model
-        if (msg.includes('400') || msg.includes('not in the catalog')) {
+        // If 400 Bad Request (e.g. model not in catalog) or 413 (payload too large), do not retry
+        if (msg.includes('400') || msg.includes('not in the catalog') || msg.includes('413') || msg.includes('request entity too large')) {
           throw err;
         }
 
@@ -165,7 +165,8 @@ export class Orchestrator {
 
       // Pre-Flight Codebase Audit: Check if workspace has pre-existing compilation/build errors
       const preFlight = await runBuildVerification(this.toolContext, 0);
-      if (!preFlight.success && preFlight.errorLogs) {
+      const isNoInputsErr = preFlight.errorLogs && (preFlight.errorLogs.includes('TS18003') || preFlight.errorLogs.includes('No inputs were found'));
+      if (!preFlight.success && preFlight.errorLogs && !isNoInputsErr) {
         console.log(pc.yellow(`\n[Pre-Flight] Pre-existing build errors detected in workspace. Prepending Task 0 to repair existing code first...`));
         const firstErrorLine = preFlight.errorLogs.split('\n')[0].slice(0, 120);
         tasks.unshift({
@@ -396,6 +397,13 @@ export class Orchestrator {
         }
         if (tasks.length > 0) return tasks.join('\n');
       }
+    }
+
+    // If explicit target files are listed in the goal, split into file-focused tasks in fallback mode
+    const explicitFiles = goal.match(/(?:src|public|app|pages)\/[a-zA-Z0-9_\-\.\/]+/g);
+    if (explicitFiles && explicitFiles.length > 1) {
+      const uniqueFiles = Array.from(new Set(explicitFiles));
+      return uniqueFiles.map(f => `- delegate to coder: create or update ${f} to support: ${goal.slice(0, 100)}`).join('\n');
     }
 
     const isCoder = /\b(create|add|build|implement|write|generate|make|new|refactor|fix|modify|update)\b/i.test(goal);
@@ -1486,9 +1494,13 @@ export class Orchestrator {
         }
 
         for (const result of results) {
+          const rawContent = typeof result.content === 'string' ? result.content : JSON.stringify(result.content);
+          const cappedContent = rawContent.length > 8000
+            ? rawContent.slice(0, 8000) + '\n...[content truncated to prevent oversized request]'
+            : rawContent;
           messages.push({
             role: 'tool',
-            content: result.content,
+            content: cappedContent,
             tool_call_id: result.toolCallId,
           });
         }
@@ -1600,9 +1612,13 @@ export class Orchestrator {
       md += `## Verification Status\n\n`;
       md += `- [x] Linter/compiler checks executed and passed successfully.\n`;
 
-      const walkthroughPath = path.join(projectRoot, 'walkthrough.md');
+      const daedalusDir = path.join(projectRoot, '.daedalus');
+      if (!fs.existsSync(daedalusDir)) {
+        fs.mkdirSync(daedalusDir, { recursive: true });
+      }
+      const walkthroughPath = path.join(daedalusDir, 'walkthrough.md');
       fs.writeFileSync(walkthroughPath, md, 'utf8');
-      console.log(pc.green(`\n[WALKTHROUGH] Generated walkthrough guide at ./walkthrough.md`));
+      console.log(pc.green(`\n[WALKTHROUGH] Generated walkthrough guide at .daedalus/walkthrough.md`));
     } catch (err: any) {
       console.log(pc.yellow(`\n[WARN] Failed to write walkthrough.md: ${err.message}`));
     }

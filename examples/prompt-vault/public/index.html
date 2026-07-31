@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PromptVault - Your Prompt Template Library</title>
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* Prevent FOUC - apply dark mode immediately */
+    body { background: #0f172a; color: #e2e8f0; }
+  </style>
+</head>
+<body>
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+  <div class="app-container">
+    <!-- Hero Header -->
+    <header class="hero-header" role="banner">
+      <div class="hero-content">
+        <h1>
+          <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+          PromptVault
+        </h1>
+        <p class="hero-subtitle">Store, organize, and reuse your best prompt templates. Fill variables, filter by tags, and copy with one click.</p>
+      </div>
+    </header>
+
+    <!-- Search and Filters -->
+    <section class="controls-section" aria-label="Search and filters">
+      <div class="search-container">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="search" id="searchInput" class="search-input" placeholder="Search prompts by name or tag..." aria-label="Search prompts" autocomplete="off">
+      </div>
+      <div class="tag-filters" id="tagFilters" role="group" aria-label="Tag filters">
+        <!-- Tag pills will be injected here -->
+      </div>
+    </section>
+
+    <!-- Prompt Cards Grid -->
+    <main id="main-content" class="prompts-grid" role="main" aria-label="Prompt templates">
+      <!-- Prompt cards will be injected here -->
+    </main>
+
+    <!-- Empty State -->
+    <div class="empty-state" id="emptyState" style="display: none;" role="status" aria-live="polite">
+      <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+      <p>No prompts found. Try adjusting your search or filters.</p>
+    </div>
+  </div>
+
+  <!-- Edit Modal -->
+  <div class="modal-overlay" id="editModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="modalTitle">Edit Prompt Template</h2>
+        <button class="modal-close" id="modalClose" aria-label="Close modal">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label for="promptName">Prompt Name</label>
+          <input type="text" id="promptName" class="form-input" placeholder="Enter prompt name">
+        </div>
+        <div class="form-group">
+          <label for="promptTags">Tags (comma-separated)</label>
+          <input type="text" id="promptTags" class="form-input" placeholder="e.g., coding, javascript, react">
+        </div>
+        <div class="form-group">
+          <label for="promptTemplate">Template (use {{variable}} for placeholders)</label>
+          <textarea id="promptTemplate" class="form-textarea" rows="8" placeholder="Enter your prompt template with {{variables}}..."></textarea>
+        </div>
+        <div class="form-group">
+          <label for="promptDescription">Description</label>
+          <textarea id="promptDescription" class="form-textarea" rows="3" placeholder="Describe what this prompt does..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="modalCancel">Cancel</button>
+        <button class="btn btn-primary" id="modalSave">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+          Save Changes
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Variable Preview Panel -->
+  <div class="preview-overlay" id="previewPanel">
+    <div class="preview-content">
+      <div class="preview-header">
+        <h2>Fill Variables</h2>
+        <button class="preview-close" id="previewClose" aria-label="Close preview panel">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="preview-body">
+        <div class="variables-form" id="variablesForm">
+          <!-- Variable inputs will be injected here -->
+        </div>
+        <div class="preview-output">
+          <label>Preview</label>
+          <div class="preview-text" id="previewText"></div>
+        </div>
+      </div>
+      <div class="preview-footer">
+        <button class="btn btn-secondary" id="previewCancel">Cancel</button>
+        <button class="btn btn-primary" id="previewCopy">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+          </svg>
+          Copy to Clipboard
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toast">
+    <svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+      <polyline points="20 6 9 17 4 12"></polyline>
+    </svg>
+    <span class="toast-message" id="toastMessage">Copied to clipboard!</span>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

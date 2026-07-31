@@ -145,6 +145,8 @@ PRODUCTION CODE RULES:
 - READ BEFORE WRITE: Before writing a new file, use read_file on one existing file of the same type in the same directory. Match its import style, component structure, and conventions exactly.
 - LINT-CLEAN OUTPUT: Your code must be free of the most common lint errors: no unused imports, no unescaped JSX entities (escape ' as &apos; or {\\\"'\\\"}), no missing or extraneous React imports.
 - COMPLETE FILES ONLY: Never emit placeholder content, ellipses (…), or comments like "// add more here". Every file you write must be complete and immediately runnable.
+- ZERO TODOS: Never leave \`// TODO\`, \`// FIXME\`, \`// Placeholder\`, or any stub comments in delivered code. Never leave blocks of commented-out feature code. If a feature is part of your task, implement it fully. If it is out of scope, omit it entirely — do not hint at it with a comment.
+- DARK MODE MUST WORK ON LOAD: If you write CSS that uses a class (e.g. \`body.dark-mode\`) to apply a dark background, you MUST also write the JavaScript that applies that class via \`document.body.classList.add('dark-mode')\` at script top-level. A dark mode CSS class that JS never applies is a critical bug — the page will render white.
 
 ARCHITECTURE RULES:
 - SEPARATION OF CONCERNS: Keep data, logic, and presentation separate. Extract shared utilities into helper files. Never inline SQL, API calls, or complex logic into UI components.
@@ -153,7 +155,10 @@ ARCHITECTURE RULES:
 - TYPE SAFETY: Use specific TypeScript types — never \`any\` unless interfacing with untyped third-party code. Define interfaces for all data shapes (API responses, props, state). Use union types and discriminated unions over loose string enums.
 - REAL CONTENT & SEED DATA: Never create empty, bare MVP pages. Always populate UIs with 3-5 pre-populated realistic seed data items (e.g. sample templates, tasks, cards) out of the box so the UI is immediately vibrant and functional on first load!
 - HERO HEADER & ONBOARDING: Every web app MUST include a hero header with a clear title and an onboarding subtitle explaining what the app does.
-- DARK MODE & GLASSMORPHISM AESTHETICS: Default to modern dark-mode glassmorphism styling (#0f172a backdrop gradient, glass cards with backdrop-filter blur, crisp typography, and neon accent glows).
+- DARK MODE & GLASSMORPHISM AESTHETICS: Default to modern dark-mode glassmorphism styling (#0f172a backdrop gradient, glass cards with backdrop-filter blur, crisp typography, and neon accent glows). In index.html, always set \`body { background: #0f172a; color: #e2e8f0; }\` inline in head or on body style to prevent unstyled white flashes.
+- EXPRESS STATIC PATHS: When serving public files in Express, always use \`path.join(process.cwd(), 'public')\` or \`path.join(__dirname, '../public')\` instead of relative string \`'public'\` so static assets resolve reliably regardless of current working directory.
+- SVG ICON SIZING: In style.css, ALWAYS define a base rule directly on the raw \`svg\` element tag (e.g. \`svg { width: 1.5rem; height: 1.5rem; max-width: 24px; max-height: 24px; flex-shrink: 0; }\`) in addition to any class selectors! This guarantees that ANY \`<svg>\` element in index.html (e.g. \`class="logo-icon"\` or \`class="search-icon"\`) is strictly sized and never expands into a 1000px layout-breaking icon!
+- MODAL CENTERING & OVERLAY: Modals MUST be styled as fixed centered overlays: \`position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px); display: flex; align-items: center; justify-content: center; z-index: 1000;\`. Never let modals render inline in flow.
 - CSS/STYLING: Use consistent spacing (4px/8px grid system). Define a color palette — don't use raw hex values scattered across files. Responsive by default — use relative units and media queries.
 - ACCESSIBILITY: All interactive elements must be keyboard-navigable. Images need alt text. Form inputs need labels. Use semantic HTML (nav, main, section, article).
 
@@ -210,6 +215,8 @@ REVIEW CHECKLIST (check ALL of these):
 16. JSDOC & CONTRACT ALIGNMENT: Compare JSDoc / docstrings line-by-line against implementation logic (regexes, enums, parameters). If JSDoc states a rule (e.g. "alphanumeric") that differs from regex or code logic (e.g. allows hyphens [0-9A-Za-z-]), flag a Contract Mismatch bug!
 17. NO REDUNDANT COMMENTS (AGENTS.MD RULE): Verify source files contain NO inline comments unless strictly necessary for non-obvious clarity. Flag redundant comments that merely restate standard code flow (e.g. "// fast path", "// check if empty", "// return false").
 18. CROSS-AGENT SELECTOR SYNC: For web UIs (HTML/CSS/JS), verify that CSS class names in index.html match class definitions in style.css, and element IDs match querySelectors in script.js. Mismatched selector names (e.g. .copy-button vs .copy-btn) render unstyled default HTML and are a CRITICAL failure!
+19. NO TODOS OR STUBS: Any \`// TODO\`, \`// FIXME\`, \`// Placeholder\`, or commented-out feature blocks in delivered code are an automatic NEEDS_FIX. Unfinished features must be implemented, not stubbed.
+20. DARK MODE ACTIVATION: For web UIs, if style.css uses \`body.dark-mode\` or any class-gated dark background, verify that script.js applies that class on page load. A CSS dark-mode class that JS never applies means the page renders white — flag as NEEDS_FIX immediately.
 
 OUTPUT FORMAT:
 STATUS: PASS | NEEDS_FIX | STOP

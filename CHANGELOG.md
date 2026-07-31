@@ -1,3 +1,12 @@
+# [2.0.0](https://github.com/bgill55/daedalus/compare/v1.104.2...v2.0.0) (2026-07-31)
+
+### Features
+
+* **autopilot:** non-git auto-initialization, non-blocking zero-prompt npm installs, and `.daedalus/walkthrough.md` project isolation
+* **engine:** tag-level `<svg>` CSS rules, fixed backdrop-blur modal overlays, and Express static path resolution
+* **resilience:** `EISDIR` directory guards, 8k tool payload truncation (eliminating 413 errors), and pre-flight audit `TS18003` bypass
+* **examples:** added PromptVault dark-mode glassmorphic web app benchmark demo in `examples/prompt-vault/`
+
 ## [1.104.2](https://github.com/bgill55/daedalus/compare/v1.104.1...v1.104.2) (2026-07-31)
 
 

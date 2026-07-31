@@ -80,6 +80,10 @@ export async function readFile(args: { path: string; offset?: number; limit?: nu
       return formatError(`File not found: ${args.path}`);
     }
 
+    if (fs.statSync(targetPath).isDirectory()) {
+      return formatError(`"${args.path}" is a directory, not a file. Use list_files to see its contents.`);
+    }
+
     const ext = path.extname(targetPath).toLowerCase();
     if (['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp'].includes(ext)) {
       const buffer = fs.readFileSync(targetPath);
@@ -167,8 +171,10 @@ export async function writeFile(args: { path: string; content: string }, context
     }
     const targetPath = resolvePath(args.path, context.projectRoot);
 
-    const readGuard = checkWriteWithoutRead(targetPath, context);
-    if (readGuard) return formatError(readGuard);
+    if (!context.autoApproveTools && process.env.DAEDALUS_AUTO_APPROVE !== 'true') {
+      const readGuard = checkWriteWithoutRead(targetPath, context);
+      if (readGuard) return formatError(readGuard);
+    }
 
     const dir = path.dirname(targetPath);
     if (!fs.existsSync(dir)) {

@@ -100,7 +100,7 @@ export async function execute(args: { command: string; timeout?: number; workdir
 
   // Gate: third-party install commands require user confirmation
   if (INSTALL_COMMAND_RE.test(command)) {
-    if (process.env.DAEDALUS_ALLOW_INSTALL === 'true') {
+    if (process.env.DAEDALUS_ALLOW_INSTALL === 'true' || process.env.DAEDALUS_AUTO_APPROVE === 'true') {
       // env var bypass
     } else if (context.askLine) {
       const answer = await context.askLine(`\nAllow third-party install? [y/N] ${command.slice(0, 120)}: `);

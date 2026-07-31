@@ -1,0 +1,17 @@
+{
+  "name": "prompt-vault",
+  "version": "1.0.0",
+  "description": "PromptVault app",
+  "main": "src/server.ts",
+  "scripts": {
+    "start": "tsx src/server.ts",
+    "dev": "tsx watch src/server.ts"
+  },
+  "dependencies": {
+    "express": "5.2.1",
+    "tsx": "4.23.1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
