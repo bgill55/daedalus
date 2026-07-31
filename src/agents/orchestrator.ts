@@ -483,11 +483,11 @@ export class Orchestrator {
         if (!allDone) continue;
       }
       batch.push(t);
-      // In auto-approve, batch all runnable tasks
-      if (process.env.DAEDALUS_AUTO_APPROVE === 'true') {
-        continue; // gather as many as possible
+      // In auto-approve, gather at most 2 concurrent tasks to prevent API rate-limit storms
+      if (process.env.DAEDALUS_AUTO_APPROVE === 'true' && batch.length < 2) {
+        continue;
       } else {
-        break; // sequential — one at a time
+        break; // max 2 concurrent or sequential
       }
     }
     return batch;
