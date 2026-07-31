@@ -1,3 +1,10 @@
+## [1.99.2](https://github.com/bgill55/daedalus/compare/v1.99.1...v1.99.2) (2026-07-31)
+
+
+### Bug Fixes
+
+* **orchestration:** filter re-planned tasks by physical disk file existence instead of string matching ([ab3bae0](https://github.com/bgill55/daedalus/commit/ab3bae05ec2a5cc58394829ccf2611ca48eb3b58))
+
 ## [1.99.1](https://github.com/bgill55/daedalus/compare/v1.99.0...v1.99.1) (2026-07-31)
 
 
