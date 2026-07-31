@@ -75,7 +75,7 @@ The resulting web application is stored in the repository under [`examples/promp
 
 ---
 
-## 🛡️ Key v2.0.0 Autopilot Enhancements
+## 🛡️ Key v3.0.0 Autopilot Enhancements
 
 1. **Auto Git Initialization**: Works seamlessly in empty, non-git directories by running `git init`, generating `.gitignore`, and creating isolated tracking branches automatically.
 2. **Pristine Project Isolation**: All walkthrough logs and spec documents are saved inside `.daedalus/` to prevent root project clutter.

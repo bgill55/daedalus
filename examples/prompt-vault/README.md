@@ -71,4 +71,4 @@ PromptVault was created from a blank, non-git directory using this single Daedal
 
 ---
 
-*Powered by [Daedalus AI CLI v2.0.0](https://github.com/bgill55/daedalus)*
+*Powered by [Daedalus AI CLI v3.0.0](https://github.com/bgill55/daedalus)*
