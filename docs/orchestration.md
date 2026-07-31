@@ -6,13 +6,14 @@ Daedalus uses a multi-agent orchestration architecture to plan, delegate, execut
 
 ## Agent Roles
 
-The orchestrator manages five specialized sub-agents:
+The orchestrator manages six specialized sub-agents:
 
-1.  **Planner**: Outlines the plan, breaks down the main goal into bite-sized tasks, and defines verification criteria.
-2.  **Coder**: Edits existing files, creates new files, and executes commands.
-3.  **Researcher**: Explores the codebase, searches the web, and reads documentation.
-4.  **Reviewer**: Evaluates code changes, security vulnerabilities, and confirms formatting requirements.
-5.  **Debugger**: Runs tests, parses error logs, and corrects syntax or logic failures.
+1.  **Spec**: Generates formal SpecFirst interface contracts (`.daedalus/spec.json` & `spec.md`), TypeScript schemas, and test assertions before coding.
+2.  **Planner**: Outlines the plan, breaks down the main goal into bite-sized tasks, and defines verification criteria.
+3.  **Coder**: Edits existing files, creates new files, and executes commands.
+4.  **Researcher**: Explores the codebase, searches the web, and reads documentation.
+5.  **Reviewer**: Evaluates code changes, security vulnerabilities, and confirms formatting requirements.
+6.  **Debugger**: Runs tests, parses error logs, and corrects syntax or logic failures.
 
 ---
 

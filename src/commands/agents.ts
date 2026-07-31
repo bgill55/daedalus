@@ -20,7 +20,7 @@ export const agentCommands: Command[] = [
     aliases: ['/delegate'],
     description: 'Spawn sub-agent: /spawn [--bg] <role> <task>',
     usage: '/spawn [--bg] <role> <task>  OR  /delegate [--bg] <task> to <role>',
-    helpText: 'Spawns a specialized agent to execute a coding or research task.\n\nRoles:\n  coder                 Implements, patches, and refactors code files\n  reviewer              Critically reviews changes and runs tests\n  debugger              Tackles compilation errors, runtime failures, and logs\n  researcher            Scans repository structure and reads doc resources\n  planner               Outlines architecture plans and coordinates execution\n\nOptions:\n  --bg                  Runs the agent asynchronously in the background',
+    helpText: 'Spawns a specialized agent to execute a coding or research task.\n\nRoles:\n  spec                  Generates formal SpecFirst interface contracts and test cases\n  coder                 Implements, patches, and refactors code files\n  reviewer              Critically reviews changes and runs tests\n  debugger              Tackles compilation errors, runtime failures, and logs\n  researcher            Scans repository structure and reads doc resources\n  planner               Outlines architecture plans and coordinates execution\n\nOptions:\n  --bg                  Runs the agent asynchronously in the background',
     execute: async (args, ctx) => {
       let role = '';
       let task = '';
@@ -49,7 +49,7 @@ export const agentCommands: Command[] = [
         }
       }
 
-      const validRoles = ['coder', 'reviewer', 'debugger', 'researcher', 'planner'];
+      const validRoles = ['spec', 'coder', 'reviewer', 'debugger', 'researcher', 'planner'];
       if (!role || !task) {
         console.log(pc.red('[WARN] Usage: /spawn [--bg] <role> <task>  OR  /delegate [--bg] <task> to <role>'));
         console.log(pc.gray(`  Roles: ${validRoles.join(', ')}`));
