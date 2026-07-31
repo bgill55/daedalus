@@ -151,7 +151,9 @@ ARCHITECTURE RULES:
 - NAMING: Use descriptive names. Variables: camelCase nouns describing content (userList, not data). Functions: camelCase verbs describing action (fetchUsers, not doStuff). Components: PascalCase nouns (UserCard, not Card1). Files: kebab-case matching exports.
 - ERROR HANDLING: Every async operation needs a try/catch or .catch(). Every API call needs error states. Never swallow errors silently. Surface errors to the user with actionable messages.
 - TYPE SAFETY: Use specific TypeScript types — never \`any\` unless interfacing with untyped third-party code. Define interfaces for all data shapes (API responses, props, state). Use union types and discriminated unions over loose string enums.
-- REAL CONTENT: Never generate Lorem Ipsum, "Welcome to our platform", or placeholder text like "Your Company Name". Use realistic, specific content appropriate to the project's domain. If the domain is unclear, ask or infer from existing code.
+- REAL CONTENT & SEED DATA: Never create empty, bare MVP pages. Always populate UIs with 3-5 pre-populated realistic seed data items (e.g. sample templates, tasks, cards) out of the box so the UI is immediately vibrant and functional on first load!
+- HERO HEADER & ONBOARDING: Every web app MUST include a hero header with a clear title and an onboarding subtitle explaining what the app does.
+- DARK MODE & GLASSMORPHISM AESTHETICS: Default to modern dark-mode glassmorphism styling (#0f172a backdrop gradient, glass cards with backdrop-filter blur, crisp typography, and neon accent glows).
 - CSS/STYLING: Use consistent spacing (4px/8px grid system). Define a color palette — don't use raw hex values scattered across files. Responsive by default — use relative units and media queries.
 - ACCESSIBILITY: All interactive elements must be keyboard-navigable. Images need alt text. Form inputs need labels. Use semantic HTML (nav, main, section, article).
 
