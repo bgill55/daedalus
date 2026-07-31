@@ -1,3 +1,10 @@
+# [1.98.0](https://github.com/bgill55/daedalus/compare/v1.97.3...v1.98.0) (2026-07-31)
+
+
+### Features
+
+* **orchestration:** auto-install missing npm packages during verification & sanitize tool path quotes ([4892b68](https://github.com/bgill55/daedalus/commit/4892b68605eca7244c187a1870dcff74da42342c))
+
 ## [1.97.3](https://github.com/bgill55/daedalus/compare/v1.97.2...v1.97.3) (2026-07-31)
 
 
