@@ -1,3 +1,10 @@
+# [1.102.0](https://github.com/bgill55/daedalus/compare/v1.101.0...v1.102.0) (2026-07-31)
+
+
+### Features
+
+* **ux:** format Autopilot Post-Mortem Report using native Daedalus divider styling ([3d632c3](https://github.com/bgill55/daedalus/commit/3d632c33671d1630df5daea0ae2b1cedfd2306e2))
+
 # [1.101.0](https://github.com/bgill55/daedalus/compare/v1.100.3...v1.101.0) (2026-07-31)
 
 
