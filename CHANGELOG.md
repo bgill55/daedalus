@@ -1,3 +1,10 @@
+# [1.103.0](https://github.com/bgill55/daedalus/compare/v1.102.0...v1.103.0) (2026-07-31)
+
+
+### Features
+
+* **agent:** mandate rich seed data, hero onboarding banners, and default dark glassmorphism styling for all generated web UIs ([360f8a3](https://github.com/bgill55/daedalus/commit/360f8a3b4501717e923c82f93547927b9a397c69))
+
 # [1.102.0](https://github.com/bgill55/daedalus/compare/v1.101.0...v1.102.0) (2026-07-31)
 
 
