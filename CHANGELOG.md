@@ -1,3 +1,13 @@
+# [3.0.0](https://github.com/bgill55/daedalus/compare/v2.0.0...v3.0.0) (2026-07-31)
+
+
+* feat!: Daedalus v2.0.0 major release ([3f618d3](https://github.com/bgill55/daedalus/commit/3f618d31f72eb72a1a087fad5520b615aaf9cea9))
+
+
+### BREAKING CHANGES
+
+* Daedalus v2.0.0 major release with zero-setup non-git autopilot, non-blocking auto installs, SVG/Modal web UI mandates, and .daedalus/ walkthrough project isolation.
+
 # [2.0.0](https://github.com/bgill55/daedalus/compare/v1.104.2...v2.0.0) (2026-07-31)
 
 ### Features
