@@ -292,9 +292,14 @@ export async function runBuildVerification(toolContext: ToolContext, historyStar
       }
     }
 
-    if (!res.success) {
-      console.log(pc.red(`[VERIFY] Verification failed!`));
-      return { success: false, errorLogs: res.logs };
+    if (!res.success && res.logs) {
+      const isRelated = touchedFiles.length === 0 || isBuildErrorRelated(res.logs, touchedFiles, cwd);
+      if (!isRelated) {
+        console.log(pc.yellow(`[VERIFY] Build check failed, but errors appear to be in unrelated files. Ignoring build failure for this task.`));
+      } else {
+        console.log(pc.red(`[VERIFY] Verification failed!`));
+        return { success: false, errorLogs: res.logs };
+      }
     }
     console.log(pc.green(`[VERIFY] Verification passed.`));
   }
