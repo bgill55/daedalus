@@ -1232,11 +1232,8 @@ export class Orchestrator {
         repairCtx += `\n\nPrevious attempt failed build/compilation verification. The check failed with the following error output:\n\`\`\`\n${checkLogs}\n\`\`\`\nPlease fix the build/compilation errors listed above.`;
       }
       const repaired = await attemptRepair({ toolContext: this.toolContext, runAgent: (role, goal, context, tools) => this.runAgent(role, goal, context, tools) }, task, {
-        role: task.role,
-        goal: task.goal,
         summary: result,
-        success: false,
-      }, repairCtx);
+      }, repairCtx, historyStartIndex);
       result = repaired.summary;
       verified = repaired.success;
       evidence = repaired.evidence || '';

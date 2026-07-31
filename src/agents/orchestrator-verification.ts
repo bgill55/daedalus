@@ -333,10 +333,11 @@ export interface AgentExecutionContext {
 }
 
 export async function attemptRepair(
-  ctx: AgentExecutionContext,
+  ctx: { runAgent: (role: any, goal: string, context: string, tools: any[]) => Promise<string>; toolContext: ToolContext; projectRoot?: string },
   task: DelegationTask,
-  previous: AgentResult,
+  previous: { summary: string },
   customContext?: string,
+  initialHistoryStartIndex: number = 0
 ): Promise<{ success: boolean; summary: string; evidence?: string }> {
   const { getAgentRole, filterToolsForRole } = await import('./roles.js');
   const { BUILTIN_TOOLS } = await import('../tools/definitions.js');
@@ -357,9 +358,8 @@ export async function attemptRepair(
     console.log(`\n[REPAIR] Attempt ${attempt}/${maxRetries} to repair task: ${task.goal}`);
 
     const baseCtx = currentCustomContext || task.context;
-    const historyStartIndex = ctx.toolContext.patchHistory?.length || 0;
     let repairHint = '';
-    const noRealWork = (ctx.toolContext.patchHistory?.length ?? 0) <= historyStartIndex;
+    const noRealWork = (ctx.toolContext.patchHistory?.length ?? 0) <= initialHistoryStartIndex;
     if (noRealWork) {
       repairHint = `\n\nCRITICAL: Your previous response did not produce any file writes. You MUST call write_file or patch — do not describe what you did, just do it now. Call the tool immediately.`;
     } else if (currentSummary && currentSummary.toLowerCase().includes('i will') && !currentSummary.includes('`write_file`') && !currentSummary.includes('`patch`') && !currentSummary.includes('`terminal`')) {
@@ -372,12 +372,12 @@ export async function attemptRepair(
       return { success: false, summary: 'Task aborted by user' };
     }
 
-    let verified = await verifyArtifacts(ctx.toolContext, task.role, task.goal, result, historyStartIndex);
+    let verified = await verifyArtifacts(ctx.toolContext, task.role, task.goal, result, initialHistoryStartIndex);
     let repairCheckLogs = '';
-    if (verified && (task.role === 'coder' || task.role === 'debugger') && (ctx.toolContext.patchHistory?.length ?? 0) > historyStartIndex) {
-      const checkResult = await runBuildVerification(ctx.toolContext, historyStartIndex);
+    if (verified && (task.role === 'coder' || task.role === 'debugger') && (ctx.toolContext.patchHistory?.length ?? 0) > initialHistoryStartIndex) {
+      const checkResult = await runBuildVerification(ctx.toolContext, initialHistoryStartIndex);
       if (!checkResult.success) {
-        const modifiedFiles = ctx.toolContext.patchHistory!.slice(historyStartIndex).map(p => p.filePath);
+        const modifiedFiles = ctx.toolContext.patchHistory!.slice(initialHistoryStartIndex).map(p => p.filePath);
         const isRelated = isBuildErrorRelated(checkResult.errorLogs || '', modifiedFiles, ctx.toolContext.projectRoot);
         if (isRelated) {
           verified = false;

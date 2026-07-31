@@ -240,7 +240,7 @@ describe('Orchestrator repair attempts', () => {
     const repaired = await attemptRepair(
       ctx,
       { goal: 'implement a tiny CLI utility', context: '', role: 'coder' },
-      { role: 'coder', goal: 'implement a tiny CLI utility', summary: 'Failed to write initial file.', success: false },
+      { summary: 'Failed to write initial file.' },
     );
     expect(repaired.success).toBe(true);
   });
