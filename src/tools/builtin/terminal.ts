@@ -309,9 +309,9 @@ export async function execute(args: { command: string; timeout?: number; workdir
     const killTimer = setTimeout(() => {
       if (!exited) {
         exited = true;
-        if (installSpinner) {
-          installSpinner.stop();
-          console.log(pc.red(`[FAIL] Package installation timed out after ${timeout}s`));
+        if (cmdSpinner) {
+          cmdSpinner.stop();
+          console.log(pc.red(`[FAIL] ${label} timed out after ${timeout}s`));
         }
         if (process.platform === 'win32') {
           try {
@@ -349,9 +349,9 @@ export async function execute(args: { command: string; timeout?: number; workdir
       if (!exited) {
         exited = true;
         clearTimeout(killTimer);
-        if (installSpinner) {
-          installSpinner.stop();
-          console.log(pc.red(`[FAIL] Package installation error: ${err.message}`));
+        if (cmdSpinner) {
+          cmdSpinner.stop();
+          console.log(pc.red(`[FAIL] ${label} error: ${err.message}`));
         }
         resolve({
           toolCallId: '',
@@ -368,12 +368,12 @@ export async function execute(args: { command: string; timeout?: number; workdir
       if (!exited) {
         exited = true;
         clearTimeout(killTimer);
-        if (installSpinner) {
-          installSpinner.stop();
+        if (cmdSpinner) {
+          cmdSpinner.stop();
           if (code === 0) {
-            console.log(pc.green(`\n[OK] Package installation completed successfully.`));
+            if (isInstallCmd) console.log(pc.green(`\n[OK] Package installation completed successfully.`));
           } else {
-            console.log(pc.red(`\n[FAIL] Package installation failed with exit code ${code}.`));
+            if (isInstallCmd) console.log(pc.red(`\n[FAIL] Package installation failed with exit code ${code}.`));
           }
         }
         const fullOutput = output + (errorOutput ? `\n[stderr]\n${errorOutput}` : '');
