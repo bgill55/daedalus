@@ -7,6 +7,7 @@
   - [Model Routing & Tuning](routing-and-tuning.md)
   - [Multi-Agent Orchestration](orchestration.md)
   - [Autopilot v3.0.0 & Web UI Showcase](autopilot-showcase.md)
+  - [Σ-Mem Reliable Memory Engine](sigma-mem.md)
   - [SpecFirst Architecture](specfirst-architecture.md)
   - [Autonomous Finn Loop](finn-loop.md)
   - [Autonomous CI/CD PR Reviewer](ci-pr-reviewer.md)

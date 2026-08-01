@@ -299,6 +299,30 @@ To ensure developer project root directories stay 100% clean, all generated walk
 ### 5. Benchmark Showcase Demo (`examples/prompt-vault/`)
 Included in the core repository is **PromptVault** — an official benchmark demonstration built 100% autonomously in a single `/autopilot` command. It features an Express REST backend, seed prompt templates, live search, tag filters, interactive variable substitution (`{{variable}}`), and one-click copy to clipboard.
 
+---
+
+## 4. $\Sigma$-Mem ($\Sigma$-Memory): Reliable Multi-Agent Memory Engine
+
+The **$\Sigma$-Mem Engine** solves context window pollution in long-running multi-agent systems by implementing a local, verification-backed reliability scoring system:
+
+### 1. The Context Pollution Problem vs. $\Sigma$-Mem
+Traditional multi-agent systems treat conversation logs as flat history, storing failed attempts and hallucinated code alongside valid code. $\Sigma$-Mem scores every knowledge snippet on a scale from $0.0$ to $1.0$ (initialized at $0.70$).
+
+### 2. Verification-Backed Score Reinforcement
+- **Reward (+0.10)**: When code produced using a memory passes build verification (`npx tsc`, `npm test`, `linter`), its $\Sigma$-score is boosted: $\Sigma_{new} = \min(1.0, \Sigma_{old} + 0.10)$.
+- **Penalty (30% Decay)**: When build verification fails or patches roll back, its score decays: $\Sigma_{new} = \Sigma_{old} \times 0.70$.
+- **Auto-Pruning ($\Sigma < 0.20$)**: Low-reliability entries below threshold are automatically purged from storage.
+
+### 3. Local SQLite Architecture (`sigma_memories`)
+Runs 100% locally inside SQLite (`.daedalus/sessions/<session_id>.sqlite`) with zero external service dependencies:
+- `agent_role`: Agent attribution (`coder`, `debugger`, `reviewer`, `planner`).
+- `category`: Knowledge category (`code_pattern`, `fix_resolution`, `schema_contract`, `build_rule`).
+- `usefulness_count` & `decay_count`: Usage tracking counters.
+
+### 4. Selective Context Injection & CLI Inspection (`/sigma`)
+- **Selective Injection**: Only top-ranked memories ($\Sigma \ge 0.60$) are injected into sub-agent prompts.
+- **Terminal Inspection**: Developers can run `/sigma` (or `/memory`) in their CLI to inspect active team memories, scores, and decay counts in real-time.
+
 ### Key Environment Variables
 * `GITHUB_TOKEN` / `GH_TOKEN`: GitHub authentication token for PR creation and issue tracking.
 * `DISCORD_WEBHOOK_URL` / `DISCORD_LOOP_WEBHOOK_URL`: Webhook URL for Discord status alerts and loop channel notifications.
