@@ -89,4 +89,77 @@ describe('SigmaMemEngine (Σ-Mem)', () => {
     expect(prompt).toContain('No default exports per AGENTS.md.');
     expect(activeMemoryIds.length).toBe(1);
   });
+
+  it('deduplicates identical knowledge on content hash (no second row, usefulness_count increments)', () => {
+    const first = SigmaMemEngine.recordVerifiedKnowledge(db, {
+      agentRole: 'coder',
+      category: 'code_pattern',
+      tags: ['css'],
+      summary: 'SVG sizing rule',
+      content: 'Set max-width on raw svg.',
+    });
+
+    const second = SigmaMemEngine.recordVerifiedKnowledge(db, {
+      agentRole: 'coder',
+      category: 'code_pattern',
+      tags: ['css', 'svg'],
+      summary: 'SVG sizing rule',
+      content: 'Set max-width: 24px on raw svg.',
+    });
+
+    expect(second.id).toBe(first.id);
+    expect(second.usefulness_count).toBe(2);
+    expect(second.sigma_score).toBe(0.75);
+    expect(second.content).toBe('Set max-width: 24px on raw svg.');
+
+    const memories = getSigmaMemories(db, 0.0);
+    expect(memories.length).toBe(1);
+    expect(memories[0].content).toBe('Set max-width: 24px on raw svg.');
+  });
+
+  it('matchTags prioritizes memories with overlapping tags, then falls back to best global', () => {
+    const a = SigmaMemEngine.recordVerifiedKnowledge(db, {
+      agentRole: 'coder', category: 'code_pattern', tags: ['ts'],
+      summary: 'TS type guard rule', content: 'Prefer user-defined type guards.',
+      initialScore: 0.65,
+    });
+    const b = SigmaMemEngine.recordVerifiedKnowledge(db, {
+      agentRole: 'coder', category: 'code_pattern', tags: ['css'],
+      summary: 'CSS flexbox fix', content: 'Use flexbox for centering.',
+      initialScore: 0.95,
+    });
+    const c = SigmaMemEngine.recordVerifiedKnowledge(db, {
+      agentRole: 'coder', category: 'code_pattern', tags: ['ts', 'node'],
+      summary: 'Node ESM import rule', content: 'Always use ESM imports.',
+      initialScore: 0.80,
+    });
+
+    const { prompt, activeMemoryIds } = SigmaMemEngine.getPromptContext(db, 'coder', 0.50, 6, ['ts']);
+
+    expect(activeMemoryIds[0]).toBe(c.id);
+    expect(activeMemoryIds[1]).toBe(a.id);
+    expect(activeMemoryIds[2]).toBe(b.id);
+    expect(prompt.indexOf('Node ESM import rule')).toBeLessThan(prompt.indexOf('CSS flexbox fix'));
+  });
+
+  it('time decay reduces the score of an old memory and increments decay_count', () => {
+    const mem = SigmaMemEngine.recordVerifiedKnowledge(db, {
+      agentRole: 'coder',
+      category: 'code_pattern',
+      tags: ['legacy'],
+      summary: 'Legacy build rule',
+      content: 'Old content that has gone stale.',
+    });
+
+    db.prepare('UPDATE sigma_memories SET updated_at = ? WHERE id = ?').run(
+      Date.now() - 60 * 24 * 60 * 60 * 1000,
+      mem.id
+    );
+
+    const memories = getSigmaMemories(db, 0.0);
+    expect(memories.length).toBe(1);
+    expect(memories[0].sigma_score).toBeLessThan(0.70);
+    expect(memories[0].sigma_score).toBeCloseTo(0.20, 2);
+    expect(memories[0].decay_count).toBe(1);
+  });
 });

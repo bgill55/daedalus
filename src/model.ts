@@ -74,6 +74,7 @@ export interface ModelDeps {
   toolContext: ToolContext;
   buildFileContext: () => string;
   askLine: (prompt: string) => Promise<string>;
+  refreshSystemPrompt?: () => void;
 }
 
 function ensureAbortController(): AbortController {
@@ -92,12 +93,13 @@ function clearAbortController(): void {
 
 // Streaming response handler with tool call support — iterative, not recursive
 export function createModelFunctions(deps: ModelDeps) {
-  const { messages, config, router, toolContext, buildFileContext, askLine } = deps;
+  const { messages, config, router, toolContext, buildFileContext, askLine, refreshSystemPrompt } = deps;
 
   async function callModelWithTools(
     userContent: string,
     imageBase64?: string,
   ): Promise<{ content: string; toolCalls: ToolCall[] }> {
+    refreshSystemPrompt?.();
     let repetitionAborted = false;
     if (userContent) {
       if (imageBase64) {
@@ -497,4 +499,24 @@ export function createModelFunctions(deps: ModelDeps) {
   }
 
   return { callModelWithTools, callModelWithFallback };
+}
+
+export function maxPatchFailureStreak(streak: Map<string, number> | undefined): number {
+  if (!streak || streak.size === 0) return 0;
+  let max = 0;
+  for (const value of streak.values()) {
+    if (value > max) max = value;
+  }
+  return max;
+}
+
+export type PatchOutcomeSignal = 'success' | 'failure' | 'none';
+
+export function evaluatePatchOutcome(
+  before: { patches: number; maxStreak: number },
+  after: { patches: number; maxStreak: number },
+): PatchOutcomeSignal {
+  if (after.patches > before.patches) return 'success';
+  if (after.maxStreak > before.maxStreak) return 'failure';
+  return 'none';
 }

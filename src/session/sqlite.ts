@@ -143,6 +143,7 @@ export function initSessionDb(dbPath: string): Database.Database {
       tags TEXT NOT NULL,
       summary TEXT NOT NULL,
       content TEXT NOT NULL,
+      content_hash TEXT NOT NULL UNIQUE,
       sigma_score REAL NOT NULL DEFAULT 0.70,
       usefulness_count INTEGER DEFAULT 0,
       decay_count INTEGER DEFAULT 0,
@@ -150,6 +151,7 @@ export function initSessionDb(dbPath: string): Database.Database {
       updated_at INTEGER NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_sigma_score ON sigma_memories(sigma_score DESC);
+    CREATE INDEX IF NOT EXISTS idx_sigma_content_hash ON sigma_memories(content_hash);
 
     CREATE TABLE IF NOT EXISTS failure_lessons (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -162,6 +164,12 @@ export function initSessionDb(dbPath: string): Database.Database {
     );
     CREATE INDEX IF NOT EXISTS idx_failure_lessons_role ON failure_lessons(task_role);
   `);
+
+  const sigmaCols = db.prepare('PRAGMA table_info(sigma_memories)').all() as Array<{ name: string }>;
+  if (!sigmaCols.some((col) => col.name === 'content_hash')) {
+    db.exec('ALTER TABLE sigma_memories ADD COLUMN content_hash TEXT');
+    db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_sigma_content_hash ON sigma_memories(content_hash) WHERE content_hash IS NOT NULL');
+  }
   return db;
 }
 
@@ -317,6 +325,7 @@ export interface SqliteSigmaMemory {
   tags: string; // JSON string
   summary: string;
   content: string;
+  content_hash: string;
   sigma_score: number;
   usefulness_count: number;
   decay_count: number;
@@ -326,26 +335,50 @@ export interface SqliteSigmaMemory {
 
 export function saveSigmaMemory(db: Database.Database, mem: SqliteSigmaMemory): void {
   db.prepare(`
-    INSERT INTO sigma_memories (id, agent_role, category, tags, summary, content, sigma_score, usefulness_count, decay_count, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO sigma_memories (id, agent_role, category, tags, summary, content, content_hash, sigma_score, usefulness_count, decay_count, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
+      tags = excluded.tags,
+      summary = excluded.summary,
+      content = excluded.content,
       sigma_score = excluded.sigma_score,
       usefulness_count = excluded.usefulness_count,
       decay_count = excluded.decay_count,
       updated_at = excluded.updated_at
   `).run(
-    mem.id, mem.agent_role, mem.category, mem.tags, mem.summary, mem.content,
+    mem.id, mem.agent_role, mem.category, mem.tags, mem.summary, mem.content, mem.content_hash,
     mem.sigma_score, mem.usefulness_count, mem.decay_count, mem.created_at, mem.updated_at
   );
 }
 
+export function getSigmaMemoryByHash(db: Database.Database, contentHash: string): SqliteSigmaMemory | null {
+  const row = db.prepare('SELECT * FROM sigma_memories WHERE content_hash = ?').get(contentHash) as SqliteSigmaMemory | undefined;
+  return row || null;
+}
+
 export function getSigmaMemories(db: Database.Database, minScore: number = 0.60, limit: number = 10): SqliteSigmaMemory[] {
-  return db.prepare(`
-    SELECT * FROM sigma_memories
-    WHERE sigma_score >= ?
-    ORDER BY sigma_score DESC, usefulness_count DESC, updated_at DESC
-    LIMIT ?
-  `).all(minScore, limit) as SqliteSigmaMemory[];
+  const rows = db.prepare('SELECT * FROM sigma_memories').all() as SqliteSigmaMemory[];
+  const now = Date.now();
+  const decayUpdate = db.prepare('UPDATE sigma_memories SET sigma_score = ?, decay_count = decay_count + 1 WHERE id = ?');
+
+  const decayed = rows.map((m) => {
+    const daysSinceUpdated = (now - m.updated_at) / 86_400_000;
+    if (daysSinceUpdated <= 0) return m;
+    const decayedScore = Math.max(0.20, m.sigma_score * Math.pow(0.5, daysSinceUpdated / 30));
+    if (Math.abs(decayedScore - m.sigma_score) <= 0.005) return m;
+    const rounded = Math.round(decayedScore * 10000) / 10000;
+    decayUpdate.run(rounded, m.id);
+    return { ...m, sigma_score: rounded, decay_count: m.decay_count + 1 };
+  });
+
+  return decayed
+    .filter((m) => m.sigma_score >= minScore)
+    .sort((a, b) =>
+      b.sigma_score - a.sigma_score ||
+      b.usefulness_count - a.usefulness_count ||
+      b.updated_at - a.updated_at
+    )
+    .slice(0, limit);
 }
 
 export function updateSigmaScore(db: Database.Database, id: string, scoreDelta: number, isSuccess: boolean): void {

@@ -11,13 +11,14 @@ import { setRouterClient } from './tools/builtin/delegation.js';
 import { createRouter, RouterConfig } from './router/index.js';
 import { loadConfig, getConfigDirPath } from './config/index.js';
 import { detectProjectStack } from './config/stack.js';
-import { ToolContext, ChatMessage, ToolDefinition } from './types.js';
+import { ToolContext, ChatMessage, ToolDefinition, ToolCall } from './types.js';
 import { setSessionTodos } from './tools/builtin/todo.js';
 import { SessionManager } from './session/manager.js';
 import { loadProfile, getProfilePrompt, UserProfile } from './profile.js';
 import { printBanner, printConfigInfo } from './banner.js';
 import { checkForUpdates, checkChangelogOnUpgrade } from './update-check.js';
-import { createModelFunctions, currentAbortController, abortTurn } from './model.js';
+import { createModelFunctions, currentAbortController, abortTurn, evaluatePatchOutcome, maxPatchFailureStreak } from './model.js';
+import { SigmaMemEngine } from './session/sigma-mem.js';
 import { createRepl } from './repl.js';
 import { setFormattingConfig } from './formatting.js';
 import { getProjectRules, systemPrompt } from './system-prompt.js';
@@ -60,6 +61,8 @@ const activeFiles = new Map<string, string>();
 const messages: ChatMessage[] = [];
 
 let indexWatcher: { close: () => void } | null = null;
+
+let activeSigmaMemoryIds: string[] = [];
 
 
 
@@ -159,6 +162,13 @@ function getSystemPromptWithMemory(): string {
   if (memPrompt) {
     prompt += '\n' + memPrompt;
   }
+  if (sessionManager?.db) {
+    const sigmaRes = SigmaMemEngine.getPromptContext(sessionManager.db, config.agents?.default ?? undefined, 0.60, 5, Array.from(activeFiles.values()));
+    if (sigmaRes.prompt) {
+      prompt += '\n' + sigmaRes.prompt;
+    }
+    activeSigmaMemoryIds = sigmaRes.activeMemoryIds;
+  }
   const stackPrompt = detectProjectStack(sessionManager.projectRoot);
   if (stackPrompt) {
     prompt += '\n' + stackPrompt;
@@ -218,14 +228,43 @@ function getIndexDbPath(): string {
   return path.join(os.homedir(), '.daedalus', 'indexing', `${sessionManager.projectHash}.sqlite`);
 }
 
-const { callModelWithTools, callModelWithFallback } = createModelFunctions({
+const { callModelWithTools: rawCallModelWithTools, callModelWithFallback } = createModelFunctions({
   messages,
   config,
   router,
   toolContext,
   buildFileContext,
   askLine,
+  refreshSystemPrompt: () => {
+    if (messages.length > 0 && messages[0].role === 'system') {
+      messages[0] = { role: 'system', content: getSystemPromptWithMemory() };
+    }
+  },
 });
+
+// Σ-Mem feedback proxy — rewards/penalizes active Σ-memories from patch outcomes per single-agent turn
+async function callModelWithTools(userContent: string, imageBase64?: string): Promise<{ content: string; toolCalls: ToolCall[] }> {
+  const prevPatches = toolContext.patchHistory?.length ?? 0;
+  const prevStreak = maxPatchFailureStreak(toolContext.patchFailureStreak);
+  const result = await rawCallModelWithTools(userContent, imageBase64);
+  const memoryIds = activeSigmaMemoryIds;
+  if (sessionManager?.db) {
+    try {
+      const signal = evaluatePatchOutcome(
+        { patches: prevPatches, maxStreak: prevStreak },
+        { patches: toolContext.patchHistory?.length ?? 0, maxStreak: maxPatchFailureStreak(toolContext.patchFailureStreak) },
+      );
+      if (signal === 'success' && memoryIds.length > 0) {
+        SigmaMemEngine.rewardSuccessfulPass(sessionManager.db, memoryIds);
+      } else if (signal === 'failure' && memoryIds.length > 0) {
+        SigmaMemEngine.penalizeFailedAttempt(sessionManager.db, memoryIds);
+      }
+    } catch {
+      // σ-mem feedback must never break the turn flow
+    }
+  }
+  return result;
+}
 
 // Lazy repl — created inside main() after MCP connects, so piped stdin isn't consumed early
 let chatLoop: () => Promise<void>;

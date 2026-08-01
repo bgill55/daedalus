@@ -29,6 +29,8 @@ import {
 } from './orchestrator-verification.js';
 import { generateSpecContract, loadSpecContract, formatSpecForPrompt } from './spec.js';
 import { SigmaMemEngine } from '../session/sigma-mem.js';
+import { getSigmaMemories } from '../session/sqlite.js';
+import type Database from 'better-sqlite3';
 import type { DelegationTask, AgentResult } from './orchestrator-types.js';
 
 
@@ -1025,6 +1027,43 @@ export class Orchestrator {
     return tokens;
   }
 
+  private pickMemoryCategory(task: DelegationTask): 'code_pattern' | 'fix_resolution' | 'schema_contract' | 'build_rule' {
+    const goal = task.goal;
+    if (task.role === 'debugger' || /fix|debug|repair|resolve/i.test(goal)) return 'fix_resolution';
+    if (task.role === 'reviewer' || /verify|test|review|validate|inspect/i.test(goal)) return 'build_rule';
+    if (task.role === 'planner' || /spec|contract|interface/i.test(goal)) return 'schema_contract';
+    return 'code_pattern';
+  }
+
+  private getTaskRelatedSigmaIds(db: Database.Database, activeIds: string[], task: DelegationTask): string[] {
+    if (activeIds.length === 0) return [];
+    const active = new Set(activeIds);
+    const paths = extractFilePaths(task.goal).map(p => p.toLowerCase());
+    const keywords = task.goal
+      .split(/[^a-zA-Z0-9]+/)
+      .map(k => k.toLowerCase())
+      .filter(k => k.length >= 3);
+    const hasOverlap = (tags: string[]): boolean => {
+      for (const tag of tags) {
+        const t = tag.toLowerCase();
+        if (paths.some(p => p.includes(t) || t.includes(p))) return true;
+        if (keywords.some(k => k.includes(t) || t.includes(k))) return true;
+      }
+      return false;
+    };
+    const related = new Set<string>();
+    for (const row of getSigmaMemories(db, 0, 200)) {
+      if (!active.has(row.id)) continue;
+      let tags: string[] = [];
+      try {
+        const parsed = JSON.parse(row.tags);
+        if (Array.isArray(parsed)) tags = parsed.map(String);
+      } catch { /* unparseable tags */ }
+      if (hasOverlap(tags)) related.add(row.id);
+    }
+    return activeIds.filter(id => related.has(id));
+  }
+
   private async delegateTask(task: DelegationTask, tasks?: DelegationTask[], goal?: string, projectContext?: string): Promise<void> {
     const role = getAgentRole(task.role);
     console.log(`\n[SPAWN] Delegating to ${role.name}: ${task.goal}`);
@@ -1090,7 +1129,7 @@ export class Orchestrator {
     let sigmaMemBlock = '';
     let activeSigmaMemoryIds: string[] = [];
     if (this.sessionManager?.db) {
-      const sigmaRes = SigmaMemEngine.getPromptContext(this.sessionManager.db, task.role, 0.60, 5);
+      const sigmaRes = SigmaMemEngine.getPromptContext(this.sessionManager.db, task.role, 0.60, 5, extractFilePaths(task.goal));
       sigmaMemBlock = sigmaRes.prompt;
       activeSigmaMemoryIds = sigmaRes.activeMemoryIds;
     }
@@ -1302,10 +1341,11 @@ export class Orchestrator {
       if (clean) result = clean;
 
       if (this.sessionManager?.db) {
-        SigmaMemEngine.rewardSuccessfulPass(this.sessionManager.db, activeSigmaMemoryIds);
+        const related = this.getTaskRelatedSigmaIds(this.sessionManager.db, activeSigmaMemoryIds, task);
+        SigmaMemEngine.rewardSuccessfulPass(this.sessionManager.db, related.length > 0 ? related : activeSigmaMemoryIds);
         SigmaMemEngine.recordVerifiedKnowledge(this.sessionManager.db, {
           agentRole: task.role,
-          category: 'code_pattern',
+          category: this.pickMemoryCategory(task),
           tags: extractFilePaths(task.goal),
           summary: cleanTaskText(task.goal),
           content: result.slice(0, 300),
@@ -1317,7 +1357,10 @@ export class Orchestrator {
       task.error = resultForCheck.split('\n')[0] || result.split('\n')[0] || 'Unknown failure';
 
       if (this.sessionManager?.db) {
-        SigmaMemEngine.penalizeFailedAttempt(this.sessionManager.db, activeSigmaMemoryIds);
+        const related = this.getTaskRelatedSigmaIds(this.sessionManager.db, activeSigmaMemoryIds, task);
+        if (related.length > 0) {
+          SigmaMemEngine.penalizeFailedAttempt(this.sessionManager.db, related);
+        }
       }
 
       // Rollback patches made during this task to keep codebase clean

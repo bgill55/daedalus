@@ -6,10 +6,24 @@ import crypto from 'crypto';
 import {
   saveSigmaMemory,
   getSigmaMemories,
+  getSigmaMemoryByHash,
   updateSigmaScore,
   pruneLowSigmaMemories,
   SqliteSigmaMemory,
 } from './sqlite.js';
+
+export function computeSigmaContentHash(agentRole: string, category: string, summary: string): string {
+  return crypto.createHash('sha256').update(`${agentRole}|${category}|${summary}`).digest('hex');
+}
+
+function parseTags(tags: string): string[] {
+  try {
+    const parsed = JSON.parse(tags);
+    return Array.isArray(parsed) ? parsed.map((t) => String(t).toLowerCase()) : [];
+  } catch {
+    return [];
+  }
+}
 
 export interface SigmaRecordOptions {
   agentRole: string;
@@ -21,12 +35,28 @@ export interface SigmaRecordOptions {
 }
 
 export class SigmaMemEngine {
-  /** Record a newly verified memory item */
+  /** Record a newly verified memory item (upserts on content hash to avoid duplicates) */
   public static recordVerifiedKnowledge(
     db: Database.Database,
     opts: SigmaRecordOptions
   ): SqliteSigmaMemory {
     const now = Date.now();
+    const contentHash = computeSigmaContentHash(opts.agentRole, opts.category, opts.summary);
+    const existing = getSigmaMemoryByHash(db, contentHash);
+    if (existing) {
+      const refreshed: SqliteSigmaMemory = {
+        ...existing,
+        tags: JSON.stringify(opts.tags || []),
+        summary: opts.summary,
+        content: opts.content,
+        sigma_score: Math.round(Math.min(1.0, existing.sigma_score + 0.05) * 10000) / 10000,
+        usefulness_count: existing.usefulness_count + 1,
+        updated_at: now,
+      };
+      saveSigmaMemory(db, refreshed);
+      return refreshed;
+    }
+
     const id = `sig_${crypto.randomBytes(6).toString('hex')}`;
     const mem: SqliteSigmaMemory = {
       id,
@@ -35,6 +65,7 @@ export class SigmaMemEngine {
       tags: JSON.stringify(opts.tags || []),
       summary: opts.summary,
       content: opts.content,
+      content_hash: contentHash,
       sigma_score: opts.initialScore ?? 0.70,
       usefulness_count: 1,
       decay_count: 0,
@@ -67,16 +98,21 @@ export class SigmaMemEngine {
     db: Database.Database,
     filterRole?: string,
     minScore: number = 0.60,
-    limit: number = 6
+    limit: number = 6,
+    matchTags?: string[]
   ): { prompt: string; activeMemoryIds: string[] } {
-    const rawMemories = getSigmaMemories(db, minScore, limit * 2);
+    const poolSize = matchTags && matchTags.length > 0 ? Math.max(limit * 4, 50) : limit * 2;
+    const rawMemories = getSigmaMemories(db, minScore, poolSize);
 
     // Filter by role if specified, or fallback to top global memories
     const filtered = filterRole
       ? rawMemories.filter((m) => m.agent_role === filterRole || m.category === 'build_rule')
       : rawMemories;
 
-    const selected = filtered.slice(0, limit);
+    const selected =
+      matchTags && matchTags.length > 0
+        ? SigmaMemEngine.rankByTagOverlap(filtered, matchTags).slice(0, limit)
+        : filtered.slice(0, limit);
     if (selected.length === 0) {
       return { prompt: '', activeMemoryIds: [] };
     }
@@ -90,5 +126,34 @@ export class SigmaMemEngine {
     const activeMemoryIds = selected.map((m) => m.id);
 
     return { prompt, activeMemoryIds };
+  }
+
+  private static rankByTagOverlap(memories: SqliteSigmaMemory[], matchTags: string[]): SqliteSigmaMemory[] {
+    const normalized = matchTags.map((t) => t.toLowerCase());
+    const countOverlap = (m: SqliteSigmaMemory): number => {
+      const tags = parseTags(m.tags);
+      return tags.reduce((acc, t) => (normalized.includes(t) ? acc + 1 : acc), 0);
+    };
+
+    const overlapping = memories
+      .map((m) => ({ m, overlap: countOverlap(m) }))
+      .filter((x) => x.overlap > 0)
+      .sort((a, b) =>
+        b.overlap - a.overlap ||
+        b.m.sigma_score - a.m.sigma_score ||
+        b.m.usefulness_count - a.m.usefulness_count ||
+        b.m.updated_at - a.m.updated_at
+      )
+      .map((x) => x.m);
+
+    const nonOverlapping = memories
+      .filter((m) => countOverlap(m) === 0)
+      .sort((a, b) =>
+        b.sigma_score - a.sigma_score ||
+        b.usefulness_count - a.usefulness_count ||
+        b.updated_at - a.updated_at
+      );
+
+    return [...overlapping, ...nonOverlapping];
   }
 }
