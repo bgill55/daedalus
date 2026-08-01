@@ -302,6 +302,8 @@ export function recordWriteSuccess(targetPath: string, context: ToolContext): vo
 }
 
 export function recordRevert(targetPath: string, context: ToolContext): void {
+  const streak = context.patchFailureStreak?.get(targetPath) ?? 0;
+  context.patchFailureStreak?.set(targetPath, streak + 1);
   if (context.sessionReadCache && fs.existsSync(targetPath)) {
     context.sessionReadCache.set(targetPath, fs.statSync(targetPath).mtimeMs);
   }

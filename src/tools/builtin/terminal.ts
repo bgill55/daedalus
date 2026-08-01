@@ -167,11 +167,20 @@ export async function execute(args: { command: string; timeout?: number; workdir
   }
 
   // Best-effort checkpoint before install, plus an npx footgun warning
+  let execCommand = command;
+  if (process.platform === 'win32' && /^rm\s+/i.test(execCommand.trim())) {
+    const rmMatch = execCommand.trim().match(/^rm\s+(?:-[a-z]+\s+)?(.+)$/i);
+    if (rmMatch && rmMatch[1]) {
+      const targetPath = rmMatch[1].trim().replace(/'/g, '');
+      execCommand = `powershell -Command "Remove-Item -Recurse -Force '${targetPath}'"`;
+    }
+  }
+
   let notes = '';
-  if (INSTALL_COMMAND_RE.test(command)) {
+  if (INSTALL_COMMAND_RE.test(execCommand)) {
     notes += buildCheckpointNote(workdir);
   }
-  notes += buildNpxWarnNote(command, workdir);
+  notes += buildNpxWarnNote(execCommand, workdir);
 
   return new Promise((resolve) => {
     let output = notes;
@@ -224,7 +233,7 @@ export async function execute(args: { command: string; timeout?: number; workdir
       }
 
       const active = state.cachedShell!;
-      return { shell: active.shell, args: getShellArgs(active.type, command) };
+      return { shell: active.shell, args: getShellArgs(active.type, execCommand) };
     }
 
     function getExecutionShell(): { shell: string; args: string[] } {
@@ -252,7 +261,7 @@ export async function execute(args: { command: string; timeout?: number; workdir
           sandboxImage,
           'sh',
           '-c',
-          command,
+          execCommand,
         ];
         return { shell: 'docker', args: dockerArgs };
       }
@@ -270,7 +279,7 @@ export async function execute(args: { command: string; timeout?: number; workdir
         if (wslDistribution) {
           wslArgs.push('-d', wslDistribution);
         }
-        wslArgs.push('--cd', wslWorkdir, '--', 'sh', '-c', command);
+        wslArgs.push('--cd', wslWorkdir, '--', 'sh', '-c', execCommand);
         return { shell: 'wsl', args: wslArgs };
       }
 
@@ -279,15 +288,15 @@ export async function execute(args: { command: string; timeout?: number; workdir
 
     const { shell, args: shellArgs } = getExecutionShell();
 
-    const isInstallCmd = INSTALL_COMMAND_RE.test(command);
-    let installSpinner: DaedalusSpinner | null = null;
-    if (isInstallCmd) {
-      installSpinner = new DaedalusSpinner({
-        text: `Installing dependencies (${command.slice(0, 60)}...)`,
-        color: (s) => pc.cyan(s),
-      });
-      installSpinner.start();
-    }
+    const isInstallCmd = INSTALL_COMMAND_RE.test(execCommand);
+    const label = isInstallCmd ? 'Package installation' : 'Command';
+    const cmdSpinner = new DaedalusSpinner({
+      text: isInstallCmd
+        ? `Installing dependencies (${execCommand.slice(0, 60)}...)`
+        : `Running: ${execCommand.slice(0, 60)}${execCommand.length > 60 ? '...' : ''}`,
+      color: (s) => pc.cyan(s),
+    });
+    cmdSpinner.start();
 
     const child = spawn(shell, shellArgs, {
       cwd: workdir,

@@ -11,6 +11,8 @@ export type SpinnerOptions = {
 };
 
 export class DaedalusSpinner {
+  private static stack: DaedalusSpinner[] = [];
+
   private frames: string[];
   private interval: number;
   private text: string;
@@ -49,14 +51,36 @@ export class DaedalusSpinner {
     if (text) this.text = text;
     this.frameIndex = 0;
 
-    if (tui) {
-      this.renderTui();
-      this.timer = setInterval(() => this.renderTui(), this.interval);
-    } else {
+    const parent = DaedalusSpinner.stack[DaedalusSpinner.stack.length - 1];
+    if (parent) parent.pauseRender();
+    DaedalusSpinner.stack.push(this);
+
+    if (!tui && DaedalusSpinner.stack.length === 1) {
       process.stdout.write('\x1b[?25l');
-      this.render();
-      this.timer = setInterval(() => this.render(), this.interval);
     }
+    this.renderTick();
+    this.timer = setInterval(() => this.renderTick(), this.interval);
+  }
+
+  private renderTick(): void {
+    if (this.isTui()) {
+      this.renderTui();
+    } else {
+      this.render();
+    }
+  }
+
+  private pauseRender(): void {
+    if (this.timer) {
+      clearInterval(this.timer);
+      this.timer = null;
+    }
+  }
+
+  private resumeRender(): void {
+    if (!this.running || this.timer) return;
+    this.renderTick();
+    this.timer = setInterval(() => this.renderTick(), this.interval);
   }
 
   private render(): void {
@@ -84,10 +108,16 @@ export class DaedalusSpinner {
   stop(finalText?: string): void {
     if (!this.running) return;
     this.running = false;
-    if (this.timer) {
-      clearInterval(this.timer);
-      this.timer = null;
+    this.pauseRender();
+
+    const idx = DaedalusSpinner.stack.indexOf(this);
+    if (idx >= 0) DaedalusSpinner.stack.splice(idx, 1);
+
+    if (DaedalusSpinner.stack.length > 0) {
+      DaedalusSpinner.stack[DaedalusSpinner.stack.length - 1].resumeRender();
+      return;
     }
+
     if (this.isTui()) {
       const logBox = globalThis.tuiLogBox as { setLabel: (lbl: string) => void } | undefined;
       const screen = globalThis.tuiScreen as { render: () => void } | undefined;
