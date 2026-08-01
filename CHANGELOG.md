@@ -1,3 +1,10 @@
+## [3.2.1](https://github.com/bgill55/daedalus/compare/v3.2.0...v3.2.1) (2026-08-01)
+
+
+### Bug Fixes
+
+* **memory:** route Sigma-Mem to the session DB instead of the index DB ([cd8c953](https://github.com/bgill55/daedalus/commit/cd8c953b714af81b4b257343756b05105cd418d7))
+
 # [3.2.0](https://github.com/bgill55/daedalus/compare/v3.1.0...v3.2.0) (2026-08-01)
 
 
