@@ -44,7 +44,7 @@ export class SessionManager {
   private indexDbPath = path.join(this.sessionsDir, 'index.sqlite');
 
   private indexDb!: Database.Database;
-  private sessionDb?: Database.Database;
+  public sessionDb?: Database.Database;
 
   projectRoot!: string;
   projectHash!: string;

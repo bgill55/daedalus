@@ -393,7 +393,7 @@ export const contextCommands: Command[] = [
       const subcommand = parts[0]?.toLowerCase();
       const subcommandArg = parts.slice(1).join(' ').trim();
 
-      const db = ctx.sessionManager.db;
+      const db = ctx.sessionManager.sessionDb!;
       const sessionDir = path.join(ctx.configDir, 'sessions');
       const workspaceRoot = process.cwd();
       const currentSessionId = ctx.toolContext.sessionId || 'default';
@@ -832,7 +832,11 @@ export const contextCommands: Command[] = [
       const n = parseInt((args || '5').trim(), 10);
       if (isNaN(n) || n < 1) { console.log(pc.red('[ERROR] Provide a positive number')); return; }
 
-      const turns = getTurns(ctx.sessionManager.db);
+      if (!ctx.sessionManager?.sessionDb) {
+        console.log(pc.yellow('\n  [INFO] No active session database. Start a session first.\n'));
+        return;
+      }
+      const turns = getTurns(ctx.sessionManager.sessionDb);
       const recent = turns.slice(-n);
 
       for (const t of recent) {

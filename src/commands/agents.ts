@@ -1200,13 +1200,13 @@ export const agentCommands: Command[] = [
     helpText: 'Displays active reliability-scored multi-agent team memory items from SQLite.\n  Example: /sigma 0.5',
     execute: async (args, ctx) => {
       const minScore = parseFloat(args.trim()) || 0.50;
-      if (!ctx.sessionManager?.db) {
+      if (!ctx.sessionManager?.sessionDb) {
         console.log(pc.yellow('\n  [INFO] No active session database. Start a session or run /autopilot first.\n'));
         return;
       }
 
       const { getSigmaMemories } = await import('../session/sqlite.js');
-      const memories = getSigmaMemories(ctx.sessionManager.db, minScore, 20);
+      const memories = getSigmaMemories(ctx.sessionManager.sessionDb, minScore, 20);
 
       console.log(pc.bold(`\n=== 🧠 Σ-MEM (RELIABILITY-SCORED AGENT KNOWLEDGE) ===`));
       if (memories.length === 0) {
