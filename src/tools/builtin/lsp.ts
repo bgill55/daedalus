@@ -61,7 +61,13 @@ export async function lspDiagnostics(
     const svc = initService(context.projectRoot);
     let files: string[];
     if (args.path) {
-      files = [resolveAbsPath(args.path, context.projectRoot)];
+      const target = resolveAbsPath(args.path, context.projectRoot);
+      if (fs.existsSync(target) && fs.statSync(target).isDirectory()) {
+        const normTarget = target.replace(/\\/g, '/');
+        files = serviceHost!.getScriptFileNames().filter(f => f.replace(/\\/g, '/').startsWith(normTarget) && !f.includes('node_modules'));
+      } else {
+        files = [target];
+      }
     } else {
       files = serviceHost!.getScriptFileNames().filter(f => !f.includes('node_modules'));
     }

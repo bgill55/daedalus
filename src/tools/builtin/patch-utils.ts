@@ -285,9 +285,16 @@ export function checkWriteWithoutRead(targetPath: string, context: ToolContext):
   return null;
 }
 
+function getStreakMap(context: ToolContext): Map<string, number> {
+  if (!context.patchFailureStreak) {
+    context.patchFailureStreak = new Map<string, number>();
+  }
+  return context.patchFailureStreak;
+}
+
 export function checkCircuitBreaker(targetPath: string, context: ToolContext): string | null {
-  if (!context.patchFailureStreak) return null;
-  const streak = context.patchFailureStreak.get(targetPath) ?? 0;
+  const map = getStreakMap(context);
+  const streak = map.get(targetPath) ?? 0;
   if (streak >= 2) {
     return `[CIRCUIT BREAKER] patch failed ${streak} consecutive times on ${path.basename(targetPath)}. Use read_file to inspect the current state and reconstruct your patch from the actual content.`;
   }
@@ -295,23 +302,25 @@ export function checkCircuitBreaker(targetPath: string, context: ToolContext): s
 }
 
 export function recordWriteSuccess(targetPath: string, context: ToolContext): void {
-  context.patchFailureStreak?.set(targetPath, 0);
+  getStreakMap(context).set(targetPath, 0);
   if (context.sessionReadCache && fs.existsSync(targetPath)) {
     context.sessionReadCache.set(targetPath, fs.statSync(targetPath).mtimeMs);
   }
 }
 
 export function recordRevert(targetPath: string, context: ToolContext): void {
-  const streak = context.patchFailureStreak?.get(targetPath) ?? 0;
-  context.patchFailureStreak?.set(targetPath, streak + 1);
+  const map = getStreakMap(context);
+  const streak = map.get(targetPath) ?? 0;
+  map.set(targetPath, streak + 1);
   if (context.sessionReadCache && fs.existsSync(targetPath)) {
     context.sessionReadCache.set(targetPath, fs.statSync(targetPath).mtimeMs);
   }
 }
 
 export function recordPatchFailure(targetPath: string, context: ToolContext): void {
-  const streak = context.patchFailureStreak?.get(targetPath) ?? 0;
-  context.patchFailureStreak?.set(targetPath, streak + 1);
+  const map = getStreakMap(context);
+  const streak = map.get(targetPath) ?? 0;
+  map.set(targetPath, streak + 1);
 }
 
 export function validateImports(filePath: string, projectRoot: string): string[] {
