@@ -8,6 +8,7 @@ import { DaedalusSpinner } from '../daedalus-spinner.js';
 import { ToolContext, ToolResult } from '../../types.js';
 import { loadConfig } from '../../config/index.js';
 import { guardGitCommand } from '../git-guard.js';
+import { createGitCheckpoint } from '../git-checkpoint.js';
 
 const SENSITIVE_ENV_KEYS = new Set([
   'AWS_SECRET_ACCESS_KEY', 'AWS_ACCESS_KEY_ID', 'AWS_SESSION_TOKEN',
@@ -27,6 +28,36 @@ const INSTALL_COMMAND_RE = /(?:^|\s)(?:npm\s+(?:install|i|ci|add)|npx\s|pip\d?\s
 
 // Commands that open GUI / interactive apps that should not run unattended
 const GUI_LAUNCH_RE = /(?:^|\s)(?:cypress\s+open|cypress\s+run\s+--headed|playwright\s+test\s+--headed)(?:\s|$)/i;
+
+// Captures the package name of a bare `npx <pkg>` invocation
+const NPX_RE = /(?:^|\s)npx(?:\s|@)([A-Za-z0-9@._/+-]+)/;
+
+function buildCheckpointNote(workdir: string): string {
+  const cp = createGitCheckpoint(workdir);
+  if (cp.ok && cp.hash) {
+    return `\n[CHECKPOINT] Git snapshot created before install: ${cp.hash} — roll back with: git checkout ${cp.hash} -- .`;
+  }
+  return `\n[CHECKPOINT] skipped (${cp.reason ?? 'unknown'})`;
+}
+
+function buildNpxWarnNote(command: string, workdir: string): string {
+  const match = command.match(NPX_RE);
+  if (!match || !match[1]) return '';
+  const pkg = match[1];
+  let declared = false;
+  try {
+    const pkgPath = path.join(workdir, 'package.json');
+    if (fs.existsSync(pkgPath)) {
+      const parsed = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+      const allDeps = { ...parsed.dependencies, ...parsed.devDependencies };
+      declared = pkg in allDeps;
+    }
+  } catch {
+    // Ignore unreadable package.json
+  }
+  if (declared) return '';
+  return `\n[WARN] '${pkg}' is not a declared dependency — npx will download the latest version, which may be incompatible. Prefer 'npm install --save-dev ${pkg}'.`;
+}
 
 function sanitizeEnv(): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = {};
@@ -135,8 +166,15 @@ export async function execute(args: { command: string; timeout?: number; workdir
     });
   }
 
+  // Best-effort checkpoint before install, plus an npx footgun warning
+  let notes = '';
+  if (INSTALL_COMMAND_RE.test(command)) {
+    notes += buildCheckpointNote(workdir);
+  }
+  notes += buildNpxWarnNote(command, workdir);
+
   return new Promise((resolve) => {
-    let output = '';
+    let output = notes;
     let errorOutput = '';
     let exited = false;
 

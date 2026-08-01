@@ -165,19 +165,42 @@ export function createModelFunctions(deps: ModelDeps) {
     _turnStartTime = Date.now();
 
     let lastContent = '';
-    let turn = 0;
+    let toolTurnsRemaining = MAX_TOOL_TURNS;
+    let consecutiveToolFailures = 0;
+    const executedToolNames = new Set<string>();
     const signatureHistory: string[] = [];
     let pinnedModel: string | undefined;
+    let turnUsageOut: number | undefined;
     openAssistantBlock();
     const overallStart = Date.now();
     let totalToolCalls = 0;
 
-    while (turn < MAX_TOOL_TURNS) {
+    while (true) {
+      if (toolTurnsRemaining <= 0) {
+        closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut);
+        console.log(`\n  ${pc.yellow('[WARN]')} ${pc.yellow(`Reached max tool turns (${MAX_TOOL_TURNS}). Stopping to checkpoint.`)}`);
+        const executedSummary = executedToolNames.size > 0 ? [...executedToolNames].join(', ') : 'none';
+        console.log(`  ${pc.dim(`[SUMMARY] ${totalToolCalls} tool call(s) executed: ${executedSummary}`)}`);
+        if (process.stdin.isTTY) {
+          const answer = await (toolContext.askLine || askLine)(`  Continue working? [y]es / [n]o: `);
+          if (answer.trim().toLowerCase().startsWith('y')) {
+            console.log(pc.green('  [OK] Continuing with a fresh turn budget.'));
+            toolTurnsRemaining = MAX_TOOL_TURNS;
+            consecutiveToolFailures = 0;
+            continue;
+          }
+        }
+        console.log(pc.dim('  [INFO] Stopping. Type "continue" to resume.'));
+        messages.push({ role: 'assistant', content: lastContent });
+        return { content: lastContent, toolCalls: [] };
+      }
+
       if (turnAborted) {
-        closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel);
+        closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut);
         console.log(pc.dim('\n  [STOP] Stopped'));
         return { content: lastContent, toolCalls: [] };
       }
+      turnUsageOut = undefined;
       const spinner = new DaedalusSpinner({ text: 'Daedalus thinking', color: (s) => pc.blue(s) });
       spinner.start();
 
@@ -209,6 +232,8 @@ export function createModelFunctions(deps: ModelDeps) {
 
         for await (const chunk of stream) {
           if (signal.aborted) break;
+          const u = (chunk as { usage?: { completion_tokens?: number } } | undefined)?.usage;
+          if (u && typeof u.completion_tokens === 'number') turnUsageOut = u.completion_tokens;
           const choice = chunk.choices[0];
           if (!choice) continue;
 
@@ -252,7 +277,7 @@ export function createModelFunctions(deps: ModelDeps) {
         if (!blockOpened) spinner.stop();
 
         if (signal.aborted) {
-          closeAssistantBlock((lastContent || fullContent).length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel);
+          closeAssistantBlock((lastContent || fullContent).length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut);
           console.log(pc.dim('\n  [STOP] Stopped'));
           clearAbortController();
           return { content: fullContent, toolCalls: [] };
@@ -261,7 +286,7 @@ export function createModelFunctions(deps: ModelDeps) {
       } catch (error: any) {
         if (signal.aborted) {
           spinner.stop();
-          closeAssistantBlock((lastContent || fullContent).length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel);
+          closeAssistantBlock((lastContent || fullContent).length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut);
           console.log(pc.dim('\n  [STOP] Stopped'));
           clearAbortController();
           return { content: repetitionAborted ? fullContent : '', toolCalls: [] };
@@ -289,7 +314,7 @@ export function createModelFunctions(deps: ModelDeps) {
       }
 
       if (toolCallArray.length === 0) {
-        closeAssistantBlock(fullContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel);
+        closeAssistantBlock(fullContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut);
         messages.push({ role: 'assistant', content: fullContent });
         return { content: fullContent, toolCalls: [] };
       }
@@ -314,7 +339,7 @@ export function createModelFunctions(deps: ModelDeps) {
 
       if (consecutiveCount >= 2) {
         if (consecutiveCount >= 3) {
-          closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel);
+          closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut);
           console.log(`\n  ${pc.red('[STOP]')} Terminated repetitive loop after 4 consecutive identical tool calls.`);
           return { content: lastContent, toolCalls: [] };
         }
@@ -358,6 +383,7 @@ export function createModelFunctions(deps: ModelDeps) {
       }
 
       const approvedCalls = toolCallArray.filter((_, i) => approvedCallIndices.has(i));
+      for (const c of approvedCalls) executedToolNames.add(c.function.name);
 
       const toolNames = approvedCalls.map(c => c.function.name);
       printToolStart(approvedCalls.length, toolNames);
@@ -421,21 +447,44 @@ export function createModelFunctions(deps: ModelDeps) {
 
       // Single-agent turn checkpoint gate
       // Only prompt gate if a dangerous tool was executed, and task auto-approve is not active
-      const hadDangerousTool = approvedCalls.some(c => dangerousTools.includes(c.function.name));
+      const hadDangerousTool = toolCallArray.some(c => dangerousTools.includes(c.function.name));
       let shouldPromptGate = hadDangerousTool && !toolContext.autoApproveTools;
 
-      if (results.some(r => !r.success)) {
+      const failedResults = results.filter(r => !r.success);
+      if (failedResults.length > 0) {
+        consecutiveToolFailures++;
         shouldPromptGate = false;
-        console.log(pc.cyan('\n  [AUTO] Tool execution failed. Agent will attempt to fix it...'));
+        for (const r of failedResults) {
+          const firstLine = (r.error || '').split('\n')[0] || 'unknown error';
+          const snippet = firstLine.length > 160 ? `${firstLine.slice(0, 160)}...` : firstLine;
+          console.log(pc.yellow(`\n  [AUTO] Tool '${r.name}' failed: ${snippet}`));
+        }
+        console.log(pc.cyan('\n  Agent will attempt to fix it...'));
+      } else {
+        consecutiveToolFailures = 0;
       }
 
-      if (turn < MAX_TOOL_TURNS - 1 && process.env.DAEDALUS_AUTO_APPROVE !== 'true' && shouldPromptGate) {
+      if (consecutiveToolFailures >= 3) {
+        messages.push({
+          role: 'user',
+          content: `[SYSTEM WARNING] You have failed tool execution ${consecutiveToolFailures} consecutive times. You MUST change your approach: stop re-running the same failing command; read the error message, use a different tool or strategy, or stop and summarize the blocker to the user.`,
+        } as ChatMessage);
+      }
+
+      if (consecutiveToolFailures >= 5) {
+        closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut);
+        console.log(pc.red('\n  [STOP] Repeated tool failures (5 consecutive). Stopping to avoid looping.'));
+        messages.push({ role: 'assistant', content: lastContent });
+        return { content: lastContent, toolCalls: [] };
+      }
+
+      if (toolTurnsRemaining > 1 && process.env.DAEDALUS_AUTO_APPROVE !== 'true' && shouldPromptGate) {
         const ask = toolContext.askLine || askLine;
         const answer = await ask(turnGatePrompt());
         const norm = answer.trim().toLowerCase();
 
         if (norm === 'n' || norm === 'no') {
-          closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel);
+          closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut);
           console.log(pc.yellow('\n  [INFO] Stopped agent turn loop.'));
           messages.push({ role: 'assistant', content: lastContent });
           return { content: lastContent, toolCalls: [] };
@@ -452,13 +501,8 @@ export function createModelFunctions(deps: ModelDeps) {
       }
 
       totalToolCalls += toolCallArray.length;
-      turn++;
+      toolTurnsRemaining--;
     }
-
-    closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel);
-    console.log(`\n  ${pc.yellow('[WARN]')} ${pc.yellow(`Reached max tool turns (${MAX_TOOL_TURNS}). Stopping.`)}`);
-    messages.push({ role: 'assistant', content: lastContent });
-    return { content: lastContent, toolCalls: [] };
   }
 
   async function callModelWithFallback(userContent: string, imageBase64?: string): Promise<string> {

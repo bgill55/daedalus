@@ -179,6 +179,7 @@ export function closeAssistantBlock(
   elapsedMs: number,
   toolCount?: number,
   modelName?: string,
+  realOutTokens?: number,
 ): void {
   if (_buf) {
     const line = _buf.trimEnd();
@@ -203,12 +204,15 @@ export function closeAssistantBlock(
   if (modelName) parts.push(pc.dim(modelName));
   if (toolCount !== undefined) parts.push(pc.dim(`${toolCount} tool(s)`));
   const estTokens = Math.round(tokens / 4);
-  const tokenStr = tokens >= 4000 ? `${(tokens / 4 / 1000).toFixed(1)}k out` : `${estTokens} out`;
+  const outTokens = realOutTokens !== undefined ? realOutTokens : estTokens;
+  const tokenStr = realOutTokens !== undefined
+    ? (realOutTokens >= 1000 ? `${(realOutTokens / 1000).toFixed(1)}k out` : `${realOutTokens} out`)
+    : (tokens >= 4000 ? `${(tokens / 4 / 1000).toFixed(1)}k out` : `${estTokens} out`);
   parts.push(pc.dim(tokenStr));
   const elapsed = elapsedMs >= 1000 ? `${(elapsedMs / 1000).toFixed(1)}s` : `${elapsedMs}ms`;
   parts.push(pc.dim(elapsed));
-  if (elapsedMs > 0 && estTokens > 0) {
-    const tps = (estTokens / (elapsedMs / 1000)).toFixed(1);
+  if (elapsedMs > 0 && outTokens > 0) {
+    const tps = (outTokens / (elapsedMs / 1000)).toFixed(1);
     parts.push(pc.dim(`${tps} tok/s`));
   }
   console.log(`  ${pc.dim('└')} ${parts.join(` ${pc.dim('·')} `)}`);

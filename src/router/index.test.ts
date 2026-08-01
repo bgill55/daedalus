@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { LocalRouter, createRouter, sanitizeMessagesForModel } from './index.js';
-import type { RouterConfig } from './types.js';
+import type { RouterConfig, StreamChunk } from './types.js';
 import * as health from './health.js';
 import * as rateLimiter from './rate-limiter.js';
 
@@ -284,6 +284,81 @@ describe('LocalRouter', () => {
       const sanitized = sanitizeMessagesForModel(messages as any, model);
       expect(sanitized[0].content).toBe('');
       expect(sanitized[1].content).toBe('');
+    });
+  });
+
+  describe('chatStream usage tracking', () => {
+    function makeStreamClient(create: any) {
+      return {
+        chat: { completions: { create: vi.fn(create) } },
+        models: { list: vi.fn().mockResolvedValue({ data: [{ id: 'mock-model' }] }) },
+      };
+    }
+
+    function makeStreamRouter(create: any) {
+      const router = new LocalRouter(makeConfig({
+        chain: [
+          { name: 'primary', endpoint: 'http://localhost:1/v1', model: 'auto', priority: 1, enabled: true },
+        ],
+      }));
+      (router as any).getOrCreateClient = () => makeStreamClient(create);
+      return router;
+    }
+
+    it('requests stream_options.include_usage on streaming requests by default', async () => {
+      const create = vi.fn().mockReturnValue((async function* () {})());
+      const router = makeStreamRouter(create);
+
+      await router.chatStream({ messages: [{ role: 'user', content: 'Hello' }] }).next();
+
+      expect(create).toHaveBeenCalledTimes(1);
+      expect(create.mock.calls[0][0]).toMatchObject({
+        stream: true,
+        stream_options: { include_usage: true },
+      });
+    });
+
+    it('respects a caller-provided stream_options over the default', async () => {
+      const create = vi.fn().mockReturnValue((async function* () {})());
+      const router = makeStreamRouter(create);
+
+      await router.chatStream({
+        messages: [{ role: 'user', content: 'Hello' }],
+        stream_options: { include_usage: false, chunk_size: 64 },
+      }).next();
+
+      expect(create).toHaveBeenCalledTimes(1);
+      expect(create.mock.calls[0][0].stream_options).toEqual({ include_usage: false, chunk_size: 64 });
+    });
+
+    it('yields chunks carrying usage data from the final stream chunk', async () => {
+      const chunks = [
+        {
+          id: '1',
+          object: 'chat.completion.chunk',
+          created: 1,
+          model: 'mock-model',
+          choices: [{ index: 0, delta: { content: 'Hello' }, finish_reason: null }],
+        },
+        {
+          id: '2',
+          object: 'chat.completion.chunk',
+          created: 2,
+          model: 'mock-model',
+          choices: [{ index: 0, delta: {}, finish_reason: 'stop' }],
+          usage: { prompt_tokens: 45, completion_tokens: 123, total_tokens: 168 },
+        },
+      ];
+      const create = vi.fn().mockReturnValue((async function* () { yield* chunks; })());
+      const router = makeStreamRouter(create);
+
+      const yielded: StreamChunk[] = [];
+      for await (const chunk of router.chatStream({ messages: [{ role: 'user', content: 'Hello' }] })) {
+        yielded.push(chunk);
+      }
+
+      expect(yielded).toHaveLength(2);
+      expect(yielded[1].usage).toEqual({ prompt_tokens: 45, completion_tokens: 123, total_tokens: 168 });
     });
   });
 

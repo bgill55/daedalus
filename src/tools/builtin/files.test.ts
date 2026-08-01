@@ -2,7 +2,14 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import { execSync } from 'child_process';
 import { patchFile, writeFile, listFiles, searchFiles, readFile } from './files.js';
+
+vi.mock('../../config/index.js', () => ({
+  loadConfig: vi.fn(),
+}));
+
+import { loadConfig } from '../../config/index.js';
 
 vi.mock('pdf-parse', () => {
   return {
@@ -478,6 +485,69 @@ describe('writeFile — Absolute path cross-project support', () => {
     const result = await writeFile({ path: newFile, content: 'hello world' }, ctx);
     expect(result.success).toBe(true);
     expect(fs.readFileSync(newFile, 'utf8')).toBe('hello world');
+  });
+});
+
+describe('dependency manifest checkpoint', () => {
+  let tmpDir: string;
+
+  beforeEach(() => {
+    tmpDir = makeTmpDir();
+    (loadConfig as any).mockReturnValue({ safety: { protectGit: true } });
+  });
+
+  afterEach(() => { fs.rmSync(tmpDir, { recursive: true, force: true }); });
+
+  function initGitRepo(): void {
+    execSync('git init', { cwd: tmpDir, stdio: 'ignore' });
+    execSync('git config user.email test@daedalus.local', { cwd: tmpDir, stdio: 'ignore' });
+    execSync('git config user.name "Daedalus Test"', { cwd: tmpDir, stdio: 'ignore' });
+    execSync('git config core.autocrlf false', { cwd: tmpDir, stdio: 'ignore' });
+    fs.writeFileSync(path.join(tmpDir, 'seed.txt'), 'seed\n');
+    execSync('git add .', { cwd: tmpDir, stdio: 'ignore' });
+    execSync('git commit -m init', { cwd: tmpDir, stdio: 'ignore' });
+    fs.writeFileSync(path.join(tmpDir, 'seed.txt'), 'changed\n');
+  }
+
+  it('appends a checkpoint note when writing package.json in a git repo', async () => {
+    initGitRepo();
+    const file = path.join(tmpDir, 'package.json');
+    const ctx = makeContext(tmpDir);
+
+    const result = await writeFile({ path: file, content: '{ "name": "x", "version": "1.0.0" }' }, ctx);
+
+    expect(result.success).toBe(true);
+    expect(result.content).toMatch(/\[CHECKPOINT\] Git snapshot created before install:/);
+    expect(result.content).toContain('roll back with: git checkout');
+  });
+
+  it('does not append a checkpoint note for non-manifest files', async () => {
+    initGitRepo();
+    const file = path.join(tmpDir, 'notes.txt');
+    const ctx = makeContext(tmpDir);
+
+    const result = await writeFile({ path: file, content: 'hello' }, ctx);
+
+    expect(result.success).toBe(true);
+    expect(result.content).not.toContain('[CHECKPOINT]');
+  });
+
+  it('appends a checkpoint note when patching a manifest file in a git repo', async () => {
+    initGitRepo();
+    const file = path.join(tmpDir, 'package.json');
+    fs.writeFileSync(file, '{ "name": "x", "version": "1.0.0" }\n');
+    execSync('git add package.json', { cwd: tmpDir, stdio: 'ignore' });
+    execSync('git commit -m pkg', { cwd: tmpDir, stdio: 'ignore' });
+    fs.writeFileSync(file, '{ "name": "x", "version": "2.0.0" }\n');
+    const ctx = makeContext(tmpDir);
+
+    const result = await patchFile(
+      { path: file, old_string: '"version": "2.0.0"', new_string: '"version": "3.0.0"' },
+      ctx,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.content).toContain('[CHECKPOINT]');
   });
 });
 

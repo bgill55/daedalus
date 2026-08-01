@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { EventEmitter } from 'events';
+import os from 'os';
+import path from 'path';
+import fs from 'fs';
 
 vi.mock('child_process', () => ({
   spawn: vi.fn(),
@@ -50,6 +53,8 @@ beforeEach(() => {
   });
   delete process.env.DAEDALUS_SHELL;
   delete process.env.SHELL;
+  delete process.env.DAEDALUS_ALLOW_INSTALL;
+  delete process.env.DAEDALUS_AUTO_APPROVE;
 });
 
 afterEach(() => {
@@ -64,6 +69,10 @@ afterEach(() => {
   } else {
     delete process.env.DAEDALUS_SHELL;
   }
+  delete process.env.DAEDALUS_ALLOW_INSTALL;
+  delete process.env.DAEDALUS_AUTO_APPROVE;
+  (execSync as any).mockReset();
+  (fs as any).existsSync.mockReset();
 });
 
 describe('terminal execute', () => {
@@ -251,5 +260,73 @@ describe('terminal execute', () => {
       ['-d', 'Ubuntu', '--cd', '/mnt/tmp/test', '--', 'sh', '-c', 'echo hello'],
       expect.any(Object)
     );
+  });
+
+  it('warns when npx references a non-dependency package', async () => {
+    process.env.DAEDALUS_ALLOW_INSTALL = 'true';
+    const mockProc = makeMockProcess();
+    (spawn as any).mockReturnValue(mockProc);
+
+    const resultPromise = execute({ command: 'npx eslint .' }, makeContext());
+    mockProc.emit('close', 0);
+    const result = await resultPromise;
+
+    expect(result.success).toBe(true);
+    expect(result.content).toContain("[WARN] 'eslint' is not a declared dependency");
+    expect(result.content).toContain("npm install --save-dev eslint");
+  });
+
+  it('does not warn when npx references a declared dependency', async () => {
+    process.env.DAEDALUS_ALLOW_INSTALL = 'true';
+    const mockFs = (await import('fs')).default as any;
+    mockFs.existsSync.mockImplementation((p: string) => String(p).endsWith('package.json'));
+    mockFs.readFileSync = () => JSON.stringify({ dependencies: { eslint: '^9.0.0' } });
+    const mockProc = makeMockProcess();
+    (spawn as any).mockReturnValue(mockProc);
+
+    const resultPromise = execute({ command: 'npx eslint .' }, makeContext());
+    mockProc.emit('close', 0);
+    const result = await resultPromise;
+
+    expect(result.success).toBe(true);
+    expect(result.content).not.toContain("[WARN] 'eslint' is not a declared dependency");
+  });
+
+  it('appends a checkpoint note for install commands in a git repo', async () => {
+    process.env.DAEDALUS_ALLOW_INSTALL = 'true';
+    Object.defineProperty(process, 'platform', { value: originalPlatform, configurable: true });
+    const realFs = await vi.importActual<typeof import('fs')>('fs');
+    const realCp = await vi.importActual<typeof import('child_process')>('child_process');
+    const tmpDir = realFs.mkdtempSync(path.join(os.tmpdir(), 'daedalus-terminal-checkpoint-'));
+    try {
+      realCp.execSync('git init', { cwd: tmpDir, stdio: 'ignore' });
+      realCp.execSync('git config user.email test@daedalus.local', { cwd: tmpDir, stdio: 'ignore' });
+      realCp.execSync('git config user.name "Daedalus Test"', { cwd: tmpDir, stdio: 'ignore' });
+      realCp.execSync('git config core.autocrlf false', { cwd: tmpDir, stdio: 'ignore' });
+      realFs.writeFileSync(path.join(tmpDir, 'a.txt'), 'v1\n');
+      realCp.execSync('git add .', { cwd: tmpDir, stdio: 'ignore' });
+      realCp.execSync('git commit -m init', { cwd: tmpDir, stdio: 'ignore' });
+      realFs.writeFileSync(path.join(tmpDir, 'a.txt'), 'v2\n');
+
+      (execSync as any).mockImplementation((cmd: string, opts?: any) => {
+        if (cmd.startsWith('git ')) return realCp.execSync(cmd, opts);
+        throw new Error('mocked execSync');
+      });
+
+      const mockProc = makeMockProcess();
+      (spawn as any).mockReturnValue(mockProc);
+
+      const ctx = { ...makeContext(), projectRoot: tmpDir };
+      const resultPromise = execute({ command: 'npm install lodash', workdir: tmpDir }, ctx);
+      mockProc.emit('close', 0);
+      const result = await resultPromise;
+
+      expect(result.success).toBe(true);
+      expect(result.content).toContain('[CHECKPOINT] Git snapshot created before install:');
+      expect(result.content).toContain('roll back with: git checkout');
+    } finally {
+      delete process.env.DAEDALUS_ALLOW_INSTALL;
+      realFs.rmSync(tmpDir, { recursive: true, force: true });
+    }
   });
 });

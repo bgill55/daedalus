@@ -3,6 +3,7 @@ import path from 'path';
 import { execSync, spawn } from 'child_process';
 import { ToolContext, ToolResult } from '../../types.js';
 import { guardGitPath } from '../git-guard.js';
+import { createGitCheckpoint } from '../git-checkpoint.js';
 import { runDiffWorkflow, type DiffOptions } from './diff-ui.js';
 import {
   findClosestBlock,
@@ -23,6 +24,23 @@ const DEFAULT_EXCLUDE_DIRS = [
   'venv', '.venv', 'env', '.env', '__pycache__', '.pytest_cache',
   '.mypy_cache', '.next', 'out', '.cache'
 ];
+
+const MANIFEST_BASENAMES = new Set([
+  'package.json', 'package-lock.json', 'npm-shrinkwrap.json', 'yarn.lock',
+  'pnpm-lock.yaml', 'Cargo.toml', 'Cargo.lock', 'requirements.txt',
+  'pyproject.toml', 'Pipfile', 'go.mod', 'Gemfile', 'Gopkg.lock',
+  'pom.xml', 'build.gradle', 'build.gradle.kts',
+]);
+
+function checkpointNote(targetPath: string, projectRoot: string): string {
+  const base = path.basename(targetPath);
+  if (!MANIFEST_BASENAMES.has(base) && !base.endsWith('.csproj')) return '';
+  const cp = createGitCheckpoint(projectRoot);
+  if (cp.ok && cp.hash) {
+    return `\n[CHECKPOINT] Git snapshot created before install: ${cp.hash} — roll back with: git checkout ${cp.hash} -- .`;
+  }
+  return '';
+}
 
 function resolvePath(p: string, projectRoot: string): string {
   if (!p) {
@@ -186,6 +204,7 @@ export async function writeFile(args: { path: string; content: string }, context
     const prevNormalized = previousContent ? previousContent.replace(/\r/g, '') : null;
     const newNormalized = args.content.replace(/\r/g, '');
     const changedLines = prevNormalized ? computeChangedLines(prevNormalized, newNormalized) : [];
+    const checkpointNoteStr = checkpointNote(targetPath, context.projectRoot);
     fs.writeFileSync(targetPath, finalContent, 'utf8');
 
     const syntaxError = await syntaxCheck(targetPath, context.projectRoot, changedLines.length > 0 ? changedLines : undefined);
@@ -219,7 +238,7 @@ export async function writeFile(args: { path: string; content: string }, context
     recordWriteSuccess(targetPath, context);
 
     const suffix = notices.length > 0 ? `\n\n${notices.join('\n\n')}` : '';
-    return { toolCallId: '', name: 'write_file', success: true, content: `Written ${args.content.length} chars to ${args.path}${suffix}` };
+    return { toolCallId: '', name: 'write_file', success: true, content: `Written ${args.content.length} chars to ${args.path}${suffix}${checkpointNoteStr}` };
   } catch (err: any) {
     return formatError(`Failed to write file: ${err.message}`);
   }
@@ -249,6 +268,8 @@ export async function patchFile(args: { path: string; old_string: string; new_st
 
     const readGuard = checkWriteWithoutRead(targetPath, context);
     if (readGuard) return formatError(readGuard);
+
+    const checkpointNoteStr = checkpointNote(targetPath, context.projectRoot);
 
     const rawContent = fs.readFileSync(targetPath, 'utf8');
     const hasCRLF = rawContent.includes('\r\n');
@@ -350,7 +371,7 @@ export async function patchFile(args: { path: string; old_string: string; new_st
       if (postWarningsA.length > 0) noticesA.push(`Warnings:\n${postWarningsA.map(w => `  • ${w}`).join('\n')}`);
       if (testFailureA) noticesA.push(testFailureA);
       const suffixA = noticesA.length > 0 ? `\n\n${noticesA.join('\n\n')}` : '';
-      return { toolCallId: '', name: 'patch', success: true, content: `Patched ${args.path}${hasCRLF ? ' (CRLF preserved)' : ''}${suffixA}` };
+      return { toolCallId: '', name: 'patch', success: true, content: `Patched ${args.path}${hasCRLF ? ' (CRLF preserved)' : ''}${suffixA}${checkpointNoteStr}` };
     }
 
     // Show interactive diff via diff-ui
@@ -408,7 +429,7 @@ export async function patchFile(args: { path: string; old_string: string; new_st
     if (postWarningsB.length > 0) noticesB.push(`Warnings:\n${postWarningsB.map(w => `  • ${w}`).join('\n')}`);
     if (testFailureB) noticesB.push(testFailureB);
     const suffixB = noticesB.length > 0 ? `\n\n${noticesB.join('\n\n')}` : '';
-    return { toolCallId: '', name: 'patch', success: true, content: `Patched ${args.path}${hasCRLF ? ' (CRLF preserved)' : ''}${suffixB}` };
+    return { toolCallId: '', name: 'patch', success: true, content: `Patched ${args.path}${hasCRLF ? ' (CRLF preserved)' : ''}${suffixB}${checkpointNoteStr}` };
   } catch (err: any) {
     return formatError(`Failed to patch file: ${err.message}`);
   }

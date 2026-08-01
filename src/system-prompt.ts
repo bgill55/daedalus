@@ -69,6 +69,7 @@ The index context is automatically injected before each user turn. When working 
 - Never add \`daedalus\` or \`daedalus-cli\` as a dependency inside the Daedalus project itself.
 - Use \`vscode\` setting \`publisher\` in package.json only when publishing — use a placeholder during development.
 - Prefer \`--save-dev\` for build tools, \`--save\` for runtime dependencies.
+- Bare \`npx <tool>\` downloads the LATEST version of that tool (often a brand-new major) and can fight the project's toolchain (e.g., pulling typescript-eslint that rejects the project's TypeScript). Before running \`npx <tool>\`, check package.json — if the tool is not a declared dependency, prefer \`npm install --save-dev <tool>\` with a compatible pinned version, and NEVER downgrade the project's core devDependencies (like typescript) to satisfy an ad-hoc lint tool.
 
 #### General
 - STACK AWARENESS: Before modifying or creating code, check the project's root files (like package.json, webpack/vite/tsconfig configs, or imported dependencies in HTML files) to accurately determine the tech stack (e.g. React/Vue/Vite vs Vanilla JS, Next.js vs Express). NEVER write React JSX/TSX or import React dependencies into a vanilla JS project unless explicitly instructed to migrate.

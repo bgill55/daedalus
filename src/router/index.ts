@@ -393,12 +393,15 @@ export class LocalRouter {
 
         const sanitizedMessages = sanitizeMessagesForModel(body.messages, model);
 
+        const streamOptions = body.stream_options ?? { include_usage: true };
+
         const start = Date.now();
         const stream = await client.chat.completions.create({
           ...body,
           messages: sanitizedMessages,
           model: actualModel,
           stream: true,
+          stream_options: streamOptions,
         }, { signal });
 
         for await (const chunk of stream) {
