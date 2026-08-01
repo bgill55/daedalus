@@ -1,3 +1,10 @@
+# [3.1.0](https://github.com/bgill55/daedalus/compare/v3.0.1...v3.1.0) (2026-08-01)
+
+
+### Features
+
+* **memory:** implement Sigma-Mem (Σ-Mem) reliable multi-agent memory engine ([8b2cb12](https://github.com/bgill55/daedalus/commit/8b2cb12428c3bf6f7cd1898b7d1c76886669fd58))
+
 ## [3.0.1](https://github.com/bgill55/daedalus/compare/v3.0.0...v3.0.1) (2026-07-31)
 
 
