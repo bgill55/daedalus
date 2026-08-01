@@ -1,3 +1,10 @@
+# [3.3.0](https://github.com/bgill55/daedalus/compare/v3.2.1...v3.3.0) (2026-08-01)
+
+
+### Features
+
+* **agent:** harden tool loop, add git checkpoints and npx guards ([8b4b5b8](https://github.com/bgill55/daedalus/commit/8b4b5b8e45852dd735653cdf90f176d102a9f71b))
+
 ## [3.2.1](https://github.com/bgill55/daedalus/compare/v3.2.0...v3.2.1) (2026-08-01)
 
 
