@@ -1192,4 +1192,37 @@ export const agentCommands: Command[] = [
       }
     }
   },
+  {
+    name: '/sigma',
+    aliases: ['/memory'],
+    description: 'Inspect active Σ-Mem (Sigma-Memory) knowledge items & scores',
+    usage: '/sigma [min_score]  OR  /memory [min_score]',
+    helpText: 'Displays active reliability-scored multi-agent team memory items from SQLite.\n  Example: /sigma 0.5',
+    execute: async (args, ctx) => {
+      const minScore = parseFloat(args.trim()) || 0.50;
+      if (!ctx.sessionManager?.db) {
+        console.log(pc.yellow('\n  [INFO] No active session database. Start a session or run /autopilot first.\n'));
+        return;
+      }
+
+      const { getSigmaMemories } = await import('../session/sqlite.js');
+      const memories = getSigmaMemories(ctx.sessionManager.db, minScore, 20);
+
+      console.log(pc.bold(`\n=== 🧠 Σ-MEM (RELIABILITY-SCORED AGENT KNOWLEDGE) ===`));
+      if (memories.length === 0) {
+        console.log(pc.dim(`  No active memories found with Σ-Score >= ${(minScore * 100).toFixed(0)}%.`));
+        console.log(pc.bold('===================================================\n'));
+        return;
+      }
+
+      for (const m of memories) {
+        const scorePct = (m.sigma_score * 100).toFixed(0);
+        const scoreColor = m.sigma_score >= 0.8 ? pc.green : m.sigma_score >= 0.6 ? pc.cyan : pc.yellow;
+        console.log(`  ${scoreColor(`[Σ-Score: ${scorePct}%]`)} ${pc.bold(`[${m.agent_role.toUpperCase()}]`)} ${m.summary}`);
+        console.log(pc.dim(`    Used: ${m.usefulness_count} | Decays: ${m.decay_count} | Content: ${m.content.slice(0, 100)}...`));
+        console.log();
+      }
+      console.log(pc.bold('===================================================\n'));
+    }
+  },
 ]

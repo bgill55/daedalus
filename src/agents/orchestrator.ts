@@ -28,6 +28,7 @@ import {
   attemptRepair, rollbackTaskPatches, verifySpecAssertions, isRealFile,
 } from './orchestrator-verification.js';
 import { generateSpecContract, loadSpecContract, formatSpecForPrompt } from './spec.js';
+import { SigmaMemEngine } from '../session/sigma-mem.js';
 import type { DelegationTask, AgentResult } from './orchestrator-types.js';
 
 
@@ -1085,7 +1086,16 @@ export class Orchestrator {
 
     enrichedContext += `\n${frameworkBlock}${task.context}`;
     const frameworkRules = getFrameworkGuidance(projectContext, this.toolContext.projectRoot);
-    const systemExtra = `Project context:\n${projectContext || '(none discovered)'}${frameworkRules}\n`;
+    
+    let sigmaMemBlock = '';
+    let activeSigmaMemoryIds: string[] = [];
+    if (this.sessionManager?.db) {
+      const sigmaRes = SigmaMemEngine.getPromptContext(this.sessionManager.db, task.role, 0.60, 5);
+      sigmaMemBlock = sigmaRes.prompt;
+      activeSigmaMemoryIds = sigmaRes.activeMemoryIds;
+    }
+
+    const systemExtra = `Project context:\n${projectContext || '(none discovered)'}${frameworkRules}${sigmaMemBlock}\n`;
 
     // Prepend a terse override reminder so the rules land in the user message too,
     // which some models weight more heavily than the system prompt extension.
@@ -1290,10 +1300,25 @@ export class Orchestrator {
     if (success) {
       const clean = buildCleanSummary(this.toolContext, task, result, historyStartIndex);
       if (clean) result = clean;
+
+      if (this.sessionManager?.db) {
+        SigmaMemEngine.rewardSuccessfulPass(this.sessionManager.db, activeSigmaMemoryIds);
+        SigmaMemEngine.recordVerifiedKnowledge(this.sessionManager.db, {
+          agentRole: task.role,
+          category: 'code_pattern',
+          tags: extractFilePaths(task.goal),
+          summary: cleanTaskText(task.goal),
+          content: result.slice(0, 300),
+        });
+      }
     }
     task.status = success ? 'completed' : 'failed';
     if (!success) {
       task.error = resultForCheck.split('\n')[0] || result.split('\n')[0] || 'Unknown failure';
+
+      if (this.sessionManager?.db) {
+        SigmaMemEngine.penalizeFailedAttempt(this.sessionManager.db, activeSigmaMemoryIds);
+      }
 
       // Rollback patches made during this task to keep codebase clean
       if (task.role === 'coder' || task.role === 'debugger') {

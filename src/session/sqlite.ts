@@ -136,6 +136,21 @@ export function initSessionDb(dbPath: string): Database.Database {
       last_reviewed_at INTEGER
     );
 
+    CREATE TABLE IF NOT EXISTS sigma_memories (
+      id TEXT PRIMARY KEY,
+      agent_role TEXT NOT NULL,
+      category TEXT NOT NULL,
+      tags TEXT NOT NULL,
+      summary TEXT NOT NULL,
+      content TEXT NOT NULL,
+      sigma_score REAL NOT NULL DEFAULT 0.70,
+      usefulness_count INTEGER DEFAULT 0,
+      decay_count INTEGER DEFAULT 0,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_sigma_score ON sigma_memories(sigma_score DESC);
+
     CREATE TABLE IF NOT EXISTS failure_lessons (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       task_role TEXT,
@@ -294,3 +309,68 @@ export function getProjectStatus(db: Database.Database): ProjectStatus | null {
   const row = db.prepare('SELECT * FROM project_status WHERE id = 1').get() as ProjectStatus | undefined;
   return row || null;
 }
+
+export interface SqliteSigmaMemory {
+  id: string;
+  agent_role: string;
+  category: string;
+  tags: string; // JSON string
+  summary: string;
+  content: string;
+  sigma_score: number;
+  usefulness_count: number;
+  decay_count: number;
+  created_at: number;
+  updated_at: number;
+}
+
+export function saveSigmaMemory(db: Database.Database, mem: SqliteSigmaMemory): void {
+  db.prepare(`
+    INSERT INTO sigma_memories (id, agent_role, category, tags, summary, content, sigma_score, usefulness_count, decay_count, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      sigma_score = excluded.sigma_score,
+      usefulness_count = excluded.usefulness_count,
+      decay_count = excluded.decay_count,
+      updated_at = excluded.updated_at
+  `).run(
+    mem.id, mem.agent_role, mem.category, mem.tags, mem.summary, mem.content,
+    mem.sigma_score, mem.usefulness_count, mem.decay_count, mem.created_at, mem.updated_at
+  );
+}
+
+export function getSigmaMemories(db: Database.Database, minScore: number = 0.60, limit: number = 10): SqliteSigmaMemory[] {
+  return db.prepare(`
+    SELECT * FROM sigma_memories
+    WHERE sigma_score >= ?
+    ORDER BY sigma_score DESC, usefulness_count DESC, updated_at DESC
+    LIMIT ?
+  `).all(minScore, limit) as SqliteSigmaMemory[];
+}
+
+export function updateSigmaScore(db: Database.Database, id: string, scoreDelta: number, isSuccess: boolean): void {
+  const now = Date.now();
+  if (isSuccess) {
+    db.prepare(`
+      UPDATE sigma_memories
+      SET sigma_score = ROUND(MIN(1.0, sigma_score + ?), 4),
+          usefulness_count = usefulness_count + 1,
+          updated_at = ?
+      WHERE id = ?
+    `).run(scoreDelta, now, id);
+  } else {
+    db.prepare(`
+      UPDATE sigma_memories
+      SET sigma_score = ROUND(MAX(0.0, sigma_score * ?), 4),
+          decay_count = decay_count + 1,
+          updated_at = ?
+      WHERE id = ?
+    `).run(scoreDelta, now, id);
+  }
+}
+
+export function pruneLowSigmaMemories(db: Database.Database, minThreshold: number = 0.20): number {
+  const result = db.prepare('DELETE FROM sigma_memories WHERE sigma_score < ?').run(minThreshold);
+  return result.changes;
+}
+
