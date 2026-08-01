@@ -1,3 +1,10 @@
+# [3.2.0](https://github.com/bgill55/daedalus/compare/v3.1.0...v3.2.0) (2026-08-01)
+
+
+### Features
+
+* **memory:** harden Sigma-Mem engine with dedup, tag retrieval, decay, and single-agent wiring ([dd7b14a](https://github.com/bgill55/daedalus/commit/dd7b14aa0f962454f333b741a10749a7d1cf91d0))
+
 # [3.1.0](https://github.com/bgill55/daedalus/compare/v3.0.1...v3.1.0) (2026-08-01)
 
 
