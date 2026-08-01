@@ -33,9 +33,15 @@ export interface ToolResult {
   error?: string;
 }
 
+export type MessageContentPart =
+  | { type: 'text'; text: string }
+  | { type: 'image_url'; image_url: { url: string } };
+
+export type ChatMessageContent = string | null | MessageContentPart[];
+
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant' | 'tool';
-  content: any;
+  content: ChatMessageContent;
   tool_calls?: ToolCall[];
   tool_call_id?: string;
   name?: string;

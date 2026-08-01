@@ -261,7 +261,7 @@ describe('Single Agent Loop', () => {
 
     expect(chatStreamMock).toHaveBeenCalledTimes(4);
 
-    const warningMessage = messages.find(m => m.role === 'user' && m.content.includes('[SYSTEM WARNING]'));
+    const warningMessage = messages.find(m => m.role === 'user' && typeof m.content === 'string' && m.content.includes('[SYSTEM WARNING]'));
     expect(warningMessage).toBeDefined();
   });
 });

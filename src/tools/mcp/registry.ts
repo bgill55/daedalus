@@ -92,7 +92,7 @@ export class MCPRegistry {
         function: {
           name: prefixedName,
           description: `[MCP:${tool.name}] ${tool.description}`,
-          parameters: tool.inputSchema,
+          parameters: tool.inputSchema as ToolDefinition['function']['parameters'],
         },
       });
     }

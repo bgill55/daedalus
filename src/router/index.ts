@@ -1,6 +1,8 @@
 // Daedalus Local Router - Main routing logic
 
 import { OpenAI } from 'openai';
+import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
+import type { ChatMessage, ChatMessageContent, MessageContentPart } from '../types.js';
 import type { 
   ModelEntry, 
   RouterConfig, 
@@ -164,8 +166,8 @@ export class LocalRouter {
     }
 
     const requiresTools = !!(request.tools && request.tools.length > 0);
-    const hasImage = request.messages.some(msg => 
-      Array.isArray(msg.content) && msg.content.some((c: any) => c.type === 'image_url')
+    const hasImage = request.messages.some((msg: ChatMessage) =>
+      Array.isArray(msg.content) && msg.content.some((c: MessageContentPart) => c.type === 'image_url')
     );
     const estimatedTokens = this.estimateTokens(request);
     const isComplexTask = requiresTools || estimatedTokens > 8000;
@@ -298,7 +300,7 @@ export class LocalRouter {
   async chatCompletion(request: ChatRequest): Promise<ChatResponse> {
     let attempts = 0;
     const maxAttempts = 3;
-    let lastError: any;
+    let lastError: unknown;
     const excludedModels = new Set<string>();
 
     while (attempts < maxAttempts) {
@@ -340,11 +342,11 @@ export class LocalRouter {
         
         markHealthy(model, Date.now() - start);
         return response;
-      } catch (err: any) {
+      } catch (err) {
         lastError = err;
-        if (err.name === 'AbortError' || err.name === 'APIUserAbortError') throw err;
+        if (err instanceof Error && (err.name === 'AbortError' || err.name === 'APIUserAbortError')) throw err;
         if (selectedModel) {
-          markUnhealthy(selectedModel, err.message);
+          markUnhealthy(selectedModel, err instanceof Error ? err.message : String(err));
           excludedModels.add(selectedModel.name);
           excludedModels.add(selectedModel.model);
         }
@@ -357,7 +359,7 @@ export class LocalRouter {
   async *chatStream(request: ChatRequest): AsyncGenerator<StreamChunk> {
     let attempts = 0;
     const maxAttempts = 3;
-    let lastError: any;
+    let lastError: unknown;
     const excludedModels = new Set<string>();
 
     while (attempts < maxAttempts) {
@@ -405,11 +407,11 @@ export class LocalRouter {
         
         markHealthy(model, Date.now() - start);
         return;
-      } catch (err: any) {
+      } catch (err) {
         lastError = err;
-        if (err.name === 'AbortError' || err.name === 'APIUserAbortError') throw err;
+        if (err instanceof Error && (err.name === 'AbortError' || err.name === 'APIUserAbortError')) throw err;
         if (selectedModel) {
-          markUnhealthy(selectedModel, err.message);
+          markUnhealthy(selectedModel, err instanceof Error ? err.message : String(err));
           excludedModels.add(selectedModel.name);
           excludedModels.add(selectedModel.model);
         }
@@ -490,32 +492,35 @@ function isLocalEndpoint(endpoint: string): boolean {
   }
 }
 
-export function sanitizeMessagesForModel(messages: any[], model: ModelEntry): any[] {
+export function sanitizeMessagesForModel(messages: ChatMessage[], model: ModelEntry): ChatCompletionMessageParam[] {
   if (!messages) return [];
-  return messages.map(msg => {
+  const sanitized: ChatMessage[] = messages.map(msg => {
     const role = msg.role;
-    let content = msg.content;
-    if (content === null || content === undefined) {
+    const rawContent = msg.content;
+    let content: ChatMessageContent;
+    if (rawContent === null || rawContent === undefined) {
       content = '';
-    } else if (Array.isArray(content)) {
+    } else if (Array.isArray(rawContent)) {
       if (model.supportsVision) {
-        // Keep as-is
+        content = rawContent;
       } else {
-        const textParts = content
-          .filter((part: any) => part.type === 'text')
-          .map((part: any) => part.text || '')
+        const textParts = rawContent
+          .filter((part): part is Extract<MessageContentPart, { type: 'text' }> => part.type === 'text')
+          .map((part) => part.text || '')
           .join('\n');
         content = textParts || '[Image/Vision Payload Removed]';
       }
+    } else {
+      content = rawContent;
     }
 
-    const cleanMsg: any = { role, content };
+    const cleanMsg: ChatMessage = { role, content };
 
     if (role === 'assistant') {
       if (msg.tool_calls && Array.isArray(msg.tool_calls) && msg.tool_calls.length > 0) {
-        cleanMsg.tool_calls = msg.tool_calls.map((tc: any) => ({
+        cleanMsg.tool_calls = msg.tool_calls.map((tc) => ({
           id: tc.id,
-          type: 'function',
+          type: 'function' as const,
           function: {
             name: tc.function.name,
             arguments: tc.function.arguments,
@@ -533,6 +538,8 @@ export function sanitizeMessagesForModel(messages: any[], model: ModelEntry): an
 
     return cleanMsg;
   });
+
+  return sanitized as ChatCompletionMessageParam[];
 }
 
 // Factory function for easy creation
