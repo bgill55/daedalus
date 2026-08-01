@@ -1,3 +1,10 @@
+## [3.3.2](https://github.com/bgill55/daedalus/compare/v3.3.1...v3.3.2) (2026-08-01)
+
+
+### Bug Fixes
+
+* **tools:** support directory paths in lsp_diagnostics and auto-initialize patchFailureStreak ([3bb92af](https://github.com/bgill55/daedalus/commit/3bb92affb70ef616e557caeea3428a6ca8aca136))
+
 ## [3.3.1](https://github.com/bgill55/daedalus/compare/v3.3.0...v3.3.1) (2026-08-01)
 
 
