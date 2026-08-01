@@ -1,3 +1,11 @@
+## [3.3.1](https://github.com/bgill55/daedalus/compare/v3.3.0...v3.3.1) (2026-08-01)
+
+
+### Bug Fixes
+
+* **test:** reset DaedalusSpinner stack in test teardown ([7eced60](https://github.com/bgill55/daedalus/commit/7eced601ec7a870f64dba794dbdb746867ed132d))
+* **tools:** auto-translate POSIX rm on Windows and enforce circuit breaker on patch revert streaks ([9c995e2](https://github.com/bgill55/daedalus/commit/9c995e27e0410d9c07698070afe619ba967662d7))
+
 # [3.3.0](https://github.com/bgill55/daedalus/compare/v3.2.1...v3.3.0) (2026-08-01)
 
 
