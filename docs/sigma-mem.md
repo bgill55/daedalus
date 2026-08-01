@@ -2,6 +2,10 @@
 
 Daedalus features an embedded, local-first **$\Sigma$-Mem ($\Sigma$-Memory)** engine that solves the "context pollution" problem in multi-agent systems. Rather than storing flat, unverified chat transcripts, $\Sigma$-Mem scores, rewards, decays, and prunes sub-agent knowledge based on **verification feedback** (compilation, linting, unit test results, and SpecFirst contract assertions).
 
+<p align="center">
+  <img src="images/sigma_mem_infographic.jpg" alt="Σ-Mem: The Labyrinth of Reliable Memory Infographic" width="100%"/>
+</p>
+
 ---
 
 ## 💡 The Core Problem: Flat Memory vs. $\Sigma$-Mem

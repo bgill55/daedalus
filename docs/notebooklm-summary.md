@@ -303,6 +303,10 @@ Included in the core repository is **PromptVault** — an official benchmark dem
 
 ## 4. $\Sigma$-Mem ($\Sigma$-Memory): Reliable Multi-Agent Memory Engine
 
+<p align="center">
+  <img src="images/sigma_mem_infographic.jpg" alt="Σ-Mem: The Labyrinth of Reliable Memory Infographic" width="100%"/>
+</p>
+
 The **$\Sigma$-Mem Engine** solves context window pollution in long-running multi-agent systems by implementing a local, verification-backed reliability scoring system:
 
 ### 1. The Context Pollution Problem vs. $\Sigma$-Mem
