@@ -33,6 +33,8 @@ export interface RouteResult {
   health: ModelHealth;
 }
 
+export type TaskComplexity = 'simple' | 'standard' | 'complex';
+
 export interface RouterConfig {
   strategy: 'priority' | 'round-robin' | 'fastest';
   chain: ModelEntry[];
@@ -47,6 +49,7 @@ export interface RouterConfig {
 
 export interface ChatRequest {
   model?: string;
+  complexity?: TaskComplexity;
   messages: any[];
   temperature?: number;
   max_tokens?: number;

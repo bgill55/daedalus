@@ -127,6 +127,28 @@ describe('LocalRouter', () => {
     expect(result.model.name).toBe('main');
   });
 
+  it('routes to the fast tier for simple tasks', async () => {
+    const router = new LocalRouter(makeConfig({
+      chain: [
+        { name: 'big', endpoint: 'http://localhost:1/v1', model: 'm1', priority: 1, enabled: true, tier: 'intelligence', supportsTools: true },
+        { name: 'fast', endpoint: 'http://localhost:2/v1', model: 'm2', priority: 5, enabled: true, tier: 'fast', supportsTools: true },
+      ],
+    }));
+    const result = await router.route({ messages: [{ role: 'user', content: 'hi' }], complexity: 'simple', tools: [{ type: 'function' }] });
+    expect(result.model.name).toBe('fast');
+  });
+
+  it('routes to the intelligence tier for complex tasks even with tools', async () => {
+    const router = new LocalRouter(makeConfig({
+      chain: [
+        { name: 'big', endpoint: 'http://localhost:1/v1', model: 'm1', priority: 1, enabled: true, tier: 'intelligence', supportsTools: true },
+        { name: 'fast', endpoint: 'http://localhost:2/v1', model: 'm2', priority: 5, enabled: true, tier: 'fast', supportsTools: true },
+      ],
+    }));
+    const result = await router.route({ messages: [{ role: 'user', content: 'hi' }], complexity: 'complex', tools: [{ type: 'function' }] });
+    expect(result.model.name).toBe('big');
+  });
+
   it('round-robin cycles through models', async () => {
     const router = new LocalRouter(makeConfig({
       strategy: 'round-robin',

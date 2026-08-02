@@ -203,13 +203,24 @@ export class LocalRouter {
     }
 
     let tierFilteredModels: ModelEntry[];
-    if (isComplexTask) {
-      tierFilteredModels = candidateModels.filter(m => m.tier === 'intelligence');
+    const complexity = request.complexity;
+    const targetTier = complexity === 'simple' ? 'fast'
+      : complexity === 'standard' ? 'standard'
+      : complexity === 'complex' ? 'intelligence'
+      : isComplexTask ? 'intelligence' : 'fast';
+
+    if (targetTier === 'fast') {
+      tierFilteredModels = candidateModels.filter(m => m.tier === 'fast');
       if (tierFilteredModels.length === 0) {
         tierFilteredModels = candidateModels.filter(m => m.tier === 'standard' || !m.tier);
       }
+    } else if (targetTier === 'standard') {
+      tierFilteredModels = candidateModels.filter(m => m.tier === 'standard' || !m.tier);
+      if (tierFilteredModels.length === 0) {
+        tierFilteredModels = candidateModels.filter(m => m.tier === 'intelligence');
+      }
     } else {
-      tierFilteredModels = candidateModels.filter(m => m.tier === 'fast');
+      tierFilteredModels = candidateModels.filter(m => m.tier === 'intelligence');
       if (tierFilteredModels.length === 0) {
         tierFilteredModels = candidateModels.filter(m => m.tier === 'standard' || !m.tier);
       }
