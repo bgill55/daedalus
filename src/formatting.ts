@@ -1,5 +1,6 @@
 import pc from 'picocolors';
 import type { ToolCall } from './types.js';
+import { TOOL_IMPLEMENTATIONS } from './tools/definitions.js';
 
 export const termW = Math.max(50, (process.stdout.columns ?? 80) - 5);
 const bar = pc.dim('│');
@@ -337,6 +338,40 @@ export function turnGatePrompt(): string {
 
 // ── Parsed tool calls ──────────────────────────────────────────
 
+function normalizeToolName(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function resolveToolName(raw: string): string | null {
+  const trimmed = raw.trim().toLowerCase();
+  if (TOOL_IMPLEMENTATIONS[trimmed]) return trimmed;
+  const norm = normalizeToolName(trimmed);
+  const match = Object.keys(TOOL_IMPLEMENTATIONS).find(k => normalizeToolName(k) === norm);
+  return match ?? null;
+}
+
+function parseBracketToolItem(item: string, idx: number): ToolCall | null {
+  const m = item.match(/^([a-zA-Z_][a-zA-Z0-9_-]*)\s*(?:\(([\s\S]*)\))?$/);
+  if (!m) return null;
+  const name = resolveToolName(m[1]);
+  if (!name) return null;
+  const rawArgs = (m[2] ?? '').trim();
+  const args: Record<string, any> = {};
+  if (rawArgs) {
+    const kvRe = /([a-zA-Z_]\w*)\s*=\s*(?:"([\s\S]*?)"|'([\s\S]*?)'|([^\s,]+))/g;
+    let km;
+    while ((km = kvRe.exec(rawArgs)) !== null) {
+      const val = km[2] ?? km[3] ?? km[4];
+      args[km[1]] = String(val).replace(/\\n/g, '\n').replace(/\\"/g, '"');
+    }
+  }
+  return {
+    id: `call_parsed_bracket_${Date.now()}_${idx}`,
+    type: 'function',
+    function: { name, arguments: JSON.stringify(args) },
+  };
+}
+
 export function parseTextToolCalls(text: string): ToolCall[] {
   const toolCalls: ToolCall[] = [];
   const regex = /<(longcat_)?tool_call>([\s\S]*?)<\/(longcat_)?tool_call>/g;
@@ -458,6 +493,26 @@ export function parseTextToolCalls(text: string): ToolCall[] {
           type: 'function',
           function: { name: 'write_file', arguments: JSON.stringify({ path }) },
         });
+      }
+    }
+  }
+
+  if (toolCalls.length === 0) {
+    const bracketRe = /\[([^\]]{2,})\]/g;
+    let bm;
+    while ((bm = bracketRe.exec(text)) !== null) {
+      const before = text.slice(Math.max(0, bm.index - 40), bm.index).toLowerCase();
+      if (/tools? (?:available|include|like|such as)|available (?:tools?|commands?)|using .* tools?/i.test(before)) continue;
+      const items = bm[1].split(',').map(s => s.trim()).filter(Boolean);
+      if (items.length === 0) continue;
+      const calls: ToolCall[] = [];
+      for (const item of items) {
+        const call = parseBracketToolItem(item, calls.length);
+        if (call) calls.push(call);
+      }
+      if (calls.length > 0) {
+        toolCalls.push(...calls);
+        break;
       }
     }
   }

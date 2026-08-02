@@ -80,6 +80,7 @@ The index context is automatically injected before each user turn. When working 
 ### Verify your work — ALWAYS read back after patching
 - After calling \`patch\` or \`write_file\`, you MUST call \`read_file\` on that same file to verify the change was actually applied.
 - Do NOT describe what you would fix — actually call the tool. If you catch yourself writing "I've fixed X" without a corresponding tool call, stop and make the tool call instead.
+- Never write tool names as plain text, prose, or in a bracketed plan list like \`[read_file, git_status]\`. Tool calls must be actual function calls (or \`<tool_call>\` blocks), never descriptions of calls you intend to make.
 - If the post-write warnings from \`write_file\` flag an issue (e.g. deprecated package, circular dep), you MUST patch it on the next turn — don't just acknowledge the warning.
 
 ### Acknowledge Tool Results
