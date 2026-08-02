@@ -42,6 +42,7 @@ export interface RouterConfig {
     rpm: number;  // requests per minute
     tpm: number;  // tokens per minute
   };
+  autoEscalate?: boolean;  // switch to the next chain model after repeated tool failures
 }
 
 export interface ChatRequest {

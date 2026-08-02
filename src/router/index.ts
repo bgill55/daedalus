@@ -119,6 +119,22 @@ export class LocalRouter {
     });
   }
 
+  getNextModel(currentName: string): ModelEntry | undefined {
+    const enabled = this.getEnabledModels();
+    if (enabled.length < 2) return undefined;
+    const idx = enabled.findIndex(m => m.name === currentName || m.model === currentName);
+    const start = idx === -1 ? 0 : idx + 1;
+    for (let i = 0; i < enabled.length - 1; i++) {
+      const candidate = enabled[(start + i) % enabled.length];
+      if (candidate.name === currentName || candidate.model === currentName) continue;
+      if (candidate.supportsTools === false) continue;
+      const health = getCachedHealth(candidate);
+      if (health?.healthy === false) continue;
+      return candidate;
+    }
+    return undefined;
+  }
+
   async route(request: ChatRequest, excludedModels?: Set<string>): Promise<RouteResult> {
     let healthyModels = this.getHealthyModels();
 

@@ -58,6 +58,38 @@ describe('LocalRouter', () => {
     expect(healthy).toHaveLength(1);
   });
 
+  it('getNextModel returns the next enabled model after the current one', () => {
+    const router = new LocalRouter(makeConfig({
+      chain: [
+        { name: 'a', endpoint: 'http://localhost:1/v1', model: 'm1', priority: 1, enabled: true },
+        { name: 'b', endpoint: 'http://localhost:2/v1', model: 'm2', priority: 2, enabled: true },
+        { name: 'c', endpoint: 'http://localhost:3/v1', model: 'm3', priority: 3, enabled: true },
+      ],
+    }));
+    expect(router.getNextModel('a')?.name).toBe('b');
+    expect(router.getNextModel('b')?.name).toBe('c');
+    expect(router.getNextModel('c')?.name).toBe('a');
+  });
+
+  it('getNextModel skips disabled, unhealthy and non-tool models', () => {
+    const router = new LocalRouter(makeConfig({
+      chain: [
+        { name: 'a', endpoint: 'http://localhost:1/v1', model: 'm1', priority: 1, enabled: true },
+        { name: 'b', endpoint: 'http://localhost:2/v1', model: 'm2', priority: 2, enabled: true },
+        { name: 'c', endpoint: 'http://localhost:3/v1', model: 'm3', priority: 3, enabled: true },
+        { name: 'd', endpoint: 'http://localhost:4/v1', model: 'm4', priority: 4, enabled: false },
+      ],
+    }));
+    health.markUnhealthy(router.getEnabledModels()[1] as any, 'down');
+    router.getEnabledModels()[1]!.supportsTools = false;
+    expect(router.getNextModel('a')?.name).toBe('c');
+  });
+
+  it('getNextModel returns undefined with fewer than two enabled models', () => {
+    const router = createRouter({ chain: [{ name: 'a', endpoint: 'http://localhost:1/v1', model: 'm', priority: 1, enabled: true }] });
+    expect(router.getNextModel('a')).toBeUndefined();
+  });
+
   it('throws when no healthy models available on route', async () => {
     const router = new LocalRouter(makeConfig({ chain: [] }));
     await expect(router.route({ messages: [] })).rejects.toThrow('No healthy models');

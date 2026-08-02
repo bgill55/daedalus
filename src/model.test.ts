@@ -408,6 +408,52 @@ describe('Tool failure handling', () => {
     delete process.env.DAEDALUS_AUTO_APPROVE;
   });
 
+  it('escalates to the next model after repeated tool failures', async () => {
+    process.env.DAEDALUS_AUTO_APPROVE = 'true';
+
+    const chatStreamMock = vi.fn()
+      .mockResolvedValueOnce(toolStream('terminal', '{"command":"npm run build"}'))
+      .mockResolvedValueOnce(toolStream('terminal', '{"command":"npm run build"}'))
+      .mockResolvedValueOnce(contentStream('done.'));
+
+    const escalateRouter = {
+      chatStream: chatStreamMock,
+      chat: { completions: { create: vi.fn() } },
+      lastRoutedModelName: 'weak-model',
+      lastRoutedModel: 'weak-model (gpt-oss-120b)',
+      getConfig: () => ({ autoEscalate: true }),
+      getNextModel: () => ({ name: 'strong-model', model: 'kimi-k2.6' }),
+    } as unknown as LocalRouter;
+
+    const executorMod = await import('./tools/executor.js');
+    vi.spyOn(executorMod, 'executeToolCalls').mockResolvedValue([{
+      toolCallId: 'call_1',
+      name: 'terminal',
+      success: false,
+      content: '',
+      error: 'Exit code: 1',
+    }]);
+
+    const { callModelWithTools } = createModelFunctions({
+      messages,
+      config: { ui: { showTokens: false } },
+      router: escalateRouter,
+      toolContext,
+      buildFileContext: () => '',
+      askLine: vi.fn().mockResolvedValue('y'),
+    });
+
+    const result = await callModelWithTools('build the app');
+    const output = consoleOutput();
+
+    expect(output).toContain('[ESCALATE]');
+    expect(output).toContain('switching to stronger model strong-model');
+    const thirdCallModel = chatStreamMock.mock.calls[2]?.[0]?.model;
+    expect(thirdCallModel).toBe('strong-model');
+    expect(result.content).toBe('done.');
+    delete process.env.DAEDALUS_AUTO_APPROVE;
+  });
+
   it('stops after 5 consecutive tool failures', async () => {
     process.env.DAEDALUS_AUTO_APPROVE = 'true';
 

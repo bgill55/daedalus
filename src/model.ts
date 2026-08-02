@@ -186,6 +186,8 @@ export function createModelFunctions(deps: ModelDeps) {
     const executedToolNames = new Set<string>();
     const signatureHistory: string[] = [];
     let pinnedModel: string | undefined;
+    let escalationCount = 0;
+    let escalatedThisStreak = false;
     let turnUsageOut: number | undefined;
     openAssistantBlock();
     const overallStart = Date.now();
@@ -502,6 +504,7 @@ export function createModelFunctions(deps: ModelDeps) {
         console.log(pc.cyan('\n  Agent will attempt to fix it...'));
       } else {
         consecutiveToolFailures = 0;
+        escalatedThisStreak = false;
       }
 
       let worstRepeatedFailures = 0;
@@ -521,6 +524,26 @@ export function createModelFunctions(deps: ModelDeps) {
           role: 'user',
           content: `[SYSTEM WARNING] ${detail}You MUST change your approach: stop re-running the same failing command; read the error message, use a different tool or strategy, or stop and summarize the blocker to the user.`,
         } as ChatMessage);
+      }
+
+      const routerConfig = typeof router.getConfig === 'function' ? router.getConfig() : undefined;
+      const canEscalate = !config.modelOverride
+        && routerConfig?.autoEscalate !== false
+        && escalationCount < 3
+        && !escalatedThisStreak;
+      if (canEscalate && (consecutiveToolFailures >= 2 || worstRepeatedFailures >= 2)) {
+        const currentName = pinnedModel || router.lastRoutedModelName || '';
+        const nextModel = currentName && typeof router.getNextModel === 'function' ? router.getNextModel(currentName) : undefined;
+        if (nextModel) {
+          escalatedThisStreak = true;
+          escalationCount++;
+          pinnedModel = nextModel.name;
+          console.log(pc.yellow(`\n  [ESCALATE] Repeated tool failures on ${currentName} — switching to stronger model ${nextModel.name} for the next attempt.`));
+          messages.push({
+            role: 'user',
+            content: '[SYSTEM NOTICE] A stronger model is now handling this task after repeated tool failures. Re-examine the recent errors and the exact current state of the files before retrying. Do not repeat the same failing calls.',
+          } as ChatMessage);
+        }
       }
 
       if (consecutiveToolFailures >= 5 || worstRepeatedFailures >= 5) {
