@@ -1,3 +1,10 @@
+# [3.5.0](https://github.com/bgill55/daedalus/compare/v3.4.0...v3.5.0) (2026-08-02)
+
+
+### Features
+
+* **router:** auto-escalate to next model after repeated tool failures ([a27496b](https://github.com/bgill55/daedalus/commit/a27496b89b27dc5ff2e228c372b69645181c44a2))
+
 # [3.4.0](https://github.com/bgill55/daedalus/compare/v3.3.5...v3.4.0) (2026-08-02)
 
 
