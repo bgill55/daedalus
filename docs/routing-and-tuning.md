@@ -12,6 +12,8 @@ Configuration is located under the `"router"` object in `~/.daedalus/config.json
 {
   "router": {
     "strategy": "priority",
+    "autoEscalate": true,
+    "complexityRouting": true,
     "chain": [
       {
         "name": "lmstudio-default",
@@ -55,17 +57,72 @@ Daedalus includes an automatic multi-model failover engine. If a provider return
 
 ---
 
-## Proactive Model Routing & Tiers
+## Dynamic Complexity-Based Routing
 
-Models can be classified into specific tiers in the configuration:
+Models are classified into **tiers** in the router chain: `"fast"`, `"standard"`, or `"intelligence"`. Daedalus then routes each task to the tier that matches its actual difficulty — and, crucially, **re-routes on the fly** when the difficulty changes mid-task.
 
-*   **Tiers**: `"fast"`, `"intelligence"`, or `"standard"`.
-*   **Automatic Tier Detection**: 
-    *   Simple or quick requests automatically route to `"fast"` tier models.
-    *   Large coding contexts (estimated tokens > 8k) or agent subtasks automatically target `"intelligence"` tier models.
-*   **Tool Filtering**: Sub-agents requiring tool use automatically filter and route to endpoints where `"supportsTools": true` is enabled.
-*   **Automatic Vision Routing**: When a prompt or `/paste` command includes an image (base64 or image payload), Daedalus automatically detects the image and filters candidate models for `"supportsVision": true`. Even if your default priority model is text-only (e.g. `gpt-oss-120b`), Daedalus instantly routes the image request to a vision-capable model (e.g. `gemini-3.5-flash` or `gpt-4.1`) without losing conversational context or requiring user intervention!
-*   **Explicit Tier Keywords**: You can explicitly target a model tier by setting the request model to `"intelligence"`, `"fast"`, or `"standard"`. If specified, the router will filter healthy candidates to that tier and select the best candidate (e.g., Daedalus uses this keyword routing to run planning and context summarization on your `"intelligence"` tier model).
+*   **Tiers**: `"fast"`, `"standard"`, `"intelligence"` (set per model via `tier` in the chain).
+*   **Task classification at arrival**: when you send a prompt, Daedalus estimates its complexity up front:
+    *   `simple` (quick edits — "add a comma", "fix the typo") → `fast` tier.
+    *   `standard` (medium, ambiguous prompts) → `standard` tier.
+    *   `complex` (multi-file work, 3+ file paths, heavy prompts, or keywords like `refactor`, `implement`, `architect`, `migrate`, `overhaul`) → `intelligence` tier.
+*   **On-the-fly reclassification**: after every tool turn Daedalus re-evaluates the live signals and can shift tiers mid-task:
+    *   **Upgrade** when cumulative output grows heavy, a tool chain exceeds 20 calls, or a turn produces 3+ tool failures.
+    *   **Downgrade** when the task goes quiet — 3 consecutive turns with no writes, no failures, and low output — using hysteresis so a single quiet turn doesn't flap the tier.
+    *   The cumulative-token budget **resets on every downgrade**, so past heavy output can't instantly force a re-upgrade (no ping-pong between tiers).
+*   **Escalation on repeated failures**: after repeated tool failures, Daedalus escalates to the *next* model in the chain and pins it for the rest of the task (skips disabled/unhealthy/non-tool models). `router.autoEscalate` (default `true`) controls this.
+*   **Automatic tier keywords**: you can also target a tier explicitly by using `"intelligence"`, `"fast"`, or `"standard"` as the request model — Daedalus filters healthy candidates to that tier and picks the best one. (This is how planning and context summarization stay on your `intelligence` tier.)
+*   **Tool filtering**: agents requiring tool use automatically filter to endpoints with `"supportsTools": true`.
+*   **Vision routing**: prompts or `/paste` images auto-detect and route to `"supportsVision": true` models (e.g. `gemini-3.5-flash`) even when the priority model is text-only.
+
+### Control & Telemetry
+
+| Config key | Default | Effect |
+|---|---|---|
+| `router.complexityRouting` | `true` | Enable/disable dynamic complexity-based routing entirely. |
+| `router.autoEscalate` | `true` | Enable escalation to the next chain model after repeated tool failures. |
+| `modelOverride` | — | Pin a single model and bypass routing, classification, and escalation. Set via `/config set modelOverride = <model>` or `/model`. |
+
+While working, Daedalus prints `[ROUTE]` lines so you can see the router thinking:
+
+```
+  [ROUTE] Task classified as simple
+  [ROUTE] Reclassified standard → complex (11764 output tokens, 35 tool calls)
+  [ROUTE] Task summary: start complex → end complex | 11764 output tokens | 0 escalation(s)
+```
+
+Each assistant block footer also tags the tier that served it:
+
+```
+  └ standard · freellmapi-command-a-reasoning-08-2025 · 3 tool(s) · 2.1k out · 12.4s
+```
+
+---
+
+## Real-World Showcase: On-The-Fly Tier Switching
+
+Authentic live trace — one session, two prompts, two completely different tiers. A trivial request stays on a fast flash model; a "refactor" request starts on the intelligence tier, then dynamically migrates between tiers as the actual workload becomes clear:
+
+**Prompt 1 — trivial edit → `fast` tier:**
+
+```
+  [ROUTE] Task classified as simple
+  └ fast · freellmapi-gemini-2.5-flash (gemini-2.5-flash) · 1 tool(s) · 57 out · 2.3s · 24.7 tok/s
+  [ROUTE] Task summary: start simple → end simple | 0 output tokens | 0 escalation(s)
+```
+
+**Prompt 2 — heavy refactor → `intelligence` tier, then dynamic re-routing as the task evolves:**
+
+```
+  [ROUTE] Task classified as complex
+  [ROUTE] Reclassified complex → standard (182 output tokens, 3 tool calls)
+  [ROUTE] Reclassified standard → simple (362 output tokens, 10 tool calls)
+  [ROUTE] Reclassified simple → standard (2744 output tokens, 17 tool calls)
+  [ROUTE] Reclassified standard → complex (11764 output tokens, 35 tool calls)
+  [ROUTE] Task summary: start complex → end complex | 11764 output tokens | 0 escalation(s)
+```
+
+The second task began on the intelligence tier, dropped to the fast tier once the early turns looked trivial, then climbed back to the intelligence tier as real writes and heavy output accumulated — all without user intervention.
 
 ---
 

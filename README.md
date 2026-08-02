@@ -87,7 +87,7 @@ AI assistance without:
 - **Interactive Terminal Dashboard (TUI)** — premium side-by-side dashboard with real-time CPU/RAM monitor gauges, model selection overrides, and an interactive file tree to toggle prompt context dynamically.
 - **Local-first** — works entirely on your machine with local LLMs
 - **Embedded model router** — priority, round-robin, or fastest-response routing across multiple models with real-time tokens-per-second (`tok/s`) stream telemetry, plus **Multi-Model Fallback** for zero-interruption auto-failover on rate limits (429) or 5xx errors.
-- **Smart model tier routing** — routes planning, reviews, and context summarization calls to your configured `intelligence` tier model
+- **Dynamic complexity-based routing** — classifies each task on arrival (quick/trivial → `fast` tier, heavy/multi-file → `intelligence` tier) and **re-routes on the fly** mid-task as the work evolves, with hysteresis to avoid flapping and a token budget that resets on downgrade so it never ping-pongs. Repeated tool failures trigger automatic escalation to the next model in the chain.
 - **Multi-agent orchestration** — spawns planner, coder, reviewer, debugger, and researcher sub-agents
 - **Autonomous Finn Loop** — interactive requirements gathering (`/spec`), GitHub Issues tracking, background daemon execution (`daedalus --loop`), and Discord PR review webhook embeds.
 - **Loop Engineering & Self-Repair** — automatic stack-aware compile/build verification checks (e.g., `npx tsc --noEmit`, `cargo check`, `go build`) with dynamic stdout/stderr feedback loops for self-repair, **Automated Workspace Rollback** to revert patches upon task failure, and **Git-Aware Smart Testing (`/test -g`)** to run only affected unit tests in < 200ms.
@@ -218,6 +218,8 @@ Daedalus stores config at `~/.daedalus/config.json`. Key sections:
 {
   "router": {
     "strategy": "priority",
+    "autoEscalate": true,
+    "complexityRouting": true,
     "chain": [
       { 
         "name": "local", 
@@ -236,6 +238,8 @@ Daedalus stores config at `~/.daedalus/config.json`. Key sections:
 ```
 
 Router strategies: `priority` (default), `round-robin`, `fastest`.
+
+`router.complexityRouting` (default `true`) enables dynamic complexity-based routing — trivial tasks hit your `fast` tier, heavy tasks hit `intelligence`, and Daedalus re-routes mid-task as the work evolves. `router.autoEscalate` (default `true`) switches to the next chain model after repeated tool failures. Set `modelOverride` (via `/config set modelOverride = <model>` or `/model`) to pin one model and bypass routing entirely.
 
 Per-project config is stored at `~/.daedalus/config/<project-hash>.json` and can be set via `/project set <key> <value>`.
 

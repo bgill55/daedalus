@@ -82,7 +82,7 @@ When you run Daedalus for the first time, it automatically starts the onboarding
 
 1.  **Local LLM Discovery**: The wizard scans your local ports to find running servers (Ollama, LM Studio, etc.).
 2.  **Remote Provider Setup**: If no local models are detected or if you prefer to use remote LLMs, the wizard will prompt you to configure API keys for services like Anthropic or OpenAI.
-3.  **Tier Assignment**: Daedalus configures model tiers (such as assigning a higher-intelligence model for planning/reviewing tasks and a faster model for execution).
+3.  **Tier Assignment**: Daedalus configures model tiers (`fast` / `standard` / `intelligence`) for each model. Trivial tasks route to `fast` models, heavy refactors route to `intelligence` models, and Daedalus re-routes between tiers on the fly as the workload evolves mid-task.
 
 ### Manual Onboarding
 
