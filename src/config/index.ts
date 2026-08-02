@@ -32,6 +32,7 @@ export const RouterConfigSchema = z.object({
     tpm: z.number().int().positive().default(100000),
   }).default({ rpm: 60, tpm: 100000 }),
   autoEscalate: z.boolean().default(true),
+  complexityRouting: z.boolean().default(true),
 });
 
 export const AgentRoleSchema = z.object({
@@ -192,6 +193,7 @@ export const DEFAULT_CONFIG: DaedalusConfig = {
     requestTimeout: 120000,
     defaultRateLimit: { rpm: 60, tpm: 100000 },
     autoEscalate: true,
+    complexityRouting: true,
   },
   agents: {
     default: 'coder',

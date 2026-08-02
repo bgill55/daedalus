@@ -8,6 +8,7 @@ import { calculateSessionTokens, pruneMessages } from './session/tokens.js';
 import { parseTextToolCalls, openAssistantBlock, writeAssistantChunk, closeAssistantBlock, printContextWarning, printContextResult, printContextPrune, printToolStart, printToolResult, printToolContentPreview, turnGatePrompt } from './formatting.js';
 import type { ToolContext, ToolCall, ChatMessage } from './types.js';
 import type { LocalRouter } from './router/index.js';
+import { classifyTaskStart } from './router/complexity.js';
 
 const TOOL_RESULT_MAX_CHARS = 32_000;
 const MAX_TOOL_TURNS = 40;
@@ -135,6 +136,12 @@ export function createModelFunctions(deps: ModelDeps) {
     const summarizeAt = config?.context?.summarizeAt ?? 0.8;
     const threshold = Math.floor(maxT * summarizeAt);
 
+    const complexityEnabled = config?.router?.complexityRouting !== false && !config.modelOverride;
+    const taskComplexity = complexityEnabled ? classifyTaskStart(userContent || '') : undefined;
+    if (taskComplexity) {
+      console.log(pc.dim(`  [ROUTE] Task classified as ${taskComplexity}`));
+    }
+
     const fileCtx = buildFileContext();
     const tokens = calculateSessionTokens(messages, fileCtx);
     if (tokens.total > threshold) {
@@ -239,6 +246,7 @@ export function createModelFunctions(deps: ModelDeps) {
       try {
         const stream = await router.chatStream({
           model: pinnedModel || config.modelOverride || 'auto',
+          complexity: taskComplexity,
           messages,
           temperature: 0.1,
           tools: allTools,

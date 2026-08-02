@@ -47,6 +47,7 @@ export async function manage(args: { goal: string; context?: string; role?: stri
     while (turns < maxTurns) {
       const completion = await routerClient.chat.completions.create({
         model: 'auto',
+        complexity: 'complex',
         messages,
         temperature: 0.1,
         tools,

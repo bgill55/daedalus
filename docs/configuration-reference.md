@@ -12,6 +12,7 @@ This guide describes all configuration options available in Daedalus. You can vi
 *   **`router.requestTimeout`**: (Description needed)
 *   **`router.defaultRateLimit`**: (Description needed)
 *   **`router.autoEscalate`**: (Description needed)
+*   **`router.complexityRouting`**: (Description needed)
 
 ---
 
