@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { classifyTaskStart, reclassifyTurn } from './complexity.js';
+import { classifyTaskStart, stepRouting } from './complexity.js';
+import type { RoutingState } from './complexity.js';
+import type { TaskComplexity } from './types.js';
 
 describe('classifyTaskStart', () => {
   it('classifies a tiny trivial edit as simple', () => {
@@ -34,40 +36,73 @@ describe('classifyTaskStart', () => {
   });
 });
 
-describe('reclassifyTurn', () => {
+describe('stepRouting', () => {
+  const fresh = (current: TaskComplexity): RoutingState => ({ current, totalCompletionTokens: 0, trivialTurnStreak: 0 });
+
   it('upgrades to complex on heavy cumulative output', () => {
-    expect(reclassifyTurn('standard', { totalCompletionTokens: 9000, writesThisTurn: 1, toolCallsThisTurn: 3, failedToolsThisTurn: 0, consecutiveTrivialTurns: 0 })).toBe('complex');
+    const st = stepRouting(fresh('standard'), { completionTokensThisTurn: 9000, writesThisTurn: 1, toolCallsThisTurn: 3, failedToolsThisTurn: 0 });
+    expect(st.current).toBe('complex');
   });
 
   it('upgrades to complex on repeated tool failures', () => {
-    expect(reclassifyTurn('standard', { totalCompletionTokens: 1000, writesThisTurn: 0, toolCallsThisTurn: 2, failedToolsThisTurn: 3, consecutiveTrivialTurns: 0 })).toBe('complex');
+    const st = stepRouting(fresh('standard'), { completionTokensThisTurn: 1000, writesThisTurn: 0, toolCallsThisTurn: 2, failedToolsThisTurn: 3 });
+    expect(st.current).toBe('complex');
   });
 
   it('upgrades to complex on a very long tool chain', () => {
-    expect(reclassifyTurn('standard', { totalCompletionTokens: 2000, writesThisTurn: 0, toolCallsThisTurn: 25, failedToolsThisTurn: 0, consecutiveTrivialTurns: 0 })).toBe('complex');
+    const st = stepRouting(fresh('standard'), { completionTokensThisTurn: 2000, writesThisTurn: 0, toolCallsThisTurn: 25, failedToolsThisTurn: 0 });
+    expect(st.current).toBe('complex');
   });
 
   it('upgrades simple to standard on moderate output', () => {
-    expect(reclassifyTurn('simple', { totalCompletionTokens: 3000, writesThisTurn: 0, toolCallsThisTurn: 1, failedToolsThisTurn: 0, consecutiveTrivialTurns: 0 })).toBe('standard');
+    const st = stepRouting(fresh('simple'), { completionTokensThisTurn: 3000, writesThisTurn: 0, toolCallsThisTurn: 1, failedToolsThisTurn: 0 });
+    expect(st.current).toBe('standard');
   });
 
   it('keeps current tier when signals are weak', () => {
-    expect(reclassifyTurn('standard', { totalCompletionTokens: 800, writesThisTurn: 0, toolCallsThisTurn: 1, failedToolsThisTurn: 0, consecutiveTrivialTurns: 1 })).toBe('standard');
+    const st = stepRouting(fresh('standard'), { completionTokensThisTurn: 800, writesThisTurn: 0, toolCallsThisTurn: 1, failedToolsThisTurn: 0 });
+    expect(st.current).toBe('standard');
   });
 
-  it('downgrades complex to standard after enough trivial turns', () => {
-    expect(reclassifyTurn('complex', { totalCompletionTokens: 2000, writesThisTurn: 0, toolCallsThisTurn: 1, failedToolsThisTurn: 0, consecutiveTrivialTurns: 3 })).toBe('standard');
+  it('downgrades complex to standard after enough trivial turns and resets the token ratchet', () => {
+    const st = stepRouting({ current: 'complex', totalCompletionTokens: 2000, trivialTurnStreak: 2 }, { completionTokensThisTurn: 100, writesThisTurn: 0, toolCallsThisTurn: 1, failedToolsThisTurn: 0 });
+    expect(st.current).toBe('standard');
+    expect(st.totalCompletionTokens).toBe(0);
   });
 
   it('downgrades standard to simple after enough trivial turns', () => {
-    expect(reclassifyTurn('standard', { totalCompletionTokens: 600, writesThisTurn: 0, toolCallsThisTurn: 1, failedToolsThisTurn: 0, consecutiveTrivialTurns: 3 })).toBe('simple');
+    const st = stepRouting({ current: 'standard', totalCompletionTokens: 600, trivialTurnStreak: 2 }, { completionTokensThisTurn: 100, writesThisTurn: 0, toolCallsThisTurn: 1, failedToolsThisTurn: 0 });
+    expect(st.current).toBe('simple');
   });
 
   it('does not downgrade below simple', () => {
-    expect(reclassifyTurn('simple', { totalCompletionTokens: 300, writesThisTurn: 0, toolCallsThisTurn: 1, failedToolsThisTurn: 0, consecutiveTrivialTurns: 10 })).toBe('simple');
+    const st = stepRouting({ current: 'simple', totalCompletionTokens: 300, trivialTurnStreak: 9 }, { completionTokensThisTurn: 100, writesThisTurn: 0, toolCallsThisTurn: 1, failedToolsThisTurn: 0 });
+    expect(st.current).toBe('simple');
   });
 
   it('holds complex tier on trivial turns before hysteresis threshold', () => {
-    expect(reclassifyTurn('complex', { totalCompletionTokens: 2000, writesThisTurn: 0, toolCallsThisTurn: 1, failedToolsThisTurn: 0, consecutiveTrivialTurns: 2 })).toBe('complex');
+    const st = stepRouting({ current: 'complex', totalCompletionTokens: 2000, trivialTurnStreak: 1 }, { completionTokensThisTurn: 100, writesThisTurn: 0, toolCallsThisTurn: 1, failedToolsThisTurn: 0 });
+    expect(st.current).toBe('complex');
+  });
+
+  it('resets the trivial streak when a write occurs', () => {
+    const st = stepRouting({ current: 'standard', totalCompletionTokens: 0, trivialTurnStreak: 2 }, { completionTokensThisTurn: 200, writesThisTurn: 1, toolCallsThisTurn: 1, failedToolsThisTurn: 0 });
+    expect(st.current).toBe('standard');
+    expect(st.trivialTurnStreak).toBe(0);
+  });
+
+  it('does not re-upgrade to complex immediately after a downgrade', () => {
+    let st = stepRouting({ current: 'complex', totalCompletionTokens: 15857, trivialTurnStreak: 2 }, { completionTokensThisTurn: 100, writesThisTurn: 0, toolCallsThisTurn: 1, failedToolsThisTurn: 0 });
+    expect(st.current).toBe('standard');
+    expect(st.totalCompletionTokens).toBe(0);
+    const next = stepRouting(st, { completionTokensThisTurn: 100, writesThisTurn: 1, toolCallsThisTurn: 1, failedToolsThisTurn: 0 });
+    expect(next.current).toBe('standard');
+  });
+
+  it('re-upgrades to complex only after significant fresh output post-downgrade', () => {
+    let st = stepRouting({ current: 'complex', totalCompletionTokens: 15857, trivialTurnStreak: 2 }, { completionTokensThisTurn: 100, writesThisTurn: 0, toolCallsThisTurn: 1, failedToolsThisTurn: 0 });
+    expect(st.current).toBe('standard');
+    st = stepRouting(st, { completionTokensThisTurn: 8500, writesThisTurn: 1, toolCallsThisTurn: 5, failedToolsThisTurn: 0 });
+    expect(st.current).toBe('complex');
   });
 });

@@ -72,26 +72,43 @@ export function classifyTaskStart(taskText: string, opts?: Partial<ComplexityOpt
 }
 
 export interface TurnSignals {
-  totalCompletionTokens: number;
+  completionTokensThisTurn: number;
   writesThisTurn: number;
   toolCallsThisTurn: number;
   failedToolsThisTurn: number;
-  consecutiveTrivialTurns: number;
+}
+
+export interface RoutingState {
+  current: TaskComplexity;
+  totalCompletionTokens: number;
+  trivialTurnStreak: number;
 }
 
 const COMPLEX_OUTPUT_TOKENS = 8000;
 const STANDARD_OUTPUT_TOKENS = 2500;
 const DOWNGRADE_TRIVIAL_TURNS = 3;
+const TRIVIAL_OUTPUT_TOKENS = 500;
 
-export function reclassifyTurn(current: TaskComplexity, s: TurnSignals): TaskComplexity {
-  if (current !== 'complex' && (s.totalCompletionTokens >= COMPLEX_OUTPUT_TOKENS || s.failedToolsThisTurn >= 3 || s.toolCallsThisTurn >= 20)) {
-    return 'complex';
+export function rankOf(level: TaskComplexity): number {
+  return level === 'simple' ? 0 : level === 'standard' ? 1 : 2;
+}
+
+export function stepRouting(state: RoutingState, s: TurnSignals): RoutingState {
+  const trivial = s.writesThisTurn === 0 && s.failedToolsThisTurn === 0 && s.completionTokensThisTurn <= TRIVIAL_OUTPUT_TOKENS;
+  const trivialTurnStreak = trivial ? state.trivialTurnStreak + 1 : 0;
+  const totalCompletionTokens = state.totalCompletionTokens + s.completionTokensThisTurn;
+
+  let current = state.current;
+  if (current !== 'complex' && (totalCompletionTokens >= COMPLEX_OUTPUT_TOKENS || s.failedToolsThisTurn >= 3 || s.toolCallsThisTurn >= 20)) {
+    current = 'complex';
+  } else if (current === 'simple' && totalCompletionTokens >= STANDARD_OUTPUT_TOKENS) {
+    current = 'standard';
+  } else if (current !== 'simple' && trivialTurnStreak >= DOWNGRADE_TRIVIAL_TURNS) {
+    current = current === 'complex' ? 'standard' : 'simple';
   }
-  if (current === 'simple' && s.totalCompletionTokens >= STANDARD_OUTPUT_TOKENS) {
-    return 'standard';
+
+  if (current !== state.current && rankOf(current) < rankOf(state.current)) {
+    return { current, totalCompletionTokens: 0, trivialTurnStreak: 0 };
   }
-  if (current !== 'simple' && s.consecutiveTrivialTurns >= DOWNGRADE_TRIVIAL_TURNS) {
-    return current === 'complex' ? 'standard' : 'simple';
-  }
-  return current;
+  return { current, totalCompletionTokens, trivialTurnStreak };
 }

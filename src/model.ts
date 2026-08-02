@@ -8,7 +8,7 @@ import { calculateSessionTokens, pruneMessages } from './session/tokens.js';
 import { parseTextToolCalls, openAssistantBlock, writeAssistantChunk, closeAssistantBlock, printContextWarning, printContextResult, printContextPrune, printToolStart, printToolResult, printToolContentPreview, turnGatePrompt } from './formatting.js';
 import type { ToolContext, ToolCall, ChatMessage } from './types.js';
 import type { LocalRouter } from './router/index.js';
-import { classifyTaskStart, reclassifyTurn } from './router/complexity.js';
+import { classifyTaskStart, stepRouting } from './router/complexity.js';
 
 const TOOL_RESULT_MAX_CHARS = 32_000;
 const MAX_TOOL_TURNS = 40;
@@ -588,21 +588,16 @@ export function createModelFunctions(deps: ModelDeps) {
       if (currentComplexity) {
         const writesThisTurn = results.filter(r => r.success && ['patch', 'write_file'].includes(r.name)).length;
         const failedThisTurn = results.filter(r => !r.success).length;
-        totalCompletionTokens += turnUsageOut ?? 0;
-        const trivialTurn = writesThisTurn === 0 && failedThisTurn === 0 && (turnUsageOut ?? 0) <= 500;
-        trivialTurnStreak = trivialTurn ? trivialTurnStreak + 1 : 0;
-        const next = reclassifyTurn(currentComplexity, {
-          totalCompletionTokens,
-          writesThisTurn,
-          toolCallsThisTurn: toolCallArray.length,
-          failedToolsThisTurn: failedThisTurn,
-          consecutiveTrivialTurns: trivialTurnStreak,
-        });
-        if (next !== currentComplexity) {
-          trivialTurnStreak = 0;
-          console.log(pc.dim(`  [ROUTE] Reclassified ${currentComplexity} → ${next} (${totalCompletionTokens} output tokens, ${totalToolCalls + toolCallArray.length} tool calls)`));
-          currentComplexity = next;
+        const nextState = stepRouting(
+          { current: currentComplexity, totalCompletionTokens, trivialTurnStreak },
+          { completionTokensThisTurn: turnUsageOut ?? 0, writesThisTurn, toolCallsThisTurn: toolCallArray.length, failedToolsThisTurn: failedThisTurn },
+        );
+        if (nextState.current !== currentComplexity) {
+          console.log(pc.dim(`  [ROUTE] Reclassified ${currentComplexity} → ${nextState.current} (${nextState.totalCompletionTokens} output tokens, ${totalToolCalls + toolCallArray.length} tool calls)`));
+          currentComplexity = nextState.current;
         }
+        totalCompletionTokens = nextState.totalCompletionTokens;
+        trivialTurnStreak = nextState.trivialTurnStreak;
       }
 
       totalToolCalls += toolCallArray.length;
