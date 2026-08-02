@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createModelFunctions, abortTurn, resetTurnAborted } from './model.js';
+import { setSessionTodos } from './tools/builtin/todo.js';
 import type { ToolContext, ChatMessage } from './types.js';
 import type { LocalRouter } from './router/index.js';
 
@@ -365,6 +366,45 @@ describe('Tool failure handling', () => {
     expect(typeof toolMessage.content).toBe('string');
     expect(String(toolMessage.content)).toContain('[Tool Error] command not found: foo');
     expect(result.content).toBe('done.');
+    delete process.env.DAEDALUS_AUTO_APPROVE;
+  });
+
+  it('prints todo progress to the console', async () => {
+    process.env.DAEDALUS_AUTO_APPROVE = 'true';
+    setSessionTodos('test', [
+      { id: '1', content: 'Setup project', status: 'completed' },
+      { id: '2', content: 'Add validation', status: 'in_progress' },
+      { id: '3', content: 'Write tests', status: 'pending' },
+    ]);
+
+    const chatStreamMock = vi.fn()
+      .mockResolvedValueOnce(toolStream('todo', '{"todos":[{"id":"2","content":"Add validation","status":"completed"}]}'))
+      .mockResolvedValueOnce(contentStream('done.'));
+
+    const executorMod = await import('./tools/executor.js');
+    vi.spyOn(executorMod, 'executeToolCalls').mockResolvedValue([{
+      toolCallId: 'call_1',
+      name: 'todo',
+      success: true,
+      content: 'Todo list (3 items):',
+    }]);
+
+    const { callModelWithTools } = createModelFunctions({
+      messages,
+      config: { ui: { showTokens: false } },
+      router: makeRouter(chatStreamMock),
+      toolContext,
+      buildFileContext: () => '',
+      askLine: vi.fn().mockResolvedValue('y'),
+    });
+
+    const result = await callModelWithTools('do the work');
+    const output = consoleOutput();
+
+    expect(output).toContain('[TODO] Progress: 1/3 completed');
+    expect(output).toContain('Active: Add validation');
+    expect(result.content).toBe('done.');
+    setSessionTodos('test', []);
     delete process.env.DAEDALUS_AUTO_APPROVE;
   });
 

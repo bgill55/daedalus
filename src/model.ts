@@ -1,6 +1,7 @@
 import pc from 'picocolors';
 import { BUILTIN_TOOLS, POWER_TOOLS } from './tools/definitions.js';
 import { executeToolCalls } from './tools/executor.js';
+import { getSessionTodos } from './tools/builtin/todo.js';
 import { mcpRegistry } from './tools/mcp/registry.js';
 import { DaedalusSpinner } from './tools/daedalus-spinner.js';
 import { calculateSessionTokens, pruneMessages } from './session/tokens.js';
@@ -443,6 +444,15 @@ export function createModelFunctions(deps: ModelDeps) {
         } as ChatMessage);
 
         printToolResult(result.name, result.success, result.error);
+        if (result.success && result.name === 'todo') {
+          const todos = getSessionTodos(toolContext.sessionId);
+          const done = todos.filter(t => t.status === 'completed').length;
+          const active = todos.find(t => t.status === 'in_progress');
+          if (todos.length > 0) {
+            const activeText = active ? ` | Active: ${active.content.slice(0, 50)}${active.content.length > 50 ? '...' : ''}` : '';
+            console.log(pc.cyan(`\n  [TODO] Progress: ${done}/${todos.length} completed${activeText}`));
+          }
+        }
         if (result.success && result.content) {
           printToolContentPreview(result.content);
         }
