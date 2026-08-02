@@ -361,6 +361,9 @@ describe('Tool failure handling', () => {
 
     expect(output).toContain("[AUTO] Tool 'terminal' failed: command not found: foo");
     expect(output).toContain('Agent will attempt to fix it...');
+    const toolMessage = messages.find(m => m.role === 'tool')!;
+    expect(typeof toolMessage.content).toBe('string');
+    expect(String(toolMessage.content)).toContain('[Tool Error] command not found: foo');
     expect(result.content).toBe('done.');
     delete process.env.DAEDALUS_AUTO_APPROVE;
   });

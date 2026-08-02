@@ -1562,7 +1562,10 @@ export class Orchestrator {
         }
 
         for (const result of results) {
-          const rawContent = typeof result.content === 'string' ? result.content : JSON.stringify(result.content);
+          let rawContent = typeof result.content === 'string' ? result.content : JSON.stringify(result.content);
+          if (!result.success && result.error) {
+            rawContent = `${rawContent}\n\n[Tool Error] ${result.error}`;
+          }
           const cappedContent = rawContent.length > 8000
             ? rawContent.slice(0, 8000) + '\n...[content truncated to prevent oversized request]'
             : rawContent;

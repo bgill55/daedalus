@@ -423,6 +423,9 @@ export function createModelFunctions(deps: ModelDeps) {
         } else {
           failureCounts.set(sig, (failureCounts.get(sig) ?? 0) + 1);
         }
+        if (!result.success && result.error) {
+          content = `${content}\n\n[Tool Error] ${result.error}`;
+        }
         const failedWriteTools = ['patch', 'write_file'];
         if (!result.success && failedWriteTools.includes(result.name)) {
           const repeated = failureCounts.get(sig) ?? 0;
