@@ -205,7 +205,7 @@ export function createModelFunctions(deps: ModelDeps) {
 
     while (true) {
       if (toolTurnsRemaining <= 0) {
-        closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut);
+        closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
         console.log(`\n  ${pc.yellow('[WARN]')} ${pc.yellow(`Reached max tool turns (${MAX_TOOL_TURNS}). Stopping to checkpoint.`)}`);
         const executedSummary = executedToolNames.size > 0 ? [...executedToolNames].join(', ') : 'none';
         console.log(`  ${pc.dim(`[SUMMARY] ${totalToolCalls} tool call(s) executed: ${executedSummary}`)}`);
@@ -224,7 +224,7 @@ export function createModelFunctions(deps: ModelDeps) {
       }
 
       if (turnAborted) {
-        closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut);
+        closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
         console.log(pc.dim('\n  [STOP] Stopped'));
         return { content: lastContent, toolCalls: [] };
       }
@@ -306,7 +306,7 @@ export function createModelFunctions(deps: ModelDeps) {
         if (!blockOpened) spinner.stop();
 
         if (signal.aborted) {
-          closeAssistantBlock((lastContent || fullContent).length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut);
+          closeAssistantBlock((lastContent || fullContent).length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
           console.log(pc.dim('\n  [STOP] Stopped'));
           clearAbortController();
           return { content: fullContent, toolCalls: [] };
@@ -315,7 +315,7 @@ export function createModelFunctions(deps: ModelDeps) {
       } catch (error: any) {
         if (signal.aborted) {
           spinner.stop();
-          closeAssistantBlock((lastContent || fullContent).length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut);
+          closeAssistantBlock((lastContent || fullContent).length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
           console.log(pc.dim('\n  [STOP] Stopped'));
           clearAbortController();
           return { content: repetitionAborted ? fullContent : '', toolCalls: [] };
@@ -339,7 +339,10 @@ export function createModelFunctions(deps: ModelDeps) {
       lastContent = fullContent;
 
       if (toolCallArray.length === 0) {
-        closeAssistantBlock(fullContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut);
+        closeAssistantBlock(fullContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
+        if (currentComplexity) {
+          console.log(pc.dim(`  [ROUTE] Task summary: start ${taskComplexity ?? 'n/a'} → end ${currentComplexity} | ${totalCompletionTokens} output tokens | ${escalationCount} escalation(s)`));
+        }
         messages.push({ role: 'assistant', content: fullContent });
         return { content: fullContent, toolCalls: [] };
       }
@@ -364,7 +367,7 @@ export function createModelFunctions(deps: ModelDeps) {
 
       if (consecutiveCount >= 2) {
         if (consecutiveCount >= 3) {
-          closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut);
+          closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
           console.log(`\n  ${pc.red('[STOP]')} Terminated repetitive loop after 4 consecutive identical tool calls.`);
           return { content: lastContent, toolCalls: [] };
         }
@@ -554,7 +557,7 @@ export function createModelFunctions(deps: ModelDeps) {
       }
 
       if (consecutiveToolFailures >= 5 || worstRepeatedFailures >= 5) {
-        closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut);
+        closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
         console.log(pc.red('\n  [STOP] Repeated tool failures. Stopping to avoid looping.'));
         messages.push({ role: 'assistant', content: lastContent });
         return { content: lastContent, toolCalls: [] };
@@ -566,7 +569,7 @@ export function createModelFunctions(deps: ModelDeps) {
         const norm = answer.trim().toLowerCase();
 
         if (norm === 'n' || norm === 'no') {
-          closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut);
+          closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
           console.log(pc.yellow('\n  [INFO] Stopped agent turn loop.'));
           messages.push({ role: 'assistant', content: lastContent });
           return { content: lastContent, toolCalls: [] };

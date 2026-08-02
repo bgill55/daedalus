@@ -180,6 +180,7 @@ export function closeAssistantBlock(
   toolCount?: number,
   modelName?: string,
   realOutTokens?: number,
+  tier?: string,
 ): void {
   if (_buf) {
     const line = _buf.trimEnd();
@@ -201,6 +202,7 @@ export function closeAssistantBlock(
   _buf = '';
 
   const parts: string[] = [];
+  if (tier) parts.push(pc.dim(tier));
   if (modelName) parts.push(pc.dim(modelName));
   if (toolCount !== undefined) parts.push(pc.dim(`${toolCount} tool(s)`));
   const estTokens = Math.round(tokens / 4);

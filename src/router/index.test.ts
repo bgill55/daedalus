@@ -149,6 +149,27 @@ describe('LocalRouter', () => {
     expect(result.model.name).toBe('big');
   });
 
+  it('tracks per-tier route stats and last routed tier', async () => {
+    const router = new LocalRouter(makeConfig({
+      chain: [
+        { name: 'big', endpoint: 'http://localhost:1/v1', model: 'm1', priority: 1, enabled: true, tier: 'intelligence', supportsTools: true },
+        { name: 'mid', endpoint: 'http://localhost:3/v1', model: 'm3', priority: 2, enabled: true, tier: 'standard', supportsTools: true },
+        { name: 'fast', endpoint: 'http://localhost:2/v1', model: 'm2', priority: 5, enabled: true, tier: 'fast', supportsTools: true },
+      ],
+    }));
+    await router.route({ messages: [{ role: 'user', content: 'hi' }], complexity: 'simple', tools: [{ type: 'function' }] });
+    await router.route({ messages: [{ role: 'user', content: 'hi' }], complexity: 'complex', tools: [{ type: 'function' }] });
+    await router.route({ messages: [{ role: 'user', content: 'hi' }], complexity: 'standard', tools: [{ type: 'function' }] });
+    expect(router.lastRoutedTier).toBe('standard');
+    const stats = router.getRouteStats();
+    expect(stats.fast).toBe(1);
+    expect(stats.complex).toBe(1);
+    expect(stats.standard).toBe(1);
+    const pinned = await router.route({ messages: [], model: 'big' });
+    expect(pinned.model.name).toBe('big');
+    expect(router.getRouteStats().override).toBe(1);
+  });
+
   it('round-robin cycles through models', async () => {
     const router = new LocalRouter(makeConfig({
       strategy: 'round-robin',

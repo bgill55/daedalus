@@ -25,6 +25,8 @@ export class LocalRouter {
   private discoveredModels: Map<string, string> = new Map(); // endpoint key -> model id
   public lastRoutedModel?: string;
   public lastRoutedModelName?: string;
+  public lastRoutedTier?: string;
+  private routeStats = { fast: 0, standard: 0, complex: 0, override: 0 };
 
   constructor(config: RouterConfig) {
     this.config = config;
@@ -177,6 +179,8 @@ export class LocalRouter {
           }
         }
         const health = getCachedHealth(selectedModel) ?? { healthy: true, lastCheck: Date.now(), consecutiveFailures: 0 };
+        this.routeStats.override++;
+        this.lastRoutedTier = selectedModel.tier;
         return { model: selectedModel, health };
       }
     }
@@ -296,6 +300,15 @@ export class LocalRouter {
     if (!selectedModel) {
       throw rateLimitError || new Error('All models are currently rate limited.');
     }
+
+    if (targetTier === 'fast') {
+      this.routeStats.fast++;
+    } else if (targetTier === 'standard') {
+      this.routeStats.standard++;
+    } else {
+      this.routeStats.complex++;
+    }
+    this.lastRoutedTier = targetTier === 'fast' ? 'fast' : targetTier === 'standard' ? 'standard' : 'intelligence';
 
     const health = getCachedHealth(selectedModel) ?? { healthy: true, lastCheck: Date.now(), consecutiveFailures: 0 };
     return { model: selectedModel, health };
@@ -487,7 +500,11 @@ export class LocalRouter {
   }
 
   getConfig(): RouterConfig {
-    return { ...this.config };
+    return this.config;
+  }
+
+  getRouteStats() {
+    return { ...this.routeStats };
   }
 
   updateConfig(config: Partial<RouterConfig>): void {
