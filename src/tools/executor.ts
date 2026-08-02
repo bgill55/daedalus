@@ -59,7 +59,7 @@ export async function executeToolCall(
 
   // Handle MCP tools (prefixed with mcp_)
   if (toolName.startsWith('mcp_')) {
-    return executeMCPTool(toolName, JSON.parse(toolCall.function.arguments), context);
+    return executeMCPTool(toolName, JSON.parse(toolCall.function.arguments), context, toolCall.id);
   }
 
   const implPath = TOOL_IMPLEMENTATIONS[toolName];

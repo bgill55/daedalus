@@ -399,7 +399,8 @@ export function createModelFunctions(deps: ModelDeps) {
         }));
       }
 
-      for (const result of results) {
+      for (let ri = 0; ri < results.length; ri++) {
+        const result = results[ri];
         let content = result.content;
         const failedWriteTools = ['patch', 'write_file'];
         if (!result.success && failedWriteTools.includes(result.name)) {
@@ -408,8 +409,8 @@ export function createModelFunctions(deps: ModelDeps) {
 
         messages.push({
           role: 'tool',
-          content: truncateToolResult(content),
-          tool_call_id: result.toolCallId,
+          content: truncateToolResult(typeof content === 'string' ? content : JSON.stringify(content)),
+          tool_call_id: result.toolCallId || approvedCalls[ri]?.id || '',
         } as ChatMessage);
 
         printToolResult(result.name, result.success, result.error);

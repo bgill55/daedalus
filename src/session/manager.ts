@@ -140,7 +140,7 @@ export class SessionManager {
         }
       }
       let contentParsed = t.content;
-      if (typeof t.content === 'string' && (t.content.startsWith('[') || t.content.startsWith('{'))) {
+      if (t.role !== 'tool' && typeof t.content === 'string' && (t.content.startsWith('[') || t.content.startsWith('{'))) {
         try {
           contentParsed = JSON.parse(t.content);
         } catch {

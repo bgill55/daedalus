@@ -93,6 +93,29 @@ describe('SessionManager', () => {
     expect(msgs[0].role).toBe('user');
   });
 
+  it('getChatMessages keeps tool message content as a string', () => {
+    manager.init();
+    manager.startSession();
+
+    manager.saveSessionState(
+      [
+        {
+          role: 'assistant',
+          content: '',
+          tool_calls: [{ id: 'call-1', type: 'function', function: { name: 'mcp_foo', arguments: '{}' } }],
+        },
+        { role: 'tool', content: '{"content":[{"type":"text","text":"ok"}],"isError":false}', tool_call_id: 'call-1' },
+      ],
+      new Map(),
+      []
+    );
+
+    const msgs = manager.getChatMessages();
+    const toolMsg = msgs.find(m => m.role === 'tool')!;
+    expect(typeof toolMsg.content).toBe('string');
+    expect(toolMsg.tool_call_id).toBe('call-1');
+  });
+
   it('deleteSession removes db and jsonl files', () => {
     manager.init();
     const session = manager.startSession();
