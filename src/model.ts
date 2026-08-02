@@ -8,7 +8,7 @@ import { calculateSessionTokens, pruneMessages } from './session/tokens.js';
 import { parseTextToolCalls, openAssistantBlock, writeAssistantChunk, closeAssistantBlock, printContextWarning, printContextResult, printContextPrune, printToolStart, printToolResult, printToolContentPreview, turnGatePrompt } from './formatting.js';
 import type { ToolContext, ToolCall, ChatMessage } from './types.js';
 import type { LocalRouter } from './router/index.js';
-import { classifyTaskStart } from './router/complexity.js';
+import { classifyTaskStart, reclassifyTurn } from './router/complexity.js';
 
 const TOOL_RESULT_MAX_CHARS = 32_000;
 const MAX_TOOL_TURNS = 40;
@@ -195,6 +195,9 @@ export function createModelFunctions(deps: ModelDeps) {
     let pinnedModel: string | undefined;
     let escalationCount = 0;
     let escalatedThisStreak = false;
+    let currentComplexity = taskComplexity;
+    let totalCompletionTokens = 0;
+    let trivialTurnStreak = 0;
     let turnUsageOut: number | undefined;
     openAssistantBlock();
     const overallStart = Date.now();
@@ -246,7 +249,7 @@ export function createModelFunctions(deps: ModelDeps) {
       try {
         const stream = await router.chatStream({
           model: pinnedModel || config.modelOverride || 'auto',
-          complexity: taskComplexity,
+          complexity: pinnedModel ? undefined : currentComplexity,
           messages,
           temperature: 0.1,
           tools: allTools,
@@ -334,10 +337,6 @@ export function createModelFunctions(deps: ModelDeps) {
         }
       }
       lastContent = fullContent;
-
-      if (!pinnedModel && router.lastRoutedModelName) {
-        pinnedModel = router.lastRoutedModelName;
-      }
 
       if (toolCallArray.length === 0) {
         closeAssistantBlock(fullContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut);
@@ -580,6 +579,26 @@ export function createModelFunctions(deps: ModelDeps) {
             } as ChatMessage);
             console.log(pc.green(`  [OK] Feedback appended. Continuing.`));
           }
+        }
+      }
+
+      if (currentComplexity) {
+        const writesThisTurn = results.filter(r => r.success && ['patch', 'write_file'].includes(r.name)).length;
+        const failedThisTurn = results.filter(r => !r.success).length;
+        totalCompletionTokens += turnUsageOut ?? 0;
+        const trivialTurn = writesThisTurn === 0 && failedThisTurn === 0 && (turnUsageOut ?? 0) <= 500;
+        trivialTurnStreak = trivialTurn ? trivialTurnStreak + 1 : 0;
+        const next = reclassifyTurn(currentComplexity, {
+          totalCompletionTokens,
+          writesThisTurn,
+          toolCallsThisTurn: toolCallArray.length,
+          failedToolsThisTurn: failedThisTurn,
+          consecutiveTrivialTurns: trivialTurnStreak,
+        });
+        if (next !== currentComplexity) {
+          trivialTurnStreak = 0;
+          console.log(pc.dim(`  [ROUTE] Reclassified ${currentComplexity} → ${next} (${totalCompletionTokens} output tokens, ${totalToolCalls + toolCallArray.length} tool calls)`));
+          currentComplexity = next;
         }
       }
 

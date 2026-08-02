@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { classifyTaskStart } from './complexity.js';
+import { classifyTaskStart, reclassifyTurn } from './complexity.js';
 
 describe('classifyTaskStart', () => {
   it('classifies a tiny trivial edit as simple', () => {
@@ -31,5 +31,43 @@ describe('classifyTaskStart', () => {
 
   it('defaults to standard for short prompts without explicit signals', () => {
     expect(classifyTaskStart('change the port to 3000')).toBe('standard');
+  });
+});
+
+describe('reclassifyTurn', () => {
+  it('upgrades to complex on heavy cumulative output', () => {
+    expect(reclassifyTurn('standard', { totalCompletionTokens: 9000, writesThisTurn: 1, toolCallsThisTurn: 3, failedToolsThisTurn: 0, consecutiveTrivialTurns: 0 })).toBe('complex');
+  });
+
+  it('upgrades to complex on repeated tool failures', () => {
+    expect(reclassifyTurn('standard', { totalCompletionTokens: 1000, writesThisTurn: 0, toolCallsThisTurn: 2, failedToolsThisTurn: 3, consecutiveTrivialTurns: 0 })).toBe('complex');
+  });
+
+  it('upgrades to complex on a very long tool chain', () => {
+    expect(reclassifyTurn('standard', { totalCompletionTokens: 2000, writesThisTurn: 0, toolCallsThisTurn: 25, failedToolsThisTurn: 0, consecutiveTrivialTurns: 0 })).toBe('complex');
+  });
+
+  it('upgrades simple to standard on moderate output', () => {
+    expect(reclassifyTurn('simple', { totalCompletionTokens: 3000, writesThisTurn: 0, toolCallsThisTurn: 1, failedToolsThisTurn: 0, consecutiveTrivialTurns: 0 })).toBe('standard');
+  });
+
+  it('keeps current tier when signals are weak', () => {
+    expect(reclassifyTurn('standard', { totalCompletionTokens: 800, writesThisTurn: 0, toolCallsThisTurn: 1, failedToolsThisTurn: 0, consecutiveTrivialTurns: 1 })).toBe('standard');
+  });
+
+  it('downgrades complex to standard after enough trivial turns', () => {
+    expect(reclassifyTurn('complex', { totalCompletionTokens: 2000, writesThisTurn: 0, toolCallsThisTurn: 1, failedToolsThisTurn: 0, consecutiveTrivialTurns: 3 })).toBe('standard');
+  });
+
+  it('downgrades standard to simple after enough trivial turns', () => {
+    expect(reclassifyTurn('standard', { totalCompletionTokens: 600, writesThisTurn: 0, toolCallsThisTurn: 1, failedToolsThisTurn: 0, consecutiveTrivialTurns: 3 })).toBe('simple');
+  });
+
+  it('does not downgrade below simple', () => {
+    expect(reclassifyTurn('simple', { totalCompletionTokens: 300, writesThisTurn: 0, toolCallsThisTurn: 1, failedToolsThisTurn: 0, consecutiveTrivialTurns: 10 })).toBe('simple');
+  });
+
+  it('holds complex tier on trivial turns before hysteresis threshold', () => {
+    expect(reclassifyTurn('complex', { totalCompletionTokens: 2000, writesThisTurn: 0, toolCallsThisTurn: 1, failedToolsThisTurn: 0, consecutiveTrivialTurns: 2 })).toBe('complex');
   });
 });

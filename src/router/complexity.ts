@@ -70,3 +70,28 @@ export function classifyTaskStart(taskText: string, opts?: Partial<ComplexityOpt
   if (simpleScore > 0 && tokenEstimate <= options.smallTaskTokens) return 'simple';
   return 'standard';
 }
+
+export interface TurnSignals {
+  totalCompletionTokens: number;
+  writesThisTurn: number;
+  toolCallsThisTurn: number;
+  failedToolsThisTurn: number;
+  consecutiveTrivialTurns: number;
+}
+
+const COMPLEX_OUTPUT_TOKENS = 8000;
+const STANDARD_OUTPUT_TOKENS = 2500;
+const DOWNGRADE_TRIVIAL_TURNS = 3;
+
+export function reclassifyTurn(current: TaskComplexity, s: TurnSignals): TaskComplexity {
+  if (current !== 'complex' && (s.totalCompletionTokens >= COMPLEX_OUTPUT_TOKENS || s.failedToolsThisTurn >= 3 || s.toolCallsThisTurn >= 20)) {
+    return 'complex';
+  }
+  if (current === 'simple' && s.totalCompletionTokens >= STANDARD_OUTPUT_TOKENS) {
+    return 'standard';
+  }
+  if (current !== 'simple' && s.consecutiveTrivialTurns >= DOWNGRADE_TRIVIAL_TURNS) {
+    return current === 'complex' ? 'standard' : 'simple';
+  }
+  return current;
+}
