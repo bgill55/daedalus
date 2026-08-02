@@ -1,3 +1,10 @@
+## [3.3.4](https://github.com/bgill55/daedalus/compare/v3.3.3...v3.3.4) (2026-08-02)
+
+
+### Bug Fixes
+
+* **model:** break patch retry spirals via failure-signature tracking ([735f3cf](https://github.com/bgill55/daedalus/commit/735f3cff60bc92bea3ee6a3671ed2c5822f0c9ee))
+
 ## [3.3.3](https://github.com/bgill55/daedalus/compare/v3.3.2...v3.3.3) (2026-08-02)
 
 
