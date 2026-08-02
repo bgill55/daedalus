@@ -1,3 +1,10 @@
+# [3.4.0](https://github.com/bgill55/daedalus/compare/v3.3.5...v3.4.0) (2026-08-02)
+
+
+### Features
+
+* **model:** print todo progress in single-agent mode ([93df6c1](https://github.com/bgill55/daedalus/commit/93df6c190f9caf9f21df608334e6537041e6261e))
+
 ## [3.3.5](https://github.com/bgill55/daedalus/compare/v3.3.4...v3.3.5) (2026-08-02)
 
 
