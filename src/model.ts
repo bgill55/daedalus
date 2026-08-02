@@ -43,6 +43,20 @@ function truncateToolResult(content: string): string {
   return `${kept}\n... [truncated ${dropped} chars — use read_file with offset/limit to see more]`;
 }
 
+function failureSignature(name: string, rawArgs: string): string {
+  try {
+    const parsed = JSON.parse(rawArgs || '{}') as Record<string, unknown>;
+    const key = typeof parsed.path === 'string' ? parsed.path
+      : typeof parsed.file === 'string' ? parsed.file
+      : typeof parsed.command === 'string' ? parsed.command
+      : typeof parsed.package === 'string' ? parsed.package
+      : '';
+    return key ? `${name}:${key}` : name;
+  } catch {
+    return name;
+  }
+}
+
 function detectRepetition(text: string): boolean {
   if (text.length < 200) return false;
   const tail = text.slice(-400);
@@ -167,6 +181,7 @@ export function createModelFunctions(deps: ModelDeps) {
     let lastContent = '';
     let toolTurnsRemaining = MAX_TOOL_TURNS;
     let consecutiveToolFailures = 0;
+    const failureCounts = new Map<string, number>();
     const executedToolNames = new Set<string>();
     const signatureHistory: string[] = [];
     let pinnedModel: string | undefined;
@@ -402,9 +417,20 @@ export function createModelFunctions(deps: ModelDeps) {
       for (let ri = 0; ri < results.length; ri++) {
         const result = results[ri];
         let content = result.content;
+        const sig = failureSignature(result.name, approvedCalls[ri]?.function?.arguments ?? '');
+        if (result.success) {
+          failureCounts.set(sig, 0);
+        } else {
+          failureCounts.set(sig, (failureCounts.get(sig) ?? 0) + 1);
+        }
         const failedWriteTools = ['patch', 'write_file'];
         if (!result.success && failedWriteTools.includes(result.name)) {
-          content += `\n\n[SYSTEM WARNING] The changes to the file were NOT applied due to the error above. You MUST first resolve this error (e.g. by using "read_file" to get the current content if it was a stale read, or correcting code syntax/types) and successfully apply the file change before moving on to other tasks or files. Do not skip or ignore this file.`;
+          const repeated = failureCounts.get(sig) ?? 0;
+          if (repeated >= 2) {
+            content += `\n\n[SYSTEM WARNING] You have repeatedly failed to apply this change (${repeated} attempts). STOP attempting the same patch. Read the exact current file content and construct a patch that matches it exactly, or switch strategy (e.g. write_file with full content), or move on and summarize the blocker to the user.`;
+          } else {
+            content += `\n\n[SYSTEM WARNING] The changes to the file were NOT applied due to the error above. You MUST first resolve this error (e.g. by using "read_file" to get the current content if it was a stale read, or correcting code syntax/types) and successfully apply the file change before moving on to other tasks or files. Do not skip or ignore this file.`;
+          }
         }
 
         messages.push({
@@ -465,16 +491,28 @@ export function createModelFunctions(deps: ModelDeps) {
         consecutiveToolFailures = 0;
       }
 
-      if (consecutiveToolFailures >= 3) {
+      let worstRepeatedFailures = 0;
+      let worstSignature = '';
+      for (const [sig, count] of failureCounts) {
+        if (count > worstRepeatedFailures) {
+          worstRepeatedFailures = count;
+          worstSignature = sig;
+        }
+      }
+
+      if (consecutiveToolFailures >= 3 || worstRepeatedFailures >= 3) {
+        const detail = worstRepeatedFailures >= 3 && worstSignature
+          ? `Tool '${worstSignature}' has failed ${worstRepeatedFailures} times. `
+          : '';
         messages.push({
           role: 'user',
-          content: `[SYSTEM WARNING] You have failed tool execution ${consecutiveToolFailures} consecutive times. You MUST change your approach: stop re-running the same failing command; read the error message, use a different tool or strategy, or stop and summarize the blocker to the user.`,
+          content: `[SYSTEM WARNING] ${detail}You MUST change your approach: stop re-running the same failing command; read the error message, use a different tool or strategy, or stop and summarize the blocker to the user.`,
         } as ChatMessage);
       }
 
-      if (consecutiveToolFailures >= 5) {
+      if (consecutiveToolFailures >= 5 || worstRepeatedFailures >= 5) {
         closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut);
-        console.log(pc.red('\n  [STOP] Repeated tool failures (5 consecutive). Stopping to avoid looping.'));
+        console.log(pc.red('\n  [STOP] Repeated tool failures. Stopping to avoid looping.'));
         messages.push({ role: 'assistant', content: lastContent });
         return { content: lastContent, toolCalls: [] };
       }

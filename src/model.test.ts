@@ -393,9 +393,50 @@ describe('Tool failure handling', () => {
     const output = consoleOutput();
 
     expect(chatStreamMock).toHaveBeenCalledTimes(5);
-    expect(output).toContain('[STOP] Repeated tool failures (5 consecutive). Stopping to avoid looping.');
+    expect(output).toContain('[STOP] Repeated tool failures. Stopping to avoid looping.');
     const warning = messages.find(m => m.role === 'user' && typeof m.content === 'string' && m.content.includes('[SYSTEM WARNING]'));
     expect(warning).toBeDefined();
+    expect(result.content).toBe('');
+    expect(result.toolCalls).toEqual([]);
+    delete process.env.DAEDALUS_AUTO_APPROVE;
+  });
+
+  it('stops on repeated failures of the same operation even with interleaved successes', async () => {
+    process.env.DAEDALUS_AUTO_APPROVE = 'true';
+
+    let callCount = 0;
+    const chatStreamMock = vi.fn().mockImplementation(() => {
+      callCount++;
+      if (callCount % 2 === 0) return toolStream('read_file', '{"path":"a.ts"}');
+      return toolStream('patch', '{"path":"a.ts","old_string":"x","new_string":"y"}');
+    });
+
+    const executorMod = await import('./tools/executor.js');
+    vi.spyOn(executorMod, 'executeToolCalls').mockImplementation(async (calls: any[]) => {
+      return calls.map((c) => ({
+        toolCallId: c.id,
+        name: c.function.name,
+        success: c.function.name !== 'patch',
+        content: c.function.name === 'patch' ? '' : 'ok',
+        error: c.function.name === 'patch' ? 'stale read' : undefined,
+      }));
+    });
+
+    const { callModelWithTools } = createModelFunctions({
+      messages,
+      config: { ui: { showTokens: false } },
+      router: makeRouter(chatStreamMock),
+      toolContext,
+      buildFileContext: () => '',
+      askLine: vi.fn().mockResolvedValue('y'),
+    });
+
+    const result = await callModelWithTools('test');
+    const output = consoleOutput();
+
+    expect(chatStreamMock).toHaveBeenCalledTimes(9);
+    expect(output).toContain('[STOP] Repeated tool failures. Stopping to avoid looping.');
+    expect(output).toContain("[AUTO] Tool 'patch' failed: stale read");
     expect(result.content).toBe('');
     expect(result.toolCalls).toEqual([]);
     delete process.env.DAEDALUS_AUTO_APPROVE;
