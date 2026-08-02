@@ -151,6 +151,7 @@ function syncCommandsTable() {
 }
 
 const SECTIONS = [
+  { prefix: '__top__', title: 'General Settings' },
   { prefix: 'router.', title: 'Router Settings' },
   { prefix: 'agents.', title: 'Agent Settings' },
   { prefix: 'tools.', title: 'Tool Settings' },
@@ -166,11 +167,14 @@ const SECTIONS = [
 function syncConfigReference() {
   const docPath = path.join(projectRoot, 'docs', 'configuration-reference.md');
   const existingDescriptions: Record<string, string> = {
+    'modelOverride': 'Pin a specific model for the current session, bypassing routing, complexity classification, and auto-escalation. Set via /config, /model, or a project .daedalusrc override.',
     'router.strategy': 'Routing strategy: "priority" (try models in order), "round-robin" (cycle evenly), or "fastest" (lowest latency). Default: "priority".',
     'router.chain': 'Ordered list of model endpoint configurations. Each entry defines name, endpoint URL, model, priority, tier, and capability flags.',
     'router.healthCheckInterval': 'Interval in milliseconds between background health checks on configured endpoints. Default: 30000.',
     'router.requestTimeout': 'Maximum wait in milliseconds for a model response before considering it failed. Default: 120000.',
     'router.defaultRateLimit': 'Default rate limit settings (rpm and tpm) applied when an endpoint does not advertise its own limits.',
+    'router.autoEscalate': 'When true, automatically switches to the next chain model after repeated tool failures. Default: true.',
+    'router.complexityRouting': 'When true, routes each task by complexity tier: simple tasks use the fast tier, complex tasks use the intelligence tier, with on-the-fly reclassification mid-task. Default: true.',
     'agents.default': 'Default agent role used when no specific role is requested. Default: "coder".',
     'agents.available': 'List of available agent roles for orchestration (orchestrator, planner, coder, reviewer, debugger, researcher).',
     'agents.autoOrchestrate': 'When true, automatically invoke the orchestrator for complex multi-step tasks instead of single-agent mode. Default: true.',
@@ -225,7 +229,9 @@ function syncConfigReference() {
   const sectionBlocks: string[] = [];
 
   for (const section of SECTIONS) {
-    const keysInSection = configPaths.filter(key => key.startsWith(section.prefix));
+    const keysInSection = section.prefix === '__top__'
+      ? configPaths.filter(key => !key.includes('.'))
+      : configPaths.filter(key => key.startsWith(section.prefix));
     if (keysInSection.length === 0) continue;
 
     let block = `## ${section.title}\n\n`;

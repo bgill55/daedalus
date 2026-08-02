@@ -199,6 +199,7 @@ describe('Documentation Sync Verification', () => {
 
     const configPaths = extractSchemaPaths(ConfigSchema);
     const SECTIONS = [
+      { prefix: '__top__', title: 'General Settings' },
       { prefix: 'router.', title: 'Router Settings' },
       { prefix: 'agents.', title: 'Agent Settings' },
       { prefix: 'tools.', title: 'Tool Settings' },
@@ -213,7 +214,9 @@ describe('Documentation Sync Verification', () => {
 
     const sectionBlocks: string[] = [];
     for (const section of SECTIONS) {
-      const keysInSection = configPaths.filter(key => key.startsWith(section.prefix));
+      const keysInSection = section.prefix === '__top__'
+        ? configPaths.filter(key => !key.includes('.'))
+        : configPaths.filter(key => key.startsWith(section.prefix));
       if (keysInSection.length === 0) continue;
 
       let block = `## ${section.title}\n\n`;

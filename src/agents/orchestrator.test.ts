@@ -89,6 +89,29 @@ describe('Orchestrator', () => {
     expect(result).toBeTruthy();
   });
 
+  it('routes planner calls to the intelligence tier with explicit complex complexity', async () => {
+    const { router: r, chatMock } = createMockRouter([
+      'Create a step-by-step plan with one subtask per file for test goal\n1. src/a.ts - write the file',
+    ]);
+    router = r;
+    const orch = new Orchestrator(router, messages, toolContext);
+    await (orch as any).createPlan('test goal', 'project context');
+    expect(chatMock.mock.calls.length).toBeGreaterThan(0);
+    expect(chatMock.mock.calls[0][0]).toMatchObject({ model: 'intelligence', complexity: 'complex' });
+  });
+
+  it('honors modelOverride for planner calls and disables complexity hint', async () => {
+    const { router: r, chatMock } = createMockRouter([
+      'Create a step-by-step plan with one subtask per file for test goal\n1. src/a.ts - write the file',
+    ]);
+    router = r;
+    const orch = new Orchestrator(router, messages, toolContext, undefined, 'my-pinned-model');
+    await (orch as any).createPlan('test goal', 'project context');
+    expect(chatMock.mock.calls.length).toBeGreaterThan(0);
+    expect(chatMock.mock.calls[0][0]).toMatchObject({ model: 'my-pinned-model' });
+    expect(chatMock.mock.calls[0][0].complexity).toBeUndefined();
+  });
+
   it('synthesize returns formatted output', async () => {
     const orch = new Orchestrator(router, messages, toolContext);
     const synth = (orch as any).synthesize('test goal');

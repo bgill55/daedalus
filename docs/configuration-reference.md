@@ -4,6 +4,23 @@ This guide describes all configuration options available in Daedalus. You can vi
 
 ---
 
+## General Settings
+
+*   **`version`**: (Description needed)
+*   **`router`**: (Description needed)
+*   **`modelOverride`**: Pin a specific model for the current session, bypassing routing, complexity classification, and auto-escalation. Set via /config, /model, or a project .daedalusrc override.
+*   **`agents`**: (Description needed)
+*   **`tools`**: (Description needed)
+*   **`imageGen`**: (Description needed)
+*   **`context`**: (Description needed)
+*   **`indexing`**: (Description needed)
+*   **`updateCheck`**: (Description needed)
+*   **`session`**: (Description needed)
+*   **`ui`**: (Description needed)
+*   **`safety`**: (Description needed)
+
+---
+
 ## Router Settings
 
 *   **`router.strategy`**: (Description needed)

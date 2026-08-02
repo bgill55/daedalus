@@ -48,6 +48,7 @@ export const AgentRoleSchema = z.object({
 export const ConfigSchema = z.object({
   version: z.number().int().positive().default(1),
   router: RouterConfigSchema,
+  modelOverride: z.string().optional(),
   agents: z.object({
     default: z.string().default('coder'),
     available: z.array(z.string()).default(['orchestrator', 'planner', 'coder', 'reviewer', 'debugger', 'researcher']),

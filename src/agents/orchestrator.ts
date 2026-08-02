@@ -41,16 +41,18 @@ export class Orchestrator {
   private messages: ChatMessage[];
   private toolContext: ToolContext;
   private sessionManager?: SessionManager;
+  private modelOverride?: string;
   public results: AgentResult[] = [];
   private readonly MAX_INITIAL_TASKS = 12;
   private readonly MAX_TOTAL_TASKS = 20;
   private readonly REPLAN_INTERVAL = 2;
 
-  constructor(router: LocalRouter, messages: ChatMessage[], toolContext: ToolContext, sessionManager?: SessionManager) {
+  constructor(router: LocalRouter, messages: ChatMessage[], toolContext: ToolContext, sessionManager?: SessionManager, modelOverride?: string) {
     this.router = router;
     this.messages = messages;
     this.toolContext = toolContext;
     this.sessionManager = sessionManager;
+    this.modelOverride = modelOverride;
   }
 
   private async retryApiCall<T>(fn: () => Promise<T>, label: string, maxRetries = 2): Promise<T> {
@@ -291,7 +293,8 @@ export class Orchestrator {
       try {
         completion = await this.retryApiCall(
           () => this.router.chat.completions.create({
-            model: 'intelligence',
+            model: this.modelOverride || 'intelligence',
+            complexity: this.modelOverride ? undefined : 'complex',
             messages,
             temperature: plannerRole.temperature ?? 0.2,
             tools,
@@ -326,7 +329,8 @@ export class Orchestrator {
         try {
           followUp = await this.retryApiCall(
             () => this.router.chat.completions.create({
-              model: 'intelligence',
+              model: this.modelOverride || 'intelligence',
+              complexity: this.modelOverride ? undefined : 'complex',
               messages,
               temperature: plannerRole.temperature ?? 0.2,
               tools,
@@ -1502,7 +1506,8 @@ export class Orchestrator {
       try {
         completion = await this.retryApiCall(
           () => this.router.chat.completions.create({
-            model: 'auto',
+            model: this.modelOverride || 'auto',
+            complexity: this.modelOverride ? undefined : 'complex',
             messages,
             temperature: role.temperature ?? 0.1,
             tools: currentTools,
