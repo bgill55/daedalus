@@ -478,12 +478,15 @@ describe('Tool failure handling', () => {
       askLine: vi.fn().mockResolvedValue('y'),
     });
 
+    process.env.DAEDALUS_DEBUG = 'true';
+
     await callModelWithTools('Refactor the module and implement the new API');
 
     const firstCall = chatStreamMock.mock.calls[0]?.[0];
     expect(firstCall.complexity).toBe('complex');
     expect(consoleOutput()).toContain('[ROUTE] Task classified as complex');
     delete process.env.DAEDALUS_AUTO_APPROVE;
+    delete process.env.DAEDALUS_DEBUG;
   });
 
   it('stops after 5 consecutive tool failures', async () => {

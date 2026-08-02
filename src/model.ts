@@ -148,7 +148,7 @@ export function createModelFunctions(deps: ModelDeps) {
 
     const complexityEnabled = config?.router?.complexityRouting !== false && !config.modelOverride;
     const taskComplexity = complexityEnabled ? classifyTaskStart(userContent || '') : undefined;
-    if (taskComplexity) {
+    if (taskComplexity && process.env.DAEDALUS_DEBUG === 'true') {
       console.log(pc.dim(`  [ROUTE] Task classified as ${taskComplexity}`));
     }
 
@@ -353,9 +353,20 @@ export function createModelFunctions(deps: ModelDeps) {
       lastContent = fullContent;
 
       if (toolCallArray.length === 0) {
+        if (countToolMentions(fullContent) >= 3) {
+          console.log(pc.yellow(`\n  [WARN] Model planned tools but omitted JSON syntax. Retrying.`));
+          totalCompletionTokens += turnUsageOut ?? 0;
+          messages.push({ role: 'assistant', content: fullContent });
+          messages.push({
+            role: 'user',
+            content: `[SYSTEM WARNING] You narrated plans to call tools but did not output any actual tool calls. Please output the proper JSON array of tool calls now.`,
+          } as ChatMessage);
+          continue;
+        }
+
         closeAssistantBlock(fullContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
-        if (currentComplexity) {
-          console.log(pc.dim(`  [ROUTE] Task summary: start ${taskComplexity ?? 'n/a'} → end ${currentComplexity} | ${totalCompletionTokens} output tokens | ${escalationCount} escalation(s)`));
+        if (currentComplexity && process.env.DAEDALUS_DEBUG === 'true') {
+          console.log(pc.dim(`  [ROUTE] Task summary: start ${taskComplexity ?? 'n/a'} → end ${currentComplexity} | ${totalCompletionTokens + (turnUsageOut ?? 0)} output tokens | ${escalationCount} escalation(s)`));
         }
         messages.push({ role: 'assistant', content: fullContent });
         return { content: fullContent, toolCalls: [] };
@@ -613,7 +624,9 @@ export function createModelFunctions(deps: ModelDeps) {
           },
         );
         if (nextState.current !== currentComplexity) {
-          console.log(pc.dim(`  [ROUTE] Reclassified ${currentComplexity} → ${nextState.current} (${nextState.totalCompletionTokens} output tokens, ${totalToolCalls + toolCallArray.length} tool calls)`));
+          if (process.env.DAEDALUS_DEBUG === 'true') {
+            console.log(pc.dim(`  [ROUTE] Reclassified ${currentComplexity} → ${nextState.current} (${nextState.totalCompletionTokens} output tokens, ${totalToolCalls + toolCallArray.length} tool calls)`));
+          }
           currentComplexity = nextState.current;
         }
         totalCompletionTokens = nextState.totalCompletionTokens;
