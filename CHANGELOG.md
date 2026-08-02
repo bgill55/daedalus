@@ -1,3 +1,10 @@
+## [3.3.5](https://github.com/bgill55/daedalus/compare/v3.3.4...v3.3.5) (2026-08-02)
+
+
+### Bug Fixes
+
+* **model:** surface tool errors to the agent to end blind retry spirals ([2a486ec](https://github.com/bgill55/daedalus/commit/2a486ec11622436001579e32ae65a6e19184c2a6))
+
 ## [3.3.4](https://github.com/bgill55/daedalus/compare/v3.3.3...v3.3.4) (2026-08-02)
 
 
