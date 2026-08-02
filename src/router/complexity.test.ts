@@ -23,6 +23,12 @@ describe('classifyTaskStart', () => {
     expect(classifyTaskStart('Architect a multi-agent orchestration layer')).toBe('complex');
   });
 
+  it('classifies audit, sprint, and todo-list requests as complex', () => {
+    expect(classifyTaskStart('just do an audit of the project and give me a starting point')).toBe('complex');
+    expect(classifyTaskStart('go ahead and make a todo list and lets knock those out in sprints')).toBe('complex');
+    expect(classifyTaskStart('prioritize the outstanding issues for this sprint')).toBe('complex');
+  });
+
   it('returns standard for medium-sized ambiguous prompts', () => {
     expect(classifyTaskStart('can you look at this project and tell me what it needs')).toBe('standard');
   });
@@ -92,7 +98,7 @@ describe('stepRouting', () => {
   });
 
   it('does not re-upgrade to complex immediately after a downgrade', () => {
-    let st = stepRouting({ current: 'complex', totalCompletionTokens: 15857, trivialTurnStreak: 2 }, { completionTokensThisTurn: 100, writesThisTurn: 0, toolCallsThisTurn: 1, failedToolsThisTurn: 0 });
+    const st = stepRouting({ current: 'complex', totalCompletionTokens: 15857, trivialTurnStreak: 2 }, { completionTokensThisTurn: 100, writesThisTurn: 0, toolCallsThisTurn: 1, failedToolsThisTurn: 0 });
     expect(st.current).toBe('standard');
     expect(st.totalCompletionTokens).toBe(0);
     const next = stepRouting(st, { completionTokensThisTurn: 100, writesThisTurn: 1, toolCallsThisTurn: 1, failedToolsThisTurn: 0 });
@@ -104,5 +110,38 @@ describe('stepRouting', () => {
     expect(st.current).toBe('standard');
     st = stepRouting(st, { completionTokensThisTurn: 8500, writesThisTurn: 1, toolCallsThisTurn: 5, failedToolsThisTurn: 0 });
     expect(st.current).toBe('complex');
+  });
+
+  it('escalates to complex when a weak model narrates a plan but makes no real tool calls', () => {
+    const st = stepRouting(fresh('standard'), {
+      completionTokensThisTurn: 200,
+      writesThisTurn: 0,
+      toolCallsThisTurn: 0,
+      failedToolsThisTurn: 0,
+      toolMentionsThisTurn: 4,
+    });
+    expect(st.current).toBe('complex');
+  });
+
+  it('does not escalate on tool mentions when real tool calls were made', () => {
+    const st = stepRouting(fresh('standard'), {
+      completionTokensThisTurn: 200,
+      writesThisTurn: 0,
+      toolCallsThisTurn: 3,
+      failedToolsThisTurn: 0,
+      toolMentionsThisTurn: 5,
+    });
+    expect(st.current).toBe('standard');
+  });
+
+  it('does not escalate on few tool mentions', () => {
+    const st = stepRouting(fresh('standard'), {
+      completionTokensThisTurn: 200,
+      writesThisTurn: 0,
+      toolCallsThisTurn: 0,
+      failedToolsThisTurn: 0,
+      toolMentionsThisTurn: 2,
+    });
+    expect(st.current).toBe('standard');
   });
 });

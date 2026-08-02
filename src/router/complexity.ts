@@ -30,6 +30,13 @@ const COMPLEX_KEYWORDS = [
   'comprehensive',
   'multistep',
   'debug',
+  'audit',
+  'assess',
+  'assessment',
+  'roadmap',
+  'sprint',
+  'prioritize',
+  'todo list',
 ];
 
 const SIMPLE_KEYWORDS = [
@@ -76,6 +83,7 @@ export interface TurnSignals {
   writesThisTurn: number;
   toolCallsThisTurn: number;
   failedToolsThisTurn: number;
+  toolMentionsThisTurn?: number;
 }
 
 export interface RoutingState {
@@ -99,7 +107,8 @@ export function stepRouting(state: RoutingState, s: TurnSignals): RoutingState {
   const totalCompletionTokens = state.totalCompletionTokens + s.completionTokensThisTurn;
 
   let current = state.current;
-  if (current !== 'complex' && (totalCompletionTokens >= COMPLEX_OUTPUT_TOKENS || s.failedToolsThisTurn >= 3 || s.toolCallsThisTurn >= 20)) {
+  const plannedToolCalls = (s.toolMentionsThisTurn ?? 0) >= 3 && s.toolCallsThisTurn === 0;
+  if (current !== 'complex' && (totalCompletionTokens >= COMPLEX_OUTPUT_TOKENS || s.failedToolsThisTurn >= 3 || s.toolCallsThisTurn >= 20 || plannedToolCalls)) {
     current = 'complex';
   } else if (current === 'simple' && totalCompletionTokens >= STANDARD_OUTPUT_TOKENS) {
     current = 'standard';

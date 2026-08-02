@@ -15,6 +15,16 @@ const MAX_TOOL_TURNS = 40;
 
 let _turnStartTime = 0;
 
+function countToolMentions(text: string): number {
+  const lower = text.toLowerCase();
+  const mentioned = new Set<string>();
+  for (const def of [...BUILTIN_TOOLS, ...POWER_TOOLS]) {
+    const name = def.function.name;
+    if (lower.includes(name) || lower.includes(name.replace(/_/g, ''))) mentioned.add(name);
+  }
+  return mentioned.size;
+}
+
 export function getTurnStartTime(): number {
   return _turnStartTime;
 }
@@ -329,6 +339,10 @@ export function createModelFunctions(deps: ModelDeps) {
 
       clearAbortController();
 
+      if (turnUsageOut === undefined || turnUsageOut < Math.ceil(fullContent.length / 4)) {
+        turnUsageOut = Math.ceil(fullContent.length / 4);
+      }
+
       let toolCallArray = Array.from(toolCallMap.values()).filter(tc => tc.function.name);
       if (toolCallArray.length === 0) {
         const parsedCalls = parseTextToolCalls(fullContent);
@@ -590,7 +604,13 @@ export function createModelFunctions(deps: ModelDeps) {
         const failedThisTurn = results.filter(r => !r.success).length;
         const nextState = stepRouting(
           { current: currentComplexity, totalCompletionTokens, trivialTurnStreak },
-          { completionTokensThisTurn: turnUsageOut ?? 0, writesThisTurn, toolCallsThisTurn: toolCallArray.length, failedToolsThisTurn: failedThisTurn },
+          {
+            completionTokensThisTurn: turnUsageOut ?? 0,
+            writesThisTurn,
+            toolCallsThisTurn: toolCallArray.length,
+            failedToolsThisTurn: failedThisTurn,
+            toolMentionsThisTurn: countToolMentions(fullContent),
+          },
         );
         if (nextState.current !== currentComplexity) {
           console.log(pc.dim(`  [ROUTE] Reclassified ${currentComplexity} → ${nextState.current} (${nextState.totalCompletionTokens} output tokens, ${totalToolCalls + toolCallArray.length} tool calls)`));
