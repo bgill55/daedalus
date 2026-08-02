@@ -61,6 +61,12 @@ function estimateTokens(text: string): number {
   return Math.ceil(text.length / 4);
 }
 
+function countSentenceFragments(text: string): number {
+  const trimmed = text.trim();
+  if (!trimmed) return 0;
+  return trimmed.split(/[.!?;]+/).filter(s => s.trim().length > 0).length;
+}
+
 export function classifyTaskStart(taskText: string, opts?: Partial<ComplexityOptions>): TaskComplexity {
   const options = { ...DEFAULT_COMPLEXITY_OPTIONS, ...opts };
   if (options.forceComplex) return 'complex';
@@ -74,6 +80,7 @@ export function classifyTaskStart(taskText: string, opts?: Partial<ComplexityOpt
   if (tokenEstimate >= options.largeTaskTokens) return 'complex';
   if (fileCount >= 3) return 'complex';
   if (complexScore >= 1) return 'complex';
+  if (countSentenceFragments(taskText) >= 2) return 'complex';
   if (simpleScore > 0 && tokenEstimate <= options.smallTaskTokens) return 'simple';
   return 'standard';
 }

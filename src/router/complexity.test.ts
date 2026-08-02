@@ -29,6 +29,16 @@ describe('classifyTaskStart', () => {
     expect(classifyTaskStart('prioritize the outstanding issues for this sprint')).toBe('complex');
   });
 
+  it('classifies multi-sentence natural phrasing as complex without any keywords', () => {
+    expect(classifyTaskStart('Look at the project. Tell me what is wrong. Fix the worst issues.')).toBe('complex');
+    expect(classifyTaskStart('this is a mess. can you clean it up for me.')).toBe('complex');
+  });
+
+  it('keeps single-sentence natural phrasing on the standard tier', () => {
+    expect(classifyTaskStart('make this better')).toBe('standard');
+    expect(classifyTaskStart('can you look at this project and tell me what it needs')).toBe('standard');
+  });
+
   it('returns standard for medium-sized ambiguous prompts', () => {
     expect(classifyTaskStart('can you look at this project and tell me what it needs')).toBe('standard');
   });
