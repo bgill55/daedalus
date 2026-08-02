@@ -1,3 +1,10 @@
+## [3.3.3](https://github.com/bgill55/daedalus/compare/v3.3.2...v3.3.3) (2026-08-02)
+
+
+### Bug Fixes
+
+* **memory:** keep tool messages valid on session reload ([4f16d8a](https://github.com/bgill55/daedalus/commit/4f16d8a9e2cc52668918c45945abf3196e8c3fed))
+
 ## [3.3.2](https://github.com/bgill55/daedalus/compare/v3.3.1...v3.3.2) (2026-08-01)
 
 
