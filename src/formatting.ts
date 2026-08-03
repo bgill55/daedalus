@@ -472,30 +472,7 @@ export function parseTextToolCalls(text: string): ToolCall[] {
     }
   }
 
-  if (toolCalls.length === 0) {
-    const cleanText = text.replace(/`/g, '');
-    const hasCodeBlock = /```(?:tsx?|jsx?|javascript|typescript)[\s\S]*?```/i.test(text) || /```[\s\S]*?\b(import|export|const|function|return)\b[\s\S]*?```/i.test(text);
-    const fileMention = cleanText.match(/(?:in|at|file)[\s:]*([A-Za-z0-9_\-./\\:]+\.[A-Za-z0-9]+)/i) ||
-                        cleanText.match(/([A-Za-z0-9_\-./\\:]+\.[a-zA-Z0-9]+)/);
-    if (hasCodeBlock && fileMention) {
-      const path = fileMention[1].replace(/\\/g,'/');
-      const codeMatch = text.match(/```[\s\S]*?```/);
-      if (codeMatch) {
-        const codeContent = codeMatch[0].replace(/^```\w*\n?/,'').replace(/\n?```$/,'');
-        toolCalls.push({
-          id: `call_parsed_code_${Date.now()}`,
-          type: 'function',
-          function: { name: 'write_file', arguments: JSON.stringify({ path, content: codeContent }) },
-        });
-      } else {
-        toolCalls.push({
-          id: `call_parsed_code_${Date.now()}`,
-          type: 'function',
-          function: { name: 'write_file', arguments: JSON.stringify({ path }) },
-        });
-      }
-    }
-  }
+
 
   if (toolCalls.length === 0) {
     const bracketRe = /\[([^\]]{2,})\]/g;

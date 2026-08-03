@@ -94,6 +94,27 @@ Here is my plan: I will start by looking at the project.
     expect(calls[0].function.name).toBe('read_file');
     expect(JSON.parse(calls[0].function.arguments)).toEqual({ path: 'src/main.ts' });
   });
+
+  it('should not auto-write a pasted code block just because a path appears in the text', () => {
+    const text = `
+Here is a snippet for src/main.ts:
+\`\`\`ts
+const x: number = 1;
+\`\`\`
+`;
+    const calls = parseTextToolCalls(text);
+    expect(calls).toHaveLength(0);
+  });
+
+  it('should parse an explicit write_file request with a pasted code block', () => {
+    const text = 'Please use the `write_file` tool to create src/main.ts with:\n```ts\nconst x: number = 1;\n```';
+    const calls = parseTextToolCalls(text);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].function.name).toBe('write_file');
+    const args = JSON.parse(calls[0].function.arguments);
+    expect(args.path).toBe('src/main.ts');
+    expect(args.content).toContain('const x: number = 1;');
+  });
 });
 
 describe('formatMarkdownLine', () => {
