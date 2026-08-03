@@ -807,6 +807,48 @@ Once you have finished making changes, I will automatically re-run the command t
     }
   },
   {
+    name: '/routing',
+    description: 'Explain the last routing decision and show skipped models',
+    usage: '/routing',
+    helpText: 'Shows why the most recent model was selected and which models were skipped this session (session-blacklisted, slow-guard, excluded, or catalog-missing), so routing stays legible.',
+    execute: async (_args, ctx) => {
+      const decision = ctx.router.getLastRouteDecision();
+      console.log(pc.bold('\n--- Routing Decision ---'));
+      if (!decision) {
+        console.log(pc.yellow('  No routing decision recorded yet this session.'));
+      } else {
+        console.log(`  ${pc.cyan(decision.model.name)} (${decision.model.endpoint}) - ${decision.model.model}`);
+        console.log(`  ${pc.dim('reason:')} ${decision.reason}`);
+        if (decision.skipped.length > 0) {
+          console.log(pc.bold('\n  Skipped this turn:'));
+          for (const s of decision.skipped) {
+            console.log(`    ${pc.yellow('–')} ${pc.cyan(s.model)} (${s.endpoint}) — ${pc.dim(s.reason)}`);
+          }
+        } else {
+          console.log(pc.dim('  No models were skipped this turn.'));
+        }
+      }
+      const blacklist = ctx.router.getSessionBlacklist();
+      if (blacklist.length > 0) {
+        console.log(pc.bold('\n--- Session Blacklist ---'));
+        for (const entry of blacklist) {
+          console.log(`  ${pc.red('✕')} ${pc.cyan(entry.model)} (${entry.endpoint})`);
+          console.log(`     ${pc.dim(entry.reason)}`);
+        }
+      }
+      const ema = ctx.router.getLatencyEma();
+      if (ema.length > 0) {
+        console.log(pc.bold('\n--- Latency (slow-guard) ---'));
+        for (const e of ema) {
+          const pct = e.thresholdMs > 0 ? Math.min(100, Math.round((e.emaMs / e.thresholdMs) * 100)) : 0;
+          const bar = pc[e.emaMs >= e.thresholdMs ? 'red' : 'green'](`●`);
+          console.log(`  ${bar} ${pc.cyan(e.model)} — avg ${e.emaMs}ms / threshold ${e.thresholdMs}ms (${pct}%)`);
+        }
+      }
+      console.log(pc.bold('----------------------\n'));
+    }
+  },
+  {
     name: '/providers',
     description: 'List supported model providers and BYOK setup hints',
     usage: '/providers',

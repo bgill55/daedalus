@@ -38,6 +38,7 @@ export class LocalRouter {
   public lastRoutedModel?: string;
   public lastRoutedModelName?: string;
   public lastRoutedTier?: string;
+  public lastRouteDecision?: { model: ModelEntry; reason: string; skipped: Array<{ endpoint: string; model: string; reason: string }> };
   private routeStats = { fast: 0, standard: 0, complex: 0, override: 0 };
   private sessionBlacklist = new Map<string, { reason: string; at: number }>();
   private latencyEma = new Map<string, number>();
@@ -55,8 +56,30 @@ export class LocalRouter {
     });
   }
 
+  getLastRouteDecision(): typeof this.lastRouteDecision {
+    return this.lastRouteDecision;
+  }
+
+  getLatencyEma(): Array<{ endpoint: string; model: string; emaMs: number; thresholdMs: number }> {
+    const threshold = this.config.slowModelThresholdMs ?? 0;
+    return Array.from(this.latencyEma.entries()).map(([key, ema]) => {
+      const [endpoint, model] = key.split('|');
+      return { endpoint, model, emaMs: Math.round(ema), thresholdMs: threshold };
+    });
+  }
+
   clearSessionBlacklist(): void {
     this.sessionBlacklist.clear();
+  }
+
+  addToSessionBlacklist(endpoint: string, model: string, reason: string): void {
+    const entry = this.config.chain.find(m => m.endpoint === endpoint && m.model === model);
+    if (entry) {
+      this.blacklistModel(entry, reason);
+    } else {
+      this.sessionBlacklist.set(`${endpoint}|${model}`, { reason, at: Date.now() });
+      markUnhealthy({ endpoint, model } as ModelEntry, reason);
+    }
   }
 
   private blacklistModel(m: ModelEntry, reason: string): void {
@@ -194,23 +217,54 @@ export class LocalRouter {
   }
 
   async route(request: ChatRequest, excludedModels?: Set<string>): Promise<RouteResult> {
-    let healthyModels = this.getHealthyModels().filter(m => !this.isBlacklisted(m));
+    const skipped: Array<{ endpoint: string; model: string; reason: string }> = [];
+    const noteSkipped = (m: ModelEntry, reason: string) => {
+      if (!skipped.some(s => s.endpoint === m.endpoint && s.model === m.model && s.reason === reason)) {
+        skipped.push({ endpoint: m.endpoint, model: m.model, reason });
+      }
+    };
+    for (const m of this.getEnabledModels()) {
+      if (this.isBlacklisted(m)) noteSkipped(m, 'session-blacklisted');
+    }
+
+    let healthyModels = this.getHealthyModels().filter(m => {
+      if (this.isBlacklisted(m)) {
+        noteSkipped(m, 'session-blacklisted');
+        return false;
+      }
+      return true;
+    });
 
     if (excludedModels && excludedModels.size > 0) {
-      healthyModels = healthyModels.filter(m => !excludedModels.has(m.name) && !excludedModels.has(m.model));
+      healthyModels = healthyModels.filter(m => {
+        if (excludedModels.has(m.name) || excludedModels.has(m.model)) {
+          noteSkipped(m, 'excluded-this-turn');
+          return false;
+        }
+        return true;
+      });
     }
     
     if (healthyModels.length === 0) {
-      healthyModels = this.config.chain.filter(m =>
-        m.enabled && !this.isBlacklisted(m) &&
-        (!excludedModels || (!excludedModels.has(m.name) && !excludedModels.has(m.model)))
-      );
+      healthyModels = this.config.chain.filter(m => {
+        if (m.enabled && !this.isBlacklisted(m) &&
+          (!excludedModels || (!excludedModels.has(m.name) && !excludedModels.has(m.model)))) {
+          return true;
+        }
+        if (m.enabled && this.isBlacklisted(m)) {
+          noteSkipped(m, 'session-blacklisted');
+        }
+        return false;
+      });
     }
 
     if (healthyModels.length === 0) {
-      healthyModels = this.config.chain.filter(m =>
-        m.enabled && (!excludedModels || (!excludedModels.has(m.name) && !excludedModels.has(m.model)))
-      );
+      healthyModels = this.config.chain.filter(m => {
+        if (m.enabled && (!excludedModels || (!excludedModels.has(m.name) && !excludedModels.has(m.model)))) {
+          return true;
+        }
+        return false;
+      });
     }
 
     if (healthyModels.length === 0) {
@@ -250,7 +304,12 @@ export class LocalRouter {
           const health = getCachedHealth(selectedModel) ?? { healthy: true, lastCheck: Date.now(), consecutiveFailures: 0 };
           this.routeStats.override++;
           this.lastRoutedTier = selectedModel.tier;
-          return { model: selectedModel, health };
+          this.lastRouteDecision = {
+            model: selectedModel,
+            reason: `model override '${request.model}'`,
+            skipped: skipped.map(s => ({ ...s })),
+          };
+          return { model: selectedModel, health, reason: `model override '${request.model}'`, skipped: skipped.map(s => ({ ...s })) };
         }
       }
     }
@@ -381,7 +440,9 @@ export class LocalRouter {
     this.lastRoutedTier = targetTier === 'fast' ? 'fast' : targetTier === 'standard' ? 'standard' : 'intelligence';
 
     const health = getCachedHealth(selectedModel) ?? { healthy: true, lastCheck: Date.now(), consecutiveFailures: 0 };
-    return { model: selectedModel, health };
+    const reason = `tier '${targetTier}' via ${this.config.strategy} strategy`;
+    this.lastRouteDecision = { model: selectedModel, reason, skipped: skipped.map(s => ({ ...s })) };
+    return { model: selectedModel, health, reason, skipped: skipped.map(s => ({ ...s })) };
   }
 
   private estimateTokens(request: ChatRequest): number {
@@ -419,6 +480,13 @@ export class LocalRouter {
       try {
         const { model } = await this.route(request, excludedModels);
         selectedModel = model;
+        if (process.env.DAEDALUS_DEBUG) {
+          const skipped = this.lastRouteDecision?.skipped ?? [];
+          const skipInfo = skipped.length > 0
+            ? ` (skipped ${skipped.length}: ${skipped.map(s => `${s.model}[${s.reason}]`).join(', ')})`
+            : '';
+          console.error(`[ROUTE] ${model.name} — ${this.lastRouteDecision?.reason ?? 'n/a'}${skipInfo}`);
+        }
         const client = this.getOrCreateClient(model);
         const key = `${model.endpoint}|${model.model}`;
 
@@ -485,6 +553,13 @@ export class LocalRouter {
       try {
         const { model } = await this.route(request, excludedModels);
         selectedModel = model;
+        if (process.env.DAEDALUS_DEBUG) {
+          const skipped = this.lastRouteDecision?.skipped ?? [];
+          const skipInfo = skipped.length > 0
+            ? ` (skipped ${skipped.length}: ${skipped.map(s => `${s.model}[${s.reason}]`).join(', ')})`
+            : '';
+          console.error(`[ROUTE] ${model.name} — ${this.lastRouteDecision?.reason ?? 'n/a'}${skipInfo}`);
+        }
         const client = this.getOrCreateClient(model);
         const key = `${model.endpoint}|${model.model}`;
 

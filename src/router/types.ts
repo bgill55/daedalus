@@ -29,9 +29,17 @@ export interface TokenBucket {
   refillRate: number; // tokens per second
 }
 
+export interface RouteSkip {
+  endpoint: string;
+  model: string;
+  reason: string;
+}
+
 export interface RouteResult {
   model: ModelEntry;
   health: ModelHealth;
+  reason: string;
+  skipped: RouteSkip[];
 }
 
 export type TaskComplexity = 'simple' | 'standard' | 'complex';

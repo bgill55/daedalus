@@ -599,4 +599,36 @@ describe('LocalRouter', () => {
     });
   });
 
+  describe('Routing decision transparency', () => {
+    it('records the selection reason and skipped models on route()', async () => {
+      const router = new LocalRouter(makeConfig({
+        chain: [
+          { name: 'a', endpoint: 'https://api.a.ai/v1', model: 'm1', priority: 1, enabled: true, tier: 'intelligence' },
+          { name: 'b', endpoint: 'https://api.b.ai/v1', model: 'm2', priority: 2, enabled: true, tier: 'fast' },
+          { name: 'c', endpoint: 'https://api.c.ai/v1', model: 'm3', priority: 3, enabled: true, tier: 'fast' },
+        ],
+      }));
+      const result = await router.route({ messages: [{ role: 'user', content: 'hi' }], complexity: 'simple' });
+      const decision = router.getLastRouteDecision();
+      expect(decision).toBeDefined();
+      expect(decision!.reason).toContain("tier 'fast'");
+      expect(result.reason).toBe(decision!.reason);
+      expect(Array.isArray(result.skipped)).toBe(true);
+    });
+
+    it('marks blacklisted models as skipped rather than selecting them', async () => {
+      const router = new LocalRouter(makeConfig({
+        chain: [
+          { name: 'a', endpoint: 'https://api.a.ai/v1', model: 'm1', priority: 1, enabled: true, tier: 'fast' },
+          { name: 'b', endpoint: 'https://api.b.ai/v1', model: 'm2', priority: 2, enabled: true, tier: 'fast' },
+        ],
+      }));
+      router.addToSessionBlacklist('https://api.b.ai/v1', 'm2', '400 not-in-catalog');
+      const result = await router.route({ messages: [{ role: 'user', content: 'hi' }], complexity: 'simple' });
+      expect(result.model.model).toBe('m1');
+      const skippedB = result.skipped.find(s => s.model === 'm2');
+      expect(skippedB?.reason).toBe('session-blacklisted');
+    });
+  });
+
 });
