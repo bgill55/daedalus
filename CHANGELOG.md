@@ -1,3 +1,10 @@
+# [3.10.0](https://github.com/bgill55/daedalus/compare/v3.9.1...v3.10.0) (2026-08-03)
+
+
+### Features
+
+* **ci:** deterministic static PR checks + full-coverage AI review ([#30](https://github.com/bgill55/daedalus/issues/30)) ([49523c3](https://github.com/bgill55/daedalus/commit/49523c31a990ad57e228b5520487e5458f77fb42)), closes [22/#25](https://github.com/bgill55/daedalus/issues/25)
+
 ## [3.9.1](https://github.com/bgill55/daedalus/compare/v3.9.0...v3.9.1) (2026-08-03)
 
 
