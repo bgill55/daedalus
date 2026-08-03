@@ -104,11 +104,19 @@ $env:DAEDALUS_DEBUG = 'true'; daedalus       # PowerShell
 
 With debugging on, you also get these lines:
 
-```
+```text
   [ROUTE] Task classified as complex
   [ROUTE] Reclassified complex → standard (3600 output tokens, 9 tool calls)
   [ROUTE] Task summary: start complex → end complex | 3600 output tokens | 0 escalation(s)
 ```
+
+### Routing Decision History (`/routing`)
+
+The `/routing` command explains the most recent routing decision — which model was selected, why, and which models were skipped (with reasons like `session-blacklisted`, `slow-guard`, `excluded`, or `catalog-missing`). It also shows the last few routing decisions so you can see how selection evolved across turns without enabling `DAEDALUS_DEBUG`.
+
+Every routing decision is also appended to a structured JSONL log at `~/.daedalus/routing.log` (rotated at 1MB). This gives you an audit trail of why a model was (or was not) selected across the whole session and across restarts. `/routing` prints the resolved log path, which respects `DAEDALUS_ROUTING_LOG_DIR` if you override it.
+
+The model blacklist shown by `/blacklist` is TTL-bounded (default 10 minutes via `router.blacklistTtlMs`) and persisted to `~/.daedalus/model-blacklist.db` across restarts (unless `router.blacklistPersist` is false), so a single transient failure won't permanently ban a model.
 
 ---
 
