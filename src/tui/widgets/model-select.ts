@@ -5,7 +5,7 @@ import type { LocalRouter } from '../../router/index.js';
 import type { ModelEntry, ModelHealth } from '../../router/types.js';
 import { getCachedHealth } from '../../router/health.js';
 
-export interface ModelLabelState {
+interface ModelLabelState {
   blacklistReason?: string;
   emaMs?: number;
   emaThresholdMs?: number;
@@ -55,6 +55,7 @@ export function initModelSelect(parent: blessed.Widgets.BoxElement, config: Daed
     left: 0,
     width: '100%',
     height: 8,
+    tags: true,
     border: { type: 'line' },
     label: ' SELECTED MODEL ',
     keys: true,

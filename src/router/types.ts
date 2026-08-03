@@ -1,5 +1,7 @@
 // Daedalus Local Router Types
 
+import type { RouteSkip } from '../types.js';
+
 export interface ModelEntry {
   name: string;                 // Human-readable name (e.g., "lmstudio-qwen")
   endpoint: string;             // Base URL (e.g., "http://localhost:1234/v1")
@@ -27,12 +29,6 @@ export interface TokenBucket {
   lastRefill: number;
   capacity: number;
   refillRate: number; // tokens per second
-}
-
-export interface RouteSkip {
-  endpoint: string;
-  model: string;
-  reason: string;
 }
 
 export interface RouteResult {

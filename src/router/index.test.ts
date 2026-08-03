@@ -631,4 +631,41 @@ describe('LocalRouter', () => {
     });
   });
 
+  describe('Health sweep catalog conflation (Bug #3)', () => {
+    it('does not mark sibling models unhealthy when only one is catalog-missing', async () => {
+      const router = new LocalRouter(makeConfig({
+        strategy: 'priority',
+        chain: [
+          { name: 'good', endpoint: 'https://api.same.ai/v1', model: 'good-model', priority: 1, enabled: true },
+          { name: 'bad', endpoint: 'https://api.same.ai/v1', model: 'missing-model', priority: 2, enabled: true },
+        ],
+      }));
+      vi.spyOn(health, 'checkModelHealth').mockResolvedValue({ healthy: true, lastCheck: Date.now(), latencyMs: 10, consecutiveFailures: 0 });
+      vi.spyOn(health, 'getEndpointCatalog').mockResolvedValue(new Set(['good-model']));
+      await (router as any).runHealthChecks();
+      const good = health.getCachedHealth({ endpoint: 'https://api.same.ai/v1', model: 'good-model' } as any);
+      const bad = health.getCachedHealth({ endpoint: 'https://api.same.ai/v1', model: 'missing-model' } as any);
+      expect(good?.healthy).toBe(true);
+      expect(bad?.healthy).toBe(false);
+      expect(bad?.error).toContain('not in the catalog');
+    });
+
+    it('marks all sibling models unhealthy when the endpoint is actually down', async () => {
+      const router = new LocalRouter(makeConfig({
+        strategy: 'priority',
+        chain: [
+          { name: 'a', endpoint: 'https://api.down.ai/v1', model: 'a-model', priority: 1, enabled: true },
+          { name: 'b', endpoint: 'https://api.down.ai/v1', model: 'b-model', priority: 2, enabled: true },
+        ],
+      }));
+      vi.spyOn(health, 'checkModelHealth').mockResolvedValue({ healthy: false, lastCheck: Date.now(), error: 'connect ETIMEDOUT', consecutiveFailures: 1 });
+      vi.spyOn(health, 'getEndpointCatalog').mockResolvedValue(null);
+      await (router as any).runHealthChecks();
+      const a = health.getCachedHealth({ endpoint: 'https://api.down.ai/v1', model: 'a-model' } as any);
+      const b = health.getCachedHealth({ endpoint: 'https://api.down.ai/v1', model: 'b-model' } as any);
+      expect(a?.healthy).toBe(false);
+      expect(b?.healthy).toBe(false);
+    });
+  });
+
 });

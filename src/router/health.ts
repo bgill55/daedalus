@@ -16,9 +16,9 @@ function catalogKey(endpoint: string): string {
 }
 
 async function fetchEndpointCatalog(endpoint: string, apiKey: string | undefined): Promise<Set<string> | null> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000);
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (apiKey) {
       headers['Authorization'] = `Bearer ${apiKey}`;
@@ -27,7 +27,6 @@ async function fetchEndpointCatalog(endpoint: string, apiKey: string | undefined
       signal: controller.signal,
       headers,
     });
-    clearTimeout(timeoutId);
     if (!response.ok) return null;
     const data = await response.json() as { data?: Array<{ id?: string }> | null };
     const ids = new Set<string>();
@@ -38,6 +37,8 @@ async function fetchEndpointCatalog(endpoint: string, apiKey: string | undefined
     return ids;
   } catch {
     return null;
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 

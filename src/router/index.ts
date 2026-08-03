@@ -167,16 +167,17 @@ export class LocalRouter {
       Array.from(uniqueEndpoints.values()).map(async (m) => {
         const health = await checkModelHealth(m, 5000);
         const catalog = await getEndpointCatalog(m.endpoint, m.apiKey);
+        const endpointDown = !health.healthy && !/not in the catalog/i.test(health.error ?? '');
         for (const target of enabledModels.filter(e => e.endpoint === m.endpoint)) {
           if (this.isBlacklisted(target)) continue;
-          if (health.healthy) {
-            if (target.model !== 'auto' && catalog && !catalog.has(target.model)) {
-              markUnhealthy(target, `Model '${target.model}' is not in the catalog served by this endpoint`);
-            } else {
-              markHealthy(target, health.latencyMs ?? 0);
-            }
-          } else {
+          if (endpointDown) {
             markUnhealthy(target, health.error ?? 'unhealthy');
+            continue;
+          }
+          if (target.model !== 'auto' && catalog && !catalog.has(target.model)) {
+            markUnhealthy(target, `Model '${target.model}' is not in the catalog served by this endpoint`);
+          } else {
+            markHealthy(target, health.latencyMs ?? 0);
           }
         }
       })

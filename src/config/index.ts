@@ -7,14 +7,23 @@ import { createLogger } from '../tools/logger.js';
 
 const logger = createLogger();
 
-export const PROVIDER_REGISTRY: Array<{ id: string; label: string; baseUrl: string; exampleModel: string; notes: string }> = [
+const ProviderRegistryEntrySchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  baseUrl: z.string(),
+  exampleModel: z.string(),
+  notes: z.string(),
+});
+export type ProviderRegistryEntry = z.infer<typeof ProviderRegistryEntrySchema>;
+
+export const PROVIDER_REGISTRY: ProviderRegistryEntry[] = z.array(ProviderRegistryEntrySchema).parse([
   { id: 'openai', label: 'OpenAI', baseUrl: 'https://api.openai.com/v1', exampleModel: 'gpt-4.1', notes: 'Official OpenAI. Use your own API key.' },
   { id: 'anthropic', label: 'Anthropic', baseUrl: 'https://api.anthropic.com/v1', exampleModel: 'claude-sonnet-4-5', notes: 'Anthropic API. Requires the claude model gateway for tool calls.' },
   { id: 'google', label: 'Google Gemini', baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai', exampleModel: 'gemini-2.5-flash', notes: 'Google AI Studio key via the OpenAI-compatible endpoint.' },
   { id: 'openrouter', label: 'OpenRouter', baseUrl: 'https://openrouter.ai/api/v1', exampleModel: 'deepseek/deepseek-v3', notes: 'One key, many models.' },
   { id: 'freellmapi', label: 'FreeLLM API', baseUrl: 'http://127.0.0.1:3001/v1', exampleModel: 'auto', notes: 'Local free-tier proxy. Catalog-aware routing filters invalid ids.' },
   { id: 'custom', label: 'Custom / self-hosted', baseUrl: 'http://localhost:PORT/v1', exampleModel: 'your-model-id', notes: 'LM Studio, Ollama, vLLM, etc.' },
-];
+]);
 
 export const ModelEntrySchema = z.object({
   name: z.string(),
