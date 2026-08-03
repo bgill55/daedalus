@@ -1,9 +1,30 @@
 # [3.6.0](https://github.com/bgill55/daedalus/compare/v3.5.0...v3.6.0) (2026-08-03)
 
+This release bundles 15 commits of reliability work from the `beta` branch: weak models finally execute tools instead of narrating them, escalation actually fires, memory accumulates in every session, and patches stop silently breaking unrelated files.
 
 ### Features
 
-* **agent:** ship beta router reliability, memory, and docs fixes ([76ff894](https://github.com/bgill55/daedalus/commit/76ff894fba46c42ff2d39df350022456df23536b)), closes [#21](https://github.com/bgill55/daedalus/issues/21)
+* **Executes narrated tool plans from weak models** — models that answer with a bracket-style plan like `[listfiles, gitstatus, readfile(path="package.json")]` now have that plan converted into real tool calls, with alias resolution (`listfiles` → `list_files`) against the tool registry.
+* **Behavior-based escalation** — when a model names three or more tools in a turn but calls none, the task escalates to a stronger model instead of waiting for a token counter that never grows. Audit/todo-list style requests ("give me a todo list", "what needs fixing", "audit the project") route to the complex tier up front.
+* **Language-independent complexity routing** — prompts with two or more sentences classify as complex regardless of phrasing or trigger words, so natural wording ("look at the project, tell me what's wrong, fix the worst issues") gets the intelligence tier instead of a weak model.
+* **On-the-fly re-routing mid-task** — `reclassifyTurn` re-evaluates complexity live using real signals (token growth, tool failures, trivial turns) with hysteresis, and the cumulative token ratchet resets on tier downgrade to stop complex/standard oscillation.
+* **Sigma-Mem in every session** — the Sigma-Mem memory engine now records verified knowledge from ordinary single-agent sessions (test commands, build rules, file conventions), not just `/autopilot` orchestration. Memories are scored, decayed, and injected into future prompts.
+* **Model-tier footer tags and ROUTE telemetry** — routing decisions are visible per task with the model tier on the turn footer and a `[ROUTE]` summary.
+
+### Fixes
+
+* **Cross-file patch breakage caught at the source** — `syntaxCheck` now diffs `tsc --noEmit` output against a cached per-tsconfig baseline, so a patch that type-breaks an unrelated file is flagged immediately instead of passing silently or causing false reverts on pre-existing errors.
+* **Never-escalates bug** — providers that don't stream `completion_tokens` (e.g. the FreeLLMAPI proxy) left the escalation ratchet and trivial-turn detection dead at `0 out`. A content-length fallback revives both, and the footer now shows real token counts.
+* **Explicit intent required before writing pasted code** — the heuristic that auto-wrote any pasted code block when a file path appeared anywhere in the text is removed; only an explicit `use the write_file tool to create <path>` intent writes. Audits and TODO requests present findings and ask before implementing.
+* **Single-model configs are safe** — tier filtering and escalation bypass cleanly when a chain has exactly one model.
+* **Configuration reference repaired** — container keys no longer pollute the General Settings section, `(Description needed)` placeholders stopped clobbering real descriptions, and missing entries (`version`, `ui.compactMode`, `ui.collapseCommentary`) were added.
+
+### Developer Notes
+
+* `RouterConfigSchema` gains `autoEscalate` and `complexityRouting` (both default `true`); see `docs/routing-and-tuning.md`.
+* Verbose ROUTE logging suppressed; tool-starvation triggers retry.
+
+Verified: 577 tests passing, lint clean, `tsc --noEmit` clean, CI green on Windows/macOS/Ubuntu.
 
 # [3.5.0](https://github.com/bgill55/daedalus/compare/v3.4.0...v3.5.0) (2026-08-02)
 
