@@ -155,7 +155,7 @@ export class LocalRouter {
     }
   }
 
-  private async runHealthChecks(): Promise<void> {
+  async runHealthChecks(): Promise<void> {
     const enabledModels = this.config.chain.filter(m => m.enabled);
     const uniqueEndpoints = new Map<string, ModelEntry>();
     for (const m of enabledModels) {
