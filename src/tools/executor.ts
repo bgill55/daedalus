@@ -4,22 +4,31 @@ import { ToolContext, ToolResult, ToolCall } from '../types.js';
 import { TOOL_IMPLEMENTATIONS, BUILTIN_TOOLS, POWER_TOOLS } from './definitions.js';
 import { executeMCPTool } from './mcp/tool-executor.js';
 
-const implementationCache = new Map<string, any>();
+type ModuleNamespace = Record<string, unknown>;
 
-async function loadImplementation(modulePath: string): Promise<any> {
-  if (implementationCache.has(modulePath)) {
-    return implementationCache.get(modulePath);
+const implementationCache = new Map<string, ModuleNamespace>();
+
+async function loadImplementation(modulePath: string): Promise<ModuleNamespace> {
+  const cached = implementationCache.get(modulePath);
+  if (cached) {
+    return cached;
   }
   try {
-    const mod = await import(modulePath);
+    const mod = (await import(modulePath)) as ModuleNamespace;
     implementationCache.set(modulePath, mod);
     return mod;
-  } catch (err: any) {
-    throw new Error(`Failed to load tool implementation ${modulePath}: ${err.message}`);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(`Failed to load tool implementation ${modulePath}: ${message}`);
   }
 }
 
-function validateArgs(toolName: string, args: Record<string, any>): string | null {
+interface JsonSchemaProperty {
+  type?: string;
+  description?: string;
+}
+
+function validateArgs(toolName: string, args: Record<string, unknown>): string | null {
   const allTools = [...(BUILTIN_TOOLS || []), ...(POWER_TOOLS || [])];
   const tool = allTools.find(t => t.function.name === toolName);
   if (!tool) return null;
@@ -31,7 +40,8 @@ function validateArgs(toolName: string, args: Record<string, any>): string | nul
   const missing: string[] = [];
 
   for (const req of required) {
-    if (args[req] === undefined || args[req] === null || args[req] === '') {
+    const value = args[req];
+    if (value === undefined || value === null || value === '') {
       missing.push(req);
     }
   }
@@ -42,8 +52,8 @@ function validateArgs(toolName: string, args: Record<string, any>): string | nul
     errorMsg += `Expected Schema:\n`;
     for (const [name, prop] of Object.entries(props)) {
       const isRequired = required.includes(name) ? '(required)' : '(optional)';
-      const p = prop as any;
-      errorMsg += `- ${name}: ${p.type} ${isRequired} - ${p.description || ''}\n`;
+      const p = prop as JsonSchemaProperty;
+      errorMsg += `- ${name}: ${p.type ?? 'unknown'} ${isRequired} - ${p.description || ''}\n`;
     }
     return errorMsg;
   }
@@ -77,13 +87,14 @@ export async function executeToolCall(
   let args: Record<string, unknown>;
   try {
     args = JSON.parse(toolCall.function.arguments);
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
     return {
       toolCallId: toolCall.id,
       name: toolName,
       success: false,
       content: '',
-      error: `Invalid tool arguments JSON: ${err.message}`,
+      error: `Invalid tool arguments JSON: ${message}`,
     };
   }
 
@@ -124,13 +135,14 @@ export async function executeToolCall(
       toolCallId: toolCall.id,
       name: toolName,
     };
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
     return {
       toolCallId: toolCall.id,
       name: toolName,
       success: false,
       content: '',
-      error: `Tool execution failed: ${err.message}`,
+      error: `Tool execution failed: ${message}`,
     };
   }
 }

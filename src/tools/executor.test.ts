@@ -77,6 +77,16 @@ describe('Tool executor', () => {
     (TOOL_IMPLEMENTATIONS as any)['read_file'] = original;
   });
 
+  it('returns validation error when required tool args are missing', async () => {
+    const tc: ToolCall = {
+      id: 'call_7', type: 'function',
+      function: { name: 'read_file', arguments: '{}' },
+    };
+    const result = await executeToolCall(tc, mockContext);
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("missing required parameter(s): path");
+  });
+
   it('executeToolCalls runs multiple calls in parallel', async () => {
     const calls: ToolCall[] = [
       { id: 'a', type: 'function', function: { name: 'git_status', arguments: '{}' } },
