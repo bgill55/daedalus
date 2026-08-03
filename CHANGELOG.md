@@ -1,3 +1,10 @@
+# [3.7.0](https://github.com/bgill55/daedalus/compare/v3.6.0...v3.7.0) (2026-08-03)
+
+
+### Features
+
+* **transparency:** surface tier reclassifications and tool failure details ([62f0ecf](https://github.com/bgill55/daedalus/commit/62f0ecfc35b236df927a5719c02222d60d3907cd))
+
 # [3.6.0](https://github.com/bgill55/daedalus/compare/v3.5.0...v3.6.0) (2026-08-03)
 
 This release bundles 15 commits of reliability work from the `beta` branch: weak models finally execute tools instead of narrating them, escalation actually fires, memory accumulates in every session, and patches stop silently breaking unrelated files.
