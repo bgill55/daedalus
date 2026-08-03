@@ -34,3 +34,24 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+
+  pr-title:
+    name: PR Title (conventional-commits)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Validate PR title follows conventional commits
+        shell: bash
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          pattern='^(feat|fix|perf|docs|refactor|test|build|ci|chore|style|revert)(\([a-zA-Z0-9._-]+\))?(!)?: .+'
+          if printf '%s' "$PR_TITLE" | grep -Eq "$pattern"; then
+            echo "PR title is valid: $PR_TITLE"
+          else
+            echo "::error::PR title '$PR_TITLE' does not follow Conventional Commits."
+            echo "Expected format: <type>(<optional scope>): <subject>"
+            echo "Types: feat|fix|perf|docs|refactor|test|build|ci|chore|style|revert"
+            echo "Example: feat(router): add catalog-aware model health checks"
+            exit 1
+          fi
