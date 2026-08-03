@@ -83,18 +83,31 @@ Models are classified into **tiers** in the router chain: `"fast"`, `"standard"`
 | `router.autoEscalate` | `true` | Enable escalation to the next chain model after repeated tool failures. |
 | `modelOverride` | — | Pin a single model and bypass routing, classification, and escalation. Set via `/config set modelOverride = <model>` or `/model`. |
 
-While working, Daedalus prints `[ROUTE]` lines so you can see the router thinking:
+While working, Daedalus prints a `[ROUTE]` line whenever the router reclassifies a task mid-turn, so you can see it move between tiers as the work evolves:
 
 ```
-  [ROUTE] Task classified as simple
-  [ROUTE] Reclassified standard → complex (11764 output tokens, 35 tool calls)
-  [ROUTE] Task summary: start complex → end complex | 11764 output tokens | 0 escalation(s)
+  [ROUTE] Reclassified complex → standard (3600 output tokens, 9 tool calls)
 ```
 
 Each assistant block footer also tags the tier that served it:
 
 ```
   └ standard · freellmapi-command-a-reasoning-08-2025 · 3 tool(s) · 2.1k out · 12.4s
+```
+
+For full routing telemetry — the per-turn initial classification and the end-of-turn summary — set the `DAEDALUS_DEBUG` environment variable to `true`:
+
+```bash
+DAEDALUS_DEBUG=true daedalus                 # bash / zsh
+$env:DAEDALUS_DEBUG = 'true'; daedalus       # PowerShell
+```
+
+With debugging on, you also get these lines:
+
+```
+  [ROUTE] Task classified as complex
+  [ROUTE] Reclassified complex → standard (3600 output tokens, 9 tool calls)
+  [ROUTE] Task summary: start complex → end complex | 3600 output tokens | 0 escalation(s)
 ```
 
 ---

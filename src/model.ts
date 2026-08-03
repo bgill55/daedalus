@@ -456,10 +456,14 @@ export function createModelFunctions(deps: ModelDeps) {
         const result = results[ri];
         let content = result.content;
         const sig = failureSignature(result.name, approvedCalls[ri]?.function?.arguments ?? '');
+        const priorFailures = failureCounts.get(sig) ?? 0;
         if (result.success) {
           failureCounts.set(sig, 0);
+          if (priorFailures > 0) {
+            console.log(pc.green(`\n  [RECOVERED] ${result.name} succeeded after ${priorFailures} prior failure(s).`));
+          }
         } else {
-          failureCounts.set(sig, (failureCounts.get(sig) ?? 0) + 1);
+          failureCounts.set(sig, priorFailures + 1);
         }
         if (!result.success && result.error) {
           content = `${content}\n\n[Tool Error] ${result.error}`;
@@ -535,6 +539,16 @@ export function createModelFunctions(deps: ModelDeps) {
           const firstLine = (r.error || '').split('\n')[0] || 'unknown error';
           const snippet = firstLine.length > 160 ? `${firstLine.slice(0, 160)}...` : firstLine;
           console.log(pc.yellow(`\n  [AUTO] Tool '${r.name}' failed: ${snippet}`));
+          const tailLines = (r.content || '')
+            .replace(/\u001B\[\d+(;\d+)*m/g, '')
+            .split('\n')
+            .filter(l => l.trim());
+          if (tailLines.length > 0) {
+            const shown = tailLines.length > 12
+              ? [...tailLines.slice(0, 3), `  ... ${tailLines.length - 12} more lines`, ...tailLines.slice(-9)]
+              : tailLines;
+            console.log(pc.dim(shown.map(l => `    ${l}`).join('\n')));
+          }
         }
         console.log(pc.cyan('\n  Agent will attempt to fix it...'));
       } else {
@@ -624,9 +638,7 @@ export function createModelFunctions(deps: ModelDeps) {
           },
         );
         if (nextState.current !== currentComplexity) {
-          if (process.env.DAEDALUS_DEBUG === 'true') {
-            console.log(pc.dim(`  [ROUTE] Reclassified ${currentComplexity} → ${nextState.current} (${nextState.totalCompletionTokens} output tokens, ${totalToolCalls + toolCallArray.length} tool calls)`));
-          }
+          console.log(pc.magenta(`  [ROUTE] Reclassified ${currentComplexity} → ${nextState.current} (${nextState.totalCompletionTokens} output tokens, ${totalToolCalls + toolCallArray.length} tool calls)`));
           currentComplexity = nextState.current;
         }
         totalCompletionTokens = nextState.totalCompletionTokens;

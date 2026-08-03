@@ -239,7 +239,7 @@ Daedalus stores config at `~/.daedalus/config.json`. Key sections:
 
 Router strategies: `priority` (default), `round-robin`, `fastest`.
 
-`router.complexityRouting` (default `true`) enables dynamic complexity-based routing — trivial tasks hit your `fast` tier, heavy tasks hit `intelligence`, and Daedalus re-routes mid-task as the work evolves. `router.autoEscalate` (default `true`) switches to the next chain model after repeated tool failures. Set `modelOverride` (via `/config set modelOverride = <model>` or `/model`) to pin one model and bypass routing entirely.
+`router.complexityRouting` (default `true`) enables dynamic complexity-based routing — trivial tasks hit your `fast` tier, heavy tasks hit `intelligence`, and Daedalus re-routes mid-task as the work evolves. `router.autoEscalate` (default `true`) switches to the next chain model after repeated tool failures. Set `modelOverride` (via `/config set modelOverride = <model>` or `/model`) to pin one model and bypass routing entirely. Set `DAEDALUS_DEBUG=true` to enable verbose `[ROUTE]` telemetry (per-turn classification and end-of-turn routing summaries).
 
 Per-project config is stored at `~/.daedalus/config/<project-hash>.json` and can be set via `/project set <key> <value>`.
 
