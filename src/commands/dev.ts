@@ -6,6 +6,7 @@ import pc from 'picocolors';
 import { discoverLocalServers, PROVIDER_REGISTRY } from '../config/index.js';
 import { getSessionTodos } from '../tools/builtin/todo.js';
 import { turnSeparator } from '../formatting.js';
+import { getRecentRouteDecisions } from '../router/routing-logger.js';
 
 import type { Command } from './types.js';
 
@@ -850,6 +851,18 @@ Once you have finished making changes, I will automatically re-run the command t
         }
       }
       console.log(pc.bold('----------------------\n'));
+
+      const history = getRecentRouteDecisions(10);
+      if (history.length > 0) {
+        console.log(pc.bold('--- Recent Routing History (routing.log) ---'));
+        for (const h of history.slice().reverse()) {
+          const time = (h.ts.split('T')[1] || h.ts).replace('Z', '');
+          const skipCount = h.skipped.length;
+          const skipNote = skipCount > 0 ? pc.dim(` [skipped ${skipCount}]`) : '';
+          console.log(`  ${pc.dim(time)} ${pc.cyan(h.model)} (${h.modelId}) — ${pc.dim(h.reason)}${skipNote}`);
+        }
+        console.log(pc.dim('\n  Full log: ~/.daedalus/routing.log'));
+      }
     }
   },
   {

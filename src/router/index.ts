@@ -11,10 +11,12 @@ import type {
   ChatResponse, 
   StreamChunk 
 } from './types.js';
+import type { RouteSkip } from '../types.js';
 
 export type { RouteResult, RouterConfig, ChatResponse };
 import { createTokenBucket, consumeTokens, getWaitTime } from './rate-limiter.js';
 import { checkModelHealth, getCachedHealth, getEndpointCatalog, markHealthy, markUnhealthy } from './health.js';
+import { logRouteDecision } from './routing-logger.js';
 
 function isHardFailure(err: unknown): boolean {
   const msg = err instanceof Error ? err.message : String(err);
@@ -58,6 +60,18 @@ export class LocalRouter {
 
   getLastRouteDecision(): typeof this.lastRouteDecision {
     return this.lastRouteDecision;
+  }
+
+  private recordRoutingDecision(model: ModelEntry, reason: string, skipped: RouteSkip[]): void {
+    this.lastRouteDecision = { model, reason, skipped: skipped.map(s => ({ ...s })) };
+    logRouteDecision({
+      ts: new Date().toISOString(),
+      model: model.name,
+      endpoint: model.endpoint,
+      modelId: model.model,
+      reason,
+      skipped: skipped.map(s => ({ model: s.model, endpoint: s.endpoint, reason: s.reason })),
+    });
   }
 
   getLatencyEma(): Array<{ endpoint: string; model: string; emaMs: number; thresholdMs: number }> {
@@ -305,11 +319,7 @@ export class LocalRouter {
           const health = getCachedHealth(selectedModel) ?? { healthy: true, lastCheck: Date.now(), consecutiveFailures: 0 };
           this.routeStats.override++;
           this.lastRoutedTier = selectedModel.tier;
-          this.lastRouteDecision = {
-            model: selectedModel,
-            reason: `model override '${request.model}'`,
-            skipped: skipped.map(s => ({ ...s })),
-          };
+          this.recordRoutingDecision(selectedModel, `model override '${request.model}'`, skipped);
           return { model: selectedModel, health, reason: `model override '${request.model}'`, skipped: skipped.map(s => ({ ...s })) };
         }
       }
@@ -442,7 +452,7 @@ export class LocalRouter {
 
     const health = getCachedHealth(selectedModel) ?? { healthy: true, lastCheck: Date.now(), consecutiveFailures: 0 };
     const reason = `tier '${targetTier}' via ${this.config.strategy} strategy`;
-    this.lastRouteDecision = { model: selectedModel, reason, skipped: skipped.map(s => ({ ...s })) };
+    this.recordRoutingDecision(selectedModel, reason, skipped);
     return { model: selectedModel, health, reason, skipped: skipped.map(s => ({ ...s })) };
   }
 

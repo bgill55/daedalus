@@ -3,6 +3,7 @@ import { LocalRouter, createRouter, sanitizeMessagesForModel } from './index.js'
 import type { RouterConfig, StreamChunk } from './types.js';
 import * as health from './health.js';
 import * as rateLimiter from './rate-limiter.js';
+import { getRecentRouteDecisions } from './routing-logger.js';
 
 function makeConfig(overrides: Partial<RouterConfig> = {}): RouterConfig {
   const config: RouterConfig = {
@@ -666,6 +667,45 @@ describe('LocalRouter', () => {
       expect(a?.healthy).toBe(false);
       expect(b?.healthy).toBe(false);
     });
-  });
+    });
 
+    describe('Routing decision logging', () => {
+    const tmpDir = (() => {
+      const fs = require('node:fs');
+      const os = require('node:os');
+      const path = require('node:path');
+      return fs.mkdtempSync(path.join(os.tmpdir(), 'daedalus-route-log-'));
+    })();
+
+    beforeEach(() => {
+      process.env.DAEDALUS_ROUTING_LOG_DIR = tmpDir;
+    });
+
+    afterEach(() => {
+      delete process.env.DAEDALUS_ROUTING_LOG_DIR;
+      const fs = require('node:fs');
+      const path = require('node:path');
+      const logPath = path.join(tmpDir, 'routing.log');
+      if (fs.existsSync(logPath)) fs.rmSync(logPath);
+    });
+
+    it('writes a structured entry to routing.log on each route() decision', async () => {
+      const router = new LocalRouter(makeConfig({
+        chain: [
+          { name: 'only', endpoint: 'http://localhost:1/v1', model: 'm1', priority: 1, enabled: true },
+        ],
+      }));
+      await router.route({ messages: [{ role: 'user', content: 'hi' }] });
+
+      const entries = getRecentRouteDecisions(10);
+      expect(entries.length).toBeGreaterThanOrEqual(1);
+      const last = entries[entries.length - 1];
+      expect(last.model).toBe('only');
+      expect(typeof last.reason).toBe('string');
+      expect(Array.isArray(last.skipped)).toBe(true);
+    });
+  });
 });
+
+
+
