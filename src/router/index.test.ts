@@ -487,4 +487,59 @@ describe('LocalRouter', () => {
     });
   });
 
+  describe('Session blacklist', () => {
+    it('blacklists a model on a hard 4xx/not-in-catalog failure and routes around it', async () => {
+      const router = new LocalRouter(makeConfig({
+        chain: [
+          { name: 'ghost', endpoint: 'https://api.ghost.ai/v1', model: 'openai/gpt-4.1', priority: 1, enabled: true },
+          { name: 'alive', endpoint: 'https://api.alive.ai/v1', model: 'openai/gpt-5', priority: 2, enabled: true },
+        ],
+      }));
+      const create = vi.fn((opts: { model: string }) => {
+        if (opts.model === 'openai/gpt-4.1') {
+          return Promise.reject(Object.assign(new Error("Model 'openai/gpt-4.1' is not in the catalog served by this endpoint"), { status: 400 }));
+        }
+        return Promise.reject(Object.assign(new Error('Upstream error'), { status: 500 }));
+      });
+      vi.spyOn(router as any, 'getOrCreateClient').mockReturnValue({ chat: { completions: { create } } });
+
+      await expect(router.chatCompletion({ messages: [{ role: 'user', content: 'hi' }] })).rejects.toThrow();
+      const blacklist = router.getSessionBlacklist();
+      expect(blacklist).toHaveLength(1);
+      expect(blacklist[0].model).toBe('openai/gpt-4.1');
+      expect(blacklist[0].reason).toContain('not in the catalog');
+
+      const routed = await router.route({ messages: [{ role: 'user', content: 'hi' }] });
+      expect(routed.model.model).toBe('openai/gpt-5');
+    });
+
+    it('does not blacklist on transient 5xx failures', async () => {
+      const router = new LocalRouter(makeConfig({
+        chain: [
+          { name: 'flaky', endpoint: 'https://api.flaky.ai/v1', model: 'm1', priority: 1, enabled: true },
+        ],
+      }));
+      const create = vi.fn().mockRejectedValue(Object.assign(new Error('Service Unavailable'), { status: 503 }));
+      vi.spyOn(router as any, 'getOrCreateClient').mockReturnValue({ chat: { completions: { create } } });
+
+      await expect(router.chatCompletion({ messages: [{ role: 'user', content: 'hi' }] })).rejects.toThrow();
+      expect(router.getSessionBlacklist()).toHaveLength(0);
+    });
+
+    it('clearSessionBlacklist empties the list', async () => {
+      const router = new LocalRouter(makeConfig({
+        chain: [
+          { name: 'only', endpoint: 'https://api.only.ai/v1', model: 'auto', priority: 1, enabled: true },
+        ],
+      }));
+      const create = vi.fn().mockRejectedValue(Object.assign(new Error("Model 'auto' is not in the catalog served by this endpoint"), { status: 400 }));
+      vi.spyOn(router as any, 'getOrCreateClient').mockReturnValue({ chat: { completions: { create } } });
+
+      await expect(router.chatCompletion({ messages: [{ role: 'user', content: 'hi' }] })).rejects.toThrow();
+      expect(router.getSessionBlacklist().length).toBeGreaterThan(0);
+      router.clearSessionBlacklist();
+      expect(router.getSessionBlacklist()).toHaveLength(0);
+    });
+  });
+
 });

@@ -794,6 +794,40 @@ Once you have finished making changes, I will automatically re-run the command t
         const status = health?.healthy ? pc.green('●') : pc.red('●');
         console.log(`  ${status} ${pc.cyan(model.name)} (${model.endpoint}) - ${model.model}`);
       }
+      const blacklist = ctx.router.getSessionBlacklist();
+      if (blacklist.length > 0) {
+        console.log(pc.bold('\n--- Session Blacklist ---'));
+        for (const entry of blacklist) {
+          console.log(`  ${pc.red('✕')} ${pc.cyan(entry.model)} (${entry.endpoint})`);
+          console.log(`     ${pc.dim(entry.reason)}`);
+        }
+        console.log(pc.dim('  Run /blacklist clear to allow them again.'));
+      }
+      console.log(pc.bold('----------------------\n'));
+    }
+  },
+  {
+    name: '/blacklist',
+    description: 'Show or clear the session model blacklist',
+    usage: '/blacklist [clear]',
+    helpText: 'Models that hard-fail during a session (400/not-in-catalog/timeout) are blacklisted for the rest of the session.\n\nSubcommands:\n  (no args)   List blacklisted models and reasons\n  clear       Remove all models from the session blacklist',
+    execute: async (args, ctx) => {
+      const rest = args.trim();
+      if (rest === 'clear') {
+        ctx.router.clearSessionBlacklist();
+        console.log(pc.green('[OK] Session blacklist cleared.'));
+        return;
+      }
+      const blacklist = ctx.router.getSessionBlacklist();
+      if (blacklist.length === 0) {
+        console.log(pc.green('  Session blacklist is empty.'));
+        return;
+      }
+      console.log(pc.bold('\n--- Session Blacklist ---'));
+      for (const entry of blacklist) {
+        console.log(`  ${pc.red('✕')} ${pc.cyan(entry.model)} (${entry.endpoint})`);
+        console.log(`     ${pc.dim(entry.reason)}`);
+      }
       console.log(pc.bold('----------------------\n'));
     }
   },

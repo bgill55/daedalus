@@ -16,6 +16,18 @@ export type { RouteResult, RouterConfig, ChatResponse };
 import { createTokenBucket, consumeTokens, getWaitTime } from './rate-limiter.js';
 import { checkModelHealth, getCachedHealth, getEndpointCatalog, markHealthy, markUnhealthy } from './health.js';
 
+function isHardFailure(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  if (/not in the catalog/i.test(msg)) return true;
+  if (err instanceof Error && (err.name === 'AbortError' || err.name === 'APIUserAbortError')) return true;
+  if (err instanceof Error && err.name === 'APIConnectionTimeoutError') return true;
+  if (/timeout|timed out|timedout/i.test(msg)) return true;
+  const status = (err as { status?: number; statusCode?: number })?.status
+    ?? (err as { status?: number; statusCode?: number })?.statusCode;
+  if (typeof status === 'number' && status >= 400 && status < 500 && status !== 429) return true;
+  return false;
+}
+
 export class LocalRouter {
   private config: RouterConfig;
   private clients: Map<string, OpenAI> = new Map();
@@ -27,10 +39,31 @@ export class LocalRouter {
   public lastRoutedModelName?: string;
   public lastRoutedTier?: string;
   private routeStats = { fast: 0, standard: 0, complex: 0, override: 0 };
+  private sessionBlacklist = new Map<string, { reason: string; at: number }>();
 
   constructor(config: RouterConfig) {
     this.config = config;
     this.initializeRateLimiters();
+  }
+
+  getSessionBlacklist(): Array<{ endpoint: string; model: string; reason: string; at: number }> {
+    return Array.from(this.sessionBlacklist.entries()).map(([key, entry]) => {
+      const [endpoint, model] = key.split('|');
+      return { endpoint, model, reason: entry.reason, at: entry.at };
+    });
+  }
+
+  clearSessionBlacklist(): void {
+    this.sessionBlacklist.clear();
+  }
+
+  private blacklistModel(m: ModelEntry, reason: string): void {
+    this.sessionBlacklist.set(`${m.endpoint}|${m.model}`, { reason, at: Date.now() });
+    markUnhealthy(m, reason);
+  }
+
+  private isBlacklisted(m: ModelEntry): boolean {
+    return this.sessionBlacklist.has(`${m.endpoint}|${m.model}`);
   }
 
   private initializeRateLimiters(): void {
@@ -98,6 +131,7 @@ export class LocalRouter {
         const health = await checkModelHealth(m, 5000);
         const catalog = await getEndpointCatalog(m.endpoint, m.apiKey);
         for (const target of enabledModels.filter(e => e.endpoint === m.endpoint)) {
+          if (this.isBlacklisted(target)) continue;
           if (health.healthy) {
             if (target.model !== 'auto' && catalog && !catalog.has(target.model)) {
               markUnhealthy(target, `Model '${target.model}' is not in the catalog served by this endpoint`);
@@ -137,6 +171,7 @@ export class LocalRouter {
       const candidate = enabled[(start + i) % enabled.length];
       if (candidate.name === currentName || candidate.model === currentName) continue;
       if (candidate.supportsTools === false) continue;
+      if (this.isBlacklisted(candidate)) continue;
       const health = getCachedHealth(candidate);
       if (health?.healthy === false) continue;
       return candidate;
@@ -145,14 +180,23 @@ export class LocalRouter {
   }
 
   async route(request: ChatRequest, excludedModels?: Set<string>): Promise<RouteResult> {
-    let healthyModels = this.getHealthyModels();
+    let healthyModels = this.getHealthyModels().filter(m => !this.isBlacklisted(m));
 
     if (excludedModels && excludedModels.size > 0) {
       healthyModels = healthyModels.filter(m => !excludedModels.has(m.name) && !excludedModels.has(m.model));
     }
     
     if (healthyModels.length === 0) {
-      healthyModels = this.config.chain.filter(m => m.enabled && (!excludedModels || (!excludedModels.has(m.name) && !excludedModels.has(m.model))));
+      healthyModels = this.config.chain.filter(m =>
+        m.enabled && !this.isBlacklisted(m) &&
+        (!excludedModels || (!excludedModels.has(m.name) && !excludedModels.has(m.model)))
+      );
+    }
+
+    if (healthyModels.length === 0) {
+      healthyModels = this.config.chain.filter(m =>
+        m.enabled && (!excludedModels || (!excludedModels.has(m.name) && !excludedModels.has(m.model)))
+      );
     }
 
     if (healthyModels.length === 0) {
@@ -399,7 +443,11 @@ export class LocalRouter {
         lastError = err;
         if (err instanceof Error && (err.name === 'AbortError' || err.name === 'APIUserAbortError')) throw err;
         if (selectedModel) {
-          markUnhealthy(selectedModel, err instanceof Error ? err.message : String(err));
+          if (isHardFailure(err)) {
+            this.blacklistModel(selectedModel, err instanceof Error ? err.message : String(err));
+          } else {
+            markUnhealthy(selectedModel, err instanceof Error ? err.message : String(err));
+          }
           excludedModels.add(selectedModel.name);
           excludedModels.add(selectedModel.model);
         }
@@ -468,7 +516,11 @@ export class LocalRouter {
         lastError = err;
         if (err instanceof Error && (err.name === 'AbortError' || err.name === 'APIUserAbortError')) throw err;
         if (selectedModel) {
-          markUnhealthy(selectedModel, err instanceof Error ? err.message : String(err));
+          if (isHardFailure(err)) {
+            this.blacklistModel(selectedModel, err instanceof Error ? err.message : String(err));
+          } else {
+            markUnhealthy(selectedModel, err instanceof Error ? err.message : String(err));
+          }
           excludedModels.add(selectedModel.name);
           excludedModels.add(selectedModel.model);
         }
