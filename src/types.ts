@@ -94,6 +94,15 @@ export interface RouteSkip {
   reason: string;
 }
 
+export interface RouteLogEntry {
+  ts: string;
+  model: string;
+  endpoint: string;
+  modelId: string;
+  reason: string;
+  skipped: Array<{ model: string; endpoint: string; reason: string }>;
+}
+
 declare global {
   var isTui: boolean | undefined;
   var originalStdoutWrite: typeof process.stdout.write | undefined;

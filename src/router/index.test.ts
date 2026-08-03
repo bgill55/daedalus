@@ -1,8 +1,12 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, afterAll } from 'vitest';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { LocalRouter, createRouter, sanitizeMessagesForModel } from './index.js';
 import type { RouterConfig, StreamChunk } from './types.js';
 import * as health from './health.js';
 import * as rateLimiter from './rate-limiter.js';
+import { getRecentRouteDecisions, flushRouteLog } from './routing-logger.js';
 
 function makeConfig(overrides: Partial<RouterConfig> = {}): RouterConfig {
   const config: RouterConfig = {
@@ -666,6 +670,43 @@ describe('LocalRouter', () => {
       expect(a?.healthy).toBe(false);
       expect(b?.healthy).toBe(false);
     });
-  });
+    });
 
+    describe('Routing decision logging', () => {
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'daedalus-route-log-'));
+
+    beforeEach(() => {
+      process.env.DAEDALUS_ROUTING_LOG_DIR = tmpDir;
+    });
+
+    afterEach(() => {
+      delete process.env.DAEDALUS_ROUTING_LOG_DIR;
+      const logPath = path.join(tmpDir, 'routing.log');
+      if (fs.existsSync(logPath)) fs.rmSync(logPath);
+    });
+
+    afterAll(() => {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
+    it('writes a structured entry to routing.log on each route() decision', async () => {
+      const router = new LocalRouter(makeConfig({
+        chain: [
+          { name: 'only', endpoint: 'http://localhost:1/v1', model: 'm1', priority: 1, enabled: true },
+        ],
+      }));
+      await router.route({ messages: [{ role: 'user', content: 'hi' }] });
+      await flushRouteLog();
+
+      const entries = getRecentRouteDecisions(10);
+      expect(entries.length).toBeGreaterThanOrEqual(1);
+      const last = entries[entries.length - 1];
+      expect(last.model).toBe('only');
+      expect(typeof last.reason).toBe('string');
+      expect(Array.isArray(last.skipped)).toBe(true);
+    });
+  });
 });
+
+
+
