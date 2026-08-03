@@ -148,6 +148,19 @@ describe('LocalRouter', () => {
     expect(result.model.name).toBe('main');
   });
 
+  it('skips a pinned model that is excluded and routes normally instead', async () => {
+    const router = new LocalRouter(makeConfig({
+      chain: [
+        { name: 'main', endpoint: 'http://localhost:1/v1', model: 'm1', priority: 1, enabled: true, supportsTools: true },
+        { name: 'backup', endpoint: 'http://localhost:2/v1', model: 'm2', priority: 2, enabled: true, supportsTools: true },
+      ],
+    }));
+    const excluded = new Set(['backup', 'm2']);
+    const result = await router.route({ messages: [{ role: 'user', content: 'hi' }], model: 'backup', tools: [{ type: 'function' }] }, excluded);
+    expect(result.model.name).not.toBe('backup');
+    expect(result.model.name).toBe('main');
+  });
+
   it('routes to the fast tier for simple tasks', async () => {
     const router = new LocalRouter(makeConfig({
       chain: [

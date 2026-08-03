@@ -207,6 +207,7 @@ export function createModelFunctions(deps: ModelDeps) {
     let escalatedThisStreak = false;
     let currentComplexity = taskComplexity;
     let totalCompletionTokens = 0;
+    let hasDowngraded = false;
     let trivialTurnStreak = 0;
     let turnUsageOut: number | undefined;
     openAssistantBlock();
@@ -628,7 +629,7 @@ export function createModelFunctions(deps: ModelDeps) {
         const writesThisTurn = results.filter(r => r.success && ['patch', 'write_file'].includes(r.name)).length;
         const failedThisTurn = results.filter(r => !r.success).length;
         const nextState = stepRouting(
-          { current: currentComplexity, totalCompletionTokens, trivialTurnStreak },
+          { current: currentComplexity, totalCompletionTokens, trivialTurnStreak, hasDowngraded },
           {
             completionTokensThisTurn: turnUsageOut ?? 0,
             writesThisTurn,
@@ -643,6 +644,7 @@ export function createModelFunctions(deps: ModelDeps) {
         }
         totalCompletionTokens = nextState.totalCompletionTokens;
         trivialTurnStreak = nextState.trivialTurnStreak;
+        hasDowngraded = nextState.hasDowngraded === true;
       }
 
       totalToolCalls += toolCallArray.length;

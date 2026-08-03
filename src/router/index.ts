@@ -163,25 +163,30 @@ export class LocalRouter {
         }
         request.model = 'auto';
       } else {
-        selectedModel = healthyModels.find(m => m.name === request.model || m.model === request.model) ||
-                        this.config.chain.find(m => m.enabled && (m.name === request.model || m.model === request.model));
-        if (!selectedModel) {
+        const pinned = healthyModels.find(m => m.name === request.model || m.model === request.model) ||
+                       this.config.chain.find(m => m.enabled && (m.name === request.model || m.model === request.model));
+        if (!pinned) {
           throw new Error(`Requested model ${request.model} is not configured or enabled.`);
         }
-        if (!isLocalEndpoint(selectedModel.endpoint)) {
-          const rateLimiter = this.rateLimiters.get(`${selectedModel.endpoint}|${selectedModel.model}`);
-          if (rateLimiter) {
-            const estimatedTokens = this.estimateTokens(request);
-            if (!consumeTokens(rateLimiter, estimatedTokens)) {
-              const waitMs = getWaitTime(rateLimiter, estimatedTokens);
-              throw new Error(`Rate limited. Wait ${waitMs}ms or try another model.`);
+        const pinnedExcluded = !!excludedModels && excludedModels.size > 0 &&
+          (excludedModels.has(pinned.name) || excludedModels.has(pinned.model));
+        if (!pinnedExcluded) {
+          selectedModel = pinned;
+          if (!isLocalEndpoint(selectedModel.endpoint)) {
+            const rateLimiter = this.rateLimiters.get(`${selectedModel.endpoint}|${selectedModel.model}`);
+            if (rateLimiter) {
+              const estimatedTokens = this.estimateTokens(request);
+              if (!consumeTokens(rateLimiter, estimatedTokens)) {
+                const waitMs = getWaitTime(rateLimiter, estimatedTokens);
+                throw new Error(`Rate limited. Wait ${waitMs}ms or try another model.`);
+              }
             }
           }
+          const health = getCachedHealth(selectedModel) ?? { healthy: true, lastCheck: Date.now(), consecutiveFailures: 0 };
+          this.routeStats.override++;
+          this.lastRoutedTier = selectedModel.tier;
+          return { model: selectedModel, health };
         }
-        const health = getCachedHealth(selectedModel) ?? { healthy: true, lastCheck: Date.now(), consecutiveFailures: 0 };
-        this.routeStats.override++;
-        this.lastRoutedTier = selectedModel.tier;
-        return { model: selectedModel, health };
       }
     }
 

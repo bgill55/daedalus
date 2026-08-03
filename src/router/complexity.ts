@@ -97,6 +97,7 @@ export interface RoutingState {
   current: TaskComplexity;
   totalCompletionTokens: number;
   trivialTurnStreak: number;
+  hasDowngraded?: boolean;
 }
 
 const COMPLEX_OUTPUT_TOKENS = 8000;
@@ -119,12 +120,12 @@ export function stepRouting(state: RoutingState, s: TurnSignals): RoutingState {
     current = 'complex';
   } else if (current === 'simple' && totalCompletionTokens >= STANDARD_OUTPUT_TOKENS) {
     current = 'standard';
-  } else if (current !== 'simple' && trivialTurnStreak >= DOWNGRADE_TRIVIAL_TURNS) {
+  } else if (current !== 'simple' && trivialTurnStreak >= DOWNGRADE_TRIVIAL_TURNS && !state.hasDowngraded) {
     current = current === 'complex' ? 'standard' : 'simple';
   }
 
   if (current !== state.current && rankOf(current) < rankOf(state.current)) {
-    return { current, totalCompletionTokens: 0, trivialTurnStreak: 0 };
+    return { current, totalCompletionTokens: 0, trivialTurnStreak: 0, hasDowngraded: true };
   }
-  return { current, totalCompletionTokens, trivialTurnStreak };
+  return { current, totalCompletionTokens, trivialTurnStreak, hasDowngraded: state.hasDowngraded === true };
 }

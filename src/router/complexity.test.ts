@@ -89,6 +89,18 @@ describe('stepRouting', () => {
   it('downgrades standard to simple after enough trivial turns', () => {
     const st = stepRouting({ current: 'standard', totalCompletionTokens: 600, trivialTurnStreak: 2 }, { completionTokensThisTurn: 100, writesThisTurn: 0, toolCallsThisTurn: 1, failedToolsThisTurn: 0 });
     expect(st.current).toBe('simple');
+    expect(st.hasDowngraded).toBe(true);
+  });
+
+  it('blocks cascading downgrades within one turn (complex → standard only)', () => {
+    let st = stepRouting({ current: 'complex', totalCompletionTokens: 2000, trivialTurnStreak: 2 }, { completionTokensThisTurn: 100, writesThisTurn: 0, toolCallsThisTurn: 1, failedToolsThisTurn: 0 });
+    expect(st.current).toBe('standard');
+    expect(st.hasDowngraded).toBe(true);
+    for (let i = 0; i < 6; i++) {
+      st = stepRouting(st, { completionTokensThisTurn: 100, writesThisTurn: 0, toolCallsThisTurn: 1, failedToolsThisTurn: 0 });
+    }
+    expect(st.current).toBe('standard');
+    expect(st.hasDowngraded).toBe(true);
   });
 
   it('does not downgrade below simple', () => {
