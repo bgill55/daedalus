@@ -431,7 +431,7 @@ export class LocalRouter {
         
         const { signal, ...body } = request;
         delete (body as Record<string, unknown>).complexity;
-        const isOfficialOpenAI = model.endpoint.includes('api.openai.com');
+        const isOfficialOpenAI = model.provider === 'openai' || model.endpoint.includes('api.openai.com');
         if (body.tool_choice === 'required' && !isOfficialOpenAI) {
           body.tool_choice = 'auto';
         }
@@ -497,7 +497,7 @@ export class LocalRouter {
         
         const { signal, ...body } = request;
         delete (body as Record<string, unknown>).complexity;
-        const isOfficialOpenAI = model.endpoint.includes('api.openai.com');
+        const isOfficialOpenAI = model.provider === 'openai' || model.endpoint.includes('api.openai.com');
         if (body.tool_choice === 'required' && !isOfficialOpenAI) {
           body.tool_choice = 'auto';
         }

@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import pc from 'picocolors';
 
-import { discoverLocalServers } from '../config/index.js';
+import { discoverLocalServers, PROVIDER_REGISTRY } from '../config/index.js';
 import { getSessionTodos } from '../tools/builtin/todo.js';
 import { turnSeparator } from '../formatting.js';
 
@@ -804,6 +804,27 @@ Once you have finished making changes, I will automatically re-run the command t
         console.log(pc.dim('  Run /blacklist clear to allow them again.'));
       }
       console.log(pc.bold('----------------------\n'));
+    }
+  },
+  {
+    name: '/providers',
+    description: 'List supported model providers and BYOK setup hints',
+    usage: '/providers',
+    helpText: 'Lists known providers with their default base URLs and how to configure a bring-your-own-key model.\n\nExample:\n  /config set model.myopenai.provider = openai\n  /config set model.myopenai.endpoint = https://api.openai.com/v1\n  /config set model.myopenai.model = gpt-4.1\n  /config set model.myopenai.apiKey = sk-...\n  /config set model.myopenai.priority = 5',
+    execute: async (args, ctx) => {
+      console.log(pc.bold('\n--- Supported Providers ---'));
+      for (const p of PROVIDER_REGISTRY) {
+        console.log(`  ${pc.cyan(p.id.padEnd(11))} ${p.label}`);
+        console.log(`     ${pc.dim(p.baseUrl)}  e.g. model: ${p.exampleModel}`);
+        console.log(`     ${pc.dim(p.notes)}`);
+      }
+      console.log(pc.bold('\nBring Your Own Key:'));
+      console.log(pc.gray('  /config set model.<name>.provider = openai'));
+      console.log(pc.gray('  /config set model.<name>.endpoint = <base url>'));
+      console.log(pc.gray('  /config set model.<name>.model = <model id>'));
+      console.log(pc.gray('  /config set model.<name>.apiKey = <your key>'));
+      console.log(pc.gray('  /config set model.<name>.priority = 5'));
+      console.log(pc.bold('---------------------------\n'));
     }
   },
   {

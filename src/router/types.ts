@@ -7,6 +7,7 @@ export interface ModelEntry {
   priority: number;             // Lower = higher priority
   enabled: boolean;
   apiKey?: string;              // Optional API key for remote providers
+  provider?: 'openai' | 'anthropic' | 'google' | 'openrouter' | 'freellmapi' | 'custom';  // BYOK provider tag for smart defaults
   maxTokens?: number;           // Context window (optional, for auto-detection)
   supportsTools?: boolean;      // Whether model supports tool calling
   supportsVision?: boolean;     // Whether model supports vision

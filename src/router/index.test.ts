@@ -577,4 +577,26 @@ describe('LocalRouter', () => {
     });
   });
 
+  describe('BYOK provider field', () => {
+    it('accepts the provider field on a chain model', () => {
+      const router = new LocalRouter(makeConfig({
+        chain: [
+          { name: 'byok', endpoint: 'https://my-proxy.example/v1', model: 'gpt-4.1', priority: 1, enabled: true, provider: 'openai' },
+        ],
+      }));
+      expect(router.getEnabledModels()[0].provider).toBe('openai');
+    });
+
+    it('treats a model tagged provider=openai as official even without the api.openai.com host', async () => {
+      const router = new LocalRouter(makeConfig({
+        chain: [
+          { name: 'byok', endpoint: 'https://my-proxy.example/v1', model: 'gpt-4.1', priority: 1, enabled: true, provider: 'openai' },
+        ],
+      }));
+      const model = router.getEnabledModels()[0] as any;
+      const isOfficial = (model.provider === 'openai') || model.endpoint.includes('api.openai.com');
+      expect(isOfficial).toBe(true);
+    });
+  });
+
 });

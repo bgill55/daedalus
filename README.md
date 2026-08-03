@@ -200,6 +200,7 @@ AI assistance without:
 | `/tui` | Toggle the Terminal User Interface (TUI) dashboard |
 | `/hunt` / `/bug` | Autonomously hunt down and fix a bug: reproduce, locate root cause, fix, verify |
 | `/sigma` / `/memory` | Inspect active Σ-Mem (Sigma-Memory) knowledge items & scores |
+| `/providers` | List supported model providers and BYOK setup hints |
 | `/blacklist` | Show or clear the session model blacklist |
 | `/stats` / `stats` | Display session analytics, token usage, index count, and router status |
 | `/shortcut` / `/sc` | Manage custom slash-command aliases |

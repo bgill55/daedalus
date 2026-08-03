@@ -7,6 +7,15 @@ import { createLogger } from '../tools/logger.js';
 
 const logger = createLogger();
 
+export const PROVIDER_REGISTRY: Array<{ id: string; label: string; baseUrl: string; exampleModel: string; notes: string }> = [
+  { id: 'openai', label: 'OpenAI', baseUrl: 'https://api.openai.com/v1', exampleModel: 'gpt-4.1', notes: 'Official OpenAI. Use your own API key.' },
+  { id: 'anthropic', label: 'Anthropic', baseUrl: 'https://api.anthropic.com/v1', exampleModel: 'claude-sonnet-4-5', notes: 'Anthropic API. Requires the claude model gateway for tool calls.' },
+  { id: 'google', label: 'Google Gemini', baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai', exampleModel: 'gemini-2.5-flash', notes: 'Google AI Studio key via the OpenAI-compatible endpoint.' },
+  { id: 'openrouter', label: 'OpenRouter', baseUrl: 'https://openrouter.ai/api/v1', exampleModel: 'deepseek/deepseek-v3', notes: 'One key, many models.' },
+  { id: 'freellmapi', label: 'FreeLLM API', baseUrl: 'http://127.0.0.1:3001/v1', exampleModel: 'auto', notes: 'Local free-tier proxy. Catalog-aware routing filters invalid ids.' },
+  { id: 'custom', label: 'Custom / self-hosted', baseUrl: 'http://localhost:PORT/v1', exampleModel: 'your-model-id', notes: 'LM Studio, Ollama, vLLM, etc.' },
+];
+
 export const ModelEntrySchema = z.object({
   name: z.string(),
   endpoint: z.string().refine(v => /^https?:\/\//i.test(v) || /^[a-zA-Z0-9.-]+:\d+/.test(v), {
@@ -16,6 +25,7 @@ export const ModelEntrySchema = z.object({
   priority: z.number().int().min(0),
   enabled: z.boolean(),
   apiKey: z.string().optional(),
+  provider: z.enum(['openai', 'anthropic', 'google', 'openrouter', 'freellmapi', 'custom']).optional(),
   maxTokens: z.number().int().positive().optional(),
   supportsTools: z.boolean().optional(),
   supportsVision: z.boolean().optional(),
