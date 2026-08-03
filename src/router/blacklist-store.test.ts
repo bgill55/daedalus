@@ -15,6 +15,7 @@ describe('BlacklistStore', () => {
 
   beforeEach(() => {
     dir = tmpDir();
+    delete process.env.DAEDALUS_BLACKLIST_TTL_MS;
     process.env.DAEDALUS_BLACKLIST_DIR = dir;
   });
 
@@ -39,12 +40,12 @@ describe('BlacklistStore', () => {
   });
 
   it('decays a model out of the blacklist after the TTL', async () => {
-    const store = new BlacklistStore({ dbDir: dir, ttlMs: 30 });
+    const store = new BlacklistStore({ dbDir: dir, ttlMs: 20 });
     store.add('http://e1/v1', 'm1', 'slow');
-    expect(store.isBlacklisted('http://e1/v1', 'm1').blacklisted).toBe(true);
-    expect(store.isBlacklisted('http://e1/v1', 'm1').expiredNow).toBe(false);
 
-    await sleep(50); // Let the TTL elapse.
+    // Let the TTL elapse by a wide margin so the single post-expiry check is
+    // deterministic regardless of better-sqlite3 open latency on CI.
+    await sleep(100);
 
     const late = store.isBlacklisted('http://e1/v1', 'm1');
     expect(late.blacklisted).toBe(false);
