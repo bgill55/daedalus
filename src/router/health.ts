@@ -4,6 +4,64 @@ import { ModelEntry, ModelHealth } from './types.js';
 
 const healthCache = new Map<string, ModelHealth>();
 
+const catalogCache = new Map<string, { ids: Set<string>; fetchedAt: number }>();
+const CATALOG_TTL = 5 * 60 * 1000;
+
+function catalogKey(endpoint: string): string {
+  let baseUrl = endpoint;
+  if (!/^https?:\/\//i.test(baseUrl)) {
+    baseUrl = 'https://' + baseUrl;
+  }
+  return baseUrl;
+}
+
+async function fetchEndpointCatalog(endpoint: string, apiKey: string | undefined): Promise<Set<string> | null> {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (apiKey) {
+      headers['Authorization'] = `Bearer ${apiKey}`;
+    }
+    const response = await fetch(`${catalogKey(endpoint)}/models`, {
+      signal: controller.signal,
+      headers,
+    });
+    clearTimeout(timeoutId);
+    if (!response.ok) return null;
+    const data = await response.json() as { data?: Array<{ id?: string }> | null };
+    const ids = new Set<string>();
+    for (const m of data?.data ?? []) {
+      if (m && typeof m.id === 'string') ids.add(m.id);
+    }
+    catalogCache.set(endpoint, { ids, fetchedAt: Date.now() });
+    return ids;
+  } catch {
+    return null;
+  }
+}
+
+export function getCachedCatalog(endpoint: string): Set<string> | null {
+  const cached = catalogCache.get(endpoint);
+  if (cached && Date.now() - cached.fetchedAt < CATALOG_TTL) return cached.ids;
+  return null;
+}
+
+export async function getEndpointCatalog(endpoint: string, apiKey: string | undefined): Promise<Set<string> | null> {
+  const cached = getCachedCatalog(endpoint);
+  if (cached) return cached;
+  return fetchEndpointCatalog(endpoint, apiKey);
+}
+
+function notInCatalogHealth(model: ModelEntry, cached: ModelHealth | undefined): ModelHealth {
+  return {
+    healthy: false,
+    lastCheck: Date.now(),
+    error: `Model '${model.model}' is not in the catalog served by this endpoint`,
+    consecutiveFailures: (cached?.consecutiveFailures ?? 0) + 1,
+  };
+}
+
 export async function checkModelHealth(model: ModelEntry, timeout: number): Promise<ModelHealth> {
   const cacheKey = `${model.endpoint}|${model.model}`;
   const cached = healthCache.get(cacheKey);
@@ -11,6 +69,14 @@ export async function checkModelHealth(model: ModelEntry, timeout: number): Prom
   // Return cached if recent (< 30s)
   if (cached && Date.now() - cached.lastCheck < 30000) {
     return cached;
+  }
+
+  // Short-circuit when the endpoint catalog is cached and the model id is absent
+  const cachedCatalog = getCachedCatalog(model.endpoint);
+  if (model.model !== 'auto' && cachedCatalog && !cachedCatalog.has(model.model)) {
+    const health = notInCatalogHealth(model, cached);
+    healthCache.set(cacheKey, health);
+    return health;
   }
 
   try {
@@ -37,6 +103,23 @@ export async function checkModelHealth(model: ModelEntry, timeout: number): Prom
     const latency = Date.now() - start;
 
     if (response.ok) {
+      const ids = new Set<string>();
+      try {
+        const data = await response.json() as { data?: Array<{ id?: string }> | null };
+        for (const m of data?.data ?? []) {
+          if (m && typeof m.id === 'string') ids.add(m.id);
+        }
+      } catch {
+        // Non-JSON /models response — catalog unknown, skip membership check
+      }
+      if (ids.size > 0) {
+        catalogCache.set(model.endpoint, { ids, fetchedAt: Date.now() });
+      }
+      if (model.model !== 'auto' && ids.size > 0 && !ids.has(model.model)) {
+        const health = notInCatalogHealth(model, cached);
+        healthCache.set(cacheKey, health);
+        return health;
+      }
       const health: ModelHealth = {
         healthy: true,
         lastCheck: Date.now(),

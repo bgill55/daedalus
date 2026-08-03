@@ -336,10 +336,12 @@ async function main() {
     }
   }
   
-  // Start health checks in background
-  router.startHealthChecks().catch(err =>
-    console.error(pc.yellow(`\n[WARN] Router health checks failed: ${err.message}`))
-  );
+  // Start health checks (awaited so catalog-verified routing is live before turn 1)
+  try {
+    await router.startHealthChecks();
+  } catch (err) {
+    console.error(pc.yellow(`\n[WARN] Router health checks failed: ${(err as Error).message}`));
+  }
 
   // MCP connects before chat loop starts so tools are available from turn 1
   try {

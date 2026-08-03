@@ -267,6 +267,22 @@ describe('LocalRouter', () => {
     await router.stopHealthChecks();
   });
 
+  it('health sweep marks models missing from the endpoint catalog unhealthy', async () => {
+    const router = new LocalRouter(makeConfig({
+      chain: [
+        { name: 'listed', endpoint: 'https://api.cat.ai/v1', model: 'm1', priority: 1, enabled: true },
+        { name: 'ghost', endpoint: 'https://api.cat.ai/v1', model: 'm2', priority: 2, enabled: true },
+      ],
+    }));
+    vi.spyOn(health, 'getEndpointCatalog').mockResolvedValue(new Set(['m1']));
+    await (router as any).runHealthChecks();
+    expect(health.getCachedHealth({ name: 'listed', endpoint: 'https://api.cat.ai/v1', model: 'm1', priority: 1, enabled: true })?.healthy).toBe(true);
+    expect(health.getCachedHealth({ name: 'ghost', endpoint: 'https://api.cat.ai/v1', model: 'm2', priority: 2, enabled: true })?.healthy).toBe(false);
+    const healthy = router.getHealthyModels().map(m => m.name);
+    expect(healthy).toContain('listed');
+    expect(healthy).not.toContain('ghost');
+  });
+
   it('stopHealthChecks clears interval', async () => {
     const router = new LocalRouter(makeConfig());
     await router.startHealthChecks();

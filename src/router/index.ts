@@ -14,7 +14,7 @@ import type {
 
 export type { RouteResult, RouterConfig, ChatResponse };
 import { createTokenBucket, consumeTokens, getWaitTime } from './rate-limiter.js';
-import { checkModelHealth, getCachedHealth, markHealthy, markUnhealthy } from './health.js';
+import { checkModelHealth, getCachedHealth, getEndpointCatalog, markHealthy, markUnhealthy } from './health.js';
 
 export class LocalRouter {
   private config: RouterConfig;
@@ -96,9 +96,16 @@ export class LocalRouter {
     await Promise.all(
       Array.from(uniqueEndpoints.values()).map(async (m) => {
         const health = await checkModelHealth(m, 5000);
+        const catalog = await getEndpointCatalog(m.endpoint, m.apiKey);
         for (const target of enabledModels.filter(e => e.endpoint === m.endpoint)) {
           if (health.healthy) {
-            markHealthy(target, health.latencyMs ?? 0);
+            if (target.model !== 'auto' && catalog && !catalog.has(target.model)) {
+              markUnhealthy(target, `Model '${target.model}' is not in the catalog served by this endpoint`);
+            } else {
+              markHealthy(target, health.latencyMs ?? 0);
+            }
+          } else {
+            markUnhealthy(target, health.error ?? 'unhealthy');
           }
         }
       })

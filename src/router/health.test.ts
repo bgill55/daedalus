@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   checkModelHealth,
   getCachedHealth,
+  getEndpointCatalog,
   markHealthy,
   markUnhealthy,
 } from './health.js';
@@ -103,6 +104,47 @@ describe('Model health checking', () => {
     await checkModelHealth(model, 500);
     expect(fetchSpy).toHaveBeenCalled();
     fetchSpy.mockRestore();
+  });
+
+  it('marks a model unhealthy when its id is missing from the endpoint catalog', async () => {
+    const model = makeModel({ model: 'openai/gpt-4.1' });
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ data: [{ id: 'openai/gpt-oss-120b' }, { id: 'openai/gpt-5' }] }),
+    } as never);
+    const health = await checkModelHealth(model, 1000);
+    expect(health.healthy).toBe(false);
+    expect(health.error).toContain('not in the catalog');
+  });
+
+  it('marks a model healthy when its id is in the endpoint catalog', async () => {
+    const model = makeModel({ model: 'openai/gpt-oss-120b' });
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ data: [{ id: 'openai/gpt-oss-120b' }] }),
+    } as never);
+    const health = await checkModelHealth(model, 1000);
+    expect(health.healthy).toBe(true);
+  });
+
+  it('treats auto-routed models as catalog-agnostic', async () => {
+    const model = makeModel({ model: 'auto' });
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ data: [{ id: 'some-unlisted-id' }] }),
+    } as never);
+    const health = await checkModelHealth(model, 1000);
+    expect(health.healthy).toBe(true);
+  });
+
+  it('getEndpointCatalog returns null when the fetch fails', async () => {
+    const model = makeModel();
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('network down'));
+    const catalog = await getEndpointCatalog(model.endpoint, model.apiKey);
+    expect(catalog).toBeNull();
   });
 
 });
