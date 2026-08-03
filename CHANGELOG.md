@@ -1,3 +1,10 @@
+# [3.6.0](https://github.com/bgill55/daedalus/compare/v3.5.0...v3.6.0) (2026-08-03)
+
+
+### Features
+
+* **agent:** ship beta router reliability, memory, and docs fixes ([76ff894](https://github.com/bgill55/daedalus/commit/76ff894fba46c42ff2d39df350022456df23536b)), closes [#21](https://github.com/bgill55/daedalus/issues/21)
+
 # [3.5.0](https://github.com/bgill55/daedalus/compare/v3.4.0...v3.5.0) (2026-08-02)
 
 
