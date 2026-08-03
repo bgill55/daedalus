@@ -1,3 +1,10 @@
+## [3.7.1](https://github.com/bgill55/daedalus/compare/v3.7.0...v3.7.1) (2026-08-03)
+
+
+### Bug Fixes
+
+* **router:** skip failed pinned models on retry and cap cascade downgrades ([65c0f3d](https://github.com/bgill55/daedalus/commit/65c0f3df54a200d619141603d708f67602532a0a))
+
 # [3.7.0](https://github.com/bgill55/daedalus/compare/v3.6.0...v3.7.0) (2026-08-03)
 
 
