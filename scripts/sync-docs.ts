@@ -175,7 +175,9 @@ function syncConfigReference() {
     'router.chain': 'Ordered list of model endpoint configurations. Each entry defines name, endpoint URL, model, priority, tier, and capability flags.',
     'router.healthCheckInterval': 'Interval in milliseconds between background health checks on configured endpoints. Default: 30000.',
     'router.requestTimeout': 'Maximum wait in milliseconds for a model response before considering it failed. Default: 120000.',
-    'router.slowModelThresholdMs': 'Average latency in milliseconds above which a model is blacklisted for the rest of the session. Set to 0 to disable. Default: 45000.',
+    'router.slowModelThresholdMs': 'Average latency in milliseconds above which a model is blacklisted. Blacklisting is TTL-bounded (see router.blacklistTtlMs) and persisted across restarts (see router.blacklistPersist) rather than lasting the whole session. Set to 0 to disable. Default: 45000.',
+    'router.blacklistTtlMs': 'How long (in milliseconds) a blacklisted model stays excluded before decaying back into the eligible pool. Prevents a single transient failure from permanently banning a model. Default: 600000 (10 minutes).',
+    'router.blacklistPersist': 'When true, the model blacklist is persisted to ~/.daedalus/model-blacklist.db so exclusions survive CLI restarts. Set to false for in-memory-only blacklisting. Default: true.',
     'router.defaultRateLimit': 'Default rate limit settings (rpm and tpm) applied when an endpoint does not advertise its own limits.',
     'router.autoEscalate': 'When true, automatically switches to the next chain model after repeated tool failures. Default: true.',
     'router.complexityRouting': 'When true, routes each task by complexity tier: simple tasks use the fast tier, complex tasks use the intelligence tier, with on-the-fly reclassification mid-task. Default: true.',
@@ -236,7 +238,7 @@ function syncConfigReference() {
 
   for (const section of SECTIONS) {
     const keysInSection = section.prefix === '__top__'
-      ? configPaths.filter(key => !key.includes('.'))
+      ? configPaths.filter(key => !key.includes('.') && key !== 'updateCheck')
       : configPaths.filter(key => key.startsWith(section.prefix));
     if (keysInSection.length === 0) continue;
 
@@ -257,5 +259,18 @@ function syncConfigReference() {
   console.log('Successfully synchronized docs/configuration-reference.md');
 }
 
+function syncApiMediaConfigReference(): void {
+  const docPath = path.join(projectRoot, 'docs', 'configuration-reference.md');
+  const mediaDir = path.join(projectRoot, 'docs', 'api', 'media');
+  const mediaPath = path.join(mediaDir, 'configuration-reference.md');
+  if (!fs.existsSync(docPath)) {
+    throw new Error(`Cannot sync docs/api/media/configuration-reference.md: source ${docPath} does not exist`);
+  }
+  if (!fs.existsSync(mediaDir)) fs.mkdirSync(mediaDir, { recursive: true });
+  fs.copyFileSync(docPath, mediaPath);
+  console.log('Successfully synchronized docs/api/media/configuration-reference.md');
+}
+
 syncCommandsTable();
 syncConfigReference();
+syncApiMediaConfigReference();
