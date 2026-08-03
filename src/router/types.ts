@@ -1,5 +1,7 @@
 // Daedalus Local Router Types
 
+import type { RouteSkip } from '../types.js';
+
 export interface ModelEntry {
   name: string;                 // Human-readable name (e.g., "lmstudio-qwen")
   endpoint: string;             // Base URL (e.g., "http://localhost:1234/v1")
@@ -7,6 +9,7 @@ export interface ModelEntry {
   priority: number;             // Lower = higher priority
   enabled: boolean;
   apiKey?: string;              // Optional API key for remote providers
+  provider?: 'openai' | 'anthropic' | 'google' | 'openrouter' | 'freellmapi' | 'custom';  // BYOK provider tag for smart defaults
   maxTokens?: number;           // Context window (optional, for auto-detection)
   supportsTools?: boolean;      // Whether model supports tool calling
   supportsVision?: boolean;     // Whether model supports vision
@@ -31,6 +34,8 @@ export interface TokenBucket {
 export interface RouteResult {
   model: ModelEntry;
   health: ModelHealth;
+  reason: string;
+  skipped: RouteSkip[];
 }
 
 export type TaskComplexity = 'simple' | 'standard' | 'complex';
@@ -40,6 +45,7 @@ export interface RouterConfig {
   chain: ModelEntry[];
   healthCheckInterval: number;  // ms
   requestTimeout: number;       // ms
+  slowModelThresholdMs?: number; // ms; models whose EMA latency exceeds this are blacklisted for the session (0 = disabled)
   defaultRateLimit: {
     rpm: number;  // requests per minute
     tpm: number;  // tokens per minute

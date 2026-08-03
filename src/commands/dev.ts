@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import pc from 'picocolors';
 
-import { discoverLocalServers } from '../config/index.js';
+import { discoverLocalServers, PROVIDER_REGISTRY } from '../config/index.js';
 import { getSessionTodos } from '../tools/builtin/todo.js';
 import { turnSeparator } from '../formatting.js';
 
@@ -788,11 +788,112 @@ Once you have finished making changes, I will automatically re-run the command t
       }
       const { checkModelHealth } = await import('../router/health.js');
       const healthyModels = ctx.router.getHealthyModels();
+      const blacklist = ctx.router.getSessionBlacklist();
+      const blacklistedKeys = new Set(blacklist.map(b => `${b.endpoint}|${b.model}`));
       console.log(pc.bold('\n--- Healthy Models ---'));
       for (const model of healthyModels) {
         const health = await checkModelHealth(model, 5000);
-        const status = health?.healthy ? pc.green('●') : pc.red('●');
-        console.log(`  ${status} ${pc.cyan(model.name)} (${model.endpoint}) - ${model.model}`);
+        const key = `${model.endpoint}|${model.model}`;
+        const isBlacklisted = blacklistedKeys.has(key);
+        const status = health?.healthy && !isBlacklisted ? pc.green('●') : pc.red('●');
+        const detail = !health?.healthy && health?.error ? pc.dim(` ${health.error}`) : isBlacklisted ? pc.yellow(' blacklisted') : '';
+        console.log(`  ${status} ${pc.cyan(model.name)} (${model.endpoint}) - ${model.model}${detail}`);
+      }
+      if (blacklist.length > 0) {
+        console.log(pc.bold('\n--- Session Blacklist ---'));
+        for (const entry of blacklist) {
+          console.log(`  ${pc.red('✕')} ${pc.cyan(entry.model)} (${entry.endpoint})`);
+          console.log(`     ${pc.dim(entry.reason)}`);
+        }
+        console.log(pc.dim('  Run /blacklist clear to allow them again.'));
+      }
+      console.log(pc.bold('----------------------\n'));
+    }
+  },
+  {
+    name: '/routing',
+    description: 'Explain the last routing decision and show skipped models',
+    usage: '/routing',
+    helpText: 'Shows why the most recent model was selected and which models were skipped this session (session-blacklisted, slow-guard, excluded, or catalog-missing), so routing stays legible.',
+    execute: async (_args, ctx) => {
+      const decision = ctx.router.getLastRouteDecision();
+      console.log(pc.bold('\n--- Routing Decision ---'));
+      if (!decision) {
+        console.log(pc.yellow('  No routing decision recorded yet this session.'));
+      } else {
+        console.log(`  ${pc.cyan(decision.model.name)} (${decision.model.endpoint}) - ${decision.model.model}`);
+        console.log(`  ${pc.dim('reason:')} ${decision.reason}`);
+        if (decision.skipped.length > 0) {
+          console.log(pc.bold('\n  Skipped this turn:'));
+          for (const s of decision.skipped) {
+            console.log(`    ${pc.yellow('–')} ${pc.cyan(s.model)} (${s.endpoint}) — ${pc.dim(s.reason)}`);
+          }
+        } else {
+          console.log(pc.dim('  No models were skipped this turn.'));
+        }
+      }
+      const blacklist = ctx.router.getSessionBlacklist();
+      if (blacklist.length > 0) {
+        console.log(pc.bold('\n--- Session Blacklist ---'));
+        for (const entry of blacklist) {
+          console.log(`  ${pc.red('✕')} ${pc.cyan(entry.model)} (${entry.endpoint})`);
+          console.log(`     ${pc.dim(entry.reason)}`);
+        }
+      }
+      const ema = ctx.router.getLatencyEma();
+      if (ema.length > 0) {
+        console.log(pc.bold('\n--- Latency (slow-guard) ---'));
+        for (const e of ema) {
+          const pct = e.thresholdMs > 0 ? Math.min(100, Math.round((e.emaMs / e.thresholdMs) * 100)) : 0;
+          const bar = pc[e.emaMs >= e.thresholdMs ? 'red' : 'green'](`●`);
+          console.log(`  ${bar} ${pc.cyan(e.model)} — avg ${e.emaMs}ms / threshold ${e.thresholdMs}ms (${pct}%)`);
+        }
+      }
+      console.log(pc.bold('----------------------\n'));
+    }
+  },
+  {
+    name: '/providers',
+    description: 'List supported model providers and BYOK setup hints',
+    usage: '/providers',
+    helpText: 'Lists known providers with their default base URLs and how to configure a bring-your-own-key model.\n\nExample:\n  /config set model.myopenai.provider = openai\n  /config set model.myopenai.endpoint = https://api.openai.com/v1\n  /config set model.myopenai.model = gpt-4.1\n  /config set model.myopenai.apiKey = sk-...\n  /config set model.myopenai.priority = 5',
+    execute: async (args, ctx) => {
+      console.log(pc.bold('\n--- Supported Providers ---'));
+      for (const p of PROVIDER_REGISTRY) {
+        console.log(`  ${pc.cyan(p.id.padEnd(11))} ${p.label}`);
+        console.log(`     ${pc.dim(p.baseUrl)}  e.g. model: ${p.exampleModel}`);
+        console.log(`     ${pc.dim(p.notes)}`);
+      }
+      console.log(pc.bold('\nBring Your Own Key:'));
+      console.log(pc.gray('  /config set model.<name>.provider = openai'));
+      console.log(pc.gray('  /config set model.<name>.endpoint = <base url>'));
+      console.log(pc.gray('  /config set model.<name>.model = <model id>'));
+      console.log(pc.gray('  /config set model.<name>.apiKey = <your key>'));
+      console.log(pc.gray('  /config set model.<name>.priority = 5'));
+      console.log(pc.bold('---------------------------\n'));
+    }
+  },
+  {
+    name: '/blacklist',
+    description: 'Show or clear the session model blacklist',
+    usage: '/blacklist [clear]',
+    helpText: 'Models that hard-fail during a session (400/not-in-catalog/timeout) are blacklisted for the rest of the session.\n\nSubcommands:\n  (no args)   List blacklisted models and reasons\n  clear       Remove all models from the session blacklist',
+    execute: async (args, ctx) => {
+      const rest = args.trim();
+      if (rest === 'clear') {
+        ctx.router.clearSessionBlacklist();
+        console.log(pc.green('[OK] Session blacklist cleared.'));
+        return;
+      }
+      const blacklist = ctx.router.getSessionBlacklist();
+      if (blacklist.length === 0) {
+        console.log(pc.green('  Session blacklist is empty.'));
+        return;
+      }
+      console.log(pc.bold('\n--- Session Blacklist ---'));
+      for (const entry of blacklist) {
+        console.log(`  ${pc.red('✕')} ${pc.cyan(entry.model)} (${entry.endpoint})`);
+        console.log(`     ${pc.dim(entry.reason)}`);
       }
       console.log(pc.bold('----------------------\n'));
     }

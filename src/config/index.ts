@@ -7,6 +7,24 @@ import { createLogger } from '../tools/logger.js';
 
 const logger = createLogger();
 
+const ProviderRegistryEntrySchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  baseUrl: z.string(),
+  exampleModel: z.string(),
+  notes: z.string(),
+});
+export type ProviderRegistryEntry = z.infer<typeof ProviderRegistryEntrySchema>;
+
+export const PROVIDER_REGISTRY: ProviderRegistryEntry[] = z.array(ProviderRegistryEntrySchema).parse([
+  { id: 'openai', label: 'OpenAI', baseUrl: 'https://api.openai.com/v1', exampleModel: 'gpt-4.1', notes: 'Official OpenAI. Use your own API key.' },
+  { id: 'anthropic', label: 'Anthropic', baseUrl: 'https://api.anthropic.com/v1', exampleModel: 'claude-sonnet-4-5', notes: 'Anthropic API. Requires the claude model gateway for tool calls.' },
+  { id: 'google', label: 'Google Gemini', baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai', exampleModel: 'gemini-2.5-flash', notes: 'Google AI Studio key via the OpenAI-compatible endpoint.' },
+  { id: 'openrouter', label: 'OpenRouter', baseUrl: 'https://openrouter.ai/api/v1', exampleModel: 'deepseek/deepseek-v3', notes: 'One key, many models.' },
+  { id: 'freellmapi', label: 'FreeLLM API', baseUrl: 'http://127.0.0.1:3001/v1', exampleModel: 'auto', notes: 'Local free-tier proxy. Catalog-aware routing filters invalid ids.' },
+  { id: 'custom', label: 'Custom / self-hosted', baseUrl: 'http://localhost:PORT/v1', exampleModel: 'your-model-id', notes: 'LM Studio, Ollama, vLLM, etc.' },
+]);
+
 export const ModelEntrySchema = z.object({
   name: z.string(),
   endpoint: z.string().refine(v => /^https?:\/\//i.test(v) || /^[a-zA-Z0-9.-]+:\d+/.test(v), {
@@ -16,6 +34,7 @@ export const ModelEntrySchema = z.object({
   priority: z.number().int().min(0),
   enabled: z.boolean(),
   apiKey: z.string().optional(),
+  provider: z.enum(['openai', 'anthropic', 'google', 'openrouter', 'freellmapi', 'custom']).optional(),
   maxTokens: z.number().int().positive().optional(),
   supportsTools: z.boolean().optional(),
   supportsVision: z.boolean().optional(),
@@ -27,6 +46,7 @@ export const RouterConfigSchema = z.object({
   chain: z.array(ModelEntrySchema).default([]),
   healthCheckInterval: z.number().int().positive().default(30000),
   requestTimeout: z.number().int().positive().default(120000),
+  slowModelThresholdMs: z.number().int().nonnegative().default(45000),
   defaultRateLimit: z.object({
     rpm: z.number().int().positive().default(60),
     tpm: z.number().int().positive().default(100000),
@@ -192,6 +212,7 @@ export const DEFAULT_CONFIG: DaedalusConfig = {
     ],
     healthCheckInterval: 30000,
     requestTimeout: 120000,
+    slowModelThresholdMs: 45000,
     defaultRateLimit: { rpm: 60, tpm: 100000 },
     autoEscalate: true,
     complexityRouting: true,

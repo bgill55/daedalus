@@ -18,7 +18,8 @@ export function detectShell(platform: string): string {
   }
   const envShell = process.env.SHELL;
   if (envShell) {
-    return path.basename(envShell);
+    const base = path.basename(envShell);
+    return base.endsWith('.exe') ? base.slice(0, -4) : base;
   }
   return platform === 'darwin' ? 'zsh' : 'bash';
 }

@@ -175,6 +175,7 @@ function syncConfigReference() {
     'router.chain': 'Ordered list of model endpoint configurations. Each entry defines name, endpoint URL, model, priority, tier, and capability flags.',
     'router.healthCheckInterval': 'Interval in milliseconds between background health checks on configured endpoints. Default: 30000.',
     'router.requestTimeout': 'Maximum wait in milliseconds for a model response before considering it failed. Default: 120000.',
+    'router.slowModelThresholdMs': 'Average latency in milliseconds above which a model is blacklisted for the rest of the session. Set to 0 to disable. Default: 45000.',
     'router.defaultRateLimit': 'Default rate limit settings (rpm and tpm) applied when an endpoint does not advertise its own limits.',
     'router.autoEscalate': 'When true, automatically switches to the next chain model after repeated tool failures. Default: true.',
     'router.complexityRouting': 'When true, routes each task by complexity tier: simple tasks use the fast tier, complex tasks use the intelligence tier, with on-the-fly reclassification mid-task. Default: true.',

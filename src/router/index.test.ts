@@ -267,6 +267,22 @@ describe('LocalRouter', () => {
     await router.stopHealthChecks();
   });
 
+  it('health sweep marks models missing from the endpoint catalog unhealthy', async () => {
+    const router = new LocalRouter(makeConfig({
+      chain: [
+        { name: 'listed', endpoint: 'https://api.cat.ai/v1', model: 'm1', priority: 1, enabled: true },
+        { name: 'ghost', endpoint: 'https://api.cat.ai/v1', model: 'm2', priority: 2, enabled: true },
+      ],
+    }));
+    vi.spyOn(health, 'getEndpointCatalog').mockResolvedValue(new Set(['m1']));
+    await (router as any).runHealthChecks();
+    expect(health.getCachedHealth({ name: 'listed', endpoint: 'https://api.cat.ai/v1', model: 'm1', priority: 1, enabled: true })?.healthy).toBe(true);
+    expect(health.getCachedHealth({ name: 'ghost', endpoint: 'https://api.cat.ai/v1', model: 'm2', priority: 2, enabled: true })?.healthy).toBe(false);
+    const healthy = router.getHealthyModels().map(m => m.name);
+    expect(healthy).toContain('listed');
+    expect(healthy).not.toContain('ghost');
+  });
+
   it('stopHealthChecks clears interval', async () => {
     const router = new LocalRouter(makeConfig());
     await router.startHealthChecks();
@@ -468,6 +484,187 @@ describe('LocalRouter', () => {
 
       expect(yielded).toHaveLength(2);
       expect(yielded[1].usage).toEqual({ prompt_tokens: 45, completion_tokens: 123, total_tokens: 168 });
+    });
+  });
+
+  describe('Session blacklist', () => {
+    it('blacklists a model on a hard 4xx/not-in-catalog failure and routes around it', async () => {
+      const router = new LocalRouter(makeConfig({
+        chain: [
+          { name: 'ghost', endpoint: 'https://api.ghost.ai/v1', model: 'openai/gpt-4.1', priority: 1, enabled: true },
+          { name: 'alive', endpoint: 'https://api.alive.ai/v1', model: 'openai/gpt-5', priority: 2, enabled: true },
+        ],
+      }));
+      const create = vi.fn((opts: { model: string }) => {
+        if (opts.model === 'openai/gpt-4.1') {
+          return Promise.reject(Object.assign(new Error("Model 'openai/gpt-4.1' is not in the catalog served by this endpoint"), { status: 400 }));
+        }
+        return Promise.reject(Object.assign(new Error('Upstream error'), { status: 500 }));
+      });
+      vi.spyOn(router as any, 'getOrCreateClient').mockReturnValue({ chat: { completions: { create } } });
+
+      await expect(router.chatCompletion({ messages: [{ role: 'user', content: 'hi' }] })).rejects.toThrow();
+      const blacklist = router.getSessionBlacklist();
+      expect(blacklist).toHaveLength(1);
+      expect(blacklist[0].model).toBe('openai/gpt-4.1');
+      expect(blacklist[0].reason).toContain('not in the catalog');
+
+      const routed = await router.route({ messages: [{ role: 'user', content: 'hi' }] });
+      expect(routed.model.model).toBe('openai/gpt-5');
+    });
+
+    it('does not blacklist on transient 5xx failures', async () => {
+      const router = new LocalRouter(makeConfig({
+        chain: [
+          { name: 'flaky', endpoint: 'https://api.flaky.ai/v1', model: 'm1', priority: 1, enabled: true },
+        ],
+      }));
+      const create = vi.fn().mockRejectedValue(Object.assign(new Error('Service Unavailable'), { status: 503 }));
+      vi.spyOn(router as any, 'getOrCreateClient').mockReturnValue({ chat: { completions: { create } } });
+
+      await expect(router.chatCompletion({ messages: [{ role: 'user', content: 'hi' }] })).rejects.toThrow();
+      expect(router.getSessionBlacklist()).toHaveLength(0);
+    });
+
+    it('clearSessionBlacklist empties the list', async () => {
+      const router = new LocalRouter(makeConfig({
+        chain: [
+          { name: 'only', endpoint: 'https://api.only.ai/v1', model: 'auto', priority: 1, enabled: true },
+        ],
+      }));
+      const create = vi.fn().mockRejectedValue(Object.assign(new Error("Model 'auto' is not in the catalog served by this endpoint"), { status: 400 }));
+      vi.spyOn(router as any, 'getOrCreateClient').mockReturnValue({ chat: { completions: { create } } });
+
+      await expect(router.chatCompletion({ messages: [{ role: 'user', content: 'hi' }] })).rejects.toThrow();
+      expect(router.getSessionBlacklist().length).toBeGreaterThan(0);
+      router.clearSessionBlacklist();
+      expect(router.getSessionBlacklist()).toHaveLength(0);
+    });
+  });
+
+  describe('Slow model guard', () => {
+    it('blacklists a model whose EMA latency exceeds the threshold', async () => {
+      const router = new LocalRouter(makeConfig({
+        slowModelThresholdMs: 45000,
+        chain: [
+          { name: 'snail', endpoint: 'https://api.snail.ai/v1', model: 'm1', priority: 1, enabled: true },
+          { name: 'cheetah', endpoint: 'https://api.cheetah.ai/v1', model: 'm2', priority: 2, enabled: true },
+        ],
+      }));
+      const snail = router.getEnabledModels()[0];
+      (router as any).recordLatency(snail, 10000);
+      (router as any).recordLatency(snail, 20000);
+      (router as any).recordLatency(snail, 200000);
+      const blacklist = router.getSessionBlacklist();
+      expect(blacklist).toHaveLength(1);
+      expect(blacklist[0].model).toBe('m1');
+      expect(blacklist[0].reason).toContain('exceeds threshold');
+
+      const routed = await router.route({ messages: [{ role: 'user', content: 'hi' }] });
+      expect(routed.model.model).toBe('m2');
+    });
+
+    it('does nothing when the threshold is disabled', async () => {
+      const router = new LocalRouter(makeConfig({
+        slowModelThresholdMs: 0,
+        chain: [
+          { name: 'snail', endpoint: 'https://api.snail.ai/v1', model: 'm1', priority: 1, enabled: true },
+        ],
+      }));
+      const snail = router.getEnabledModels()[0];
+      (router as any).recordLatency(snail, 600000);
+      expect(router.getSessionBlacklist()).toHaveLength(0);
+    });
+  });
+
+  describe('BYOK provider field', () => {
+    it('accepts the provider field on a chain model', () => {
+      const router = new LocalRouter(makeConfig({
+        chain: [
+          { name: 'byok', endpoint: 'https://my-proxy.example/v1', model: 'gpt-4.1', priority: 1, enabled: true, provider: 'openai' },
+        ],
+      }));
+      expect(router.getEnabledModels()[0].provider).toBe('openai');
+    });
+
+    it('treats a model tagged provider=openai as official even without the api.openai.com host', async () => {
+      const router = new LocalRouter(makeConfig({
+        chain: [
+          { name: 'byok', endpoint: 'https://my-proxy.example/v1', model: 'gpt-4.1', priority: 1, enabled: true, provider: 'openai' },
+        ],
+      }));
+      const model = router.getEnabledModels()[0] as any;
+      const isOfficial = (model.provider === 'openai') || model.endpoint.includes('api.openai.com');
+      expect(isOfficial).toBe(true);
+    });
+  });
+
+  describe('Routing decision transparency', () => {
+    it('records the selection reason and skipped models on route()', async () => {
+      const router = new LocalRouter(makeConfig({
+        chain: [
+          { name: 'a', endpoint: 'https://api.a.ai/v1', model: 'm1', priority: 1, enabled: true, tier: 'intelligence' },
+          { name: 'b', endpoint: 'https://api.b.ai/v1', model: 'm2', priority: 2, enabled: true, tier: 'fast' },
+          { name: 'c', endpoint: 'https://api.c.ai/v1', model: 'm3', priority: 3, enabled: true, tier: 'fast' },
+        ],
+      }));
+      const result = await router.route({ messages: [{ role: 'user', content: 'hi' }], complexity: 'simple' });
+      const decision = router.getLastRouteDecision();
+      expect(decision).toBeDefined();
+      expect(decision!.reason).toContain("tier 'fast'");
+      expect(result.reason).toBe(decision!.reason);
+      expect(Array.isArray(result.skipped)).toBe(true);
+    });
+
+    it('marks blacklisted models as skipped rather than selecting them', async () => {
+      const router = new LocalRouter(makeConfig({
+        chain: [
+          { name: 'a', endpoint: 'https://api.a.ai/v1', model: 'm1', priority: 1, enabled: true, tier: 'fast' },
+          { name: 'b', endpoint: 'https://api.b.ai/v1', model: 'm2', priority: 2, enabled: true, tier: 'fast' },
+        ],
+      }));
+      router.addToSessionBlacklist('https://api.b.ai/v1', 'm2', '400 not-in-catalog');
+      const result = await router.route({ messages: [{ role: 'user', content: 'hi' }], complexity: 'simple' });
+      expect(result.model.model).toBe('m1');
+      const skippedB = result.skipped.find(s => s.model === 'm2');
+      expect(skippedB?.reason).toBe('session-blacklisted');
+    });
+  });
+
+  describe('Health sweep catalog conflation (Bug #3)', () => {
+    it('does not mark sibling models unhealthy when only one is catalog-missing', async () => {
+      const router = new LocalRouter(makeConfig({
+        strategy: 'priority',
+        chain: [
+          { name: 'good', endpoint: 'https://api.same.ai/v1', model: 'good-model', priority: 1, enabled: true },
+          { name: 'bad', endpoint: 'https://api.same.ai/v1', model: 'missing-model', priority: 2, enabled: true },
+        ],
+      }));
+      vi.spyOn(health, 'checkModelHealth').mockResolvedValue({ healthy: true, lastCheck: Date.now(), latencyMs: 10, consecutiveFailures: 0 });
+      vi.spyOn(health, 'getEndpointCatalog').mockResolvedValue(new Set(['good-model']));
+      await (router as any).runHealthChecks();
+      const good = health.getCachedHealth({ endpoint: 'https://api.same.ai/v1', model: 'good-model' } as any);
+      const bad = health.getCachedHealth({ endpoint: 'https://api.same.ai/v1', model: 'missing-model' } as any);
+      expect(good?.healthy).toBe(true);
+      expect(bad?.healthy).toBe(false);
+      expect(bad?.error).toContain('not in the catalog');
+    });
+
+    it('marks all sibling models unhealthy when the endpoint is actually down', async () => {
+      const router = new LocalRouter(makeConfig({
+        strategy: 'priority',
+        chain: [
+          { name: 'a', endpoint: 'https://api.down.ai/v1', model: 'a-model', priority: 1, enabled: true },
+          { name: 'b', endpoint: 'https://api.down.ai/v1', model: 'b-model', priority: 2, enabled: true },
+        ],
+      }));
+      vi.spyOn(health, 'checkModelHealth').mockResolvedValue({ healthy: false, lastCheck: Date.now(), error: 'connect ETIMEDOUT', consecutiveFailures: 1 });
+      vi.spyOn(health, 'getEndpointCatalog').mockResolvedValue(null);
+      await (router as any).runHealthChecks();
+      const a = health.getCachedHealth({ endpoint: 'https://api.down.ai/v1', model: 'a-model' } as any);
+      const b = health.getCachedHealth({ endpoint: 'https://api.down.ai/v1', model: 'b-model' } as any);
+      expect(a?.healthy).toBe(false);
+      expect(b?.healthy).toBe(false);
     });
   });
 

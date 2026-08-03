@@ -88,6 +88,12 @@ export interface HealthPayload {
   providers: Record<string, ProviderHealth>;
 }
 
+export interface RouteSkip {
+  endpoint: string;
+  model: string;
+  reason: string;
+}
+
 declare global {
   var isTui: boolean | undefined;
   var originalStdoutWrite: typeof process.stdout.write | undefined;
