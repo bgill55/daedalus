@@ -35,7 +35,7 @@ function wrapLine(line: string, maxW: number): string[] {
 // ── User message ───────────────────────────────────────────────
 
 export function printUserTurn(userMessage: string): void {
-  const isTui = (globalThis as any).isTui;
+  const isTui = globalThis.isTui;
   const cols = process.stdout.columns ?? 80;
   const targetWidth = isTui
     ? Math.max(40, Math.floor(cols * 0.8) - 8)
@@ -356,7 +356,7 @@ function parseBracketToolItem(item: string, idx: number): ToolCall | null {
   const name = resolveToolName(m[1]);
   if (!name) return null;
   const rawArgs = (m[2] ?? '').trim();
-  const args: Record<string, any> = {};
+  const args: Record<string, unknown> = {};
   if (rawArgs) {
     const kvRe = /([a-zA-Z_]\w*)\s*=\s*(?:"([\s\S]*?)"|'([\s\S]*?)'|([^\s,]+))/g;
     let km;
@@ -382,7 +382,7 @@ export function parseTextToolCalls(text: string): ToolCall[] {
     if (lines.length === 0) continue;
     const toolName = lines[0].replace(/<[^>]+>/g, '').trim();
 
-    const args: Record<string, any> = {};
+    const args: Record<string, unknown> = {};
     const keyRegex = /<(longcat_)?arg_key>([\s\S]*?)<\/(longcat_)?arg_key>/g;
     const valRegex = /<(longcat_)?arg_value>([\s\S]*?)<\/(longcat_)?arg_value>/g;
 
@@ -418,7 +418,7 @@ export function parseTextToolCalls(text: string): ToolCall[] {
     if (blockMatch) {
       const funcName = blockMatch[1].toLowerCase();
       const rawArgs = blockMatch[2].trim();
-      const args: Record<string, any> = {};
+      const args: Record<string, unknown> = {};
       if (funcName === 'write_file' || funcName === 'patch') {
         const keyValueRe = /(\w+)=["']([\s\S]*?)["']/g;
         let km;
@@ -445,7 +445,7 @@ export function parseTextToolCalls(text: string): ToolCall[] {
   if (bodyMatch && toolCalls.length === 0) {
     const tool = bodyMatch[1].toLowerCase();
     if (['write_file','patch','search_files','terminal','read_file','git_diff','git_status'].includes(tool)) {
-      const args: Record<string, any> = {};
+      const args: Record<string, unknown> = {};
       if (tool === 'write_file') {
         const cleanText = text.replace(/`/g, '');
         const pathMatch = cleanText.match(/(?:create|write|add|created|creating)\s+(?:a\s+|the\s+)?(?:file\s+(?:named\s+)?)?([A-Za-z0-9_\-./\\:]+\.[A-Za-z0-9]+)/i) ||
