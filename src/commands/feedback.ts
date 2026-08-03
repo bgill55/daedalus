@@ -5,10 +5,9 @@ import { execSync, spawn } from 'child_process';
 
 import { getConfigDirPath } from '../config/index.js';
 import { getSystemDiagnostics } from '../config/systemInfo.js';
-import type { Command, CommandContext } from './types.js';
+import type { Command } from './types.js';
 
 // Redaction patterns
-const HOME_PATTERN = new RegExp(`(${process.env.USERPROFILE || process.env.HOME || ''})`, 'gi');
 const API_KEY_PATTERN = /sk-[a-zA-Z0-9_-]+/g;
 const AUTH_TOKEN_PATTERN = /Bearer\s+[a-zA-Z0-9_-]+|Basic\s+[a-zA-Z0-9=]+/g;
 const GIT_REMOTE_PATTERN = /https?:\/\/(.*@)?(github\.com|gitlab\.com|bitbucket\.org)\/[^\/]+\/[^\/#]+/g;
@@ -82,7 +81,7 @@ async function copyToClipboard(text: string): Promise<void> {
       cp.stdin.end(text);
       await new Promise(resolve => cp.on('close', resolve));
     }
-  } catch (err) {
+  } catch {
     // Silently fail — clipboard is optional
   }
 }
@@ -107,7 +106,7 @@ export const feedbackCommand: Command = {
       } else {
         discordWebhookUrl = process.env.DISCORD_WEBHOOK_URL || null;
       }
-    } catch (e) {
+    } catch {
       discordWebhookUrl = process.env.DISCORD_WEBHOOK_URL || null;
     }
 

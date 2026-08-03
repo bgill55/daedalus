@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import pc from 'picocolors';
 
-import type { Command, CommandContext } from './types.js';
+import type { Command } from './types.js';
 
 interface Shortcut {
   alias: string;

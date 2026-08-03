@@ -25,24 +25,6 @@ import {
 
 const userMessageHistory = new Map<string, number[]>();
 
-async function imageAttachmentToBase64(attachment: { url: string; contentType: string | null; name: string | null }): Promise<{ mime: string; base64: string } | null> {
-  const mime = attachment.contentType || inferMimeType(attachment.name);
-  if (!mime || !mime.startsWith('image/')) return null;
-  try {
-    // Some CDNs require a User-Agent; add a generic one
-    const response = await fetch(attachment.url, { headers: { 'User-Agent': 'Daedalus-Discord-Bot/1.0' } });
-    if (!response.ok) {
-      console.error(`[VISION] Failed to fetch image ${attachment.name}: ${response.status} ${response.statusText}`);
-      return null;
-    }
-    const buffer = Buffer.from(await response.arrayBuffer());
-    return { mime, base64: buffer.toString('base64') };
-  } catch (err) {
-    console.error(`[VISION] Error processing image ${attachment.name}:`, err instanceof Error ? err.message : String(err));
-    return null;
-  }
-}
-
 async function getImageFromAttachment(attachment: { url: string; contentType: string | null; name: string | null }): Promise<{ mime: string; base64: string } | null> {
   // Enhanced image processing with better error handling
   const mime = attachment.contentType || inferMimeType(attachment.name);
@@ -697,11 +679,6 @@ export function attachListeners(c: Client, router: LocalRouter, token: string) {
         console.log(`[DEBUG]   attachment: name=${a.name}, contentType=${a.contentType}, url=${a.url.substring(0, 60)}...`);
       }
     }
-
-    // Enhanced error detection for vision fallback
-    const hasVisionError = (errMsg: string) => {
-      return /image|vision|multimodal|supportsVision|vision-capable/i.test(errMsg);
-    };
 
     let userContent: string | Array<{ type: string; text?: string; image_url?: { url: string } }>;
 

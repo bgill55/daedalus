@@ -2,7 +2,6 @@
 
 import fs from 'fs';
 import path from 'path';
-import os from 'os';
 import readline from 'readline';
 import { LocalRouter } from '../router/index.js';
 import { BUILTIN_TOOLS } from '../tools/definitions.js';
@@ -15,14 +14,14 @@ import { DaedalusSpinner } from '../tools/daedalus-spinner.js';
 import { SessionManager } from '../session/manager.js';
 import { parseTextToolCalls } from '../formatting.js';
 import {
-  filterValidTasks, stripCodeBlocks, stripToolRequestArtifacts, VAGUE_GOAL_RE,
-  isComplexGoal, validateTasks, cleanTaskText, cleanPlanOutput, truncateGoal,
-  extractFilePaths, buildDependencyGraph, getTaskFilePaths, hasFileConflict, groupIndependent,
+  filterValidTasks,
+  validateTasks, cleanTaskText, cleanPlanOutput, truncateGoal,
+  extractFilePaths, buildDependencyGraph, groupIndependent,
   isUnnecessaryConfigTask, extractRequirements, getFrameworkGuidance,
 } from './orchestrator-validation.js';
 import {
-  isDeclaredError, requiresRealArtifacts, extractPendingWrites,
-  verifyArtifacts, hasRealWrites, verifyArtifactsThoroughly,
+  isDeclaredError,
+  verifyArtifacts, verifyArtifactsThoroughly,
   checkPlaceholders, fillPlaceholders, buildCleanSummary,
   isBuildErrorRelated, generateBuildErrorHint, runBuildVerification,
   attemptRepair, rollbackTaskPatches, verifySpecAssertions, isRealFile,
