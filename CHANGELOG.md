@@ -1,3 +1,10 @@
+## [3.7.3](https://github.com/bgill55/daedalus/compare/v3.7.2...v3.7.3) (2026-08-03)
+
+
+### Bug Fixes
+
+* clean up CI PR review comments and validate PR titles ([#23](https://github.com/bgill55/daedalus/issues/23)) ([78717bd](https://github.com/bgill55/daedalus/commit/78717bdc36e82338bb9436fff910421b47a06eb8))
+
 ## [3.7.2](https://github.com/bgill55/daedalus/compare/v3.7.1...v3.7.2) (2026-08-03)
 
 
