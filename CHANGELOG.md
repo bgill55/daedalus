@@ -1,3 +1,10 @@
+## [3.9.1](https://github.com/bgill55/daedalus/compare/v3.9.0...v3.9.1) (2026-08-03)
+
+
+### Bug Fixes
+
+* **config:** register blacklist TTL/persist in schema and sync API-doc reference ([#29](https://github.com/bgill55/daedalus/issues/29)) ([d70f115](https://github.com/bgill55/daedalus/commit/d70f115ffdc91b915fcc05d02207ec1064428c84))
+
 # [3.9.0](https://github.com/bgill55/daedalus/compare/v3.8.0...v3.9.0) (2026-08-03)
 
 
