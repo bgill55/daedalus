@@ -128,7 +128,7 @@ If no bugs are found, respond with exactly: "No semantic issues found."`,
         const content = aiRes.choices[0]?.message?.content?.trim() || '';
         if (content && content !== 'No semantic issues found.') findings.push(content);
       }
-      semanticFindings = findings.join('\n\n');
+      semanticFindings = findings.length > 0 ? findings.join('\n\n') : 'No semantic issues found.';
     } catch (err) {
       semanticFindings = `⚠️ Semantic analysis failed to run: ${err instanceof Error ? err.message : String(err)}. ` +
         'The deterministic static checks above are authoritative; re-run the review if the model call is flaky.';
@@ -153,10 +153,9 @@ If no bugs are found, respond with exactly: "No semantic issues found."`,
     markdownReport += `### 📊 Changed Files\n\`\`\`\n${diffSummary}\n\`\`\`\n\n`;
   }
 
-  if (semanticFindings && semanticFindings !== 'No semantic issues found.') {
-    markdownReport += `### 🧠 Daedalus Semantic Analysis\n${semanticFindings}\n\n`;
-  } else if (semanticFindings === 'No semantic issues found.') {
-    markdownReport += `### 🧠 Daedalus Semantic Analysis\n✅ No semantic issues found.\n\n`;
+  if (semanticFindings) {
+    const clean = semanticFindings === 'No semantic issues found.';
+    markdownReport += `### 🧠 Daedalus Semantic Analysis\n${clean ? '✅ No semantic issues found.' : semanticFindings}\n\n`;
   }
 
   if (!typeCheckPassed) {

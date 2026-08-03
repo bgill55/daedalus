@@ -122,6 +122,33 @@ describe('Daedalus Static Checks', () => {
     expect(res.findings).toHaveLength(0);
   });
 
+  it('skips test files so the review never flags its own specs', () => {
+    const diff = diffFor('src/ci.test.ts', [
+      'export default function foo() {}',
+      'const x: any = {};',
+      'try { a(); } catch { }',
+    ]);
+    const res = runStaticChecks(diff);
+    expect(res.findings).toHaveLength(0);
+    expect(res.passed).toBe(true);
+  });
+
+  it('flags a missing .js extension in a .js file (not just .ts)', () => {
+    const diff = diffFor('scripts/tool.js', ["import { x } from './x';"]);
+    const res = runStaticChecks(diff);
+    const f = res.findings.find(f => f.rule === 'esm-import-extension');
+    expect(f).toBeDefined();
+    expect(f?.message).toContain("'./x'");
+  });
+
+  it('reports the correct captured import path (no undefined)', () => {
+    const diff = diffFor('src/baz.ts', ["import { thing } from './thing';"]);
+    const res = runStaticChecks(diff);
+    const f = res.findings.find(f => f.rule === 'esm-import-extension');
+    expect(f?.message).toContain("'./thing'");
+    expect(f?.message).not.toContain('undefined');
+  });
+
   it('returns no findings for an empty diff', () => {
     const res = runStaticChecks('');
     expect(res.passed).toBe(true);

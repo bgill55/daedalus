@@ -103,6 +103,20 @@ export interface RouteLogEntry {
   skipped: Array<{ model: string; endpoint: string; reason: string }>;
 }
 
+export interface StaticFinding {
+  rule: string;
+  severity: 'error' | 'warning';
+  file: string;
+  line: number;
+  message: string;
+}
+
+export interface StaticCheckResult {
+  findings: StaticFinding[];
+  passed: boolean;
+  markdownReport: string;
+}
+
 declare global {
   var isTui: boolean | undefined;
   var originalStdoutWrite: typeof process.stdout.write | undefined;

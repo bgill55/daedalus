@@ -1,23 +1,25 @@
-import type { CiReviewResult } from '../ci.js';
+import type { StaticFinding, StaticCheckResult } from '../types.js';
 
-export interface StaticFinding {
-  rule: string;
-  severity: 'error' | 'warning';
-  file: string;
-  line: number;
-  message: string;
-}
-
-export interface StaticCheckResult {
-  findings: StaticFinding[];
-  passed: boolean;
-  markdownReport: string;
-}
+export type { CiReviewResult } from '../ci.js';
 
 interface DiffHunk {
   file: string;
   addedLines: { lineNo: number; text: string }[];
 }
+
+const TEST_FILE_RE = /(\.test\.(ts|tsx|js|jsx)|\.spec\.(ts|tsx|js|jsx)|__tests__\/)/;
+
+const SILENT_CATCH_RE = /\bcatch\s*(?:\([^)]*\))?\s*\{\s*\}/;
+
+const DEFAULT_EXPORT_RE = /export\s+default\s+/;
+
+const ANY_IN_ADDED_RE = /\bany\b/;
+
+// Non-global regex: .test() and .match() are stateless, and .match() returns
+// the captured import specifier at index 1.
+const ESM_IMPORT_RE = /(?:import|export)[^;]*from\s*['"](\.[^'"]*)['"]/;
+
+const TYPE_IMPORT_RE = /import\s+type\s+/;
 
 function parseDiffHunks(diff: string): DiffHunk[] {
   const hunks: DiffHunk[] = [];
@@ -55,16 +57,6 @@ function parseDiffHunks(diff: string): DiffHunk[] {
   return hunks;
 }
 
-const SILENT_CATCH_RE = /\bcatch\s*(?:\([^)]*\))?\s*\{\s*\}/;
-
-const DEFAULT_EXPORT_RE = /export\s+default\s+/;
-
-const ANY_IN_ADDED_RE = /\bany\b/;
-
-const ESM_IMPORT_RE = /(?:import|export)[^;]*from\s*['"](\.[^'"]*)['"]/g;
-
-const TYPE_IMPORT_RE = /import\s+type\s+/;
-
 function checkHunk(hunk: DiffHunk, findings: StaticFinding[]): void {
   const isTs = hunk.file.endsWith('.ts') || hunk.file.endsWith('.tsx');
   const isJs = hunk.file.endsWith('.js') || hunk.file.endsWith('.jsx');
@@ -73,7 +65,7 @@ function checkHunk(hunk: DiffHunk, findings: StaticFinding[]): void {
   for (const added of hunk.addedLines) {
     const text = added.text;
 
-    if (SILENT_CATCH_RE.test(text)) {
+    if (isSource && SILENT_CATCH_RE.test(text)) {
       findings.push({
         rule: 'no-silent-catch',
         severity: 'error',
@@ -107,9 +99,9 @@ function checkHunk(hunk: DiffHunk, findings: StaticFinding[]): void {
       });
     }
 
-    if (isTs && ESM_IMPORT_RE.test(text) && !text.includes('.js')) {
+    if (isSource && !TEST_FILE_RE.test(hunk.file)) {
       const m = text.match(ESM_IMPORT_RE);
-      if (m) {
+      if (m && !m[1].endsWith('.js')) {
         findings.push({
           rule: 'esm-import-extension',
           severity: 'warning',
@@ -128,7 +120,10 @@ export function runStaticChecks(diffPatch: string): StaticCheckResult {
   const findings: StaticFinding[] = [];
   if (diffPatch && diffPatch.trim()) {
     const hunks = parseDiffHunks(diffPatch);
-    for (const hunk of hunks) checkHunk(hunk, findings);
+    for (const hunk of hunks) {
+      if (TEST_FILE_RE.test(hunk.file)) continue;
+      checkHunk(hunk, findings);
+    }
   }
 
   const passed = !findings.some(f => f.severity === 'error');
@@ -153,5 +148,3 @@ export function runStaticChecks(diffPatch: string): StaticCheckResult {
 export function emptyStaticCheckResult(): StaticCheckResult {
   return { findings: [], passed: true, markdownReport: '' };
 }
-
-export type { CiReviewResult };
