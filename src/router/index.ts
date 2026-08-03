@@ -17,6 +17,7 @@ export type { RouteResult, RouterConfig, ChatResponse };
 import { createTokenBucket, consumeTokens, getWaitTime } from './rate-limiter.js';
 import { checkModelHealth, getCachedHealth, getEndpointCatalog, markHealthy, markUnhealthy } from './health.js';
 import { logRouteDecision } from './routing-logger.js';
+import { BlacklistStore } from './blacklist-store.js';
 
 function isHardFailure(err: unknown): boolean {
   const msg = err instanceof Error ? err.message : String(err);
@@ -42,20 +43,26 @@ export class LocalRouter {
   public lastRoutedTier?: string;
   public lastRouteDecision?: { model: ModelEntry; reason: string; skipped: Array<{ endpoint: string; model: string; reason: string }> };
   private routeStats = { fast: 0, standard: 0, complex: 0, override: 0 };
-  private sessionBlacklist = new Map<string, { reason: string; at: number }>();
+  private sessionBlacklist!: BlacklistStore;
   private latencyEma = new Map<string, number>();
   private readonly slowAlpha = 0.3;
 
   constructor(config: RouterConfig) {
     this.config = config;
+    this.sessionBlacklist = new BlacklistStore({
+      ttlMs: this.config.blacklistTtlMs,
+      enabled: this.config.blacklistPersist !== false,
+    });
     this.initializeRateLimiters();
   }
 
   getSessionBlacklist(): Array<{ endpoint: string; model: string; reason: string; at: number }> {
-    return Array.from(this.sessionBlacklist.entries()).map(([key, entry]) => {
-      const [endpoint, model] = key.split('|');
-      return { endpoint, model, reason: entry.reason, at: entry.at };
-    });
+    return this.sessionBlacklist.list().map(e => ({
+      endpoint: e.endpoint,
+      model: e.model,
+      reason: e.reason,
+      at: e.at,
+    }));
   }
 
   getLastRouteDecision(): typeof this.lastRouteDecision {
@@ -91,18 +98,25 @@ export class LocalRouter {
     if (entry) {
       this.blacklistModel(entry, reason);
     } else {
-      this.sessionBlacklist.set(`${endpoint}|${model}`, { reason, at: Date.now() });
+      this.sessionBlacklist.add(endpoint, model, reason);
       markUnhealthy({ endpoint, model } as ModelEntry, reason);
     }
   }
 
   private blacklistModel(m: ModelEntry, reason: string): void {
-    this.sessionBlacklist.set(`${m.endpoint}|${m.model}`, { reason, at: Date.now() });
+    this.sessionBlacklist.add(m.endpoint, m.model, reason);
     markUnhealthy(m, reason);
   }
 
   private isBlacklisted(m: ModelEntry): boolean {
-    return this.sessionBlacklist.has(`${m.endpoint}|${m.model}`);
+    const key = `${m.endpoint}|${m.model}`;
+    const { blacklisted, expiredNow } = this.sessionBlacklist.isBlacklisted(m.endpoint, m.model);
+    if (expiredNow) {
+      // Decay: a previously blacklisted model came back after its TTL, so
+      // reset its latency baseline to get a fresh measurement.
+      this.latencyEma.delete(key);
+    }
+    return blacklisted;
   }
 
   private recordLatency(m: ModelEntry, latencyMs: number): void {

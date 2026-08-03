@@ -18,6 +18,8 @@ function makeConfig(overrides: Partial<RouterConfig> = {}): RouterConfig {
     healthCheckInterval: 30000,
     requestTimeout: 120000,
     defaultRateLimit: { rpm: 60, tpm: 100000 },
+    // Unit tests stay in-memory; on-disk persistence is covered by blacklist-store.test.ts.
+    blacklistPersist: false,
     ...overrides,
   };
   for (const m of config.chain) {

@@ -45,7 +45,9 @@ export interface RouterConfig {
   chain: ModelEntry[];
   healthCheckInterval: number;  // ms
   requestTimeout: number;       // ms
-  slowModelThresholdMs?: number; // ms; models whose EMA latency exceeds this are blacklisted for the session (0 = disabled)
+  slowModelThresholdMs?: number; // ms; models whose EMA latency exceeds this are blacklisted (0 = disabled)
+  blacklistTtlMs?: number;      // ms; how long a blacklisted model stays excluded before decaying back in (default 10m)
+  blacklistPersist?: boolean;   // persist blacklist to SQLite across restarts (default true)
   defaultRateLimit: {
     rpm: number;  // requests per minute
     tpm: number;  // tokens per minute
