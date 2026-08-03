@@ -51,7 +51,9 @@ export class MCPRegistry {
       this.tools.set(prefixedName, { ...tool, name: prefixedName });
     }
 
-    console.log(`Connected to MCP server: ${config.name} (${tools.length} tools)`);
+    if (!process.env.NO_COLOR) {
+      console.log(`Connected to MCP server: ${config.name} (${tools.length} tools)`);
+    }
   }
 
   disconnectServer(name: string): void {

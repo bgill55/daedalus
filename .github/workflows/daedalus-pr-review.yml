@@ -30,6 +30,7 @@ jobs:
       - name: Run Daedalus Headless PR Review
         id: daedalus
         env:
+          NO_COLOR: '1'
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           DAEDALUS_ROUTER_KEY: ${{ secrets.DAEDALUS_ROUTER_KEY }}
