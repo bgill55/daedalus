@@ -50,6 +50,13 @@ if (isAutoApprove) {
   process.env.DAEDALUS_AUTO_APPROVE = 'true';
 }
 
+const isCi = process.argv.includes('--ci');
+if (isCi) {
+  // CI/review mode: suppress ANSI color codes so captured stdout is clean
+  // (e.g. when posted as a PR comment) and never present an interactive banner.
+  process.env.NO_COLOR = '1';
+}
+
 const changelogPath = path.join(__dirname, '..', 'CHANGELOG.md');
 checkChangelogOnUpgrade(APP_VERSION, configDir, changelogPath);
 
@@ -189,7 +196,9 @@ if (initialArgs.length > 0) {
     const absPath = path.resolve(fileArg);
     activeFiles.set(absPath, fileArg);
     toolContext.activeFiles = new Map(activeFiles);
-    console.log(pc.green(`✔ Added file on startup: ${pc.bold(fileArg)}`));
+    if (!isCi) {
+      console.log(pc.green(`✔ Added file on startup: ${pc.bold(fileArg)}`));
+    }
   });
 }
 
@@ -293,16 +302,18 @@ async function main() {
     import('./tools/builtin/process-watcher.js').then(m => m.killAllWatchedProcesses()).catch(() => {});
   });
 
-  // Print the awesome banner first!
-  printBanner(APP_VERSION);
+  // Print the awesome banner first! (skip in CI/review mode so captured stdout stays clean)
   const enabledCount = config.router.chain.filter(m => m.enabled).length;
-  printConfigInfo(enabledCount, config.router.strategy, configDir + '/config.json');
+  if (!isCi) {
+    printBanner(APP_VERSION);
+    printConfigInfo(enabledCount, config.router.strategy, configDir + '/config.json');
 
-  // Load & log project-specific rules
-  const filesToCheck = ['CLAUDE.md', '.cursorrules', '.daedalusrules', 'DAEDALUS.md'];
-  for (const file of filesToCheck) {
-    if (fs.existsSync(path.join(sessionManager.projectRoot, file))) {
-      console.log(pc.green(`  ✔ Loaded project rules: ${pc.bold(file)}`));
+    // Load & log project-specific rules
+    const filesToCheck = ['CLAUDE.md', '.cursorrules', '.daedalusrules', 'DAEDALUS.md'];
+    for (const file of filesToCheck) {
+      if (fs.existsSync(path.join(sessionManager.projectRoot, file))) {
+        console.log(pc.green(`  ✔ Loaded project rules: ${pc.bold(file)}`));
+      }
     }
   }
 
@@ -364,8 +375,10 @@ async function main() {
       const servers = mcpRegistry.getConnectedServers();
       if (servers.length > 0) {
         const mcpToolCount = mcpRegistry.getToolDefinitions().length;
-        console.log(pc.green(`\nMCP connected: ${servers.join(', ')}`));
-        console.log(pc.dim(`  ${mcpToolCount} MCP tool(s) registered`));
+        if (!isCi) {
+          console.log(pc.green(`\nMCP connected: ${servers.join(', ')}`));
+          console.log(pc.dim(`  ${mcpToolCount} MCP tool(s) registered`));
+        }
       }
     }
   } catch (err: unknown) {
@@ -379,7 +392,6 @@ async function main() {
     return;
   }
 
-  const isCi = process.argv.includes('--ci');
   if (isCi) {
     const { runHeadlessCiReview, runHeadlessCiFix } = await import('./ci.js');
     const isFix = process.argv.includes('fix');
