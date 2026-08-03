@@ -40,6 +40,7 @@ export interface RouterConfig {
   chain: ModelEntry[];
   healthCheckInterval: number;  // ms
   requestTimeout: number;       // ms
+  slowModelThresholdMs?: number; // ms; models whose EMA latency exceeds this are blacklisted for the session (0 = disabled)
   defaultRateLimit: {
     rpm: number;  // requests per minute
     tpm: number;  // tokens per minute

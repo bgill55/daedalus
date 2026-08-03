@@ -40,6 +40,8 @@ export class LocalRouter {
   public lastRoutedTier?: string;
   private routeStats = { fast: 0, standard: 0, complex: 0, override: 0 };
   private sessionBlacklist = new Map<string, { reason: string; at: number }>();
+  private latencyEma = new Map<string, number>();
+  private readonly slowAlpha = 0.3;
 
   constructor(config: RouterConfig) {
     this.config = config;
@@ -64,6 +66,18 @@ export class LocalRouter {
 
   private isBlacklisted(m: ModelEntry): boolean {
     return this.sessionBlacklist.has(`${m.endpoint}|${m.model}`);
+  }
+
+  private recordLatency(m: ModelEntry, latencyMs: number): void {
+    const threshold = this.config.slowModelThresholdMs ?? 0;
+    if (threshold <= 0 || this.isBlacklisted(m)) return;
+    const key = `${m.endpoint}|${m.model}`;
+    const prev = this.latencyEma.get(key) ?? latencyMs;
+    const ema = prev + this.slowAlpha * (latencyMs - prev);
+    this.latencyEma.set(key, ema);
+    if (ema > threshold) {
+      this.blacklistModel(m, `Avg latency ${Math.round(ema)}ms exceeds threshold ${threshold}ms`);
+    }
   }
 
   private initializeRateLimiters(): void {
@@ -437,7 +451,9 @@ export class LocalRouter {
           model: actualModel,
         }, { signal }) as ChatResponse;
         
-        markHealthy(model, Date.now() - start);
+        const elapsed = Date.now() - start;
+        markHealthy(model, elapsed);
+        this.recordLatency(model, elapsed);
         return response;
       } catch (err) {
         lastError = err;
@@ -510,7 +526,9 @@ export class LocalRouter {
           yield chunk as StreamChunk;
         }
         
-        markHealthy(model, Date.now() - start);
+        const elapsed = Date.now() - start;
+        markHealthy(model, elapsed);
+        this.recordLatency(model, elapsed);
         return;
       } catch (err) {
         lastError = err;

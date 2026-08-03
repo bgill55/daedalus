@@ -542,4 +542,39 @@ describe('LocalRouter', () => {
     });
   });
 
+  describe('Slow model guard', () => {
+    it('blacklists a model whose EMA latency exceeds the threshold', async () => {
+      const router = new LocalRouter(makeConfig({
+        slowModelThresholdMs: 45000,
+        chain: [
+          { name: 'snail', endpoint: 'https://api.snail.ai/v1', model: 'm1', priority: 1, enabled: true },
+          { name: 'cheetah', endpoint: 'https://api.cheetah.ai/v1', model: 'm2', priority: 2, enabled: true },
+        ],
+      }));
+      const snail = router.getEnabledModels()[0];
+      (router as any).recordLatency(snail, 10000);
+      (router as any).recordLatency(snail, 20000);
+      (router as any).recordLatency(snail, 200000);
+      const blacklist = router.getSessionBlacklist();
+      expect(blacklist).toHaveLength(1);
+      expect(blacklist[0].model).toBe('m1');
+      expect(blacklist[0].reason).toContain('exceeds threshold');
+
+      const routed = await router.route({ messages: [{ role: 'user', content: 'hi' }] });
+      expect(routed.model.model).toBe('m2');
+    });
+
+    it('does nothing when the threshold is disabled', async () => {
+      const router = new LocalRouter(makeConfig({
+        slowModelThresholdMs: 0,
+        chain: [
+          { name: 'snail', endpoint: 'https://api.snail.ai/v1', model: 'm1', priority: 1, enabled: true },
+        ],
+      }));
+      const snail = router.getEnabledModels()[0];
+      (router as any).recordLatency(snail, 600000);
+      expect(router.getSessionBlacklist()).toHaveLength(0);
+    });
+  });
+
 });
