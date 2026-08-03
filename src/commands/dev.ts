@@ -711,7 +711,7 @@ Once you have finished making changes, I will automatically re-run the command t
   {
     name: '/ci',
     description: 'Run headless CI/CD PR review or auto-fix simulation locally',
-    execute: async (args, ctx) => {
+    execute: async (args, _ctx) => {
       const mode = args.trim().toLowerCase();
       const { runHeadlessCiReview, runHeadlessCiFix } = await import('../ci.js');
 
@@ -870,7 +870,7 @@ Once you have finished making changes, I will automatically re-run the command t
     description: 'List supported model providers and BYOK setup hints',
     usage: '/providers',
     helpText: 'Lists known providers with their default base URLs and how to configure a bring-your-own-key model.\n\nExample:\n  /config set model.myopenai.provider = openai\n  /config set model.myopenai.endpoint = https://api.openai.com/v1\n  /config set model.myopenai.model = gpt-4.1\n  /config set model.myopenai.apiKey = sk-...\n  /config set model.myopenai.priority = 5',
-    execute: async (args, ctx) => {
+    execute: async (_args, _ctx) => {
       console.log(pc.bold('\n--- Supported Providers ---'));
       for (const p of PROVIDER_REGISTRY) {
         console.log(`  ${pc.cyan(p.id.padEnd(11))} ${p.label}`);

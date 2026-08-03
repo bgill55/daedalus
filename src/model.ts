@@ -246,7 +246,6 @@ export function createModelFunctions(deps: ModelDeps) {
       let fullContent = '';
       const toolCallMap: Map<number, ToolCall> = new Map();
       let blockOpened = false;
-      const turnStart = Date.now();
 
       const openBlock = () => {
         if (!blockOpened) {

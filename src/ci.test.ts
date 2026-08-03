@@ -76,7 +76,7 @@ describe('Headless CI Runner', () => {
 describe('Daedalus Static Checks', () => {
   const diffFor = (file: string, added: string[]) => {
     const lines = [`diff --git a/${file} b/${file}`, `--- a/${file}`, `+++ b/${file}`, `@@ -1,1 +1,${added.length} @@`];
-    added.forEach((a, i) => lines.push(`+${a}`));
+    added.forEach((a) => lines.push(`+${a}`));
     return lines.join('\n');
   };
 

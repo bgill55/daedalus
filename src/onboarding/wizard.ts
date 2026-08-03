@@ -14,25 +14,6 @@ function question(rl: readline.Interface, query: string): Promise<string> {
   return new Promise(resolve => rl.question(query, resolve));
 }
 
-// ── Simple spinner for scanning ──
-async function spin(text: string, fn: () => Promise<any>): Promise<any> {
-  const spinner = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
-  let i = 0;
-  const interval = setInterval(() => {
-    process.stdout.write(`\r  ${spinner[i++ % spinner.length]} ${text}`);
-  }, 100);
-  try {
-    const result = await fn();
-    clearInterval(interval);
-    process.stdout.write('\r  ✅ ' + text + '\n');
-    return result;
-  } catch (error) {
-    clearInterval(interval);
-    process.stdout.write('\r  ❌ ' + text + '\n');
-    throw error;
-  }
-}
-
 // ── Check if any model is actually reachable ──
 
 async function hasAnyHealthyModel(config: DaedalusConfig): Promise<boolean> {

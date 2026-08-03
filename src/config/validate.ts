@@ -1,7 +1,6 @@
 import { z } from 'zod';
 import { ConfigSchema, type DaedalusConfig } from './index.js';
 import * as fs from 'fs';
-import * as path from 'path';
 
 export class ConfigValidationError extends Error {
   constructor(message: string, public path?: string) {

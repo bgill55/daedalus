@@ -1,8 +1,6 @@
 // SpecFirst Generator & Spec Contract Manager for Daedalus CLI
 import fs from 'fs';
 import path from 'path';
-import pc from 'picocolors';
-import type { ToolContext } from '../types.js';
 
 export interface SpecInterface {
   name: string;
@@ -201,7 +199,7 @@ Project Root: ${projectRoot}`;
 
     saveSpecContract(projectRoot, spec);
     return spec;
-  } catch (err: any) {
+  } catch {
     // Fallback basic contract if LLM JSON parsing fails
     const fallbackSpec: SpecContract = {
       featureName: goal.slice(0, 50),

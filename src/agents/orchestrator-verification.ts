@@ -4,7 +4,7 @@ import os from 'os';
 import pc from 'picocolors';
 
 import { PLACEHOLDER_RE, HTML_PLACEHOLDER_RE } from './orchestrator-types.js';
-import type { DelegationTask, AgentResult } from './orchestrator-types.js';
+import type { DelegationTask } from './orchestrator-types.js';
 import type { ToolContext } from '../types.js';
 import { loadSpecContract } from './spec.js';
 
