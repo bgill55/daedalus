@@ -12,13 +12,13 @@ function extractSchemaPaths(schema: any, prefix = ''): string[] {
   const paths: string[] = [];
   if (!schema) return paths;
   if (prefix.split('.').length >= 2) {
+    paths.push(prefix);
     return paths;
   }
   if (schema._def && schema._def.shape) {
     const shape = schema._def.shape();
     for (const key of Object.keys(shape)) {
       const currentPath = prefix ? `${prefix}.${key}` : key;
-      paths.push(currentPath);
       paths.push(...extractSchemaPaths(shape[key], currentPath));
     }
   } else if (schema._def && schema._def.schema) {
@@ -29,6 +29,8 @@ function extractSchemaPaths(schema: any, prefix = ''): string[] {
     paths.push(...extractSchemaPaths(schema._def.type, prefix));
   } else if (schema._def && schema._def.innerType) {
     paths.push(...extractSchemaPaths(schema._def.innerType, prefix));
+  } else {
+    paths.push(prefix);
   }
   return paths;
 }
@@ -167,6 +169,7 @@ const SECTIONS = [
 function syncConfigReference() {
   const docPath = path.join(projectRoot, 'docs', 'configuration-reference.md');
   const existingDescriptions: Record<string, string> = {
+    'version': 'Config file schema version. Do not edit manually. Default: 1.',
     'modelOverride': 'Pin a specific model for the current session, bypassing routing, complexity classification, and auto-escalation. Set via /config, /model, or a project .daedalusrc override.',
     'router.strategy': 'Routing strategy: "priority" (try models in order), "round-robin" (cycle evenly), or "fastest" (lowest latency). Default: "priority".',
     'router.chain': 'Ordered list of model endpoint configurations. Each entry defines name, endpoint URL, model, priority, tier, and capability flags.',
@@ -209,6 +212,8 @@ function syncConfigReference() {
     'ui.diffStyle': 'Diff display style: "unified" or "side-by-side". Default: "unified".',
     'ui.theme': 'UI theme: "dark", "light", or "auto" (follow system). Default: "dark".',
     'ui.tui': 'When true, launches the terminal user interface (TUI) dashboard on start. Default: false.',
+    'ui.compactMode': 'When true, compresses non-essential CLI output for a cleaner terminal display. Default: true.',
+    'ui.collapseCommentary': 'When true, collapses verbose model commentary into a single line instead of printing full paragraphs. Default: true.',
     'safety.protectGit': 'When true, requires explicit user confirmation before running git operations. Default: true.',
     'safety.autoApprove': 'When true, automatically approves terminal command execution without user prompt. Default: false.',
     'updateCheck': 'When true, checks for new Daedalus CLI versions on startup and notifies you. Default: true.',
@@ -219,7 +224,7 @@ function syncConfigReference() {
     const lines = content.split('\n');
     for (const line of lines) {
       const match = line.match(/^\*\s+\*\*`([\w.-]+)`\*\*:\s*(.*)$/);
-      if (match) {
+      if (match && !/^\(Description needed\)$/.test(match[2].trim())) {
         existingDescriptions[match[1]] = match[2].trim();
       }
     }
