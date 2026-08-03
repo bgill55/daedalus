@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach, afterAll } from 'vitest';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -6,7 +6,7 @@ import { LocalRouter, createRouter, sanitizeMessagesForModel } from './index.js'
 import type { RouterConfig, StreamChunk } from './types.js';
 import * as health from './health.js';
 import * as rateLimiter from './rate-limiter.js';
-import { getRecentRouteDecisions } from './routing-logger.js';
+import { getRecentRouteDecisions, flushRouteLog } from './routing-logger.js';
 
 function makeConfig(overrides: Partial<RouterConfig> = {}): RouterConfig {
   const config: RouterConfig = {
@@ -685,6 +685,10 @@ describe('LocalRouter', () => {
       if (fs.existsSync(logPath)) fs.rmSync(logPath);
     });
 
+    afterAll(() => {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    });
+
     it('writes a structured entry to routing.log on each route() decision', async () => {
       const router = new LocalRouter(makeConfig({
         chain: [
@@ -692,6 +696,7 @@ describe('LocalRouter', () => {
         ],
       }));
       await router.route({ messages: [{ role: 'user', content: 'hi' }] });
+      await flushRouteLog();
 
       const entries = getRecentRouteDecisions(10);
       expect(entries.length).toBeGreaterThanOrEqual(1);
