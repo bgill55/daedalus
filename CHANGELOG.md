@@ -1,3 +1,10 @@
+# [3.8.0](https://github.com/bgill55/daedalus/compare/v3.7.3...v3.8.0) (2026-08-03)
+
+
+### Features
+
+* **router:** structured routing-decision log + history in /routing ([#25](https://github.com/bgill55/daedalus/issues/25)) ([ad31142](https://github.com/bgill55/daedalus/commit/ad311429710cc0e01466a986ecbc567e756a4982))
+
 ## [3.7.3](https://github.com/bgill55/daedalus/compare/v3.7.2...v3.7.3) (2026-08-03)
 
 
