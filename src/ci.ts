@@ -2,12 +2,14 @@ import fs from 'fs';
 import path from 'path';
 import { execute as termExec } from './tools/builtin/terminal.js';
 import { ToolContext } from './types.js';
+import { runStaticChecks, emptyStaticCheckResult } from './review/static-checks.js';
 
 export interface CiReviewResult {
   passed: boolean;
   typeCheckPassed: boolean;
   lintPassed: boolean;
   testsPassed: boolean;
+  staticPassed: boolean;
   summary: string;
   markdownReport: string;
 }
@@ -28,6 +30,7 @@ export async function runHeadlessCiReview(
   let typeCheckPassed = true;
   let lintPassed = true;
   let testsPassed = true;
+  let staticPassed = true;
   let typeCheckOutput = '';
   let lintOutput = '';
   let testsOutput = '';
@@ -80,7 +83,16 @@ export async function runHeadlessCiReview(
     diffPatch = diffPatchRes.content.trim();
   }
 
-  // 5. AI semantic diff analysis — Daedalus reads the actual diff and flags logic bugs
+  // 4b. Deterministic static anti-pattern analysis on the diff (no AI dependency)
+  let staticResult = emptyStaticCheckResult();
+  if (diffPatch) {
+    staticResult = runStaticChecks(diffPatch);
+    staticPassed = staticResult.passed;
+  }
+
+  // 5. AI semantic diff analysis — Daedalus reads the actual diff and flags logic bugs.
+  // The diff is split into bounded chunks so larger PRs are reviewed in full instead of
+  // being silently truncated, and a model failure throws (no silent no-op).
   let semanticFindings = '';
   if (diffPatch) {
     try {
@@ -89,37 +101,53 @@ export async function runHeadlessCiReview(
       const config = loadConfig();
       const router = createRouter(config.router);
 
-      const truncatedDiff = diffPatch.slice(0, 8000);
-      const aiRes = await router.chat.completions.create({
-        model: 'intelligence',
-        messages: [
-          {
-            role: 'system',
-            content: `You are an expert code reviewer. Analyze the following git diff for semantic bugs, contract mismatches (e.g. JSDoc stating rules different from regex or code logic), AGENTS.md rule violations (redundant inline comments restating obvious code flow), schema mismatches, unreachable code paths, and logic errors.
+      const CHUNK = 6000;
+      const chunks: string[] = [];
+      for (let i = 0; i < diffPatch.length; i += CHUNK) {
+        chunks.push(diffPatch.slice(i, i + CHUNK));
+      }
+
+      const findings: string[] = [];
+      for (const chunk of chunks) {
+        const aiRes = await router.chat.completions.create({
+          model: 'intelligence',
+          messages: [
+            {
+              role: 'system',
+              content: `You are an expert code reviewer. Analyze the following git diff for semantic bugs, contract mismatches (e.g. JSDoc stating rules different from regex or code logic), AGENTS.md rule violations (redundant inline comments restating obvious code flow), schema mismatches, unreachable code paths, and logic errors.
 Be concise. Format findings as a numbered markdown list.
 If no bugs are found, respond with exactly: "No semantic issues found."`,
-          },
-          {
-            role: 'user',
-            content: `Review this diff:\n\`\`\`diff\n${truncatedDiff}\n\`\`\``,
-          },
-        ],
-        temperature: 0.1,
-      });
-      semanticFindings = aiRes.choices[0]?.message?.content?.trim() || '';
-    } catch {
-      semanticFindings = '';
+            },
+            {
+              role: 'user',
+              content: `Review this diff:\n\`\`\`diff\n${chunk}\n\`\`\``,
+            },
+          ],
+          temperature: 0.1,
+        });
+        const content = aiRes.choices[0]?.message?.content?.trim() || '';
+        if (content && content !== 'No semantic issues found.') findings.push(content);
+      }
+      semanticFindings = findings.join('\n\n');
+    } catch (err) {
+      semanticFindings = `⚠️ Semantic analysis failed to run: ${err instanceof Error ? err.message : String(err)}. ` +
+        'The deterministic static checks above are authoritative; re-run the review if the model call is flaky.';
     }
   }
 
-  const passed = typeCheckPassed && lintPassed && testsPassed;
+  const passed = typeCheckPassed && lintPassed && testsPassed && staticPassed;
 
   let markdownReport = `## 🤖 Daedalus Automated PR Review\n\n`;
   markdownReport += `**Overall Status**: ${passed ? '✅ PASSED' : '❌ ACTION REQUIRED'}\n\n`;
   markdownReport += `### 🔍 Verification Checks\n`;
   markdownReport += `- **Type Check (\`npx tsc\`)**: ${typeCheckPassed ? '✅ Passed' : '❌ Failed'}\n`;
   markdownReport += `- **Linter (\`npm run lint\`)**: ${lintPassed ? '✅ Passed' : '❌ Failed'}\n`;
-  markdownReport += `- **Test Suite (\`npm test\`)**: ${testsPassed ? '✅ Passed' : '❌ Failed'}\n\n`;
+  markdownReport += `- **Test Suite (\`npm test\`)**: ${testsPassed ? '✅ Passed' : '❌ Failed'}\n`;
+  markdownReport += `- **Static Analysis (\`no-silent-catch\`, \`esm-import-extension\`, \`no-default-export\`, \`no-explicit-any\`)**: ${staticPassed ? '✅ Passed' : '❌ Failed'}\n\n`;
+
+  if (staticResult.markdownReport) {
+    markdownReport += staticResult.markdownReport;
+  }
 
   if (diffSummary) {
     markdownReport += `### 📊 Changed Files\n\`\`\`\n${diffSummary}\n\`\`\`\n\n`;
@@ -153,6 +181,7 @@ If no bugs are found, respond with exactly: "No semantic issues found."`,
     typeCheckPassed,
     lintPassed,
     testsPassed,
+    staticPassed,
     summary: passed ? 'All PR checks passed successfully.' : 'PR checks failed verification.',
     markdownReport: cleanReport,
   };

@@ -29,6 +29,7 @@ vi.mock('./config/index.js', () => ({
 }));
 
 import { runHeadlessCiReview, runHeadlessCiFix } from './ci.js';
+import { runStaticChecks } from './review/static-checks.js';
 
 describe('Headless CI Runner', () => {
   beforeEach(() => {
@@ -41,6 +42,7 @@ describe('Headless CI Runner', () => {
     expect(result).toHaveProperty('typeCheckPassed');
     expect(result).toHaveProperty('lintPassed');
     expect(result).toHaveProperty('testsPassed');
+    expect(result).toHaveProperty('staticPassed');
     expect(result).toHaveProperty('markdownReport');
     expect(result.markdownReport).toContain('Daedalus Automated PR Review');
   });
@@ -50,6 +52,7 @@ describe('Headless CI Runner', () => {
     expect(result.typeCheckPassed).toBe(true);
     expect(result.lintPassed).toBe(true);
     expect(result.testsPassed).toBe(true);
+    expect(result.staticPassed).toBe(true);
     expect(result.passed).toBe(true);
   });
 
@@ -58,6 +61,7 @@ describe('Headless CI Runner', () => {
     expect(result.markdownReport).toContain('Type Check');
     expect(result.markdownReport).toContain('Linter');
     expect(result.markdownReport).toContain('Test Suite');
+    expect(result.markdownReport).toContain('Static Analysis');
   });
 
   it('runHeadlessCiFix handles auto-fix check cleanly', async () => {
@@ -66,5 +70,61 @@ describe('Headless CI Runner', () => {
     expect(fixResult).toHaveProperty('message');
     expect(typeof fixResult.success).toBe('boolean');
     expect(typeof fixResult.message).toBe('string');
+  });
+});
+
+describe('Daedalus Static Checks', () => {
+  const diffFor = (file: string, added: string[]) => {
+    const lines = [`diff --git a/${file} b/${file}`, `--- a/${file}`, `+++ b/${file}`, `@@ -1,1 +1,${added.length} @@`];
+    added.forEach((a, i) => lines.push(`+${a}`));
+    return lines.join('\n');
+  };
+
+  it('flags an empty catch block as an error (no-silent-catch)', () => {
+    const diff = diffFor('scripts/sync-docs.ts', [
+      'function copy() {',
+      '  try { doThing(); } catch { }',
+      '}',
+    ]);
+    const res = runStaticChecks(diff);
+    expect(res.passed).toBe(false);
+    expect(res.findings.some(f => f.rule === 'no-silent-catch' && f.severity === 'error')).toBe(true);
+  });
+
+  it('flags a default export as a warning', () => {
+    const diff = diffFor('src/foo.ts', ['export default function foo() {}']);
+    const res = runStaticChecks(diff);
+    expect(res.passed).toBe(true);
+    expect(res.findings.some(f => f.rule === 'no-default-export')).toBe(true);
+  });
+
+  it('flags explicit any in added lines as a warning', () => {
+    const diff = diffFor('src/bar.ts', ['const x: any = {};']);
+    const res = runStaticChecks(diff);
+    expect(res.findings.some(f => f.rule === 'no-explicit-any')).toBe(true);
+  });
+
+  it('flags a missing .js extension on a relative ESM import as a warning', () => {
+    const diff = diffFor('src/baz.ts', ["import { thing } from './thing';"]);
+    const res = runStaticChecks(diff);
+    expect(res.findings.some(f => f.rule === 'esm-import-extension')).toBe(true);
+  });
+
+  it('passes a clean diff with no anti-patterns', () => {
+    const diff = diffFor('src/qux.ts', [
+      "import { thing } from './thing.js';",
+      'export function run(): void {',
+      '  try { thing(); } catch (err) { console.error(err); }',
+      '}',
+    ]);
+    const res = runStaticChecks(diff);
+    expect(res.passed).toBe(true);
+    expect(res.findings).toHaveLength(0);
+  });
+
+  it('returns no findings for an empty diff', () => {
+    const res = runStaticChecks('');
+    expect(res.passed).toBe(true);
+    expect(res.findings).toHaveLength(0);
   });
 });
