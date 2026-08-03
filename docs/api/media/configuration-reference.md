@@ -8,7 +8,6 @@ This guide describes all configuration options available in Daedalus. You can vi
 
 *   **`version`**: Config file schema version. Do not edit manually. Default: 1.
 *   **`modelOverride`**: Pin a specific model for the current session, bypassing routing, complexity classification, and auto-escalation. Set via /config, /model, or a project .daedalusrc override.
-*   **`updateCheck`**: When true, checks for new Daedalus CLI versions on startup and notifies you. Default: true.
 
 ---
 

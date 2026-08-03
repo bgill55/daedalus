@@ -238,7 +238,7 @@ function syncConfigReference() {
 
   for (const section of SECTIONS) {
     const keysInSection = section.prefix === '__top__'
-      ? configPaths.filter(key => !key.includes('.'))
+      ? configPaths.filter(key => !key.includes('.') && key !== 'updateCheck')
       : configPaths.filter(key => key.startsWith(section.prefix));
     if (keysInSection.length === 0) continue;
 
@@ -263,14 +263,12 @@ function syncApiMediaConfigReference(): void {
   const docPath = path.join(projectRoot, 'docs', 'configuration-reference.md');
   const mediaDir = path.join(projectRoot, 'docs', 'api', 'media');
   const mediaPath = path.join(mediaDir, 'configuration-reference.md');
-  if (!fs.existsSync(docPath)) return;
-  try {
-    if (!fs.existsSync(mediaDir)) fs.mkdirSync(mediaDir, { recursive: true });
-    fs.copyFileSync(docPath, mediaPath);
-    console.log('Successfully synchronized docs/api/media/configuration-reference.md');
-  } catch {
-    // Non-fatal: the TypeDoc API site copy is best-effort.
+  if (!fs.existsSync(docPath)) {
+    throw new Error(`Cannot sync docs/api/media/configuration-reference.md: source ${docPath} does not exist`);
   }
+  if (!fs.existsSync(mediaDir)) fs.mkdirSync(mediaDir, { recursive: true });
+  fs.copyFileSync(docPath, mediaPath);
+  console.log('Successfully synchronized docs/api/media/configuration-reference.md');
 }
 
 syncCommandsTable();

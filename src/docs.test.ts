@@ -217,7 +217,7 @@ describe('Documentation Sync Verification', () => {
     const sectionBlocks: string[] = [];
     for (const section of SECTIONS) {
       const keysInSection = section.prefix === '__top__'
-        ? configPaths.filter(key => !key.includes('.'))
+        ? configPaths.filter(key => !key.includes('.') && key !== 'updateCheck')
         : configPaths.filter(key => key.startsWith(section.prefix));
       if (keysInSection.length === 0) continue;
 
@@ -247,5 +247,15 @@ describe('Documentation Sync Verification', () => {
       }
       throw new Error(diffMsg + "\nPlease run 'npm run sync-docs' to automatically update it.");
     }
+  });
+
+  it('verifies the API-media config reference matches the canonical one', () => {
+    const canonicalPath = path.join(projectRoot, 'docs', 'configuration-reference.md');
+    const mediaPath = path.join(projectRoot, 'docs', 'api', 'media', 'configuration-reference.md');
+    expect(fs.existsSync(canonicalPath)).toBe(true);
+    expect(fs.existsSync(mediaPath)).toBe(true);
+    const canonical = fs.readFileSync(canonicalPath, 'utf8').replace(/\r\n/g, '\n');
+    const media = fs.readFileSync(mediaPath, 'utf8').replace(/\r\n/g, '\n');
+    expect(media).toBe(canonical);
   });
 });
