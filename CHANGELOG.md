@@ -1,3 +1,10 @@
+## [3.7.2](https://github.com/bgill55/daedalus/compare/v3.7.1...v3.7.2) (2026-08-03)
+
+
+### Bug Fixes
+
+* remove stray debug file and trigger release of Phase 1-3 changes ([0fea254](https://github.com/bgill55/daedalus/commit/0fea254bd9720ef87a1565d70b3808796ea795f2))
+
 ## [3.7.1](https://github.com/bgill55/daedalus/compare/v3.7.0...v3.7.1) (2026-08-03)
 
 
