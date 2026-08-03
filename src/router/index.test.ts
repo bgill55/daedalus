@@ -1,4 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { LocalRouter, createRouter, sanitizeMessagesForModel } from './index.js';
 import type { RouterConfig, StreamChunk } from './types.js';
 import * as health from './health.js';
@@ -670,12 +673,7 @@ describe('LocalRouter', () => {
     });
 
     describe('Routing decision logging', () => {
-    const tmpDir = (() => {
-      const fs = require('node:fs');
-      const os = require('node:os');
-      const path = require('node:path');
-      return fs.mkdtempSync(path.join(os.tmpdir(), 'daedalus-route-log-'));
-    })();
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'daedalus-route-log-'));
 
     beforeEach(() => {
       process.env.DAEDALUS_ROUTING_LOG_DIR = tmpDir;
@@ -683,8 +681,6 @@ describe('LocalRouter', () => {
 
     afterEach(() => {
       delete process.env.DAEDALUS_ROUTING_LOG_DIR;
-      const fs = require('node:fs');
-      const path = require('node:path');
       const logPath = path.join(tmpDir, 'routing.log');
       if (fs.existsSync(logPath)) fs.rmSync(logPath);
     });
