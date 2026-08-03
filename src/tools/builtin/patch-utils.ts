@@ -176,6 +176,71 @@ export function computeChangedLines(oldContent: string, newContent: string): num
   return changed;
 }
 
+interface TscBaseline {
+  output: string;
+  tsconfigMtime: number;
+}
+
+const tscBaselines = new Map<string, TscBaseline>();
+
+function findTsconfig(filePath: string, projectRoot: string): string | null {
+  let dir = path.dirname(filePath);
+  while (true) {
+    const candidate = path.join(dir, 'tsconfig.json');
+    if (fs.existsSync(candidate)) return candidate;
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  const fallback = path.join(projectRoot, 'tsconfig.json');
+  return fs.existsSync(fallback) ? fallback : null;
+}
+
+function runTsc(tsconfigRoot: string): string {
+  const run = () => spawnSync('npx', ['tsc', '--noEmit', '--skipLibCheck'], {
+    cwd: tsconfigRoot,
+    timeout: 15000,
+    encoding: 'utf8',
+    shell: true,
+  });
+  let result = run();
+  if (result.status !== 0) {
+    const output = (result.stdout ?? '') + (result.stderr ?? '');
+    const hasDeprecation = output.split('\n').some(l => /error TS5\d{3}/.test(l));
+    if (hasDeprecation) {
+      try {
+        const tsconfigPath = path.join(tsconfigRoot, 'tsconfig.json');
+        const raw = fs.readFileSync(tsconfigPath, 'utf8');
+        const cfg = JSON.parse(raw);
+        if (!cfg.compilerOptions) cfg.compilerOptions = {};
+        if (!cfg.compilerOptions.ignoreDeprecations) {
+          cfg.compilerOptions.ignoreDeprecations = '6.0';
+          fs.writeFileSync(tsconfigPath, JSON.stringify(cfg, null, 2) + '\n', 'utf8');
+          result = run();
+        }
+      } catch { /* if tsconfig parse fails, leave it alone */ }
+    }
+  }
+  return (result.stdout ?? '') + (result.stderr ?? '');
+}
+
+export function extractErrorLines(output: string): string[] {
+  return output.split('\n')
+    .map(l => l.trim())
+    .filter(l => /error TS\d{4}/.test(l) && !/error TS5\d{3}/.test(l));
+}
+
+export function normalizeErrorLine(line: string): string {
+  return line.replace(/\(\d+,\d+\)/g, '').trim();
+}
+
+function errorsIntroducedByPatch(afterOutput: string, root: string): string[] {
+  const baseline = tscBaselines.get(root);
+  if (!baseline) return [];
+  const beforeSet = new Set(extractErrorLines(baseline.output).map(normalizeErrorLine));
+  return extractErrorLines(afterOutput).filter(l => !beforeSet.has(normalizeErrorLine(l)));
+}
+
 export async function syntaxCheck(filePath: string, projectRoot: string, modifiedLines?: number[]): Promise<string | null> {
   const ext = path.extname(filePath).toLowerCase();
 
@@ -196,63 +261,43 @@ export async function syntaxCheck(filePath: string, projectRoot: string, modifie
   }
 
   if (ext === '.ts' || ext === '.tsx') {
-    let tsconfigDir = path.dirname(filePath);
-    let tsconfigPath: string | null = null;
-    while (true) {
-      const candidate = path.join(tsconfigDir, 'tsconfig.json');
-      if (fs.existsSync(candidate)) { tsconfigPath = candidate; break; }
-      const parent = path.dirname(tsconfigDir);
-      if (parent === tsconfigDir) break;
-      tsconfigDir = parent;
-    }
-    if (!tsconfigPath) tsconfigPath = path.join(projectRoot, 'tsconfig.json');
-    if (!fs.existsSync(tsconfigPath)) return null;
+    const tsconfigPath = findTsconfig(filePath, projectRoot);
+    if (!tsconfigPath) return null;
 
     const tsconfigRoot = path.dirname(tsconfigPath);
-    const runTsc = () => spawnSync('npx', ['tsc', '--noEmit', '--skipLibCheck'], {
-      cwd: tsconfigRoot,
-      timeout: 15000,
-      encoding: 'utf8',
-      shell: true,
-    });
-    let result = runTsc();
-    if (result.status !== 0) {
-      const output = (result.stdout ?? '') + (result.stderr ?? '');
-      const lines = output.split('\n');
-      const hasDeprecation = lines.some(l => /error TS5\d{3}/.test(l));
-      if (hasDeprecation) {
-        try {
-          const raw = fs.readFileSync(tsconfigPath, 'utf8');
-          const cfg = JSON.parse(raw);
-          if (!cfg.compilerOptions) cfg.compilerOptions = {};
-          if (!cfg.compilerOptions.ignoreDeprecations) {
-            cfg.compilerOptions.ignoreDeprecations = '6.0';
-            fs.writeFileSync(tsconfigPath, JSON.stringify(cfg, null, 2) + '\n', 'utf8');
-            result = runTsc();
-          }
-        } catch { /* if tsconfig parse fails, leave it alone */ }
-      }
-      if (result.status !== 0) {
-        const retryOutput = (result.stdout ?? '') + (result.stderr ?? '');
+    const afterOutput = runTsc(tsconfigRoot);
+    const tsconfigMtime = fs.statSync(tsconfigPath).mtimeMs;
+    const baseline = tscBaselines.get(tsconfigRoot);
+    const hasFreshBaseline = baseline !== undefined && baseline.tsconfigMtime === tsconfigMtime;
+
+    if (hasFreshBaseline) {
+      const newErrors = errorsIntroducedByPatch(afterOutput, tsconfigRoot);
+      if (newErrors.length > 0) {
         const targetBase = path.basename(filePath);
-        const filteredLines = retryOutput.split('\n').filter(l => {
-          if (!/error TS/.test(l) || /error TS5\d{3}/.test(l)) return false;
-          if (!l.includes(targetBase)) return false;
-          if (modifiedLines && modifiedLines.length > 0) {
-            const lineMatch = l.match(/\((\d+),\d+\)/);
-            if (lineMatch) {
-              const errLine = parseInt(lineMatch[1], 10);
-              if (!modifiedLines.includes(errLine)) {
-                return false;
-              }
+        const ranked = [...newErrors].sort((a, b) => (a.includes(targetBase) ? 0 : 1) - (b.includes(targetBase) ? 0 : 1));
+        return ranked[0];
+      }
+    } else {
+      const targetBase = path.basename(filePath);
+      const filteredLines = afterOutput.split('\n').filter(l => {
+        if (!/error TS/.test(l) || /error TS5\d{3}/.test(l)) return false;
+        if (!l.includes(targetBase)) return false;
+        if (modifiedLines && modifiedLines.length > 0) {
+          const lineMatch = l.match(/\((\d+),\d+\)/);
+          if (lineMatch) {
+            const errLine = parseInt(lineMatch[1], 10);
+            if (!modifiedLines.includes(errLine)) {
+              return false;
             }
           }
-          return true;
-        });
-        const firstFiltered = filteredLines.find(l => /error TS/.test(l) && !/error TS5\d{3}/.test(l));
-        if (firstFiltered) return firstFiltered;
-      }
+        }
+        return true;
+      });
+      const firstFiltered = filteredLines.find(l => /error TS/.test(l) && !/error TS5\d{3}/.test(l));
+      if (firstFiltered) return firstFiltered;
     }
+
+    tscBaselines.set(tsconfigRoot, { output: afterOutput, tsconfigMtime });
     return null;
   }
 

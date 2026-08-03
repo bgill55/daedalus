@@ -2,6 +2,7 @@ import pc from 'picocolors';
 import type { LocalRouter } from './router/index.js';
 import type { ChatMessage } from './types.js';
 import { SessionManager } from './session/manager.js';
+import { SigmaMemEngine } from './session/sigma-mem.js';
 
 const LEARNING_TOOLS = new Set([
   'write_file', 'patch', 'edit_file',
@@ -179,6 +180,28 @@ export async function extractAndSave(
 
     for (const f of newFacts) {
       sessionManager.addFact(f.key, f.value, 'agent');
+    }
+
+    if (sessionManager.sessionDb) {
+      for (const f of newFacts) {
+        try {
+          const factKey = String(f.key ?? '');
+          const factValue = String(f.value ?? '');
+          const tags = factKey
+            .split(/[^a-zA-Z0-9]+/)
+            .map(t => t.toLowerCase())
+            .filter(t => t.length > 2 && !['the', 'and', 'for', 'with', 'from', 'using', 'what'].includes(t));
+          SigmaMemEngine.recordVerifiedKnowledge(sessionManager.sessionDb, {
+            agentRole: 'coder',
+            category: 'build_rule',
+            tags,
+            summary: `${factKey}: ${factValue}`,
+            content: `Learned from single-agent session — ${factKey}: ${factValue}`,
+          });
+        } catch {
+          // memory write must never break extraction
+        }
+      }
     }
 
     console.log(`  ${pc.dim('[')} ${pc.dim(`learned ${newFacts.length} fact${newFacts.length > 1 ? 's' : ''}`)} ${pc.dim(']')}`);
