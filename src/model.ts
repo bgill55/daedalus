@@ -8,11 +8,22 @@ import { calculateSessionTokens, pruneMessages } from './session/tokens.js';
 import { parseTextToolCalls, openAssistantBlock, writeAssistantChunk, closeAssistantBlock, printContextWarning, printContextResult, printContextPrune, printToolStart, printToolResult, printToolContentPreview, turnGatePrompt } from './formatting.js';
 import type { ToolContext, ToolCall, ChatMessage } from './types.js';
 import type { LocalRouter } from './router/index.js';
+import { classifyTaskStart, stepRouting } from './router/complexity.js';
 
 const TOOL_RESULT_MAX_CHARS = 32_000;
 const MAX_TOOL_TURNS = 40;
 
 let _turnStartTime = 0;
+
+function countToolMentions(text: string): number {
+  const lower = text.toLowerCase();
+  const mentioned = new Set<string>();
+  for (const def of [...BUILTIN_TOOLS, ...POWER_TOOLS]) {
+    const name = def.function.name;
+    if (lower.includes(name) || lower.includes(name.replace(/_/g, ''))) mentioned.add(name);
+  }
+  return mentioned.size;
+}
 
 export function getTurnStartTime(): number {
   return _turnStartTime;
@@ -135,6 +146,12 @@ export function createModelFunctions(deps: ModelDeps) {
     const summarizeAt = config?.context?.summarizeAt ?? 0.8;
     const threshold = Math.floor(maxT * summarizeAt);
 
+    const complexityEnabled = config?.router?.complexityRouting !== false && !config.modelOverride;
+    const taskComplexity = complexityEnabled ? classifyTaskStart(userContent || '') : undefined;
+    if (taskComplexity && process.env.DAEDALUS_DEBUG === 'true') {
+      console.log(pc.dim(`  [ROUTE] Task classified as ${taskComplexity}`));
+    }
+
     const fileCtx = buildFileContext();
     const tokens = calculateSessionTokens(messages, fileCtx);
     if (tokens.total > threshold) {
@@ -188,6 +205,9 @@ export function createModelFunctions(deps: ModelDeps) {
     let pinnedModel: string | undefined;
     let escalationCount = 0;
     let escalatedThisStreak = false;
+    let currentComplexity = taskComplexity;
+    let totalCompletionTokens = 0;
+    let trivialTurnStreak = 0;
     let turnUsageOut: number | undefined;
     openAssistantBlock();
     const overallStart = Date.now();
@@ -195,7 +215,7 @@ export function createModelFunctions(deps: ModelDeps) {
 
     while (true) {
       if (toolTurnsRemaining <= 0) {
-        closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut);
+        closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
         console.log(`\n  ${pc.yellow('[WARN]')} ${pc.yellow(`Reached max tool turns (${MAX_TOOL_TURNS}). Stopping to checkpoint.`)}`);
         const executedSummary = executedToolNames.size > 0 ? [...executedToolNames].join(', ') : 'none';
         console.log(`  ${pc.dim(`[SUMMARY] ${totalToolCalls} tool call(s) executed: ${executedSummary}`)}`);
@@ -214,7 +234,7 @@ export function createModelFunctions(deps: ModelDeps) {
       }
 
       if (turnAborted) {
-        closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut);
+        closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
         console.log(pc.dim('\n  [STOP] Stopped'));
         return { content: lastContent, toolCalls: [] };
       }
@@ -239,6 +259,7 @@ export function createModelFunctions(deps: ModelDeps) {
       try {
         const stream = await router.chatStream({
           model: pinnedModel || config.modelOverride || 'auto',
+          complexity: pinnedModel ? undefined : currentComplexity,
           messages,
           temperature: 0.1,
           tools: allTools,
@@ -295,7 +316,7 @@ export function createModelFunctions(deps: ModelDeps) {
         if (!blockOpened) spinner.stop();
 
         if (signal.aborted) {
-          closeAssistantBlock((lastContent || fullContent).length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut);
+          closeAssistantBlock((lastContent || fullContent).length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
           console.log(pc.dim('\n  [STOP] Stopped'));
           clearAbortController();
           return { content: fullContent, toolCalls: [] };
@@ -304,7 +325,7 @@ export function createModelFunctions(deps: ModelDeps) {
       } catch (error: any) {
         if (signal.aborted) {
           spinner.stop();
-          closeAssistantBlock((lastContent || fullContent).length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut);
+          closeAssistantBlock((lastContent || fullContent).length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
           console.log(pc.dim('\n  [STOP] Stopped'));
           clearAbortController();
           return { content: repetitionAborted ? fullContent : '', toolCalls: [] };
@@ -318,6 +339,10 @@ export function createModelFunctions(deps: ModelDeps) {
 
       clearAbortController();
 
+      if (turnUsageOut === undefined || turnUsageOut < Math.ceil(fullContent.length / 4)) {
+        turnUsageOut = Math.ceil(fullContent.length / 4);
+      }
+
       let toolCallArray = Array.from(toolCallMap.values()).filter(tc => tc.function.name);
       if (toolCallArray.length === 0) {
         const parsedCalls = parseTextToolCalls(fullContent);
@@ -327,12 +352,22 @@ export function createModelFunctions(deps: ModelDeps) {
       }
       lastContent = fullContent;
 
-      if (!pinnedModel && router.lastRoutedModelName) {
-        pinnedModel = router.lastRoutedModelName;
-      }
-
       if (toolCallArray.length === 0) {
-        closeAssistantBlock(fullContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut);
+        if (countToolMentions(fullContent) >= 3) {
+          console.log(pc.yellow(`\n  [WARN] Model planned tools but omitted JSON syntax. Retrying.`));
+          totalCompletionTokens += turnUsageOut ?? 0;
+          messages.push({ role: 'assistant', content: fullContent });
+          messages.push({
+            role: 'user',
+            content: `[SYSTEM WARNING] You narrated plans to call tools but did not output any actual tool calls. Please output the proper JSON array of tool calls now.`,
+          } as ChatMessage);
+          continue;
+        }
+
+        closeAssistantBlock(fullContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
+        if (currentComplexity && process.env.DAEDALUS_DEBUG === 'true') {
+          console.log(pc.dim(`  [ROUTE] Task summary: start ${taskComplexity ?? 'n/a'} → end ${currentComplexity} | ${totalCompletionTokens + (turnUsageOut ?? 0)} output tokens | ${escalationCount} escalation(s)`));
+        }
         messages.push({ role: 'assistant', content: fullContent });
         return { content: fullContent, toolCalls: [] };
       }
@@ -357,7 +392,7 @@ export function createModelFunctions(deps: ModelDeps) {
 
       if (consecutiveCount >= 2) {
         if (consecutiveCount >= 3) {
-          closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut);
+          closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
           console.log(`\n  ${pc.red('[STOP]')} Terminated repetitive loop after 4 consecutive identical tool calls.`);
           return { content: lastContent, toolCalls: [] };
         }
@@ -547,7 +582,7 @@ export function createModelFunctions(deps: ModelDeps) {
       }
 
       if (consecutiveToolFailures >= 5 || worstRepeatedFailures >= 5) {
-        closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut);
+        closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
         console.log(pc.red('\n  [STOP] Repeated tool failures. Stopping to avoid looping.'));
         messages.push({ role: 'assistant', content: lastContent });
         return { content: lastContent, toolCalls: [] };
@@ -559,7 +594,7 @@ export function createModelFunctions(deps: ModelDeps) {
         const norm = answer.trim().toLowerCase();
 
         if (norm === 'n' || norm === 'no') {
-          closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut);
+          closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
           console.log(pc.yellow('\n  [INFO] Stopped agent turn loop.'));
           messages.push({ role: 'assistant', content: lastContent });
           return { content: lastContent, toolCalls: [] };
@@ -573,6 +608,29 @@ export function createModelFunctions(deps: ModelDeps) {
             console.log(pc.green(`  [OK] Feedback appended. Continuing.`));
           }
         }
+      }
+
+      if (currentComplexity) {
+        const writesThisTurn = results.filter(r => r.success && ['patch', 'write_file'].includes(r.name)).length;
+        const failedThisTurn = results.filter(r => !r.success).length;
+        const nextState = stepRouting(
+          { current: currentComplexity, totalCompletionTokens, trivialTurnStreak },
+          {
+            completionTokensThisTurn: turnUsageOut ?? 0,
+            writesThisTurn,
+            toolCallsThisTurn: toolCallArray.length,
+            failedToolsThisTurn: failedThisTurn,
+            toolMentionsThisTurn: countToolMentions(fullContent),
+          },
+        );
+        if (nextState.current !== currentComplexity) {
+          if (process.env.DAEDALUS_DEBUG === 'true') {
+            console.log(pc.dim(`  [ROUTE] Reclassified ${currentComplexity} → ${nextState.current} (${nextState.totalCompletionTokens} output tokens, ${totalToolCalls + toolCallArray.length} tool calls)`));
+          }
+          currentComplexity = nextState.current;
+        }
+        totalCompletionTokens = nextState.totalCompletionTokens;
+        trivialTurnStreak = nextState.trivialTurnStreak;
       }
 
       totalToolCalls += toolCallArray.length;

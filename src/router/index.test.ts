@@ -52,6 +52,27 @@ describe('LocalRouter', () => {
     expect(router.getEnabledModels()).toHaveLength(1);
   });
 
+  it('routes to the only available model regardless of the complexity tier', async () => {
+    const router = new LocalRouter(makeConfig({
+      chain: [
+        { name: 'only', endpoint: 'http://localhost:1/v1', model: 'm1', priority: 1, enabled: true, tier: 'intelligence' },
+      ],
+    }));
+    const simple = await router.route({ messages: [{ role: 'user', content: 'hi' }], complexity: 'simple', tools: [{ type: 'function' }] });
+    expect(simple.model.name).toBe('only');
+    const complex = await router.route({ messages: [{ role: 'user', content: 'hi' }], complexity: 'complex', tools: [{ type: 'function' }] });
+    expect(complex.model.name).toBe('only');
+  });
+
+  it('returns no escalation target when only one model is enabled', () => {
+    const router = new LocalRouter(makeConfig({
+      chain: [
+        { name: 'only', endpoint: 'http://localhost:1/v1', model: 'm1', priority: 1, enabled: true },
+      ],
+    }));
+    expect(router.getNextModel('only')).toBeUndefined();
+  });
+
   it('getHealthyModels returns enabled models assumed healthy initially', () => {
     const router = createRouter({ chain: [{ name: 'a', endpoint: 'http://localhost:1/v1', model: 'm', priority: 1, enabled: true }] });
     const healthy = router.getHealthyModels();
@@ -125,6 +146,49 @@ describe('LocalRouter', () => {
     }));
     const result = await router.route({ messages: [], model: 'gpt-4' });
     expect(result.model.name).toBe('main');
+  });
+
+  it('routes to the fast tier for simple tasks', async () => {
+    const router = new LocalRouter(makeConfig({
+      chain: [
+        { name: 'big', endpoint: 'http://localhost:1/v1', model: 'm1', priority: 1, enabled: true, tier: 'intelligence', supportsTools: true },
+        { name: 'fast', endpoint: 'http://localhost:2/v1', model: 'm2', priority: 5, enabled: true, tier: 'fast', supportsTools: true },
+      ],
+    }));
+    const result = await router.route({ messages: [{ role: 'user', content: 'hi' }], complexity: 'simple', tools: [{ type: 'function' }] });
+    expect(result.model.name).toBe('fast');
+  });
+
+  it('routes to the intelligence tier for complex tasks even with tools', async () => {
+    const router = new LocalRouter(makeConfig({
+      chain: [
+        { name: 'big', endpoint: 'http://localhost:1/v1', model: 'm1', priority: 1, enabled: true, tier: 'intelligence', supportsTools: true },
+        { name: 'fast', endpoint: 'http://localhost:2/v1', model: 'm2', priority: 5, enabled: true, tier: 'fast', supportsTools: true },
+      ],
+    }));
+    const result = await router.route({ messages: [{ role: 'user', content: 'hi' }], complexity: 'complex', tools: [{ type: 'function' }] });
+    expect(result.model.name).toBe('big');
+  });
+
+  it('tracks per-tier route stats and last routed tier', async () => {
+    const router = new LocalRouter(makeConfig({
+      chain: [
+        { name: 'big', endpoint: 'http://localhost:1/v1', model: 'm1', priority: 1, enabled: true, tier: 'intelligence', supportsTools: true },
+        { name: 'mid', endpoint: 'http://localhost:3/v1', model: 'm3', priority: 2, enabled: true, tier: 'standard', supportsTools: true },
+        { name: 'fast', endpoint: 'http://localhost:2/v1', model: 'm2', priority: 5, enabled: true, tier: 'fast', supportsTools: true },
+      ],
+    }));
+    await router.route({ messages: [{ role: 'user', content: 'hi' }], complexity: 'simple', tools: [{ type: 'function' }] });
+    await router.route({ messages: [{ role: 'user', content: 'hi' }], complexity: 'complex', tools: [{ type: 'function' }] });
+    await router.route({ messages: [{ role: 'user', content: 'hi' }], complexity: 'standard', tools: [{ type: 'function' }] });
+    expect(router.lastRoutedTier).toBe('standard');
+    const stats = router.getRouteStats();
+    expect(stats.fast).toBe(1);
+    expect(stats.complex).toBe(1);
+    expect(stats.standard).toBe(1);
+    const pinned = await router.route({ messages: [], model: 'big' });
+    expect(pinned.model.name).toBe('big');
+    expect(router.getRouteStats().override).toBe(1);
   });
 
   it('round-robin cycles through models', async () => {

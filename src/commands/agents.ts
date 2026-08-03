@@ -218,7 +218,7 @@ export const agentCommands: Command[] = [
         if (proceed) {
           console.log(pc.cyan(`\n[ORCHESTRATE] Resuming orchestration for: ${pendingGoal}`));
           const { Orchestrator } = await import('../agents/orchestrator.js');
-          const orchestrator = new Orchestrator(ctx.router, ctx.messages, ctx.toolContext, ctx.sessionManager);
+          const orchestrator = new Orchestrator(ctx.router, ctx.messages, ctx.toolContext, ctx.sessionManager, ctx.config?.modelOverride);
           const planText = ctx.sessionManager.getState('orchestrate_plan_text') || '';
           const taskIndex = ctx.sessionManager.getState('orchestrate_task_index') || 0;
           const prevResults = ctx.sessionManager.getState('orchestrate_results') || [];
@@ -242,7 +242,7 @@ export const agentCommands: Command[] = [
       }
       console.log(pc.cyan(`\n[ORCHESTRATE] Starting orchestration for: ${goal}`));
       const { Orchestrator } = await import('../agents/orchestrator.js');
-      const orchestrator = new Orchestrator(ctx.router, ctx.messages, ctx.toolContext, ctx.sessionManager);
+      const orchestrator = new Orchestrator(ctx.router, ctx.messages, ctx.toolContext, ctx.sessionManager, ctx.config?.modelOverride);
       const result = await orchestrator.run(goal);
       console.log(pc.white(`\n${result}`));
     }
@@ -856,7 +856,7 @@ export const agentCommands: Command[] = [
 
       try {
         const { Orchestrator } = await import('../agents/orchestrator.js');
-        const orchestrator = new Orchestrator(ctx.router, ctx.messages, ctx.toolContext, ctx.sessionManager);
+        const orchestrator = new Orchestrator(ctx.router, ctx.messages, ctx.toolContext, ctx.sessionManager, ctx.config?.modelOverride);
         const result = await orchestrator.run(goal);
         console.log(pc.white(`\n${result}`));
 
@@ -1039,7 +1039,7 @@ export const agentCommands: Command[] = [
       let orchestratorResult = '';
       try {
         const { Orchestrator } = await import('../agents/orchestrator.js');
-        const orchestrator = new Orchestrator(ctx.router, ctx.messages, ctx.toolContext, ctx.sessionManager);
+        const orchestrator = new Orchestrator(ctx.router, ctx.messages, ctx.toolContext, ctx.sessionManager, ctx.config?.modelOverride);
         orchestratorResult = await orchestrator.run(goal);
         console.log(pc.white(`\n${orchestratorResult}`));
 

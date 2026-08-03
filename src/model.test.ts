@@ -454,6 +454,41 @@ describe('Tool failure handling', () => {
     delete process.env.DAEDALUS_AUTO_APPROVE;
   });
 
+  it('classifies task complexity and passes it to the router', async () => {
+    process.env.DAEDALUS_AUTO_APPROVE = 'true';
+
+    const chatStreamMock = vi.fn()
+      .mockResolvedValueOnce(toolStream('read_file', '{"path":"a.ts"}'))
+      .mockResolvedValueOnce(contentStream('done.'));
+
+    const executorMod = await import('./tools/executor.js');
+    vi.spyOn(executorMod, 'executeToolCalls').mockResolvedValue([{
+      toolCallId: 'call_1',
+      name: 'read_file',
+      success: true,
+      content: 'export const a = 1;',
+    }]);
+
+    const { callModelWithTools } = createModelFunctions({
+      messages,
+      config: { ui: { showTokens: false } },
+      router: makeRouter(chatStreamMock),
+      toolContext,
+      buildFileContext: () => '',
+      askLine: vi.fn().mockResolvedValue('y'),
+    });
+
+    process.env.DAEDALUS_DEBUG = 'true';
+
+    await callModelWithTools('Refactor the module and implement the new API');
+
+    const firstCall = chatStreamMock.mock.calls[0]?.[0];
+    expect(firstCall.complexity).toBe('complex');
+    expect(consoleOutput()).toContain('[ROUTE] Task classified as complex');
+    delete process.env.DAEDALUS_AUTO_APPROVE;
+    delete process.env.DAEDALUS_DEBUG;
+  });
+
   it('stops after 5 consecutive tool failures', async () => {
     process.env.DAEDALUS_AUTO_APPROVE = 'true';
 

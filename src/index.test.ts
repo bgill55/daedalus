@@ -60,6 +60,61 @@ Let me find and read the README first.
     const calls = parseTextToolCalls(text);
     expect(calls).toHaveLength(0);
   });
+
+  it('should parse a bracketed plan list with aliased tool names (no underscores)', () => {
+    const text = `
+Here is my plan: I will start by looking at the project.
+[listfiles, gitstatus, readfile(path="package.json"), lspdiagnostics(path="")]
+`;
+    const calls = parseTextToolCalls(text);
+    expect(calls).toHaveLength(4);
+    expect(calls.map(c => c.function.name)).toEqual([
+      'list_files',
+      'git_status',
+      'read_file',
+      'lsp_diagnostics',
+    ]);
+    expect(JSON.parse(calls[2].function.arguments)).toEqual({ path: 'package.json' });
+    expect(JSON.parse(calls[3].function.arguments)).toEqual({ path: '' });
+  });
+
+  it('should not parse bracket lists that are not tool names', () => {
+    const calls = parseTextToolCalls('The array is [1, 2, 3] and flags were [a, b].');
+    expect(calls).toHaveLength(0);
+  });
+
+  it('should not parse a list describing available tools', () => {
+    const calls = parseTextToolCalls('Available tools: [read_file, write_file, patch]');
+    expect(calls).toHaveLength(0);
+  });
+
+  it('should parse a single bracketed tool call with quoted args', () => {
+    const calls = parseTextToolCalls('I need to read [read_file(path="src/main.ts")] first.');
+    expect(calls).toHaveLength(1);
+    expect(calls[0].function.name).toBe('read_file');
+    expect(JSON.parse(calls[0].function.arguments)).toEqual({ path: 'src/main.ts' });
+  });
+
+  it('should not auto-write a pasted code block just because a path appears in the text', () => {
+    const text = `
+Here is a snippet for src/main.ts:
+\`\`\`ts
+const x: number = 1;
+\`\`\`
+`;
+    const calls = parseTextToolCalls(text);
+    expect(calls).toHaveLength(0);
+  });
+
+  it('should parse an explicit write_file request with a pasted code block', () => {
+    const text = 'Please use the `write_file` tool to create src/main.ts with:\n```ts\nconst x: number = 1;\n```';
+    const calls = parseTextToolCalls(text);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].function.name).toBe('write_file');
+    const args = JSON.parse(calls[0].function.arguments);
+    expect(args.path).toBe('src/main.ts');
+    expect(args.content).toContain('const x: number = 1;');
+  });
 });
 
 describe('formatMarkdownLine', () => {

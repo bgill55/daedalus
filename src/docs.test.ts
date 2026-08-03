@@ -9,6 +9,7 @@ function extractSchemaPaths(schema: any, prefix = ''): string[] {
   if (!schema) return paths;
 
   if (prefix.split('.').length >= 2) {
+    paths.push(prefix);
     return paths;
   }
 
@@ -16,7 +17,6 @@ function extractSchemaPaths(schema: any, prefix = ''): string[] {
     const shape = schema._def.shape();
     for (const key of Object.keys(shape)) {
       const currentPath = prefix ? `${prefix}.${key}` : key;
-      paths.push(currentPath);
       paths.push(...extractSchemaPaths(shape[key], currentPath));
     }
   } else if (schema._def && schema._def.schema) {
@@ -27,6 +27,8 @@ function extractSchemaPaths(schema: any, prefix = ''): string[] {
     paths.push(...extractSchemaPaths(schema._def.type, prefix));
   } else if (schema._def && schema._def.innerType) {
     paths.push(...extractSchemaPaths(schema._def.innerType, prefix));
+  } else {
+    paths.push(prefix);
   }
 
   return paths;
@@ -192,13 +194,14 @@ describe('Documentation Sync Verification', () => {
     const lines = docContent.split('\n');
     for (const line of lines) {
       const match = line.match(/^\*\s+\*\*`([\w.-]+)`\*\*:\s*(.*)$/);
-      if (match) {
+      if (match && !/^\(Description needed\)$/.test(match[2].trim())) {
         existingDescriptions[match[1]] = match[2].trim();
       }
     }
 
     const configPaths = extractSchemaPaths(ConfigSchema);
     const SECTIONS = [
+      { prefix: '__top__', title: 'General Settings' },
       { prefix: 'router.', title: 'Router Settings' },
       { prefix: 'agents.', title: 'Agent Settings' },
       { prefix: 'tools.', title: 'Tool Settings' },
@@ -213,7 +216,9 @@ describe('Documentation Sync Verification', () => {
 
     const sectionBlocks: string[] = [];
     for (const section of SECTIONS) {
-      const keysInSection = configPaths.filter(key => key.startsWith(section.prefix));
+      const keysInSection = section.prefix === '__top__'
+        ? configPaths.filter(key => !key.includes('.'))
+        : configPaths.filter(key => key.startsWith(section.prefix));
       if (keysInSection.length === 0) continue;
 
       let block = `## ${section.title}\n\n`;

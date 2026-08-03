@@ -32,6 +32,7 @@ export const RouterConfigSchema = z.object({
     tpm: z.number().int().positive().default(100000),
   }).default({ rpm: 60, tpm: 100000 }),
   autoEscalate: z.boolean().default(true),
+  complexityRouting: z.boolean().default(true),
 });
 
 export const AgentRoleSchema = z.object({
@@ -47,6 +48,7 @@ export const AgentRoleSchema = z.object({
 export const ConfigSchema = z.object({
   version: z.number().int().positive().default(1),
   router: RouterConfigSchema,
+  modelOverride: z.string().optional(),
   agents: z.object({
     default: z.string().default('coder'),
     available: z.array(z.string()).default(['orchestrator', 'planner', 'coder', 'reviewer', 'debugger', 'researcher']),
@@ -192,6 +194,7 @@ export const DEFAULT_CONFIG: DaedalusConfig = {
     requestTimeout: 120000,
     defaultRateLimit: { rpm: 60, tpm: 100000 },
     autoEscalate: true,
+    complexityRouting: true,
   },
   agents: {
     default: 'coder',
