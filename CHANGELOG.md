@@ -1,3 +1,10 @@
+# [3.9.0](https://github.com/bgill55/daedalus/compare/v3.8.0...v3.9.0) (2026-08-03)
+
+
+### Features
+
+* **router:** persist model blacklist to SQLite with TTL decay ([#27](https://github.com/bgill55/daedalus/issues/27)) ([e1e7fcb](https://github.com/bgill55/daedalus/commit/e1e7fcb5a796ea773130ba4f2f417e0748150766))
+
 # [3.8.0](https://github.com/bgill55/daedalus/compare/v3.7.3...v3.8.0) (2026-08-03)
 
 
