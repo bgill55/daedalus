@@ -788,13 +788,17 @@ Once you have finished making changes, I will automatically re-run the command t
       }
       const { checkModelHealth } = await import('../router/health.js');
       const healthyModels = ctx.router.getHealthyModels();
+      const blacklist = ctx.router.getSessionBlacklist();
+      const blacklistedKeys = new Set(blacklist.map(b => `${b.endpoint}|${b.model}`));
       console.log(pc.bold('\n--- Healthy Models ---'));
       for (const model of healthyModels) {
         const health = await checkModelHealth(model, 5000);
-        const status = health?.healthy ? pc.green('●') : pc.red('●');
-        console.log(`  ${status} ${pc.cyan(model.name)} (${model.endpoint}) - ${model.model}`);
+        const key = `${model.endpoint}|${model.model}`;
+        const isBlacklisted = blacklistedKeys.has(key);
+        const status = health?.healthy && !isBlacklisted ? pc.green('●') : pc.red('●');
+        const detail = !health?.healthy && health?.error ? pc.dim(` ${health.error}`) : isBlacklisted ? pc.yellow(' blacklisted') : '';
+        console.log(`  ${status} ${pc.cyan(model.name)} (${model.endpoint}) - ${model.model}${detail}`);
       }
-      const blacklist = ctx.router.getSessionBlacklist();
       if (blacklist.length > 0) {
         console.log(pc.bold('\n--- Session Blacklist ---'));
         for (const entry of blacklist) {
