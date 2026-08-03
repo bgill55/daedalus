@@ -1,12 +1,52 @@
 import blessed from 'neo-blessed';
 import pc from 'picocolors';
 import { DaedalusConfig } from '../../config/index.js';
+import type { LocalRouter } from '../../router/index.js';
+import type { ModelEntry, ModelHealth } from '../../router/types.js';
+import { getCachedHealth } from '../../router/health.js';
 
-export function initModelSelect(parent: blessed.Widgets.BoxElement, config: DaedalusConfig & { modelOverride?: string }, _router: unknown) {
+export interface ModelLabelState {
+  blacklistReason?: string;
+  emaMs?: number;
+  emaThresholdMs?: number;
+  health?: ModelHealth | undefined;
+}
+
+export function buildModelLabel(m: { name: string }, state: ModelLabelState): string {
+  if (state.blacklistReason) return `  {yellow-fg}✕{/} ${m.name} {dim}(blacklisted){/}`;
+  if (state.health && state.health.healthy === false) {
+    const why = state.health.error ? ` {dim}(${state.health.error}){/}` : '';
+    return `  {red-fg}●{/} ${m.name}${why}`;
+  }
+  if (state.emaThresholdMs && state.emaThresholdMs > 0 && (state.emaMs ?? 0) >= state.emaThresholdMs) {
+    return `  {yellow-fg}●{/} ${m.name} {dim}(slow ${state.emaMs}ms){/}`;
+  }
+  return `  {green-fg}●{/} ${m.name}`;
+}
+
+export function initModelSelect(parent: blessed.Widgets.BoxElement, config: DaedalusConfig & { modelOverride?: string }, router: LocalRouter) {
   // Get active models from config
-  const enabledModels = config.router?.chain?.filter((m: { enabled?: boolean }) => m.enabled) || [];
+  const enabledModels = (config.router?.chain?.filter((m: { enabled?: boolean }) => m.enabled) || []) as ModelEntry[];
+
+  // Build labels that reflect live router health, blacklist, and slow-guard state
+  const blacklist = new Map(
+    (router.getSessionBlacklist?.() ?? []).map(b => [`${b.endpoint}|${b.model}`, b.reason])
+  );
+  const ema = new Map(
+    (router.getLatencyEma?.() ?? []).map(e => [`${e.endpoint}|${e.model}`, e])
+  );
+  const labelFor = (m: ModelEntry): string => {
+    const key = `${m.endpoint}|${m.model}`;
+    return buildModelLabel(m, {
+      blacklistReason: blacklist.get(key),
+      emaMs: ema.get(key)?.emaMs,
+      emaThresholdMs: ema.get(key)?.thresholdMs,
+      health: getCachedHealth(m),
+    });
+  };
+
   const modelNames = enabledModels.map((m: { name: string }) => m.name);
-  const options = ['Automatic Routing', ...modelNames];
+  const options = ['Automatic Routing', ...enabledModels.map((m: ModelEntry) => labelFor(m))];
 
   // Self-bordered list selector
   const list = blessed.list({
