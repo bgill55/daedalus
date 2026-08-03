@@ -19,6 +19,8 @@ This guide describes all configuration options available in Daedalus. You can vi
 *   **`router.healthCheckInterval`**: Interval in milliseconds between background health checks on configured endpoints. Default: 30000.
 *   **`router.requestTimeout`**: Maximum wait in milliseconds for a model response before considering it failed. Default: 120000.
 *   **`router.slowModelThresholdMs`**: Average latency in milliseconds above which a model is blacklisted. Blacklisting is TTL-bounded (see `router.blacklistTtlMs`) and persisted across restarts (see `router.blacklistPersist`) rather than lasting the whole session. Set to 0 to disable. Default: 45000.
+*   **`router.blacklistTtlMs`**: How long (in milliseconds) a blacklisted model stays excluded before decaying back into the eligible pool. Prevents a single transient failure from permanently banning a model. Default: 600000 (10 minutes).
+*   **`router.blacklistPersist`**: When true, the model blacklist is persisted to ~/.daedalus/model-blacklist.db so exclusions survive CLI restarts. Set to false for in-memory-only blacklisting. Default: true.
 *   **`router.defaultRateLimit`**: Default rate limit settings (rpm and tpm) applied when an endpoint does not advertise its own limits.
 *   **`router.autoEscalate`**: When true, automatically switches to the next chain model after repeated tool failures. Default: true.
 *   **`router.complexityRouting`**: When true, routes each task by complexity tier: simple tasks use the fast tier, complex tasks use the intelligence tier, with on-the-fly reclassification mid-task. Default: true.

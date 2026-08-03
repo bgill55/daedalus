@@ -47,6 +47,8 @@ export const RouterConfigSchema = z.object({
   healthCheckInterval: z.number().int().positive().default(30000),
   requestTimeout: z.number().int().positive().default(120000),
   slowModelThresholdMs: z.number().int().nonnegative().default(45000),
+  blacklistTtlMs: z.number().int().positive().default(600000),
+  blacklistPersist: z.boolean().default(true),
   defaultRateLimit: z.object({
     rpm: z.number().int().positive().default(60),
     tpm: z.number().int().positive().default(100000),
@@ -213,6 +215,8 @@ export const DEFAULT_CONFIG: DaedalusConfig = {
     healthCheckInterval: 30000,
     requestTimeout: 120000,
     slowModelThresholdMs: 45000,
+    blacklistTtlMs: 600000,
+    blacklistPersist: true,
     defaultRateLimit: { rpm: 60, tpm: 100000 },
     autoEscalate: true,
     complexityRouting: true,
