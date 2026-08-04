@@ -315,6 +315,25 @@ export const BUILTIN_TOOLS: ToolDefinition[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'propose_skill',
+      description:
+        'Capture a reusable playbook the agent just discovered (a problem it solved that is likely to recur) as a SKILL draft. The draft is INACTIVE until the user approves it via the /skills command — the agent can suggest, never auto-activate. Use after resolving a non-obvious, repeatable issue.',
+      parameters: {
+        type: 'object',
+        properties: {
+          name: { type: 'string', description: 'Short kebab-case skill name, e.g. fix-typescript-build' },
+          description: { type: 'string', description: 'One-line summary of what the skill does' },
+          trigger: { type: 'string', description: 'Pipe-separated keywords that should activate this skill, e.g. typescript|build|tsc' },
+          body: { type: 'string', description: 'The playbook body: instructions the agent follows with its tools' },
+        },
+        required: ['name', 'body'],
+        additionalProperties: false,
+      },
+    },
+  },
 ];
 
 export const POWER_TOOLS: ToolDefinition[] = [
@@ -529,6 +548,7 @@ export const TOOL_IMPLEMENTATIONS: Record<string, string> = {
   kill_process: 'tools/builtin/process-watcher.killProcess',
   eval_code: 'tools/builtin/eval.evalCode',
   ask_user: 'tools/builtin/ask_user.askUser',
+  propose_skill: 'tools/builtin/propose_skill.proposeSkill',
   system_info: 'tools/builtin/system.systemInfo',
   generate_image: 'tools/builtin/image.generateImage',
 };

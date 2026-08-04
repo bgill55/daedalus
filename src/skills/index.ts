@@ -15,6 +15,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { homedir } from 'os';
+import { writeSkillDraft, type SkillDraft } from './draft.js';
 
 export interface Skill {
   name: string;
@@ -67,6 +68,9 @@ export function discoverSkills(): Skill[] {
     }
     for (const entry of entries) {
       if (!entry.isDirectory()) continue;
+      // Never surface proposed drafts as active skills; they require human
+      // approval via /skills first (see src/skills/draft.ts).
+      if (entry.name === '.drafts') continue;
       const skillFile = path.join(dir, entry.name, 'SKILL.md');
       if (!fs.existsSync(skillFile)) continue;
       try {
@@ -121,4 +125,12 @@ export function listSkills(): Skill[] {
 // Test/debug helper to invalidate the discovery cache (e.g. after adding skills).
 export function clearSkillsCache(): void {
   cache = null;
+}
+
+// Bidirectional hook: the agent can propose a learned skill (e.g. a problem it
+// solved that's likely to recur) as a draft. The draft is stored in the user's
+// .drafts dir and stays inactive until a human approves it via /skills. This keeps
+// the trusted-dir-only safety model intact — proposed skills never auto-activate.
+export function proposeSkillDraft(draft: Omit<SkillDraft, 'createdAt'>): string {
+  return writeSkillDraft(draft);
 }
