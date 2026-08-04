@@ -1,4 +1,4 @@
-// Todo management tool
+// Task-list management tool (the agent's todo tracker)
 
 import { ToolContext, ToolResult } from '../../types.js';
 
