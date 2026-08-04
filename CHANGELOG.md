@@ -1,3 +1,10 @@
+## [3.10.1](https://github.com/bgill55/daedalus/compare/v3.10.0...v3.10.1) (2026-08-04)
+
+
+### Bug Fixes
+
+* **ci:** graceful skip when no model servers are reachable in PR review ([#33](https://github.com/bgill55/daedalus/issues/33)) ([9439157](https://github.com/bgill55/daedalus/commit/9439157c845f0ac55df269876aa10f60c7f64d4a))
+
 # [3.10.0](https://github.com/bgill55/daedalus/compare/v3.9.1...v3.10.0) (2026-08-03)
 
 
