@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { extractErrorLines, normalizeErrorLine, syntaxCheck } from './patch-utils.js';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
 
 describe('extractErrorLines', () => {
   it('extracts TS error lines and drops deprecation errors', () => {
@@ -36,10 +39,6 @@ describe('normalizeErrorLine', () => {
 });
 
 describe('syntaxCheck file-scoping', () => {
-  const fs = require('fs');
-  const os = require('os');
-  const path = require('path');
-
   function makeProject() {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'daedalus-syntax-'));
     fs.writeFileSync(path.join(dir, 'tsconfig.json'), JSON.stringify({
