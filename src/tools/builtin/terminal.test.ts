@@ -91,6 +91,27 @@ describe('terminal execute', () => {
     expect(spawn).toHaveBeenCalledWith('/bin/bash', ['-c', 'echo hello'], expect.any(Object));
   });
 
+  it('spawns the child with stdin ignored and (on Windows) a detached process group', async () => {
+    // Regression guard for the intermittent 0xC0000142 / STATUS_CONTROL_C_EXIT
+    // terminal crashes: the child must not inherit the parent's stdin pipe (so a
+    // closed piped task can't deliver EOF/Ctrl-C) and, on Windows, must run in its
+    // own process group so a console signal aimed at the parent doesn't kill the
+    // spawned npm -> tsc tree.
+    const mockProc = makeMockProcess();
+    (spawn as any).mockReturnValue(mockProc);
+
+    const resultPromise = execute({ command: 'npm run build' }, makeContext());
+    mockProc.emit('close', 0);
+    await resultPromise;
+
+    const opts = (spawn as any).mock.calls[0][2];
+    expect(opts.stdio[0]).toBe('ignore');
+    expect(opts.stdio[1]).toBe('pipe');
+    expect(opts.stdio[2]).toBe('pipe');
+    expect(opts.detached).toBe(process.platform === 'win32');
+    expect(opts.shell).toBe(false);
+  });
+
   it('reports failure on non-zero exit', async () => {
     const mockProc = makeMockProcess();
     (spawn as any).mockReturnValue(mockProc);
