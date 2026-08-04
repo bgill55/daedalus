@@ -572,6 +572,47 @@ describe('Tool failure handling', () => {
     delete process.env.DAEDALUS_AUTO_APPROVE;
   });
 
+  it('does not escalate when a patch trips the circuit breaker (DB cleanup loop)', async () => {
+    process.env.DAEDALUS_AUTO_APPROVE = 'true';
+
+    let callCount = 0;
+    const chatStreamMock = vi.fn().mockImplementation(() => {
+      callCount++;
+      return toolStream('patch', `{"path":"db.ts","old_string":"x${callCount}","new_string":"y${callCount}"}`);
+    });
+
+    const executorMod = await import('./tools/executor.js');
+    vi.spyOn(executorMod, 'executeToolCalls').mockResolvedValue([{
+      toolCallId: 'call_1',
+      name: 'patch',
+      success: false,
+      content: '',
+      error: '[CIRCUIT BREAKER] patch failed 2 consecutive times on db.ts. Use read_file to inspect the current state and reconstruct your patch from the actual content.',
+    }]);
+
+    const { callModelWithTools } = createModelFunctions({
+      messages,
+      config: TEST_CONFIG,
+      router: makeRouter(chatStreamMock),
+      toolContext,
+      buildFileContext: () => '',
+      askLine: vi.fn().mockResolvedValue('y'),
+    });
+
+    const result = await callModelWithTools('test');
+    const output = consoleOutput();
+
+    // The circuit-breaker message must NOT trigger model escalation
+    expect(output).not.toContain('[ESCALATE]');
+    // The targeted guidance (re-read + minimal patch) must be injected
+    const warning = messages.find(m => m.role === 'tool' && typeof m.content === 'string' && m.content.includes('STOP rewriting the whole file'));
+    expect(warning).toBeDefined();
+    // Still halts rather than looping forever
+    expect(output).toContain('[STOP] Repeated tool failures. Stopping to avoid looping.');
+    expect(result.toolCalls).toEqual([]);
+    delete process.env.DAEDALUS_AUTO_APPROVE;
+  });
+
   it('stops on repeated failures of the same operation even with interleaved successes', async () => {
     process.env.DAEDALUS_AUTO_APPROVE = 'true';
 
