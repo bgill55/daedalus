@@ -11,9 +11,15 @@ The project's `build` script is usually `tsc --noEmit` (a type-check, not a bund
 A failing build means type errors. Fix them deliberately — do NOT blast the whole
 codebase in one giant turn (that burns the context window and makes review impossible).
 
+> Prefer `npm run build` over `npx tsc`. `npx tsc` is not a declared dependency in
+> most projects, so `npx` will try to download the `tsc` package from the registry —
+> that download is slow and flaky (and can be killed by the terminal's process-group
+> isolation on Windows). `npm run build` uses the project's local TypeScript.
+
 ## Process
-1. Get the full error list first. Run `npm run build` (or `npx tsc --noEmit`) and
-   capture EVERY error line. Do not guess — read the actual compiler output.
+1. Get the full error list first. Run `npm run build` (the project's `build` script).
+   Only fall back to `npx tsc --noEmit` if the project has no `build` script. Capture
+   EVERY error line. Do not guess — read the actual compiler output.
 2. Group errors by file. Most real projects concentrate errors in a few files.
    Present the grouped summary to the user and STOP to confirm scope before editing
    (audit/review etiquette: list findings, then ask which to fix).
