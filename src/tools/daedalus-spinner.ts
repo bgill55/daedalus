@@ -31,7 +31,59 @@ export class DaedalusSpinner {
   static readonly BRIGHT_FRAMES = ['▘', '▝', '▗', '▖'];
   // Smooth braille spinner used for the "thinking" indicator
   static readonly THINKING_FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
-  static readonly THINKING_COLOR = (s: string): string => `[36m${s}[0m`; // brand cyan
+  static readonly THINKING_COLOR = (s: string): string => `\u001b[36m${s}\u001b[0m`; // brand cyan
+
+  // Determinate-feeling seek bar: a bright block sweeps a track, the fill
+  // grows then resets — reads as "daemon grinding", not a loading wheel.
+  static readonly TRACKER_FRAMES = [
+    '▰▱▱▱▱▱▱▱ ▰',
+    '▱▰▱▱▱▱▱▱ ▰▰',
+    '▱▱▰▱▱▱▱▱ ▰▰▰',
+    '▱▱▱▰▱▱▱▱ ▰▰▰▰',
+    '▱▱▱▱▰▱▱▱ ▰▰▰▰▰',
+    '▱▱▱▱▱▰▱▱ ▰▰▰▰▰▰',
+    '▱▱▱▱▱▱▰▱ ▰▰▰▰▰▰▰',
+    '▱▱▱▱▱▱▱▰ ▰▰▰▰▰▰▰▰',
+    '▱▱▱▱▱▱▱▱ ▰▰▰▰▰▰▰▰▰',
+    '▱▱▱▱▱▱▱▱ ▱▰▰▰▰▰▰▰▰',
+    '▱▱▱▱▱▱▱▱ ▱▱▰▰▰▰▰▰▰',
+    '▱▱▱▱▱▱▱▱ ▱▱▱▰▰▰▰▰▰',
+    '▱▱▱▱▱▱▱▱ ▱▱▱▱▰▰▰▰▰',
+    '▱▱▱▱▱▱▱▱ ▱▱▱▱▱▰▰▰▰',
+    '▱▱▱▱▱▱▱▱ ▱▱▱▱▱▱▰▰▰',
+    '▱▱▱▱▱▱▱▱ ▱▱▱▱▱▱▱▰▰',
+  ];
+  static readonly TRACKER_COLOR = (s: string): string => `\u001b[36m${s}\u001b[0m`; // cyan
+
+  // Aurora shimmer: a ramp wave of varying block weights slides across, calm
+  // "AI breathing" energy rather than a spinner.
+  static readonly AURORA_FRAMES = [
+    '▁▂▃▄▅▆▇▆▅▄▃▂▁',
+    '▂▃▄▅▆▇▆▅▄▃▂▁▂',
+    '▃▄▅▆▇▆▅▄▃▂▁▂▃',
+    '▄▅▆▇▆▅▄▃▂▁▂▃▄',
+    '▅▆▇▆▅▄▃▂▁▂▃▄▅',
+    '▆▇▆▅▄▃▂▁▂▃▄▅▆',
+    '▇▆▅▄▃▂▁▂▃▄▅▆▇',
+    '▆▅▄▃▂▁▂▃▄▅▆▇▆',
+    '▅▄▃▂▁▂▃▄▅▆▇▆▅',
+    '▄▃▂▁▂▃▄▅▆▇▆▅▄',
+    '▃▂▁▂▃▄▅▆▇▆▅▄▃',
+    '▂▁▂▃▄▅▆▇▆▅▄▃▂',
+  ];
+  static readonly AURORA_COLOR = (s: string): string => `\u001b[35m${s}\u001b[0m`; // magenta-violet
+
+  // Map a config spinner style to its frame set + color.
+  static readonly THINKING_STYLES: Record<string, { frames: string[]; color: (s: string) => string }> = {
+    braille: { frames: DaedalusSpinner.THINKING_FRAMES, color: DaedalusSpinner.THINKING_COLOR },
+    tracker: { frames: DaedalusSpinner.TRACKER_FRAMES, color: DaedalusSpinner.TRACKER_COLOR },
+    aurora: { frames: DaedalusSpinner.AURORA_FRAMES, color: DaedalusSpinner.AURORA_COLOR },
+  };
+
+  static getThinkingStyle(style?: string): { frames: string[]; color: (s: string) => string } {
+    if (style && DaedalusSpinner.THINKING_STYLES[style]) return DaedalusSpinner.THINKING_STYLES[style];
+    return DaedalusSpinner.THINKING_STYLES.braille;
+  }
 
   constructor(options: SpinnerOptions = {}) {
     this.frames = options.frames ?? DaedalusSpinner.GEAR_FRAMES;

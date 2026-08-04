@@ -182,6 +182,7 @@ export const ConfigSchema = z.object({
     tui: z.boolean().default(false),
     compactMode: z.boolean().default(true),
     collapseCommentary: z.boolean().default(true),
+    spinner: z.enum(['braille', 'tracker', 'aurora']).default('braille'),
   }).default({
     streaming: true,
     showTokens: true,
@@ -191,6 +192,7 @@ export const ConfigSchema = z.object({
     tui: false,
     compactMode: true,
     collapseCommentary: true,
+    spinner: 'braille',
   }),
   safety: z.object({
     protectGit: z.boolean().default(true),
@@ -280,6 +282,7 @@ export const DEFAULT_CONFIG: DaedalusConfig = {
     tui: false,
     compactMode: true,
     collapseCommentary: true,
+    spinner: 'braille',
   },
   safety: {
     protectGit: true,
