@@ -139,6 +139,51 @@ Tips:
 
 ---
 
+## Reviewing agent-proposed skills (`/skills`)
+
+Daedalus can learn from the work it does. When the agent resolves a non-obvious,
+repeatable problem, it can call the `propose_skill` tool to capture a reusable
+playbook as a **draft**. Drafts are stored in `~/.daedalus/skills/.drafts/` and are
+**inactive** — they never run until you approve them. The `/skills` command is how
+you review and promote (or discard) those drafts.
+
+> **Safety:** the agent can *suggest*, never *activate*. A proposed skill stays
+> hidden from discovery until you accept it, and even then it only lands in your
+> trusted `~/.daedalus/skills` directory — never in the project you're editing and
+> never in shipped skills. This preserves the trusted-location-only model.
+
+### How to use `/skills`
+
+| Command | What it does |
+| --- | --- |
+| `/skills` | List active skills **and** pending drafts. |
+| `/skills accept <name>` | Promote a draft into an active trusted skill at `~/.daedalus/skills/<name>/SKILL.md`. |
+| `/skills discard <name>` | Delete a pending draft. |
+
+After accepting, the new skill is matched by its trigger keywords on subsequent
+requests (restart the session if it was already running — discovery is cached).
+
+### Use cases
+
+- **Capture a hard-won fix.** The agent debugs a flaky Windows build step. Instead
+  of re-deriving it next time, it proposes a skill; you `/skills accept` it and the
+  playbook is available whenever a similar build failure appears.
+- **Bottleneck your own conventions.** If the agent repeatedly rediscovers a project
+  rule (e.g. "always use repository-scoped fetch wrappers"), promote its draft so the
+  convention is injected automatically on matching requests.
+- **Curate without code access.** Review drafts in the CLI, accept the useful ones,
+  discard noise — no need to hand-write `SKILL.md` files (though you still can; see
+  Authoring a skill above).
+
+### What a promoted skill looks like
+
+Accepting a draft writes a normal `SKILL.md` with the draft's frontmatter
+(`name`, `description`, `trigger`, `safety`) plus the body the agent captured. From
+that point it behaves exactly like any other user skill: trigger-matched and injected
+into the system prompt.
+
+---
+
 ## Shipping skill changes (stacked PRs)
 
 Multiple skill/docs changes ship as **one coordinated release** using GitHub
