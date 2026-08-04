@@ -13,9 +13,7 @@ import type { ModelEntry } from '../router/types.js';
 import type { AgentResult, DelegationTask } from '../agents/orchestrator-types.js';
 import type { RegistryServerEntry } from '../tools/mcp/manager.js';
 
-function errMessage(e: unknown): string {
-  return e instanceof Error ? e.message : String(e);
-}
+import { errMessage } from '../utils/errors.js';
 
 import { discoverLocalServers, saveConfig } from '../config/index.js';
 import type { ToolCall, ChatMessage } from '../types.js';

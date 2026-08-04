@@ -33,9 +33,7 @@ interface GitHubIssue {
 
 dotenv.config();
 
-function errMessage(e: unknown): string {
-  return e instanceof Error ? e.message : String(e);
-}
+import { errMessage } from '../utils/errors.js';
 
 export function getGitRepoInfo(cwd: string): { owner: string; repo: string } | null {
   try {

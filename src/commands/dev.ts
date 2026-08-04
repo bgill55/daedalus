@@ -21,9 +21,7 @@ declare global {
   var __daedalusWatcher: WatcherInstance | undefined;
 }
 
-function errMessage(e: unknown): string {
-  return e instanceof Error ? e.message : String(e);
-}
+import { errMessage } from '../utils/errors.js';
 
 export const devCommands: Command[] = [
   {
