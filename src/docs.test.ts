@@ -101,6 +101,7 @@ describe('Documentation Sync Verification', () => {
       '/preview': '/preview <filepath-or-url>',
       '/ci': '/ci [review|fix]',
       '/badge': '/badge [custom <label> <message> [color]] [--write]',
+      '/spinner': '/spinner [list | braille | tracker | aurora]',
     };
 
     const COMMAND_GROUPS: { name: string; commands: string[] }[] = [
@@ -122,7 +123,7 @@ describe('Documentation Sync Verification', () => {
       },
       {
         name: 'Context & CLI Utilities',
-        commands: ['/add', '/remove', '/context', '/paste', '/tokens', '/clear', '/summarize', '/system', '/health', '/models', '/doctor', '/changelog', '/help', '/update', '/exit', '/preview']
+        commands: ['/add', '/remove', '/context', '/paste', '/tokens', '/clear', '/summarize', '/system', '/health', '/models', '/doctor', '/changelog', '/help', '/update', '/exit', '/preview', '/spinner']
       }
     ];
 

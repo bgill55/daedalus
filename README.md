@@ -189,6 +189,7 @@ AI assistance without:
 | `/help` / `?` / `help` | Show available commands or detailed help for a specific command |
 | `/exit` / `/quit` / `/bye` | Save session and exit |
 | `/preview <filepath-or-url>` | Screenshot a local HTML file or URL and save the image |
+| `/spinner [list \| braille \| tracker \| aurora]` / `spin` | List or switch the "thinking" spinner style on the fly |
 
 ### Additional Commands
 
