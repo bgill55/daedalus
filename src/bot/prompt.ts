@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { execSync } from 'child_process';
+import { execSafe } from '../utils/spawn.js';
 import { commandsList } from '../commands.js';
 
 function getRecentChangelogInfo(): { version: string; recentNotes: string } {
@@ -41,7 +41,7 @@ function getRecentChangelogInfo(): { version: string; recentNotes: string } {
   // Fallback to recent git commits if CHANGELOG.md not available
   if (!recentNotes) {
     try {
-      recentNotes = execSync('git log -n 10 --oneline', { encoding: 'utf8' }).trim();
+      recentNotes = execSafe('git log -n 10 --oneline', { encoding: 'utf8' }).trim();
     } catch {
       recentNotes = 'General performance improvements, multi-agent orchestration enhancements, and bug fixes.';
     }
