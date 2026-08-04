@@ -6,6 +6,7 @@ import { feedbackCommand } from './feedback.js';
 import { devCommands } from './dev.js';
 import { shortcutCommand, normalizeAlias, createShortcutManager } from './shortcut.js';
 import { spinnerCommands } from './spinner.js';
+import { skillsCommand } from './skills.js';
 import type { Command, CommandContext } from './types.js';
 
 export type { Command, CommandContext } from './types.js';
@@ -108,6 +109,7 @@ export const commandsList: Command[] = [
   ...spinnerCommands,
   shortcutCommand,
   feedbackCommand,
+  skillsCommand,
   helpCommand,
 ];
 
