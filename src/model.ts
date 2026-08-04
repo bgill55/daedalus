@@ -250,10 +250,11 @@ export function createModelFunctions(deps: ModelDeps) {
         return { content: lastContent, toolCalls: [] };
       }
       turnUsageOut = undefined;
+      const thinkingStyle = DaedalusSpinner.getThinkingStyle(config.ui?.spinner);
       const spinner = new DaedalusSpinner({
         text: 'Daedalus thinking',
-        frames: DaedalusSpinner.THINKING_FRAMES,
-        color: DaedalusSpinner.THINKING_COLOR,
+        frames: thinkingStyle.frames,
+        color: thinkingStyle.color,
         minDurationMs: 450,
       });
       spinner.start();

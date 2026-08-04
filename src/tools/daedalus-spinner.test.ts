@@ -90,6 +90,26 @@ describe('DaedalusSpinner', () => {
     expect(DaedalusSpinner.THINKING_COLOR('x')).toContain('36m');
   });
 
+  it('exposes distinct tracker and aurora thinking styles (no braille copy)', () => {
+    expect(Array.isArray(DaedalusSpinner.TRACKER_FRAMES)).toBe(true);
+    expect(Array.isArray(DaedalusSpinner.AURORA_FRAMES)).toBe(true);
+    expect(DaedalusSpinner.TRACKER_FRAMES.length).toBeGreaterThan(0);
+    expect(DaedalusSpinner.AURORA_FRAMES.length).toBeGreaterThan(0);
+    // tracker + aurora must not reuse the braille glyphs
+    expect(DaedalusSpinner.TRACKER_FRAMES.some(f => DaedalusSpinner.THINKING_FRAMES.includes(f as never))).toBe(false);
+    expect(DaedalusSpinner.AURORA_FRAMES.some(f => DaedalusSpinner.THINKING_FRAMES.includes(f as never))).toBe(false);
+    expect(DaedalusSpinner.TRACKER_COLOR('x')).toContain('36m');
+    expect(DaedalusSpinner.AURORA_COLOR('x')).toContain('35m');
+  });
+
+  it('getThinkingStyle resolves config style and falls back to braille', () => {
+    expect(DaedalusSpinner.getThinkingStyle('tracker').frames).toBe(DaedalusSpinner.TRACKER_FRAMES);
+    expect(DaedalusSpinner.getThinkingStyle('aurora').frames).toBe(DaedalusSpinner.AURORA_FRAMES);
+    expect(DaedalusSpinner.getThinkingStyle('braille').frames).toBe(DaedalusSpinner.THINKING_FRAMES);
+    expect(DaedalusSpinner.getThinkingStyle(undefined).frames).toBe(DaedalusSpinner.THINKING_FRAMES);
+    expect(DaedalusSpinner.getThinkingStyle('bogus').frames).toBe(DaedalusSpinner.THINKING_FRAMES);
+  });
+
   it('defers the visual clear when minDurationMs is not yet elapsed', () => {
     const setTimeoutSpy = vi.spyOn(globalThis, 'setTimeout').mockImplementation(((fn: () => void) => {
       fn();

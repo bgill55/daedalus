@@ -94,6 +94,7 @@ This guide describes all configuration options available in Daedalus. You can vi
 *   **`ui.tui`**: When true, launches the terminal user interface (TUI) dashboard on start. Default: false.
 *   **`ui.compactMode`**: When true, compresses non-essential CLI output for a cleaner terminal display. Default: true.
 *   **`ui.collapseCommentary`**: When true, collapses verbose model commentary into a single line instead of printing full paragraphs. Default: true.
+*   **`ui.spinner`**: (Description needed)
 
 ---
 
