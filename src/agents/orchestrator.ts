@@ -14,9 +14,7 @@ import { DaedalusSpinner } from '../tools/daedalus-spinner.js';
 import { SessionManager } from '../session/manager.js';
 import type { ToolDefinition } from '../types.js';
 
-function errMessage(e: unknown): string {
-  return e instanceof Error ? e.message : String(e);
-}
+import { errMessage } from '../utils/errors.js';
 import { parseTextToolCalls } from '../formatting.js';
 import {
   filterValidTasks,
