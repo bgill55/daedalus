@@ -42,7 +42,10 @@ export type ChatMessageContent = string | null | MessageContentPart[];
 export function messageText(content: ChatMessageContent): string {
   if (content == null) return '';
   if (typeof content === 'string') return content;
-  return content.map((p) => (p.type === 'text' ? p.text : p.type === 'image_url' ? p.image_url.url : '')).join('');
+  return content
+    .map((p) => (p.type === 'text' ? p.text : ''))
+    .join('')
+    .trim();
 }
 
 export interface ChatMessage {

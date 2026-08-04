@@ -225,6 +225,18 @@ describe('discoverLocalServers', () => {
     expect(results).toHaveLength(0);
     vi.restoreAllMocks();
   });
+
+  it('skips blank model ids from malformed responses', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: [{}, { id: '' }, { id: '  ' }, { id: 'gpt-4' }] }),
+    } as unknown as Response);
+    const results = await discoverLocalServers();
+    vi.restoreAllMocks();
+    const allModels = results.flatMap((r) => r.models);
+    expect(allModels).not.toContain('');
+    expect(allModels.every((m) => m === 'gpt-4')).toBe(true);
+  });
 });
 
 describe('resetConfig', () => {

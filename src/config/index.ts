@@ -365,9 +365,13 @@ export async function discoverLocalServers(): Promise<Array<{ name: string; endp
         let models: string[] = [];
         
         if (c.name === 'Ollama') {
-          models = (data.models as Array<{ name?: string }> | undefined)?.map((m) => m.name || '') || [];
+          models = (data.models as Array<{ name?: string }> | undefined)
+            ?.map((m) => m.name?.trim() || '')
+            .filter((name) => name.length > 0) || [];
         } else {
-          models = (data.data as Array<{ id?: string }> | undefined)?.map((m) => m.id || '') || [];
+          models = (data.data as Array<{ id?: string }> | undefined)
+            ?.map((m) => m.id?.trim() || '')
+            .filter((id) => id.length > 0) || [];
         }
         
         if (models.length > 0) {
