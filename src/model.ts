@@ -202,6 +202,14 @@ export function createModelFunctions(deps: ModelDeps) {
     let toolTurnsRemaining = MAX_TOOL_TURNS;
     let consecutiveToolFailures = 0;
     const failureCounts = new Map<string, number>();
+    // Detects a write-tool failure that is a syntax/revert loop OR a circuit-breaker
+    // trip. A circuit breaker on a patch/write_file (streak >= 2) is, by definition, a
+    // repeated failed-edit loop — almost always invalid syntax the tool reverted.
+    // These must NOT escalate to a stronger model (that does not fix a syntax-emitting
+    // model); they need a strategy change (read_file + minimal targeted patch).
+    const isWriteToolSyntaxLoop = (name: string, errText: string): boolean =>
+      ['patch', 'write_file'].includes(name) &&
+      /syntax error|revert|invalid (ts|typescript)|unexpected token|expected ['"]|circuit breaker|consecutive times|patch failed \d+ consecutive/i.test(errText);
     const executedToolNames = new Set<string>();
     const signatureHistory: string[] = [];
     let pinnedModel: string | undefined;
@@ -479,7 +487,7 @@ export function createModelFunctions(deps: ModelDeps) {
         if (!result.success && failedWriteTools.includes(result.name)) {
           const repeated = failureCounts.get(sig) ?? 0;
           const errText = `${result.error ?? ''}\n${result.content ?? ''}`;
-          const isSyntaxLoop = /syntax error|revert|invalid (ts|typescript)|unexpected token|expected ['"]/.test(errText);
+          const isSyntaxLoop = isWriteToolSyntaxLoop(result.name, errText);
           if (isSyntaxLoop) {
             content += `\n\n[SYSTEM WARNING] Your ${result.name} on this file keeps failing validation and the change was reverted to the last-good state. STOP rewriting the whole file — that is what keeps producing invalid syntax. Instead: (1) call read_file on the current file to get its exact content, then (2) call patch with mode='replace' on the SMALLEST unique region that needs to change. Do not emit a full-file rewrite. If you cannot make a clean minimal edit, stop and summarize the blocker to the user.`;
           } else if (repeated >= 2) {
@@ -588,8 +596,7 @@ export function createModelFunctions(deps: ModelDeps) {
 
       const routerConfig = typeof router.getConfig === 'function' ? router.getConfig() : undefined;
       const syntaxLoopThisTurn = failedResults.some(r =>
-        ['patch', 'write_file'].includes(r.name) &&
-        /syntax error|revert|invalid (ts|typescript)|unexpected token|expected ['"]/.test(`${r.error ?? ''}\n${r.content ?? ''}`)
+        isWriteToolSyntaxLoop(r.name, `${r.error ?? ''}\n${r.content ?? ''}`)
       );
       const canEscalate = !config.modelOverride
         && routerConfig?.autoEscalate !== false
