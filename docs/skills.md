@@ -139,6 +139,28 @@ Tips:
 
 ---
 
+## Shipping skill changes (stacked PRs)
+
+Multiple skill/docs changes ship as **one coordinated release** using GitHub
+[stacked pull requests](https://github.blog/changelog/2026-07-30-stacked-pull-requests-are-now-in-public-preview/)
+(free, public preview). Stack the related branches instead of opening N separate PRs
+— merging the top of the stack lands every layer below it at once, so end users get
+a single update rather than one per change.
+
+```bash
+gh extension install github/gh-stack
+gh stack init fix/skill-a fix/skill-b fix/skill-c   # base → layered branches
+# ...edit + commit on each branch...
+gh stack submit                                  # opens the stack of PRs
+# merge the top PR to land the whole stack in one release
+```
+
+This matters because Daedalus's Release workflow does not auto-trigger on squash-merge,
+so each standalone PR currently needs a manual `gh workflow run release.yml`. A stack
+collapses that to one release per batch.
+
+---
+
 ## How it's wired (implementation notes)
 
 - `src/skills/index.ts` — `discoverSkills()` scans the two trusted dirs;
