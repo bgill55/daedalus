@@ -1,3 +1,11 @@
+# [3.15.0](https://github.com/bgill55/daedalus/compare/v3.14.2...v3.15.0) (2026-08-04)
+
+
+### Features
+
+* **skills:** add /skills command to review and approve agent-proposed skill drafts (bidirectional loop, part 2) ([#55](https://github.com/bgill55/daedalus/issues/55)) ([8053c2c](https://github.com/bgill55/daedalus/commit/8053c2c4104fd43d5c9cb48aa54be230e9e303c5))
+* **skills:** agent can propose learned skills as inactive drafts (bidirectional loop, part 1) ([#54](https://github.com/bgill55/daedalus/issues/54)) ([3a44c49](https://github.com/bgill55/daedalus/commit/3a44c49c5a1a10d3ec80533f44cb663e80c83dbd))
+
 ## [3.14.2](https://github.com/bgill55/daedalus/compare/v3.14.1...v3.14.2) (2026-08-04)
 
 
