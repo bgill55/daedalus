@@ -84,6 +84,42 @@ describe('DaedalusSpinner', () => {
     expect(spinner).toHaveProperty('text', 'New text');
   });
 
+  it('exposes THINKING_FRAMES and THINKING_COLOR for the chat indicator', () => {
+    expect(Array.isArray(DaedalusSpinner.THINKING_FRAMES)).toBe(true);
+    expect(DaedalusSpinner.THINKING_FRAMES.length).toBeGreaterThan(0);
+    expect(DaedalusSpinner.THINKING_COLOR('x')).toContain('36m');
+  });
+
+  it('defers the visual clear when minDurationMs is not yet elapsed', () => {
+    const setTimeoutSpy = vi.spyOn(globalThis, 'setTimeout').mockImplementation(((fn: () => void) => {
+      fn();
+      return 0 as unknown as NodeJS.Timeout;
+    }) as typeof setTimeout);
+    const minSpinner = new DaedalusSpinner({ text: 'Daedalus thinking', minDurationMs: 450 });
+    minSpinner.start();
+    minSpinner.stop();
+    // running is cleared synchronously
+    expect(minSpinner).toHaveProperty('running', false);
+    // visual clear was deferred via setTimeout by the remaining time
+    expect(setTimeoutSpy).toHaveBeenCalled();
+    const delay = setTimeoutSpy.mock.calls[0][1] as number;
+    expect(delay).toBeGreaterThan(0);
+    expect(delay).toBeLessThanOrEqual(450);
+    setTimeoutSpy.mockRestore();
+  });
+
+  it('clears immediately when minDurationMs is zero', () => {
+    const setTimeoutSpy = vi.spyOn(globalThis, 'setTimeout').mockImplementation(((fn: () => void) => {
+      fn();
+      return 0 as unknown as NodeJS.Timeout;
+    }) as typeof setTimeout);
+    const minSpinner = new DaedalusSpinner({ text: 'Daedalus thinking', minDurationMs: 0 });
+    minSpinner.start();
+    minSpinner.stop();
+    expect(setTimeoutSpy).not.toHaveBeenCalled();
+    setTimeoutSpy.mockRestore();
+  });
+
   it('handles TUI mode correctly', () => {
     (globalThis as any).isTui = true;
     spinner.start();
