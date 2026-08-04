@@ -1,3 +1,10 @@
+## [3.13.3](https://github.com/bgill55/daedalus/compare/v3.13.2...v3.13.3) (2026-08-04)
+
+
+### Bug Fixes
+
+* **tools:** spawn terminal child detached with stdin ignored to stop Windows 0xC0000142 crashes ([#42](https://github.com/bgill55/daedalus/issues/42)) ([6839a4d](https://github.com/bgill55/daedalus/commit/6839a4de46e7fdf167febef3823ca9bafd1cfd5d))
+
 ## [3.13.2](https://github.com/bgill55/daedalus/compare/v3.13.1...v3.13.2) (2026-08-04)
 
 
