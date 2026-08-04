@@ -1,3 +1,10 @@
+## [3.14.1](https://github.com/bgill55/daedalus/compare/v3.14.0...v3.14.1) (2026-08-04)
+
+
+### Bug Fixes
+
+* **skills:** prefer 'npm run build' over 'npx tsc' in fix-typescript-build skill ([#46](https://github.com/bgill55/daedalus/issues/46)) ([532cb43](https://github.com/bgill55/daedalus/commit/532cb430250100d3de53c21b02970046c0daff98))
+
 # [3.14.0](https://github.com/bgill55/daedalus/compare/v3.13.3...v3.14.0) (2026-08-04)
 
 
