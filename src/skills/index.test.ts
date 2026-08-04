@@ -85,4 +85,13 @@ describe('Skills module (beta, load-only)', () => {
     const mod = await import('./index.js');
     expect(mod.matchSkills('please do thing').length).toBe(0);
   });
+
+  it('ships the fix-typescript-build skill and matches build-fix requests', async () => {
+    vi.resetModules();
+    const mod = await import('./index.js');
+    const matched = mod.matchSkills('the build is broken, fix the typescript errors');
+    expect(matched.some((s) => s.name === 'fix-typescript-build')).toBe(true);
+    expect(mod.getSkillsSection('the build is broken, fix the typescript errors'))
+      .toContain('Fixing a TypeScript Build');
+  });
 });
