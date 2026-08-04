@@ -8,6 +8,7 @@ export type SpinnerOptions = {
   color?: (s: string) => string;
   frames?: string[];
   interval?: number;
+  minDurationMs?: number;
 };
 
 export class DaedalusSpinner {
@@ -20,20 +21,25 @@ export class DaedalusSpinner {
   private timer: NodeJS.Timeout | null = null;
   private frameIndex = 0;
   private running = false;
+  private startTime = 0;
+  private minDurationMs: number;
 
   // Default frames — a mini maze/labyrinth effect
   static readonly MAZE_FRAMES = ['◢', '◣', '◤', '◥'];
   static readonly GEAR_FRAMES = ['◐', '◓', '◑', '◒'];
   static readonly PULSE_FRAMES = ['▰▱▱▱▱', '▰▰▱▱▱', '▰▰▰▱▱', '▰▰▰▰▱', '▰▰▰▰▰', '▱▰▰▰▰', '▱▱▰▰▰', '▱▱▱▰▰', '▱▱▱▱▰'];
   static readonly BRIGHT_FRAMES = ['▘', '▝', '▗', '▖'];
+  // Smooth braille spinner used for the "thinking" indicator
+  static readonly THINKING_FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
+  static readonly THINKING_COLOR = (s: string): string => `[36m${s}[0m`; // brand cyan
 
   constructor(options: SpinnerOptions = {}) {
     this.frames = options.frames ?? DaedalusSpinner.GEAR_FRAMES;
     this.interval = options.interval ?? 100;
     this.text = options.text ?? 'Daedalus thinking';
-    this.color = options.color ?? ((s: string) => `\x1b[36m${s}\x1b[0m`); // default cyan
+    this.color = options.color ?? ((s: string) => `[36m${s}[0m`); // default cyan
+    this.minDurationMs = options.minDurationMs ?? 0;
   }
-
   private isTui(): boolean {
     return (globalThis as { isTui?: boolean }).isTui === true;
   }
@@ -48,6 +54,7 @@ export class DaedalusSpinner {
     const tui = this.isTui();
     if (!tui && !this.isTTY()) return;
     this.running = true;
+    this.startTime = Date.now();
     if (text) this.text = text;
     this.frameIndex = 0;
 
@@ -118,6 +125,16 @@ export class DaedalusSpinner {
       return;
     }
 
+    const elapsed = Date.now() - this.startTime;
+    const remaining = this.minDurationMs > 0 ? Math.max(0, this.minDurationMs - elapsed) : 0;
+    if (remaining > 0) {
+      setTimeout(() => this.clearVisual(finalText), remaining);
+    } else {
+      this.clearVisual(finalText);
+    }
+  }
+
+  private clearVisual(finalText?: string): void {
     if (this.isTui()) {
       const logBox = globalThis.tuiLogBox as { setLabel: (lbl: string) => void } | undefined;
       const screen = globalThis.tuiScreen as { render: () => void } | undefined;

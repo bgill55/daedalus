@@ -242,7 +242,12 @@ export function createModelFunctions(deps: ModelDeps) {
         return { content: lastContent, toolCalls: [] };
       }
       turnUsageOut = undefined;
-      const spinner = new DaedalusSpinner({ text: 'Daedalus thinking', color: (s) => pc.blue(s) });
+      const spinner = new DaedalusSpinner({
+        text: 'Daedalus thinking',
+        frames: DaedalusSpinner.THINKING_FRAMES,
+        color: DaedalusSpinner.THINKING_COLOR,
+        minDurationMs: 450,
+      });
       spinner.start();
 
       let fullContent = '';
