@@ -22,6 +22,7 @@ import { SigmaMemEngine } from './session/sigma-mem.js';
 import { createRepl } from './repl.js';
 import { setFormattingConfig } from './formatting.js';
 import { getProjectRules, systemPrompt } from './system-prompt.js';
+import { getSkillsSection } from './skills/index.js';
 import { BoundedMap } from './utils/bounded-map.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -127,7 +128,7 @@ setRouterClient(router);
 let mcpRegistryRef: { getConnectedServers: () => string[]; getToolDefinitions: () => ToolDefinition[] } | null = null;
 
 // Build system prompt with project memory and user profile
-function getSystemPromptWithMemory(): string {
+function getSystemPromptWithMemory(userRequest?: string): string {
   let prompt = systemPrompt;
   const currentDateStr = new Date().toLocaleString();
   prompt += `\n\n## CURRENT TIME\nThe current date and local time is: ${currentDateStr}.\n`;
@@ -184,6 +185,13 @@ function getSystemPromptWithMemory(): string {
   if (projectRules) {
     prompt += '\n' + projectRules;
   }
+
+  // BETA: load-only skill playbooks (instructions only, trusted locations only)
+  const skillsSection = getSkillsSection(userRequest ?? '');
+  if (skillsSection) {
+    prompt += skillsSection;
+  }
+
   return prompt;
 }
 

@@ -29,7 +29,7 @@ export interface ReplDeps {
   messages: ChatMessage[];
   activeFiles: Map<string, string>;
   toolContext: ToolContext;
-  getSystemPromptWithMemory: () => string;
+  getSystemPromptWithMemory: (userRequest?: string) => string;
   callModelWithTools: (userContent: string, imageBase64?: string) => Promise<{ content: string; toolCalls: ToolCall[] }>;
   callModelWithFallback: (userContent: string, imageBase64?: string) => Promise<string>;
   getIndexDbPath: () => string;
@@ -212,6 +212,11 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
           const todoCtx = buildTodoContext(sessionId);
           const userContent = `${indexCtx}${todoCtx}${filesContext}User Prompt: ${activePrompt}`;
           printUserTurn(activePrompt);
+          // BETA: rebuild system prompt with the current request so matched
+          // skill playbooks are injected for this turn (load-only).
+          if (messages.length > 0 && messages[0].role === 'system') {
+            messages[0] = { role: 'system', content: getSystemPromptWithMemory(activePrompt) };
+          }
           await callModelWithTools(userContent);
 
           sessionManager.saveSessionState(messages, activeFiles, getSessionTodos(sessionId));
