@@ -302,6 +302,14 @@ export async function execute(args: { command: string; timeout?: number; workdir
       cwd: workdir,
       env: sanitizeEnv(),
       shell: false,
+      // Ignore stdin so a closed parent stdin pipe (e.g. a piped task that hits
+      // EOF) can't deliver EOF/Ctrl-C into the child. On Windows, run the child
+      // in its own detached process group so a console/Ctrl-C signal aimed at
+      // the parent does not kill the whole spawned tree (npm -> tsc) with an
+      // 0xC0000142 / STATUS_CONTROL_C_EXIT crash. This is the root cause of
+      // intermittent terminal failures when Daedalus is launched non-interactively.
+      stdio: ['ignore', 'pipe', 'pipe'],
+      detached: process.platform === 'win32',
     });
 
     let childClosed = false;
