@@ -39,6 +39,37 @@ const COMPLEX_KEYWORDS = [
   'todo list',
 ];
 
+// Tasks that must stay on the intelligence ("complex") tier. Demoting these to
+// a weaker "standard" model produces poor results (ignored instructions, hallucinated
+// tools) — see the prompt-vault build-fix observation. These denote work that needs a
+// strong model: fixing a broken build, refactoring, multi-file edits.
+const KEEP_ON_INTELLIGENCE_KEYWORDS = [
+  'refactor',
+  'build',
+  'build is broken',
+  'fix the build',
+  'type error',
+  'type errors',
+  'typescript error',
+  'typescript errors',
+  'tsc',
+  'multi-file',
+  'multifile',
+  'multi file',
+  'validation',
+  'implement',
+  'feature',
+  'migrate',
+  'architect',
+  'debug',
+  'audit',
+  'optimize',
+  'overhaul',
+  'redesign',
+  'troubleshoot',
+  'end-to-end',
+];
+
 const SIMPLE_KEYWORDS = [
   'comma',
   'typo',
@@ -85,6 +116,15 @@ export function classifyTaskStart(taskText: string, opts?: Partial<ComplexityOpt
   return 'standard';
 }
 
+// Returns the minimum routing tier a task should be allowed to drop to.
+// Build-fix / refactor / multi-file tasks return 'complex' so the trivial-streak
+// downgrade can never push them onto a weaker "standard" model.
+export function floorForTask(taskText: string): TaskComplexity {
+  const lower = taskText.toLowerCase();
+  const hit = KEEP_ON_INTELLIGENCE_KEYWORDS.some(k => lower.includes(k));
+  return hit ? 'complex' : 'standard';
+}
+
 export interface TurnSignals {
   completionTokensThisTurn: number;
   writesThisTurn: number;
@@ -98,6 +138,10 @@ export interface RoutingState {
   totalCompletionTokens: number;
   trivialTurnStreak: number;
   hasDowngraded?: boolean;
+  // Minimum tier a task may be downgraded to. Build-fix / refactor / multi-file
+  // tasks set this to 'complex' so the trivial-streak downgrade can never push
+  // them onto a weak "standard" model.
+  floor?: TaskComplexity;
 }
 
 const COMPLEX_OUTPUT_TOKENS = 8000;
@@ -129,8 +173,16 @@ export function stepRouting(state: RoutingState, s: TurnSignals): RoutingState {
     current = current === 'complex' ? 'standard' : 'simple';
   }
 
-  if (current !== state.current && rankOf(current) < rankOf(state.current)) {
-    return { current, totalCompletionTokens: 0, trivialTurnStreak: 0, hasDowngraded: true };
+  // Enforce the task's minimum tier BEFORE any downgrade is committed. A
+  // build-fix / refactor / multi-file task must never be pushed below its floor
+  // (complex) onto a weak "standard" model. If the computed tier fell below the
+  // floor, hold at the floor and mark hasDowngraded so it stops retrying.
+  if (state.floor && rankOf(current) < rankOf(state.floor)) {
+    current = state.floor;
   }
-  return { current, totalCompletionTokens, trivialTurnStreak, hasDowngraded: state.hasDowngraded === true };
+
+  if (current !== state.current && rankOf(current) < rankOf(state.current)) {
+    return { current, totalCompletionTokens: 0, trivialTurnStreak: 0, hasDowngraded: true, floor: state.floor };
+  }
+  return { current, totalCompletionTokens, trivialTurnStreak, hasDowngraded: state.hasDowngraded === true, floor: state.floor };
 }
