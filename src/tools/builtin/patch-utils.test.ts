@@ -72,4 +72,25 @@ describe('syntaxCheck file-scoping', () => {
     expect(err).not.toBeNull();
     expect(err).toContain('good.ts');
   });
+
+  it('does NOT false-revert a valid edit on a line that already had a pre-existing error', async () => {
+    // Reproduces the residual gap: a valid in-place edit on a line that still
+    // carries a pre-existing error (e.g. unused var) must not be reverted.
+    // The fix requires the caller to pass the pre-edit content so syntaxCheck
+    // can diff pre vs post and exclude pre-existing errors.
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'daedalus-syntax-gap-'));
+    fs.writeFileSync(path.join(dir, 'tsconfig.json'), JSON.stringify({
+      compilerOptions: { strict: true, noUnusedLocals: true, noEmit: true, skipLibCheck: true },
+    }));
+    // line 1: unused const (pre-existing TS6133). line 2: ok.
+    const file = path.join(dir, 'thing.ts');
+    const orig = 'const unused = 1;\nexport const ok = 2;\n';
+    fs.writeFileSync(file, orig);
+    // VALID edit on line 1 (add a comment) — does NOT fix the unused-var error.
+    const edited = 'const unused = 1; // valid edit, pre-existing error remains\nexport const ok = 2;\n';
+    fs.writeFileSync(file, edited);
+    const err = await syntaxCheck(file, dir, [1], orig);
+    fs.rmSync(dir, { recursive: true, force: true });
+    expect(err).toBeNull();
+  });
 });

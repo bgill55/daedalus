@@ -248,7 +248,30 @@ function formatDiagnostic(d: ts.Diagnostic): string {
   return `${name}${loc}: error TS${d.code}: ${msg}`;
 }
 
-export async function syntaxCheck(filePath: string, projectRoot: string, modifiedLines?: number[]): Promise<string | null> {
+// Compute the set of (code:line) keys for a hypothetical pre-edit version of
+// the file by compiling a temp sibling copy. Used to exclude pre-existing
+// errors when deciding whether a patch introduced new ones.
+function preEditFileKeys(tsconfigRoot: string, targetAbs: string, originalContent: string): Set<string> {
+  const dir = path.dirname(targetAbs);
+  // Temp sibling named after the target so relative imports still resolve.
+  const tmpPathForTs = path.join(dir, `__daedalus_pre_${path.basename(targetAbs)}`.replace(/\.(ts|tsx|js|mjs|cjs)$/i, '') + '.ts');
+  try {
+    fs.writeFileSync(tmpPathForTs, originalContent);
+    const all = runTscDiagnostics(tsconfigRoot);
+    if (!all) return new Set();
+    return new Set(
+      diagnosticsForFile(all, tmpPathForTs)
+        .filter(d => !isDeprecation(d))
+        .map(diagKey)
+    );
+  } catch {
+    return new Set();
+  } finally {
+    try { fs.rmSync(tmpPathForTs, { force: true }); } catch { /* ignore */ }
+  }
+}
+
+export async function syntaxCheck(filePath: string, projectRoot: string, modifiedLines?: number[], originalContent?: string): Promise<string | null> {
   const ext = path.extname(filePath).toLowerCase();
 
   if (ext === '.json') {
@@ -282,7 +305,13 @@ export async function syntaxCheck(filePath: string, projectRoot: string, modifie
     const hasFreshBaseline = baseline !== undefined && baseline.tsconfigMtime === tsconfigMtime;
 
     let introduced: ts.Diagnostic[];
-    if (hasFreshBaseline) {
+    if (originalContent !== undefined) {
+      // Diff post-edit diagnostics against the pre-edit file so pre-existing
+      // errors on touched lines are never blamed on the patch. This is the
+      // correct path; modifiedLines is only a fallback when no baseline exists.
+      const preKeys = preEditFileKeys(tsconfigRoot, targetAbs, originalContent);
+      introduced = fileDiags.filter(d => !preKeys.has(diagKey(d)));
+    } else if (hasFreshBaseline) {
       const beforeKeys = new Set(
         diagnosticsForFile(baseline.diagnostics, targetAbs)
           .filter(d => !isDeprecation(d))
@@ -290,9 +319,10 @@ export async function syntaxCheck(filePath: string, projectRoot: string, modifie
       );
       introduced = fileDiags.filter(d => !beforeKeys.has(diagKey(d)));
     } else if (modifiedLines && modifiedLines.length > 0) {
-      // No fresh baseline yet: only flag errors that land on lines this patch
-      // touched, so we never revert a valid edit just because the file already
-      // had errors elsewhere.
+      // No original content and no fresh baseline: only flag errors that land
+      // on lines this patch touched. Less precise — a pre-existing error on a
+      // touched line can slip through as a false revert — but it's the safest
+      // we can do without the pre-edit content.
       introduced = fileDiags.filter(d => {
         const line = diagLine(d);
         return line > 0 && modifiedLines.includes(line);
