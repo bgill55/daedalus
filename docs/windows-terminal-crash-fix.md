@@ -168,7 +168,15 @@ the fixes.
 The agent occasionally runs `npx tsc` instead of the project's `npm run build`. `npx`
 then warns it will download `tsc` (not a declared dependency). This is agent
 behavior, not a tool bug — and with the terminal fix in place it no longer crashes.
-A skill- or prompt-level nudge toward `npm run build` would tighten this further.
+The `fix-typescript-build` skill now steers toward `npm run build` (see
+[Skills (playbook injection)](skills.md)), which tightens this further.
+
+---
+
+## See also
+
+- [Skills (playbook injection)](skills.md) — how the `fix-typescript-build` skill is
+  discovered, matched, and injected; includes authoring + shipping (stacked-PR) notes.
 
 ---
 
