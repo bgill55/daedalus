@@ -209,7 +209,7 @@ export async function writeFile(args: { path: string; content: string }, context
     const checkpointNoteStr = checkpointNote(targetPath, context.projectRoot);
     fs.writeFileSync(targetPath, finalContent, 'utf8');
 
-    const syntaxError = await syntaxCheck(targetPath, context.projectRoot, changedLines.length > 0 ? changedLines : undefined);
+    const syntaxError = await syntaxCheck(targetPath, context.projectRoot, changedLines.length > 0 ? changedLines : undefined, previousContent ?? undefined);
     if (syntaxError) {
       if (previousContent !== null) {
         fs.writeFileSync(targetPath, previousContent, 'utf8');
@@ -351,7 +351,7 @@ export async function patchFile(args: { path: string; old_string: string; new_st
     if (autoApply === 'all') {
       const changedLines = computeChangedLines(content, finalNormalized);
       fs.writeFileSync(targetPath, finalNormalized, 'utf8');
-      const syntaxError = await syntaxCheck(targetPath, context.projectRoot, changedLines.length > 0 ? changedLines : undefined);
+      const syntaxError = await syntaxCheck(targetPath, context.projectRoot, changedLines.length > 0 ? changedLines : undefined, content);
       if (syntaxError) {
         fs.writeFileSync(targetPath, rawContent, 'utf8');
         recordRevert(targetPath, context);
@@ -403,7 +403,7 @@ export async function patchFile(args: { path: string; old_string: string; new_st
     fs.writeFileSync(targetPath, writeContent, 'utf8');
 
     const changedLinesInteractive = computeChangedLines(content, writeContent);
-    const syntaxError = await syntaxCheck(targetPath, context.projectRoot, changedLinesInteractive.length > 0 ? changedLinesInteractive : undefined);
+    const syntaxError = await syntaxCheck(targetPath, context.projectRoot, changedLinesInteractive.length > 0 ? changedLinesInteractive : undefined, content);
     if (syntaxError) {
       fs.writeFileSync(targetPath, rawContent, 'utf8');
       recordRevert(targetPath, context);
