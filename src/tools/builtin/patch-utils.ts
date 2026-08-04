@@ -248,8 +248,8 @@ export async function syntaxCheck(filePath: string, projectRoot: string, modifie
     try {
       JSON.parse(fs.readFileSync(filePath, 'utf8'));
       return null;
-    } catch (e: any) {
-      return `JSON syntax error: ${e.message}`;
+    } catch (e) {
+      return `JSON syntax error: ${(e instanceof Error ? e.message : String(e))}`;
     }
   }
 

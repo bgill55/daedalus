@@ -132,7 +132,7 @@ export async function checkModelHealth(model: ModelEntry, timeout: number): Prom
     } else {
       throw new Error(`HTTP ${response.status}`);
     }
-  } catch (err: any) {
+  } catch (err) {
     const cached = healthCache.get(cacheKey) ?? {
       healthy: false,
       lastCheck: 0,
@@ -142,7 +142,7 @@ export async function checkModelHealth(model: ModelEntry, timeout: number): Prom
     const health: ModelHealth = {
       healthy: false,
       lastCheck: Date.now(),
-      error: err.message,
+      error: (err instanceof Error ? err.message : String(err)),
       consecutiveFailures: (cached?.consecutiveFailures ?? 0) + 1,
     };
     healthCache.set(cacheKey, health);

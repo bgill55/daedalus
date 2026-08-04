@@ -124,7 +124,9 @@ export async function readFile(args: { path: string; offset?: number; limit?: nu
     let content = '';
     if (targetPath.toLowerCase().endsWith('.pdf')) {
       const pdfBuffer = fs.readFileSync(targetPath);
-      const pdfParseModule = (await import('pdf-parse')) as any;
+      const pdfParseModule = (await import('pdf-parse')) as unknown as {
+        PDFParse: new (opts: { data: Uint8Array }) => { getText(): Promise<{ text: string }> };
+      };
       const parser = new pdfParseModule.PDFParse({ data: new Uint8Array(pdfBuffer) });
       const parsedData = await parser.getText();
       content = parsedData.text;
@@ -153,8 +155,8 @@ export async function readFile(args: { path: string; offset?: number; limit?: nu
     }
 
     return { toolCallId: '', name: 'read_file', success: true, content: output };
-  } catch (err: any) {
-    return formatError(`Failed to read file: ${err.message}`);
+  } catch (err) {
+    return formatError(`Failed to read file: ${(err instanceof Error ? err.message : String(err))}`);
   }
 }
 
@@ -239,8 +241,8 @@ export async function writeFile(args: { path: string; content: string }, context
 
     const suffix = notices.length > 0 ? `\n\n${notices.join('\n\n')}` : '';
     return { toolCallId: '', name: 'write_file', success: true, content: `Written ${args.content.length} chars to ${args.path}${suffix}${checkpointNoteStr}` };
-  } catch (err: any) {
-    return formatError(`Failed to write file: ${err.message}`);
+  } catch (err) {
+    return formatError(`Failed to write file: ${(err instanceof Error ? err.message : String(err))}`);
   }
 }
 
@@ -430,8 +432,8 @@ export async function patchFile(args: { path: string; old_string: string; new_st
     if (testFailureB) noticesB.push(testFailureB);
     const suffixB = noticesB.length > 0 ? `\n\n${noticesB.join('\n\n')}` : '';
     return { toolCallId: '', name: 'patch', success: true, content: `Patched ${args.path}${hasCRLF ? ' (CRLF preserved)' : ''}${suffixB}${checkpointNoteStr}` };
-  } catch (err: any) {
-    return formatError(`Failed to patch file: ${err.message}`);
+  } catch (err) {
+    return formatError(`Failed to patch file: ${(err instanceof Error ? err.message : String(err))}`);
   }
 }
 
@@ -521,8 +523,8 @@ export async function searchFiles(args: { pattern?: string; target?: 'content' |
     // Native fallback
     const matches = nativeGrep(searchPath, pattern, args.file_glob, limit);
     return { toolCallId: '', name: 'search_files', success: true, content: matches.length > 0 ? matches.join('\n') : '(no matches)' };
-  } catch (err: any) {
-    return formatError(`Search failed: ${err.message}`);
+  } catch (err) {
+    return formatError(`Search failed: ${(err instanceof Error ? err.message : String(err))}`);
   }
 }
 
@@ -616,7 +618,7 @@ export async function listFiles(args: { path?: string; depth?: number; glob?: st
     }
 
     return { toolCallId: '', name: 'list_files', success: true, content };
-  } catch (err: any) {
-    return formatError(`List files failed: ${err.message}`);
+  } catch (err) {
+    return formatError(`List files failed: ${(err instanceof Error ? err.message : String(err))}`);
   }
 }

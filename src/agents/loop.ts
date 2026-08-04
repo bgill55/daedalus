@@ -3,10 +3,39 @@ import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
 import pc from 'picocolors';
-import { ToolContext } from '../types.js';
+import { ToolContext, messageText } from '../types.js';
 import { CommandContext } from '../commands.js';
+import type { DaedalusConfig } from '../config/index.js';
+import type { LocalRouter } from '../router/index.js';
+import type { SessionManager } from '../session/manager.js';
+
+interface DiscordWebhookSource {
+  discordLoopWebhook?: string;
+  discordWebhook?: string;
+  integrations?: { discordLoopWebhook?: string; discordWebhook?: string };
+}
+
+interface DiscordEmbed {
+  title?: string;
+  description?: string;
+  url?: string;
+  color?: number;
+  timestamp?: string;
+  fields?: Array<{ name: string; value: string; inline?: boolean }>;
+}
+
+interface GitHubIssue {
+  number: number;
+  title: string;
+  html_url: string;
+  body?: string;
+}
 
 dotenv.config();
+
+function errMessage(e: unknown): string {
+  return e instanceof Error ? e.message : String(e);
+}
 
 export function getGitRepoInfo(cwd: string): { owner: string; repo: string } | null {
   try {
@@ -22,7 +51,7 @@ export function getGitRepoInfo(cwd: string): { owner: string; repo: string } | n
   return null;
 }
 
-export function resolveDiscordWebhook(config?: any): string | null {
+export function resolveDiscordWebhook(config?: DiscordWebhookSource): string | null {
   if (process.env.DISCORD_LOOP_WEBHOOK_URL && process.env.DISCORD_LOOP_WEBHOOK_URL.trim()) {
     return process.env.DISCORD_LOOP_WEBHOOK_URL.trim();
   }
@@ -57,10 +86,10 @@ export function resolveDiscordWebhook(config?: any): string | null {
   return null;
 }
 
-export async function sendDiscordEmbed(webhookUrl: string, embed: any): Promise<boolean> {
+export async function sendDiscordEmbed(webhookUrl: string, embed: DiscordEmbed): Promise<boolean> {
   if (!webhookUrl) return false;
   try {
-    const cleanEmbed: any = { ...embed };
+    const cleanEmbed: DiscordEmbed = { ...embed };
 
     // Clean up empty URL which breaks Discord API
     if (!cleanEmbed.url || typeof cleanEmbed.url !== 'string' || !cleanEmbed.url.startsWith('http')) {
@@ -68,16 +97,18 @@ export async function sendDiscordEmbed(webhookUrl: string, embed: any): Promise<
     }
 
     // Clean up empty fields which break Discord API
-    if (Array.isArray(cleanEmbed.fields)) {
-      cleanEmbed.fields = cleanEmbed.fields
-        .filter((f: any) => f && f.name && f.value)
-        .map((f: any) => ({
+    if (cleanEmbed.fields && Array.isArray(cleanEmbed.fields)) {
+      const cleaned = cleanEmbed.fields
+        .filter((f) => f && f.name && f.value)
+        .map((f) => ({
           name: String(f.name),
           value: String(f.value).trim() || 'N/A',
           inline: Boolean(f.inline),
         }));
-      if (cleanEmbed.fields.length === 0) {
+      if (cleaned.length === 0) {
         delete cleanEmbed.fields;
+      } else {
+        cleanEmbed.fields = cleaned;
       }
     }
 
@@ -94,8 +125,8 @@ export async function sendDiscordEmbed(webhookUrl: string, embed: any): Promise<
     }
     console.log(pc.green('✔ Sent Discord notification embed.'));
     return true;
-  } catch (err: any) {
-    console.error(pc.yellow(`[WARN] Failed to send Discord notification: ${err.message}`));
+  } catch (err) {
+    console.error(pc.yellow(`[WARN] Failed to send Discord notification: ${errMessage(err)}`));
     return false;
   }
 }
@@ -179,15 +210,15 @@ Include a summary, proposed file modifications/creations, and acceptance criteri
   });
 
   if (createResp.ok) {
-    const issueData = (await createResp.json()) as any;
-    console.log(pc.green(`\n✔ Issue created successfully on GitHub: ${pc.bold(issueData.html_url)}`));
+    const issueData = (await createResp.json()) as Record<string, unknown>;
+    console.log(pc.green(`\n✔ Issue created successfully on GitHub: ${pc.bold(String(issueData.html_url))}`));
 
-    const discordWebhook = resolveDiscordWebhook(ctx.config);
+    const discordWebhook = resolveDiscordWebhook(ctx.config as unknown as DiscordWebhookSource);
     if (discordWebhook) {
       await sendDiscordEmbed(discordWebhook, {
         title: `📋 New Spec Issue Queued: ${idea}`,
-        description: `Created issue **#${issueData.number}** and queued for autonomous loop processing.`,
-        url: issueData.html_url,
+        description: `Created issue **#${String(issueData.number)}** and queued for autonomous loop processing.`,
+        url: String(issueData.html_url ?? ''),
         color: 3447003,
         fields: [
           { name: 'Repository', value: `${repoInfo.owner}/${repoInfo.repo}`, inline: true },
@@ -202,7 +233,7 @@ Include a summary, proposed file modifications/creations, and acceptance criteri
   }
 }
 
-export async function startLoopDaemon(ctx: ToolContext, config: any, router: any, sessionManager: any) {
+export async function startLoopDaemon(ctx: ToolContext, config: DaedalusConfig, router: LocalRouter, sessionManager: SessionManager) {
   console.log(pc.bold(pc.green('\n======================================')));
   console.log(pc.bold(pc.green('   DAEDALUS FINN LOOP DAEMON ACTIVE   ')));
   console.log(pc.bold(pc.green('======================================\n')));
@@ -217,7 +248,7 @@ export async function startLoopDaemon(ctx: ToolContext, config: any, router: any
     }
   }
 
-  const discordWebhook = resolveDiscordWebhook(config);
+  const discordWebhook = resolveDiscordWebhook(config as unknown as DiscordWebhookSource);
 
   if (!repoInfo || !token) {
     console.error(pc.red('[ERROR] Daemon requires a Git repository with GITHUB_TOKEN/GH_TOKEN or gh CLI authenticated.'));
@@ -249,7 +280,7 @@ export async function startLoopDaemon(ctx: ToolContext, config: any, router: any
         return;
       }
 
-      let issues = (await resp.json()) as any[];
+      let issues = (await resp.json()) as unknown[];
       if (issues.length === 0) {
         const inProgressResp = await fetch(`https://api.github.com/repos/${repo.owner}/${repo.repo}/issues?state=open&labels=daedalus-in-progress`, {
           headers: {
@@ -258,7 +289,7 @@ export async function startLoopDaemon(ctx: ToolContext, config: any, router: any
           },
         });
         if (inProgressResp.ok) {
-          issues = (await inProgressResp.json()) as any[];
+          issues = (await inProgressResp.json()) as unknown[];
         }
       }
 
@@ -266,7 +297,7 @@ export async function startLoopDaemon(ctx: ToolContext, config: any, router: any
         return;
       }
 
-      const issue = issues[0];
+      const issue = issues[0] as GitHubIssue;
       console.log(pc.green(`\n🚀 Found issue: #${issue.number} - "${issue.title}"`));
 
       // 1. Move to In Progress
@@ -385,7 +416,7 @@ Output ONLY "PASS" if no bugs or contract violations found, or a numbered list o
             ],
             temperature: 0.1,
           });
-          findings = aiRes.choices[0]?.message?.content?.trim() || 'PASS';
+          findings = messageText(aiRes.choices[0]?.message?.content ?? '') || 'PASS';
         } catch { findings = 'PASS'; }
 
         if (findings === 'PASS' || findings.startsWith('PASS')) {
@@ -410,8 +441,8 @@ Output ONLY "PASS" if no bugs or contract violations found, or a numbered list o
             const repairOrchestrator = new Orchestrator(router, [], ctx, sessionManager);
             const repairGoal = `Fix the following show-stopping bugs found in a semantic code review. Apply targeted fixes ONLY to the files mentioned. Do not rewrite unrelated code.\n\nBUGS TO FIX:\n${findings}`;
             await repairOrchestrator.run(repairGoal);
-          } catch (repairErr: any) {
-            console.error(pc.red(`  [REPAIR ERROR] ${repairErr.message}`));
+          } catch (repairErr) {
+            console.error(pc.red(`  [REPAIR ERROR] ${errMessage(repairErr)}`));
           }
         }
       }
@@ -449,8 +480,8 @@ Output ONLY "PASS" if no bugs or contract violations found, or a numbered list o
         execSync('git add .', { cwd: sessionManager.projectRoot });
         execSync(`git commit -m "feat(issue-${issue.number}): ${cleanTitle}"`, { cwd: sessionManager.projectRoot });
         execSync(`git push -u origin ${branchName} --force`, { cwd: sessionManager.projectRoot });
-      } catch (err: any) {
-        console.error(pc.red(`Git push failed: ${err.message}`));
+      } catch (err) {
+        console.error(pc.red(`Git push failed: ${errMessage(err)}`));
         return;
       }
 
@@ -473,8 +504,8 @@ Output ONLY "PASS" if no bugs or contract violations found, or a numbered list o
 
       let prUrl = '';
       if (prResp.ok) {
-        const prData = (await prResp.json()) as any;
-        prUrl = prData.html_url || '';
+        const prData = (await prResp.json()) as Record<string, unknown>;
+        prUrl = String(prData.html_url ?? '');
         console.log(pc.green(`✔ PR opened: ${prUrl}`));
       } else {
         const errBody = await prResp.text();
@@ -489,10 +520,13 @@ Output ONLY "PASS" if no bugs or contract violations found, or a numbered list o
             },
           });
           if (existingPrResp.ok) {
-            const prs = (await existingPrResp.json()) as any[];
-            if (prs.length > 0 && prs[0].html_url) {
-              prUrl = prs[0].html_url;
-              console.log(pc.green(`✔ Found existing PR: ${prUrl}`));
+            const prs = (await existingPrResp.json()) as unknown[];
+            if (prs.length > 0) {
+              const first = prs[0] as Record<string, unknown>;
+              if (first.html_url) {
+                prUrl = String(first.html_url);
+                console.log(pc.green(`✔ Found existing PR: ${prUrl}`));
+              }
             }
           }
         } catch { /* ignore fallback fetch error */ }
@@ -539,8 +573,8 @@ Output ONLY "PASS" if no bugs or contract violations found, or a numbered list o
         // Ignore git checkout error if main branch is unavailable or already checked out
       }
 
-    } catch (err: any) {
-      console.error(pc.red(`Error in daemon loop: ${err.message}`));
+    } catch (err) {
+      console.error(pc.red(`Error in daemon loop: ${errMessage(err)}`));
     }
   }
 

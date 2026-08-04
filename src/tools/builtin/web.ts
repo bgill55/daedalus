@@ -46,8 +46,8 @@ export async function search(args: { query: string; limit?: number }, _context: 
 
     const output = results.map((r, i) => `${i + 1}. ${r.title}\n   ${r.url}\n   ${r.snippet}`).join('\n\n');
     return { toolCallId: '', name: 'web_search', success: true, content: output };
-  } catch (err: any) {
-    return { toolCallId: '', name: 'web_search', success: false, content: '', error: `Search failed: ${err.message}` };
+  } catch (err) {
+    return { toolCallId: '', name: 'web_search', success: false, content: '', error: `Search failed: ${(err instanceof Error ? err.message : String(err))}` };
   }
 }
 
@@ -70,7 +70,7 @@ export async function fetchUrl(args: { url: string; timeout?: number }, _context
       content: `URL: ${args.url}\nStatus: ${res.status}\nContent-Type: ${contentType}\n\n${truncated}`,
       error: res.ok ? undefined : `HTTP ${res.status}`,
     };
-  } catch (err: any) {
-    return { toolCallId: '', name: 'fetch_url', success: false, content: '', error: `Fetch failed: ${err.message}` };
+  } catch (err) {
+    return { toolCallId: '', name: 'fetch_url', success: false, content: '', error: `Fetch failed: ${(err instanceof Error ? err.message : String(err))}` };
   }
 }

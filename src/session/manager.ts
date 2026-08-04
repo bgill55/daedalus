@@ -34,7 +34,7 @@ import {
 } from './sqlite.js';
 import { exportToJsonl, importFromJsonl } from './jsonl.js';
 import { loadMemory, addFact, setConvention, getMemoryAsPrompt, ProjectMemory } from './memory.js';
-import { ChatMessage } from '../types.js';
+import { ChatMessage, ToolCall } from '../types.js';
 
 export class SessionManager {
   private homedir = os.homedir();
@@ -131,7 +131,7 @@ export class SessionManager {
     if (!this.sessionDb) return [];
     const dbTurns = getTurns(this.sessionDb);
     return dbTurns.map(t => {
-      let toolCallsParsed: any[] | undefined = undefined;
+      let toolCallsParsed: ToolCall[] | undefined = undefined;
       if (t.tool_calls) {
         try {
           toolCallsParsed = JSON.parse(t.tool_calls);
@@ -274,12 +274,12 @@ export class SessionManager {
     return loadMemory(this.getMemoryPath(), this.projectHash);
   }
 
-  public saveState(key: string, value: any): void {
+  public saveState(key: string, value: unknown): void {
     if (!this.sessionDb) return;
     saveState(this.sessionDb, key, value);
   }
 
-  public getState(key: string): any | null {
+  public getState(key: string): unknown {
     if (!this.sessionDb) return null;
     return getState(this.sessionDb, key);
   }

@@ -61,11 +61,11 @@ export function spawnBackgroundAgent(
           `[NOTIF] Background task #${id} (${role}) failed: ${job.error}`
         );
       }
-    } catch (err: any) {
+    } catch (err) {
       if (job.status === 'killed') return;
 
       job.status = 'failed';
-      job.error = err.message || 'Exception occurred';
+      job.error = (err instanceof Error ? err.message : String(err)) || 'Exception occurred';
       pendingNotifications.push(
         `[NOTIF] Background task #${id} (${role}) failed with exception: ${job.error}`
       );

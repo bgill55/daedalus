@@ -64,9 +64,9 @@ describe('LocalRouter', () => {
         { name: 'only', endpoint: 'http://localhost:1/v1', model: 'm1', priority: 1, enabled: true, tier: 'intelligence' },
       ],
     }));
-    const simple = await router.route({ messages: [{ role: 'user', content: 'hi' }], complexity: 'simple', tools: [{ type: 'function' }] });
+    const simple = await router.route({ messages: [{ role: 'user', content: 'hi' }], complexity: 'simple', tools: [{ type: 'function', function: { name: 'noop', description: 'noop', parameters: { type: 'object', properties: {} } } }] });
     expect(simple.model.name).toBe('only');
-    const complex = await router.route({ messages: [{ role: 'user', content: 'hi' }], complexity: 'complex', tools: [{ type: 'function' }] });
+    const complex = await router.route({ messages: [{ role: 'user', content: 'hi' }], complexity: 'complex', tools: [{ type: 'function', function: { name: 'noop', description: 'noop', parameters: { type: 'object', properties: {} } } }] });
     expect(complex.model.name).toBe('only');
   });
 
@@ -162,7 +162,7 @@ describe('LocalRouter', () => {
       ],
     }));
     const excluded = new Set(['backup', 'm2']);
-    const result = await router.route({ messages: [{ role: 'user', content: 'hi' }], model: 'backup', tools: [{ type: 'function' }] }, excluded);
+    const result = await router.route({ messages: [{ role: 'user', content: 'hi' }], model: 'backup', tools: [{ type: 'function', function: { name: 'noop', description: 'noop', parameters: { type: 'object', properties: {} } } }] }, excluded);
     expect(result.model.name).not.toBe('backup');
     expect(result.model.name).toBe('main');
   });
@@ -174,7 +174,7 @@ describe('LocalRouter', () => {
         { name: 'fast', endpoint: 'http://localhost:2/v1', model: 'm2', priority: 5, enabled: true, tier: 'fast', supportsTools: true },
       ],
     }));
-    const result = await router.route({ messages: [{ role: 'user', content: 'hi' }], complexity: 'simple', tools: [{ type: 'function' }] });
+    const result = await router.route({ messages: [{ role: 'user', content: 'hi' }], complexity: 'simple', tools: [{ type: 'function', function: { name: 'noop', description: 'noop', parameters: { type: 'object', properties: {} } } }] });
     expect(result.model.name).toBe('fast');
   });
 
@@ -185,7 +185,7 @@ describe('LocalRouter', () => {
         { name: 'fast', endpoint: 'http://localhost:2/v1', model: 'm2', priority: 5, enabled: true, tier: 'fast', supportsTools: true },
       ],
     }));
-    const result = await router.route({ messages: [{ role: 'user', content: 'hi' }], complexity: 'complex', tools: [{ type: 'function' }] });
+    const result = await router.route({ messages: [{ role: 'user', content: 'hi' }], complexity: 'complex', tools: [{ type: 'function', function: { name: 'noop', description: 'noop', parameters: { type: 'object', properties: {} } } }] });
     expect(result.model.name).toBe('big');
   });
 
@@ -197,9 +197,9 @@ describe('LocalRouter', () => {
         { name: 'fast', endpoint: 'http://localhost:2/v1', model: 'm2', priority: 5, enabled: true, tier: 'fast', supportsTools: true },
       ],
     }));
-    await router.route({ messages: [{ role: 'user', content: 'hi' }], complexity: 'simple', tools: [{ type: 'function' }] });
-    await router.route({ messages: [{ role: 'user', content: 'hi' }], complexity: 'complex', tools: [{ type: 'function' }] });
-    await router.route({ messages: [{ role: 'user', content: 'hi' }], complexity: 'standard', tools: [{ type: 'function' }] });
+    await router.route({ messages: [{ role: 'user', content: 'hi' }], complexity: 'simple', tools: [{ type: 'function', function: { name: 'noop', description: 'noop', parameters: { type: 'object', properties: {} } } }] });
+    await router.route({ messages: [{ role: 'user', content: 'hi' }], complexity: 'complex', tools: [{ type: 'function', function: { name: 'noop', description: 'noop', parameters: { type: 'object', properties: {} } } }] });
+    await router.route({ messages: [{ role: 'user', content: 'hi' }], complexity: 'standard', tools: [{ type: 'function', function: { name: 'noop', description: 'noop', parameters: { type: 'object', properties: {} } } }] });
     expect(router.lastRoutedTier).toBe('standard');
     const stats = router.getRouteStats();
     expect(stats.fast).toBe(1);
@@ -311,7 +311,7 @@ describe('LocalRouter', () => {
     }));
     const result = await router.route({
       messages: [{ role: 'user', content: 'run tool' }],
-      tools: [{ type: 'function', function: { name: 'test_tool' } }],
+      tools: [{ type: 'function', function: { name: 'test_tool', description: 'test', parameters: { type: 'object', properties: {} } } }],
     });
     expect(result.model.name).toBe('has-tools');
   });

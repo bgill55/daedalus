@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { execute as termExec } from './tools/builtin/terminal.js';
-import { ToolContext } from './types.js';
+import { ToolContext, messageText } from './types.js';
 import { runStaticChecks, emptyStaticCheckResult } from './review/static-checks.js';
 
 export interface CiReviewResult {
@@ -125,7 +125,7 @@ If no bugs are found, respond with exactly: "No semantic issues found."`,
           ],
           temperature: 0.1,
         });
-        const content = aiRes.choices[0]?.message?.content?.trim() || '';
+        const content = messageText(aiRes.choices[0]?.message?.content ?? '').trim() || '';
         if (content && content !== 'No semantic issues found.') findings.push(content);
       }
       semanticFindings = findings.length > 0 ? findings.join('\n\n') : 'No semantic issues found.';

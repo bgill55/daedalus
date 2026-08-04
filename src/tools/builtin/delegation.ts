@@ -5,10 +5,14 @@ import { BUILTIN_TOOLS } from '../definitions.js';
 import { executeToolCalls } from '../executor.js';
 import { getAgentRole, filterToolsForRole } from '../../agents/roles.js';
 
+import type { ChatMessage, ToolCall } from '../../types.js';
+import type { ChatRequest, ChatResponse } from '../../router/types.js';
+import { messageText } from '../../types.js';
+
 interface LocalRouter {
   chat: {
     completions: {
-      create(params: any): Promise<any>;
+      create(params: ChatRequest): Promise<ChatResponse>;
     };
   };
 }
@@ -35,7 +39,7 @@ export async function manage(args: { goal: string; context?: string; role?: stri
     const agentRole = getAgentRole(role);
     const currentDateStr = new Date().toLocaleString();
     const dynamicSystemPrompt = `${agentRole.systemPrompt}\n\n## CURRENT TIME\nThe current date and local time is: ${currentDateStr}.\n`;
-    const messages: any[] = [
+    const messages: ChatMessage[] = [
       { role: 'system', content: dynamicSystemPrompt },
       { role: 'user', content: `${args.context ?? ''}\n\nTask: ${args.goal}` },
     ];
@@ -63,7 +67,7 @@ export async function manage(args: { goal: string; context?: string; role?: stri
           agentRole: role,
         };
         const results = await executeToolCalls(
-          message.tool_calls.map((tc: any) => ({
+          message.tool_calls.map((tc: ToolCall) => ({
             id: tc.id,
             type: 'function' as const,
             function: { name: tc.function.name, arguments: tc.function.arguments },
@@ -87,7 +91,7 @@ export async function manage(args: { goal: string; context?: string; role?: stri
         toolCallId: '',
         name: 'delegate_task',
         success: true,
-        content: message.content || 'Sub-agent completed',
+        content: messageText(message.content) || 'Sub-agent completed',
       };
     }
 
@@ -97,13 +101,13 @@ export async function manage(args: { goal: string; context?: string; role?: stri
       success: true,
       content: 'Sub-agent reached max turns',
     };
-  } catch (err: any) {
+  } catch (err) {
     return {
       toolCallId: '',
       name: 'delegate_task',
       success: false,
       content: '',
-      error: `Delegation failed: ${err.message}`,
+      error: `Delegation failed: ${(err instanceof Error ? err.message : String(err))}`,
     };
   }
 }

@@ -1,6 +1,6 @@
 // Daedalus Local Router Types
 
-import type { RouteSkip } from '../types.js';
+import type { RouteSkip, ChatMessage, ToolDefinition } from '../types.js';
 
 export interface ModelEntry {
   name: string;                 // Human-readable name (e.g., "lmstudio-qwen")
@@ -58,14 +58,19 @@ export interface RouterConfig {
 export interface ChatRequest {
   model?: string;
   complexity?: TaskComplexity;
-  messages: any[];
+  messages: ChatMessage[];
   temperature?: number;
   max_tokens?: number;
+  top_p?: number;
+  n?: number;
+  stop?: string | string[];
   stream?: boolean;
-  tools?: any[];
-  tool_choice?: any;
+  stream_options?: Record<string, unknown>;
+  frequency_penalty?: number;
+  presence_penalty?: number;
+  tools?: ToolDefinition[];
+  tool_choice?: unknown;
   signal?: AbortSignal;
-  [key: string]: any;
 }
 
 export interface ChatResponse {
@@ -75,7 +80,7 @@ export interface ChatResponse {
   model: string;
   choices: Array<{
     index: number;
-    message: any;
+    message: ChatMessage;
     finish_reason: string | null;
   }>;
   usage: {
@@ -95,7 +100,7 @@ export interface StreamChunk {
     delta: {
       role?: string;
       content?: string;
-      tool_calls?: any[];
+      tool_calls?: Array<{ index?: number; id?: string; type?: string; function?: { name?: string; arguments?: string } }>;
     };
     finish_reason: string | null;
   }>;

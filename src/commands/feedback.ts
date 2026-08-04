@@ -192,8 +192,8 @@ ${errorSnippet.trim() || 'N/A'}
           console.log(pc.green('✔ Feedback posted to Discord webhook.'));
           await copyToClipboard(sanitizedMarkdown);
           console.log(pc.gray('  (Copied to clipboard as fallback.)'));
-        } catch (err: any) {
-          console.log(pc.red(`✗ Discord webhook failed: ${err.message}`));
+        } catch (err) {
+          console.log(pc.red(`✗ Discord webhook failed: ${(err instanceof Error ? err.message : String(err))}`));
           console.log(pc.gray('  Falling back to GitHub URL + clipboard.'));
         }
       }
@@ -201,8 +201,8 @@ ${errorSnippet.trim() || 'N/A'}
       // Always open GitHub as primary (user gets to edit)
       try {
         await openGitHubUrl(githubUrl);
-      } catch (err: any) {
-        console.log(pc.red(`✗ Failed to open browser: ${err.message}`));
+      } catch (err) {
+        console.log(pc.red(`✗ Failed to open browser: ${(err instanceof Error ? err.message : String(err))}`));
         console.log(pc.gray('  Copying to clipboard instead.'));
         await copyToClipboard(sanitizedMarkdown);
       }
@@ -210,8 +210,8 @@ ${errorSnippet.trim() || 'N/A'}
       // No Discord — just GitHub
       try {
         await openGitHubUrl(githubUrl);
-      } catch (err: any) {
-        console.log(pc.red(`✗ Failed to open browser: ${err.message}`));
+      } catch (err) {
+        console.log(pc.red(`✗ Failed to open browser: ${(err instanceof Error ? err.message : String(err))}`));
         console.log(pc.gray('  Copying to clipboard instead.'));
         await copyToClipboard(sanitizedMarkdown);
       }

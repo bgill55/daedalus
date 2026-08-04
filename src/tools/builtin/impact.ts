@@ -136,7 +136,7 @@ export async function getImpact(
     }
 
     return { toolCallId: '', name: 'get_impact', success: true, content: lines.join('\n') };
-  } catch (err: any) {
-    return formatError(`get_impact failed: ${err.message}`);
+  } catch (err) {
+    return formatError(`get_impact failed: ${(err instanceof Error ? err.message : String(err))}`);
   }
 }

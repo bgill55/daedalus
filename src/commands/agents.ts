@@ -9,9 +9,17 @@ import { handleSpecCommand, getGitRepoInfo } from '../agents/loop.js';
 import { generateSpecContract, loadSpecContract, formatSpecForPrompt } from '../agents/spec.js';
 import { turnSeparator } from '../formatting.js';
 import { execSync } from 'child_process';
+import type { ModelEntry } from '../router/types.js';
+import type { AgentResult, DelegationTask } from '../agents/orchestrator-types.js';
+import type { RegistryServerEntry } from '../tools/mcp/manager.js';
+
+function errMessage(e: unknown): string {
+  return e instanceof Error ? e.message : String(e);
+}
 
 import { discoverLocalServers, saveConfig } from '../config/index.js';
 import type { ToolCall, ChatMessage } from '../types.js';
+import { messageText } from '../types.js';
 import type { Command } from './types.js';
 
 export const agentCommands: Command[] = [
@@ -196,8 +204,8 @@ export const agentCommands: Command[] = [
     usage: '/orchestrate <goal>',
     helpText: 'Spawns the Orchestration system to plan, execute, and verify a high-level coding goal.\nOrchestrate generates a task.md checklist, coordinates specialized sub-agents, runs verification commands, and handles self-repair loops automatically.',
     execute: async (args, ctx) => {
-      const pendingPlan = ctx.sessionManager.getState('orchestrate_plan');
-      const pendingGoal = ctx.sessionManager.getState('orchestrate_goal');
+      const pendingPlan = ctx.sessionManager.getState('orchestrate_plan') as DelegationTask[] | null;
+      const pendingGoal = ctx.sessionManager.getState('orchestrate_goal') as string | null;
 
       if (pendingPlan && pendingGoal) {
         const goal = args.trim();
@@ -219,9 +227,9 @@ export const agentCommands: Command[] = [
           console.log(pc.cyan(`\n[ORCHESTRATE] Resuming orchestration for: ${pendingGoal}`));
           const { Orchestrator } = await import('../agents/orchestrator.js');
           const orchestrator = new Orchestrator(ctx.router, ctx.messages, ctx.toolContext, ctx.sessionManager, ctx.config?.modelOverride);
-          const planText = ctx.sessionManager.getState('orchestrate_plan_text') || '';
-          const taskIndex = ctx.sessionManager.getState('orchestrate_task_index') || 0;
-          const prevResults = ctx.sessionManager.getState('orchestrate_results') || [];
+          const planText = (ctx.sessionManager.getState('orchestrate_plan_text') as string | null) || '';
+          const taskIndex = (ctx.sessionManager.getState('orchestrate_task_index') as number | null) || 0;
+          const prevResults = (ctx.sessionManager.getState('orchestrate_results') as AgentResult[] | null) || [];
 
           const result = await orchestrator.resume(pendingGoal, planText, pendingPlan, taskIndex, prevResults);
           console.log(pc.white(`\n${result}`));
@@ -260,8 +268,8 @@ export const agentCommands: Command[] = [
       try {
         const { runEnsembleWorkflow } = await import('../agents/ensemble.js');
         await runEnsembleWorkflow(ensembleGoal, ctx.toolContext, ctx.config, ctx.router);
-      } catch (err: any) {
-        console.log(pc.red(`\n  Error in ensemble drafting: ${err.message}`));
+      } catch (err) {
+        console.log(pc.red(`\n  Error in ensemble drafting: ${errMessage(err)}`));
       }
       turnSeparator();
     }
@@ -348,8 +356,8 @@ export const agentCommands: Command[] = [
               console.log(`    ${pc.gray('Install:')} ${pc.dim(source)} (${installType})`);
               console.log();
             }
-          } catch (err: any) {
-            console.log(pc.red(`  Search failed: ${err.message}`));
+          } catch (err) {
+            console.log(pc.red(`  Search failed: ${errMessage(err)}`));
           }
           return;
         }
@@ -380,8 +388,8 @@ export const agentCommands: Command[] = [
             } else {
               console.log(pc.yellow(`  ${result.message}`));
             }
-          } catch (err: any) {
-            console.log(pc.red(`  Install failed: ${err.message}`));
+          } catch (err) {
+            console.log(pc.red(`  Install failed: ${errMessage(err)}`));
           }
           return;
         }
@@ -395,7 +403,7 @@ export const agentCommands: Command[] = [
             const remote = all.filter(s => s.remotes && s.remotes.length > 0);
             console.log(`  ${pc.bold(`Found ${all.length} servers in registry`)}`);
 
-            const showSample = (list: any[], label: string, max = 5) => {
+            const showSample = (list: RegistryServerEntry[], label: string, max = 5) => {
               if (list.length === 0) return;
               console.log(`\n  ${pc.underline(label)} (${list.length} available)`);
               for (const s of list.slice(0, max)) {
@@ -415,8 +423,8 @@ export const agentCommands: Command[] = [
             showSample(local, 'Local (stdio — install & run)', 6);
             showSample(remote, 'Remote (HTTP — cloud API)', 6);
             console.log(`\n  ${pc.dim('Tip: /mcp search <query> to find specific servers')}`);
-          } catch (err: any) {
-            console.log(pc.red(`  Explore failed: ${err.message}`));
+          } catch (err) {
+            console.log(pc.red(`  Explore failed: ${errMessage(err)}`));
           }
           return;
         }
@@ -510,8 +518,8 @@ export const agentCommands: Command[] = [
               }
             }
             console.log();
-          } catch (err: any) {
-            console.log(pc.red(`  Info fetch failed: ${err.message}`));
+          } catch (err) {
+            console.log(pc.red(`  Info fetch failed: ${errMessage(err)}`));
           }
           return;
         }
@@ -552,8 +560,8 @@ export const agentCommands: Command[] = [
             try {
               await mcpRegistry.connectServer(s);
               connected.push(s.name);
-            } catch (err: any) {
-              failed.push(`${s.name} (${err.message})`);
+            } catch (err) {
+              failed.push(`${s.name} (${errMessage(err)})`);
             }
           }
 
@@ -692,8 +700,8 @@ export const agentCommands: Command[] = [
       };
 
       // Replace any existing chain or add to it
-      config.router.chain = [entry, ...config.router.chain.filter((e: any) => e.endpoint !== chosenEndpoint)];
-      saveConfig(config as any);
+      config.router.chain = [entry, ...config.router.chain.filter((e: ModelEntry) => e.endpoint !== chosenEndpoint)];
+      saveConfig(config);
 
       console.log(pc.green(`\n✓ Added model "${pc.bold(chosenModel)}" at ${chosenEndpoint}`));
 
@@ -714,11 +722,11 @@ export const agentCommands: Command[] = [
             temperature: 0.1,
           });
           const elapsed = Date.now() - start;
-          const text = completion.choices?.[0]?.message?.content || '(no response)';
+          const text = messageText(completion.choices?.[0]?.message?.content ?? '') || '(no response)';
           console.log(pc.green(`\n✓ Response received in ${elapsed}ms:`));
           console.log(`  ${pc.white(text)}`);
-        } catch (err: any) {
-          console.log(pc.yellow(`\n⚠ Test failed: ${err.message}`));
+        } catch (err) {
+          console.log(pc.yellow(`\n⚠ Test failed: ${errMessage(err)}`));
           console.log('  The model is configured but may need troubleshooting.');
           console.log(`  Check ${pc.cyan(ctx.configDir + '/config.json')} and verify the endpoint.`);
         }
@@ -766,7 +774,7 @@ export const agentCommands: Command[] = [
       const cleanedPrompt = promptText
         .replace(/--provider\s+([^\s]+)/i, (_, pr) => {
           if (['auto', 'sd-webui', 'pollinations'].includes(pr.toLowerCase())) {
-            provider = pr.toLowerCase() as any;
+            provider = pr.toLowerCase() as 'auto' | 'sd-webui' | 'pollinations';
           }
           return '';
         })
@@ -842,7 +850,7 @@ export const agentCommands: Command[] = [
           execSync(`git checkout -B ${branchName}`, { cwd: ctx.toolContext.projectRoot });
           console.log(pc.green(`[OK] Created branch: ${branchName}`));
         } catch (err: unknown) {
-          const msg = err instanceof Error ? err.message : String(err);
+          const msg = err instanceof Error ? errMessage(err) : String(err);
           console.log(pc.red(`[ERROR] Failed to create branch: ${msg}`));
           return;
         }
@@ -868,9 +876,9 @@ export const agentCommands: Command[] = [
           const lineLen = Math.max(20, Math.min(70, cols - 6));
           console.log(`\n  ${pc.bold(pc.red('─ Autopilot Post-Mortem ─'))} ${pc.dim('─'.repeat(Math.max(10, lineLen - 25)))}`);
 
-          const failed = orchestrator.results?.filter((r: any) => !r.success) || [];
+          const failed = orchestrator.results?.filter((r: AgentResult) => !r.success) || [];
           if (failed.length > 0) {
-            failed.forEach((f: any, idx: number) => {
+            failed.forEach((f: AgentResult, idx: number) => {
               console.log(`  ${pc.bold(pc.red(`❌ Failed Step ${idx + 1}:`))} ${pc.bold(`[${f.role}]`)} ${f.goal}`);
               console.log(`     ${pc.yellow(`📌 Diagnostic:`)} ${f.summary.split('\n')[0]}`);
             });
@@ -886,7 +894,7 @@ export const agentCommands: Command[] = [
           throw new Error(orchestrationFailed ? 'Orchestration reported failure' : 'Orchestration was paused/aborted');
         }
       } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : String(err);
+        const msg = err instanceof Error ? errMessage(err) : String(err);
         console.log(pc.red(`\n[ERROR] Implementation failed: ${msg}`));
         if (isGitRepo) {
           console.log(pc.yellow('[ROLLBACK] Rolling back to main branch...'));
@@ -911,7 +919,7 @@ export const agentCommands: Command[] = [
           execSync(`git commit -m "feat: ${cleanTitle}"`, { cwd: ctx.toolContext.projectRoot });
           console.log(pc.green('[OK] Changes committed.'));
         } catch (err: unknown) {
-          const msg = err instanceof Error ? err.message : String(err);
+          const msg = err instanceof Error ? errMessage(err) : String(err);
           if (msg.includes('nothing to commit')) {
             console.log(pc.yellow('[INFO] No changes to commit.'));
           } else {
@@ -962,7 +970,7 @@ export const agentCommands: Command[] = [
             console.log(pc.yellow(`[INFO] Branch ${branchName} is pushed. Create PR manually.`));
           }
         } catch (err: unknown) {
-          const msg = err instanceof Error ? err.message : String(err);
+          const msg = err instanceof Error ? errMessage(err) : String(err);
           console.log(pc.red(`[ERROR] Push/PR failed: ${msg}`));
           console.log(pc.yellow(`[INFO] Branch ${branchName} is ready locally.`));
         }
@@ -1014,7 +1022,7 @@ export const agentCommands: Command[] = [
           const errorLines = testFailureOutput.split('\n').filter(l => l.includes('FAIL') || l.includes('AssertionError') || l.includes('Error:') || l.includes('×')).slice(0, 20).join('\n');
           console.log(pc.red(`\n[HUNT] Failure reproduced:\n${errorLines.slice(0, 1000)}`));
         } catch (err: unknown) {
-          const msg = err instanceof Error ? err.message : String(err);
+          const msg = err instanceof Error ? errMessage(err) : String(err);
           console.log(pc.yellow(`[HUNT] Could not run test: ${msg}. Continuing with description only.`));
         }
       }
@@ -1024,7 +1032,7 @@ export const agentCommands: Command[] = [
         execSync(`git checkout -B ${branchName}`, { cwd: ctx.toolContext.projectRoot });
         console.log(pc.green(`[OK] Created branch: ${branchName}`));
       } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : String(err);
+        const msg = err instanceof Error ? errMessage(err) : String(err);
         console.log(pc.red(`[ERROR] Failed to create branch: ${msg}`));
         return;
       }
@@ -1049,7 +1057,7 @@ export const agentCommands: Command[] = [
           throw new Error(orchestrationFailed ? 'Orchestration reported failure' : 'Orchestration was paused/aborted');
         }
       } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : String(err);
+        const msg = err instanceof Error ? errMessage(err) : String(err);
         console.log(pc.red(`\n[ERROR] Bug hunt failed: ${msg}`));
         console.log(pc.yellow('[ROLLBACK] Rolling back to main branch...'));
         try {
@@ -1076,7 +1084,7 @@ export const agentCommands: Command[] = [
             console.log(pc.yellow(`\n[HUNT] ⚠ Fix verification failed. Test still failing. Continuing to commit partial fix.`));
           }
         } catch (err: unknown) {
-          const msg = err instanceof Error ? err.message : String(err);
+          const msg = err instanceof Error ? errMessage(err) : String(err);
           console.log(pc.yellow(`[HUNT] Verification skipped: ${msg}`));
         }
       }
@@ -1089,7 +1097,7 @@ export const agentCommands: Command[] = [
         execSync(`git commit -m "fix: ${cleanTitle}"`, { cwd: ctx.toolContext.projectRoot });
         console.log(pc.green('[OK] Changes committed.'));
       } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : String(err);
+        const msg = err instanceof Error ? errMessage(err) : String(err);
         if (msg.includes('nothing to commit')) {
           console.log(pc.yellow('[INFO] No changes to commit.'));
         } else {
@@ -1140,7 +1148,7 @@ export const agentCommands: Command[] = [
             console.log(pc.yellow(`[INFO] Branch ${branchName} is pushed. Create PR manually.`));
           }
         } catch (err: unknown) {
-          const msg = err instanceof Error ? err.message : String(err);
+          const msg = err instanceof Error ? errMessage(err) : String(err);
           console.log(pc.red(`[ERROR] Push/PR failed: ${msg}`));
           console.log(pc.yellow(`[INFO] Branch ${branchName} is ready locally.`));
         }
@@ -1187,7 +1195,7 @@ export const agentCommands: Command[] = [
         console.log(pc.green(`[OK] Screenshot saved to: ${data.savedPath}`));
         console.log(pc.dim(`     URL: ${data.url}`));
       } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : String(err);
+        const msg = err instanceof Error ? errMessage(err) : String(err);
         console.log(pc.red(`[ERROR] Preview failed: ${msg}`));
       }
     }

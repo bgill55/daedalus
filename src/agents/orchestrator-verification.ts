@@ -5,7 +5,8 @@ import pc from 'picocolors';
 
 import { PLACEHOLDER_RE, HTML_PLACEHOLDER_RE } from './orchestrator-types.js';
 import type { DelegationTask } from './orchestrator-types.js';
-import type { ToolContext } from '../types.js';
+import type { ToolContext, ToolDefinition } from '../types.js';
+import type { AgentRole } from './roles.js';
 import { loadSpecContract } from './spec.js';
 
 export function isDeclaredError(result: string): boolean {
@@ -344,11 +345,11 @@ export async function runBuildVerification(toolContext: ToolContext, historyStar
 
 export interface AgentExecutionContext {
   toolContext: ToolContext;
-  runAgent(role: any, goal: string, context: string, tools: any[]): Promise<string>;
+  runAgent(role: AgentRole, goal: string, context: string, tools: ToolDefinition[]): Promise<string>;
 }
 
 export async function attemptRepair(
-  ctx: { runAgent: (role: any, goal: string, context: string, tools: any[]) => Promise<string>; toolContext: ToolContext; projectRoot?: string },
+  ctx: { runAgent: (role: AgentRole, goal: string, context: string, tools: ToolDefinition[]) => Promise<string>; toolContext: ToolContext; projectRoot?: string },
   task: DelegationTask,
   previous: { summary: string },
   customContext?: string,
@@ -429,8 +430,8 @@ export async function rollbackTaskPatches(toolContext: ToolContext, historyStart
         fs.writeFileSync(patch.filePath, patch.oldContent, 'utf8');
         console.log(pc.gray(`  Reverted changes to ${path.relative(toolContext.projectRoot || process.cwd(), patch.filePath)}`));
       }
-    } catch (err: any) {
-      console.log(pc.red(`  Failed to revert changes to ${patch.filePath}: ${err.message}`));
+    } catch (err) {
+      console.log(pc.red(`  Failed to revert changes to ${patch.filePath}: ${(err instanceof Error ? err.message : String(err))}`));
     }
   }
 

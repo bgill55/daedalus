@@ -142,27 +142,27 @@ export async function generateImage(args: GenerateImageArgs): Promise<ToolResult
           error: `Stable Diffusion API returned HTTP ${response.status}: ${text}`,
         };
       }
-    } catch (sdErr: any) {
+    } catch (sdErr) {
       if (provider === 'sd-webui') {
         return {
           toolCallId: '',
           name: 'generate_image',
           success: false,
           content: '',
-          error: `Failed to connect to local Stable Diffusion WebUI at ${endpoint}: ${sdErr.message || String(sdErr)}`,
+          error: `Failed to connect to local Stable Diffusion WebUI at ${endpoint}: ${(sdErr instanceof Error ? sdErr.message : String(sdErr)) || String(sdErr)}`,
         };
       }
     }
 
     // Fallback to Pollinations AI if provider === 'auto' and local SD failed
     return await fetchFromPollinations(args.prompt, width, height, args.output_path, outputDir);
-  } catch (err: any) {
+  } catch (err) {
     return {
       toolCallId: '',
       name: 'generate_image',
       success: false,
       content: '',
-      error: `Failed to generate image: ${err.message || String(err)}`,
+      error: `Failed to generate image: ${(err instanceof Error ? err.message : String(err)) || String(err)}`,
     };
   }
 }

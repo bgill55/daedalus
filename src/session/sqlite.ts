@@ -252,7 +252,7 @@ export function getTodos(db: Database.Database): SqliteTodo[] {
 }
 
 /** Save state key-value */
-export function saveState(db: Database.Database, key: string, val: any): void {
+export function saveState(db: Database.Database, key: string, val: unknown): void {
   db.prepare(`
     INSERT INTO agent_state (key, value, updated_at)
     VALUES (?, ?, ?)
@@ -261,7 +261,7 @@ export function saveState(db: Database.Database, key: string, val: any): void {
 }
 
 /** Get state value */
-export function getState(db: Database.Database, key: string): any | null {
+export function getState(db: Database.Database, key: string): unknown {
   const row = db.prepare('SELECT value FROM agent_state WHERE key = ?').get(key) as { value: string } | undefined;
   if (!row) return null;
   try {

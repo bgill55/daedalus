@@ -8,10 +8,15 @@ import { BUILTIN_TOOLS } from '../tools/definitions.js';
 import { mcpRegistry } from '../tools/mcp/registry.js';
 import { executeToolCalls } from '../tools/executor.js';
 import { getAgentRole, filterToolsForRole, AgentRole } from './roles.js';
-import { ToolContext, ToolCall, ChatMessage } from '../types.js';
+import { ToolContext, ToolCall, ChatMessage, ToolResult, PatchEntry, messageText } from '../types.js';
 import pc from 'picocolors';
 import { DaedalusSpinner } from '../tools/daedalus-spinner.js';
 import { SessionManager } from '../session/manager.js';
+import type { ToolDefinition } from '../types.js';
+
+function errMessage(e: unknown): string {
+  return e instanceof Error ? e.message : String(e);
+}
 import { parseTextToolCalls } from '../formatting.js';
 import {
   filterValidTasks,
@@ -59,13 +64,13 @@ export class Orchestrator {
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
         return await fn();
-      } catch (err: any) {
-        lastErr = err;
-        const msg = String(err?.message || err);
+      } catch (err) {
+        lastErr = err instanceof Error ? err : new Error(String(err));
+        const msg = String(lastErr.message || lastErr);
 
         // If 400 Bad Request (e.g. model not in catalog) or 413 (payload too large), do not retry
         if (msg.includes('400') || msg.includes('not in the catalog') || msg.includes('413') || msg.includes('request entity too large')) {
-          throw err;
+          throw lastErr;
         }
 
         if (attempt < maxRetries) {
@@ -340,13 +345,13 @@ export class Orchestrator {
         } finally {
           finalizeSpinner.stop();
         }
-        const content = (followUp.choices[0].message).content || '';
+        const content = messageText((followUp.choices[0].message).content);
         const isRefusal = content.length < 300 && REFUSAL_RE.test(content) && !content.includes('delegate to');
         if (isRefusal) continue;
         if (!content) continue;
         planText = content;
       } else {
-        const content = assistantMessage.content || '';
+        const content = messageText(assistantMessage.content);
         const isRefusal = content.length < 300 && REFUSAL_RE.test(content) && !content.includes('delegate to');
         if (isRefusal) continue;
         if (!content) continue;
@@ -466,7 +471,7 @@ export class Orchestrator {
         icon = pc.blue('[▶]');
       } else if (task.status === 'completed') {
         icon = pc.green('[✓]');
-      } else if (task.status === 'failed') {
+      } else if ((task.status as string) === 'failed') {
         icon = pc.red('[✗]');
       } else if (task.status === 'skipped') {
         icon = pc.yellow('[S]');
@@ -520,7 +525,7 @@ export class Orchestrator {
     this.printTaskList(tasks);
 
     // Handle task failure with auto-retry in auto-approve mode
-    if ((task.status as any) === 'failed') {
+    if ((task.status as string) === 'failed') {
       console.log(`\n${pc.bold(pc.red('--- Task Failure Checkpoint ---'))}`);
       console.log(`${pc.red('[ERROR] Task failed:')} ${task.role} - ${task.goal}`);
 
@@ -532,7 +537,7 @@ export class Orchestrator {
         this.results.pop();
         await this.delegateTask(task, tasks, originalGoal, projectContext);
         this.printTaskList(tasks);
-        if ((task.status as any) !== 'failed') {
+        if ((task.status as string) !== 'failed') {
           return;
         }
         console.log(pc.yellow(`\n[auto] Skipping failed task after retry: ${task.goal}`));
@@ -561,7 +566,7 @@ export class Orchestrator {
           this.results.pop();
           await this.delegateTask(task, tasks, originalGoal, projectContext);
           this.printTaskList(tasks);
-          if ((task.status as any) !== 'failed') {
+          if ((task.status as string) !== 'failed') {
             resolved = true;
           }
         } else if (norm === 'e' || norm === 'edit') {
@@ -574,7 +579,7 @@ export class Orchestrator {
             this.results.pop();
             await this.delegateTask(task, tasks, originalGoal, projectContext);
             this.printTaskList(tasks);
-            if ((task.status as any) !== 'failed') {
+            if ((task.status as string) !== 'failed') {
               resolved = true;
             }
           }
@@ -1404,8 +1409,8 @@ export class Orchestrator {
         const reviewerRole = getAgentRole('reviewer');
         if (reviewerRole && !reviewerRole.canDelegate) {
           const touchedFiles = (this.toolContext.patchHistory || [])
-            .filter((h: any) => h.filePath)
-            .map((h: any) => h.filePath);
+            .filter((h: PatchEntry) => h.filePath)
+            .map((h: PatchEntry) => h.filePath);
           const fileList = touchedFiles.length > 0
             ? `\nFILES_TOUCHED: ${touchedFiles.join(', ')}`
             : '';
@@ -1451,7 +1456,7 @@ export class Orchestrator {
     role: AgentRole,
     goal: string,
     context: string,
-    tools: any[],
+    tools: ToolDefinition[],
     systemExtra?: string,
   ): Promise<string> {
     const currentDateStr = new Date().toLocaleString();
@@ -1527,7 +1532,7 @@ export class Orchestrator {
 
       let effectiveToolCalls = message.tool_calls || [];
       if (!effectiveToolCalls.length && message.content) {
-        const parsed = parseTextToolCalls(message.content);
+        const parsed = parseTextToolCalls(messageText(message.content));
         if (parsed.length > 0) {
           effectiveToolCalls = parsed;
         }
@@ -1535,7 +1540,7 @@ export class Orchestrator {
 
       if (effectiveToolCalls.length > 0) {
         const results = await executeToolCalls(
-          effectiveToolCalls.map((tc: any) => ({
+          effectiveToolCalls.map((tc: ToolCall) => ({
             id: tc.id,
             type: 'function' as const,
             function: { name: tc.function.name, arguments: tc.function.arguments },
@@ -1582,7 +1587,7 @@ export class Orchestrator {
 
         // Early-exit: after artifacts exist, if agent spends 2+ turns on read-only tools, it's done
         const hasArtifacts = this.toolContext.patchHistory && this.toolContext.patchHistory.length > taskStartHistoryLength;
-        const hasArtifactTool = effectiveToolCalls.some((tc: any) =>
+        const hasArtifactTool = effectiveToolCalls.some((tc: ToolCall) =>
           /^(write_file|patch|terminal)$/i.test(tc.function.name)
         );
         if (hasArtifacts && hasArtifactTool) {
@@ -1598,7 +1603,7 @@ export class Orchestrator {
       }
 
       // No tool calls on this turn
-      const responseText = message.content || '';
+      const responseText = messageText(message.content);
 
       // If tools were provided but the model refused to use them, give it a firm nudge
       if (tools.length > 0 && turns === 0 && /sorry|can'?t|cannot|don'?t have|not (able|capable)|lack(|ing) (the )?(necessary |required )?(tools|capabilities)|unable|apologize/i.test(responseText)) {
@@ -1616,13 +1621,8 @@ export class Orchestrator {
     return 'Agent reached max turns';
   }
 
-  private async executeOpenAIToolCalls(toolCalls: any[]): Promise<any[]> {
-    const tc: ToolCall[] = toolCalls.map((rawTc: any) => ({
-      id: rawTc.id,
-      type: 'function',
-      function: { name: rawTc.function.name, arguments: rawTc.function.arguments },
-    }));
-    return executeToolCalls(tc, this.toolContext);
+  private async executeOpenAIToolCalls(toolCalls: ToolCall[]): Promise<ToolResult[]> {
+    return executeToolCalls(toolCalls, this.toolContext);
   }
 
   private synthesize(goal: string): string {
@@ -1694,8 +1694,8 @@ export class Orchestrator {
       const walkthroughPath = path.join(daedalusDir, 'walkthrough.md');
       fs.writeFileSync(walkthroughPath, md, 'utf8');
       console.log(pc.green(`\n[WALKTHROUGH] Generated walkthrough guide at .daedalus/walkthrough.md`));
-    } catch (err: any) {
-      console.log(pc.yellow(`\n[WARN] Failed to write walkthrough.md: ${err.message}`));
+    } catch (err) {
+      console.log(pc.yellow(`\n[WARN] Failed to write walkthrough.md: ${errMessage(err)}`));
     }
   }
 

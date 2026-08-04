@@ -1,7 +1,7 @@
 // Daedalus Local Router - Main routing logic
 
 import { OpenAI } from 'openai';
-import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions';
+import type { ChatCompletionMessageParam, ChatCompletionCreateParamsNonStreaming, ChatCompletionCreateParamsStreaming } from 'openai/resources/chat/completions';
 import type { ChatMessage, ChatMessageContent, MessageContentPart } from '../types.js';
 import type { 
   ModelEntry, 
@@ -542,7 +542,7 @@ export class LocalRouter {
           ...body,
           messages: sanitizedMessages,
           model: actualModel,
-        }, { signal }) as ChatResponse;
+        } as ChatCompletionCreateParamsNonStreaming, { signal }) as ChatResponse;
         
         const elapsed = Date.now() - start;
         markHealthy(model, elapsed);
@@ -620,7 +620,7 @@ export class LocalRouter {
           model: actualModel,
           stream: true,
           stream_options: streamOptions,
-        }, { signal });
+        } as ChatCompletionCreateParamsStreaming, { signal });
 
         for await (const chunk of stream) {
           yield chunk as StreamChunk;

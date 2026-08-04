@@ -1,6 +1,7 @@
 import pc from 'picocolors';
 import type { LocalRouter } from './router/index.js';
 import type { ChatMessage } from './types.js';
+import { messageText } from './types.js';
 import { SessionManager } from './session/manager.js';
 import { SigmaMemEngine } from './session/sigma-mem.js';
 
@@ -88,7 +89,7 @@ export async function extractAndSave(
         max_tokens: 20,
       });
 
-      let newTitle = cleanTitle(titleResponse.choices[0]?.message?.content || '');
+      let newTitle = cleanTitle(messageText(titleResponse.choices[0]?.message?.content ?? ''));
 
       if (!isValidTitle(newTitle)) {
         const retryResponse = await router.chat.completions.create({
@@ -100,7 +101,7 @@ export async function extractAndSave(
           temperature: 0.3,
           max_tokens: 20,
         });
-        newTitle = cleanTitle(retryResponse.choices[0]?.message?.content || '');
+        newTitle = cleanTitle(messageText(retryResponse.choices[0]?.message?.content ?? ''));
       }
 
       if (isValidTitle(newTitle)) {
@@ -150,10 +151,10 @@ export async function extractAndSave(
       max_tokens: 300,
     });
 
-    const text = (response.choices[0]?.message?.content || '').trim();
+    const text = messageText(response.choices[0]?.message?.content ?? '').trim();
     if (!text) return;
 
-    let parsed: any;
+    let parsed: Array<{ key: string; value: string }>;
     try {
       parsed = JSON.parse(text);
     } catch {

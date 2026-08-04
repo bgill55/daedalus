@@ -2,7 +2,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { createModelFunctions, abortTurn, resetTurnAborted } from './model.js';
 import { setSessionTodos } from './tools/builtin/todo.js';
 import type { ToolContext, ChatMessage } from './types.js';
+import type { DaedalusConfig } from './config/index.js';
 import type { LocalRouter } from './router/index.js';
+
+const TEST_CONFIG = { ui: { showTokens: false } } as unknown as DaedalusConfig;
 
 describe('Single Agent Loop', () => {
   let messages: ChatMessage[];
@@ -36,7 +39,7 @@ describe('Single Agent Loop', () => {
 
     const { callModelWithTools } = createModelFunctions({
       messages,
-      config: { ui: { showTokens: false } },
+      config: TEST_CONFIG,
       router,
       toolContext,
       buildFileContext,
@@ -108,7 +111,7 @@ describe('Single Agent Loop', () => {
 
     const { callModelWithTools } = createModelFunctions({
       messages,
-      config: { ui: { showTokens: false } },
+      config: TEST_CONFIG,
       router,
       toolContext,
       buildFileContext,
@@ -178,7 +181,7 @@ describe('Single Agent Loop', () => {
 
     const { callModelWithTools } = createModelFunctions({
       messages,
-      config: { ui: { showTokens: false } },
+      config: TEST_CONFIG,
       router,
       toolContext,
       buildFileContext,
@@ -248,7 +251,7 @@ describe('Single Agent Loop', () => {
 
     const { callModelWithTools } = createModelFunctions({
       messages,
-      config: { ui: { showTokens: false } },
+      config: TEST_CONFIG,
       router,
       toolContext,
       buildFileContext,
@@ -350,7 +353,7 @@ describe('Tool failure handling', () => {
 
     const { callModelWithTools } = createModelFunctions({
       messages,
-      config: { ui: { showTokens: false } },
+      config: TEST_CONFIG,
       router: makeRouter(chatStreamMock),
       toolContext,
       buildFileContext: () => '',
@@ -391,7 +394,7 @@ describe('Tool failure handling', () => {
 
     const { callModelWithTools } = createModelFunctions({
       messages,
-      config: { ui: { showTokens: false } },
+      config: TEST_CONFIG,
       router: makeRouter(chatStreamMock),
       toolContext,
       buildFileContext: () => '',
@@ -436,7 +439,7 @@ describe('Tool failure handling', () => {
 
     const { callModelWithTools } = createModelFunctions({
       messages,
-      config: { ui: { showTokens: false } },
+      config: TEST_CONFIG,
       router: escalateRouter,
       toolContext,
       buildFileContext: () => '',
@@ -471,7 +474,7 @@ describe('Tool failure handling', () => {
 
     const { callModelWithTools } = createModelFunctions({
       messages,
-      config: { ui: { showTokens: false } },
+      config: TEST_CONFIG,
       router: makeRouter(chatStreamMock),
       toolContext,
       buildFileContext: () => '',
@@ -506,7 +509,7 @@ describe('Tool failure handling', () => {
 
     const { callModelWithTools } = createModelFunctions({
       messages,
-      config: { ui: { showTokens: false } },
+      config: TEST_CONFIG,
       router: makeRouter(chatStreamMock),
       toolContext,
       buildFileContext: () => '',
@@ -548,7 +551,7 @@ describe('Tool failure handling', () => {
 
     const { callModelWithTools } = createModelFunctions({
       messages,
-      config: { ui: { showTokens: false } },
+      config: TEST_CONFIG,
       router: makeRouter(chatStreamMock),
       toolContext,
       buildFileContext: () => '',
@@ -592,7 +595,7 @@ describe('Tool failure handling', () => {
     const askLine = vi.fn().mockResolvedValue('y');
     const { callModelWithTools } = createModelFunctions({
       messages,
-      config: { ui: { showTokens: false } },
+      config: TEST_CONFIG,
       router: makeRouter(chatStreamMock),
       toolContext,
       buildFileContext: () => '',
@@ -638,7 +641,7 @@ describe('Tool failure handling', () => {
 
     const { callModelWithTools } = createModelFunctions({
       messages,
-      config: { ui: { showTokens: false } },
+      config: TEST_CONFIG,
       router: makeRouter(chatStreamMock),
       toolContext,
       buildFileContext: () => '',

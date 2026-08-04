@@ -2,11 +2,13 @@ import fs from 'fs';
 import Database from 'better-sqlite3';
 import { getTurns, clearTurns, saveTurn, SqliteTurn } from './sqlite.js';
 
+import { ToolCall } from '../types.js';
+
 export interface JsonlTurn {
   turn: number;
   role: string;
   content: string;
-  tool_calls?: any[];
+  tool_calls?: ToolCall[];
   tool_call_id?: string;
   name?: string;
   model?: string;
@@ -22,7 +24,7 @@ export function exportToJsonl(db: Database.Database, jsonlPath: string): void {
   const lines: string[] = [];
 
   turns.forEach((t, index) => {
-    let toolCallsParsed: any[] | undefined = undefined;
+    let toolCallsParsed: ToolCall[] | undefined = undefined;
     if (t.tool_calls) {
       try {
         toolCallsParsed = JSON.parse(t.tool_calls);

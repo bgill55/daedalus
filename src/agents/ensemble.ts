@@ -4,7 +4,7 @@ import pc from 'picocolors';
 import { execSync } from 'child_process';
 import { LocalRouter } from '../router/index.js';
 import { DaedalusConfig } from '../config/index.js';
-import { ToolContext, ChatMessage } from '../types.js';
+import { ToolContext, ChatMessage, ToolCall, messageText } from '../types.js';
 import { getAgentRole, filterToolsForRole } from './roles.js';
 import { BUILTIN_TOOLS } from '../tools/definitions.js';
 import { mcpRegistry } from '../tools/mcp/registry.js';
@@ -54,7 +54,7 @@ async function executeAgentRole(
 
     if (message.tool_calls && message.tool_calls.length > 0) {
       const results = await executeToolCalls(
-        message.tool_calls.map((tc: any) => ({
+        message.tool_calls.map((tc: ToolCall) => ({
           id: tc.id,
           type: 'function' as const,
           function: { name: tc.function.name, arguments: tc.function.arguments },
@@ -73,7 +73,7 @@ async function executeAgentRole(
       continue;
     }
 
-    return message.content || 'Agent completed without response';
+    return messageText(message.content) || 'Agent completed without response';
   }
 
   return 'Agent reached max turns';
@@ -85,8 +85,8 @@ function getGitChangesDiff(cwd: string): string {
       execSync('git add -N .', { cwd, stdio: 'ignore' });
     } catch { /* ignored */ }
     return execSync('git diff', { cwd, encoding: 'utf8' });
-  } catch (err: any) {
-    return `Error getting git diff: ${err.message}`;
+  } catch (err) {
+    return `Error getting git diff: ${(err instanceof Error ? err.message : String(err))}`;
   }
 }
 
@@ -130,8 +130,8 @@ export async function runEnsembleWorkflow(
       execSync('git add -A', { cwd, stdio: 'ignore' });
       execSync('git commit -m "daedalus-ensemble-baseline" --allow-empty', { cwd, stdio: 'ignore' });
       baselineCreated = true;
-    } catch (err: any) {
-      console.warn(pc.yellow(`[WARN] Failed to establish git baseline: ${err.message}`));
+    } catch (err) {
+      console.warn(pc.yellow(`[WARN] Failed to establish git baseline: ${(err instanceof Error ? err.message : String(err))}`));
     }
 
     for (let loop = 1; loop <= maxLoops; loop++) {
