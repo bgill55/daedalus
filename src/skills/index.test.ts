@@ -15,6 +15,11 @@ describe('Skills module (beta, load-only)', () => {
   const userSkills = path.join(tmpHome, '.daedalus', 'skills');
   const skillDir = path.join(userSkills, 'demo');
   const skillFile = path.join(skillDir, 'SKILL.md');
+  // A fix-typescript-build-equivalent skill written into the temp user dir so
+  // the shipped-skills discovery (which depends on import.meta.url resolution
+  // that varies across CI runners) is NOT required for this assertion.
+  const ftbDir = path.join(userSkills, 'fix-typescript-build');
+  const ftbFile = path.join(ftbDir, 'SKILL.md');
 
   beforeEach(() => {
     fs.mkdirSync(skillDir, { recursive: true });
@@ -28,6 +33,19 @@ describe('Skills module (beta, load-only)', () => {
       '',
       '# Demo Skill',
       'Follow these steps using your tools.',
+      '',
+    ].join('\n'));
+    fs.mkdirSync(ftbDir, { recursive: true });
+    fs.writeFileSync(ftbFile, [
+      '---',
+      'name: fix-typescript-build',
+      'description: How to fix a failing tsc / npm run build run, batching fixes into sprints.',
+      'trigger: fix the build|type errors|typescript errors|tsc errors|build is broken|build fails|npm run build|fix the type errors',
+      'safety: instructions',
+      '---',
+      '',
+      '# Fixing a TypeScript Build',
+      'Capture the full error list, fix file-scoped, re-run the build after each sprint.',
       '',
     ].join('\n'));
     // Point homedir() at our temp dir by mocking os.homedir via the module's import.
