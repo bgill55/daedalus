@@ -20,6 +20,7 @@
   - [Gold Standard Spec](example-spec-stats.md)
   - [Social Media Manager](social-media-manager-sprint.md)
   - [Daedalus-Lite](daedalus-lite-sprint.md)
+  - [Bug Fix Report: Windows Terminal Crashes & Build-Fix Robustness](windows-terminal-crash-fix.md)
 
 - **Developer**
   - [Contributing](CONTRIBUTING.md)

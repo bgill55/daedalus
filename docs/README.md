@@ -16,6 +16,7 @@ Jump straight to:
 - [MCP Integration](mcp.md)
 - [Sandboxing](sandboxing.md)
 - [Example Run: Social Media Manager](social-media-manager-sprint.md)
+- [Bug Fix Report: Windows Terminal Crashes & Build-Fix Robustness](windows-terminal-crash-fix.md)
 
 
 ---
