@@ -11,6 +11,7 @@ Jump straight to:
 - [NotebookLM & Architecture Summary](notebooklm-summary.md)
 - [Configuration Reference](configuration-reference.md)
 - [Model Routing & Tuning](routing-and-tuning.md)
+- [Skills (playbook injection)](skills.md)
 - [Orchestration](orchestration.md)
 - [Autonomous Finn Loop](finn-loop.md)
 - [MCP Integration](mcp.md)

@@ -5,6 +5,7 @@
 
 - **Core Features**
   - [Model Routing & Tuning](routing-and-tuning.md)
+  - [Skills (playbook injection)](skills.md)
   - [Multi-Agent Orchestration](orchestration.md)
   - [Autopilot v3.0.0 & Web UI Showcase](autopilot-showcase.md)
   - [Σ-Mem Reliable Memory Engine](sigma-mem.md)
