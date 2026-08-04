@@ -1,3 +1,10 @@
+# [3.12.0](https://github.com/bgill55/daedalus/compare/v3.11.3...v3.12.0) (2026-08-04)
+
+
+### Features
+
+* **ui:** add tracker and aurora thinking-spinner styles (user-selectable) ([#38](https://github.com/bgill55/daedalus/issues/38)) ([add2294](https://github.com/bgill55/daedalus/commit/add229438ced588036a11df108bc0cc9cdc848e5))
+
 ## [3.11.3](https://github.com/bgill55/daedalus/compare/v3.11.2...v3.11.3) (2026-08-04)
 
 
