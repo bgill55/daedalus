@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { spawnSync } from 'child_process';
+import ts from 'typescript';
 import { ToolContext } from '../../types.js';
 
 export function normalizeWhitespace(str: string): string {
@@ -177,7 +178,7 @@ export function computeChangedLines(oldContent: string, newContent: string): num
 }
 
 interface TscBaseline {
-  output: string;
+  diagnostics: readonly ts.Diagnostic[];
   tsconfigMtime: number;
 }
 
@@ -196,32 +197,17 @@ function findTsconfig(filePath: string, projectRoot: string): string | null {
   return fs.existsSync(fallback) ? fallback : null;
 }
 
-function runTsc(tsconfigRoot: string): string {
-  const run = () => spawnSync('npx', ['tsc', '--noEmit', '--skipLibCheck'], {
-    cwd: tsconfigRoot,
-    timeout: 15000,
-    encoding: 'utf8',
-    shell: true,
-  });
-  let result = run();
-  if (result.status !== 0) {
-    const output = (result.stdout ?? '') + (result.stderr ?? '');
-    const hasDeprecation = output.split('\n').some(l => /error TS5\d{3}/.test(l));
-    if (hasDeprecation) {
-      try {
-        const tsconfigPath = path.join(tsconfigRoot, 'tsconfig.json');
-        const raw = fs.readFileSync(tsconfigPath, 'utf8');
-        const cfg = JSON.parse(raw);
-        if (!cfg.compilerOptions) cfg.compilerOptions = {};
-        if (!cfg.compilerOptions.ignoreDeprecations) {
-          cfg.compilerOptions.ignoreDeprecations = '6.0';
-          fs.writeFileSync(tsconfigPath, JSON.stringify(cfg, null, 2) + '\n', 'utf8');
-          result = run();
-        }
-      } catch { /* if tsconfig parse fails, leave it alone */ }
-    }
+function runTscDiagnostics(tsconfigRoot: string): readonly ts.Diagnostic[] | null {
+  try {
+    const tsconfigPath = path.join(tsconfigRoot, 'tsconfig.json');
+    const cfg = ts.readConfigFile(tsconfigPath, ts.sys.readFile);
+    if (cfg.error) return null;
+    const parsed = ts.parseJsonConfigFileContent(cfg.config, ts.sys, tsconfigRoot);
+    const program = ts.createProgram(parsed.fileNames, { ...parsed.options, noEmit: true, skipLibCheck: true });
+    return ts.getPreEmitDiagnostics(program);
+  } catch {
+    return null;
   }
-  return (result.stdout ?? '') + (result.stderr ?? '');
 }
 
 export function extractErrorLines(output: string): string[] {
@@ -234,11 +220,32 @@ export function normalizeErrorLine(line: string): string {
   return line.replace(/\(\d+,\d+\)/g, '').trim();
 }
 
-function errorsIntroducedByPatch(afterOutput: string, root: string): string[] {
-  const baseline = tscBaselines.get(root);
-  if (!baseline) return [];
-  const beforeSet = new Set(extractErrorLines(baseline.output).map(normalizeErrorLine));
-  return extractErrorLines(afterOutput).filter(l => !beforeSet.has(normalizeErrorLine(l)));
+function diagnosticsForFile(diags: readonly ts.Diagnostic[], targetAbs: string): ts.Diagnostic[] {
+  const t = path.normalize(targetAbs);
+  return diags.filter(d => d.file != null && path.normalize(d.file.fileName) === t);
+}
+
+function diagLine(d: ts.Diagnostic): number {
+  if (d.file && d.start !== undefined) {
+    return d.file.getLineAndCharacterOfPosition(d.start).line + 1;
+  }
+  return -1;
+}
+
+function isDeprecation(d: ts.Diagnostic): boolean {
+  return d.code >= 5000 && d.code <= 5999;
+}
+
+function diagKey(d: ts.Diagnostic): string {
+  return `${d.code}:${diagLine(d)}`;
+}
+
+function formatDiagnostic(d: ts.Diagnostic): string {
+  const msg = ts.flattenDiagnosticMessageText(d.messageText, '\n');
+  const pos = d.file && d.start !== undefined ? d.file.getLineAndCharacterOfPosition(d.start) : null;
+  const loc = pos ? `(${pos.line + 1},${pos.character + 1})` : '';
+  const name = d.file ? path.basename(d.file.fileName) : '?';
+  return `${name}${loc}: error TS${d.code}: ${msg}`;
 }
 
 export async function syntaxCheck(filePath: string, projectRoot: string, modifiedLines?: number[]): Promise<string | null> {
@@ -265,40 +272,40 @@ export async function syntaxCheck(filePath: string, projectRoot: string, modifie
     if (!tsconfigPath) return null;
 
     const tsconfigRoot = path.dirname(tsconfigPath);
-    const afterOutput = runTsc(tsconfigRoot);
+    const allDiags = runTscDiagnostics(tsconfigRoot);
+    if (!allDiags) return null;
+
+    const targetAbs = path.resolve(filePath);
+    const fileDiags = diagnosticsForFile(allDiags, targetAbs).filter(d => !isDeprecation(d));
     const tsconfigMtime = fs.statSync(tsconfigPath).mtimeMs;
     const baseline = tscBaselines.get(tsconfigRoot);
     const hasFreshBaseline = baseline !== undefined && baseline.tsconfigMtime === tsconfigMtime;
 
+    let introduced: ts.Diagnostic[];
     if (hasFreshBaseline) {
-      const newErrors = errorsIntroducedByPatch(afterOutput, tsconfigRoot);
-      if (newErrors.length > 0) {
-        const targetBase = path.basename(filePath);
-        const ranked = [...newErrors].sort((a, b) => (a.includes(targetBase) ? 0 : 1) - (b.includes(targetBase) ? 0 : 1));
-        return ranked[0];
-      }
-    } else {
-      const targetBase = path.basename(filePath);
-      const filteredLines = afterOutput.split('\n').filter(l => {
-        if (!/error TS/.test(l) || /error TS5\d{3}/.test(l)) return false;
-        if (!l.includes(targetBase)) return false;
-        if (modifiedLines && modifiedLines.length > 0) {
-          const lineMatch = l.match(/\((\d+),\d+\)/);
-          if (lineMatch) {
-            const errLine = parseInt(lineMatch[1], 10);
-            if (!modifiedLines.includes(errLine)) {
-              return false;
-            }
-          }
-        }
-        return true;
+      const beforeKeys = new Set(
+        diagnosticsForFile(baseline.diagnostics, targetAbs)
+          .filter(d => !isDeprecation(d))
+          .map(diagKey)
+      );
+      introduced = fileDiags.filter(d => !beforeKeys.has(diagKey(d)));
+    } else if (modifiedLines && modifiedLines.length > 0) {
+      // No fresh baseline yet: only flag errors that land on lines this patch
+      // touched, so we never revert a valid edit just because the file already
+      // had errors elsewhere.
+      introduced = fileDiags.filter(d => {
+        const line = diagLine(d);
+        return line > 0 && modifiedLines.includes(line);
       });
-      const firstFiltered = filteredLines.find(l => /error TS/.test(l) && !/error TS5\d{3}/.test(l));
-      if (firstFiltered) return firstFiltered;
+    } else {
+      // No baseline and no line info: establish the baseline, don't flag on
+      // first touch (avoids false reverts of valid edits to already-broken files).
+      introduced = [];
     }
 
-    tscBaselines.set(tsconfigRoot, { output: afterOutput, tsconfigMtime });
-    return null;
+    tscBaselines.set(tsconfigRoot, { diagnostics: allDiags, tsconfigMtime });
+    if (introduced.length === 0) return null;
+    return formatDiagnostic(introduced[0]);
   }
 
   if (ext === '.js' || ext === '.mjs' || ext === '.cjs' || ext === '.ts' || ext === '.tsx') {
