@@ -28,6 +28,11 @@ export default tseslint.config(
       '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
       '@typescript-eslint/no-explicit-any': 'warn',
       'preserve-caught-error': 'off',
+      // Enforce the project's zero-TODO convention (see AGENTS.md / roles.ts):
+      // block TODO/FIXME/HACK/XXX comments in delivered source so debt can't
+      // accumulate silently. String-literal mentions (e.g. the agent's own
+      // system-prompt text in roles.ts) are not real comments and are ignored.
+      'no-warning-comments': ['error', { terms: ['TODO', 'FIXME', 'HACK', 'XXX'], location: 'start' }],
     },
   },
   {
