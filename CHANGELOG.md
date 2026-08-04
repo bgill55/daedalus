@@ -1,3 +1,10 @@
+## [3.13.2](https://github.com/bgill55/daedalus/compare/v3.13.1...v3.13.2) (2026-08-04)
+
+
+### Bug Fixes
+
+* **router:** keep build-fix / refactor / multi-file tasks on the intelligence tier ([#41](https://github.com/bgill55/daedalus/issues/41)) ([6d89e9c](https://github.com/bgill55/daedalus/commit/6d89e9c5cbd3dc33870a409b12c530bc743b5062))
+
 ## [3.13.1](https://github.com/bgill55/daedalus/compare/v3.13.0...v3.13.1) (2026-08-04)
 
 
