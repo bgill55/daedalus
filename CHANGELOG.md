@@ -1,3 +1,10 @@
+## [3.11.1](https://github.com/bgill55/daedalus/compare/v3.11.0...v3.11.1) (2026-08-04)
+
+
+### Bug Fixes
+
+* **agent:** recover from syntax-error-revert loops without model escalation ([#35](https://github.com/bgill55/daedalus/issues/35)) ([0608ccb](https://github.com/bgill55/daedalus/commit/0608ccbfffed4bdaaf4e89d6d2d29b3b130ad4a2))
+
 # [3.11.0](https://github.com/bgill55/daedalus/compare/v3.10.1...v3.11.0) (2026-08-04)
 
 
