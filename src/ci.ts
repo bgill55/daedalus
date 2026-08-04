@@ -101,6 +101,12 @@ export async function runHeadlessCiReview(
       const config = loadConfig();
       const router = createRouter(config.router);
 
+      const healthyModels = router.getHealthyModels();
+      if (healthyModels.length === 0) {
+        semanticFindings = 'ℹ️ Semantic analysis skipped: no model servers are reachable. ' +
+          'Start a local server (LM Studio / Ollama / FreeLLMAPI) or configure a cloud model in ~/.daedalus/config.json to enable AI review. ' +
+          'The deterministic static checks above are authoritative.';
+      } else {
       const CHUNK = 6000;
       const chunks: string[] = [];
       for (let i = 0; i < diffPatch.length; i += CHUNK) {
@@ -129,9 +135,15 @@ If no bugs are found, respond with exactly: "No semantic issues found."`,
         if (content && content !== 'No semantic issues found.') findings.push(content);
       }
       semanticFindings = findings.length > 0 ? findings.join('\n\n') : 'No semantic issues found.';
+      }
     } catch (err) {
-      semanticFindings = `⚠️ Semantic analysis failed to run: ${err instanceof Error ? err.message : String(err)}. ` +
-        'The deterministic static checks above are authoritative; re-run the review if the model call is flaky.';
+      const msg = err instanceof Error ? err.message : String(err);
+      const isNoModel = /no (healthy )?models? available/i.test(msg) ||
+        /ECONNREFUSED|fetch failed|connect.*refused|network request failed/i.test(msg);
+      semanticFindings = isNoModel
+        ? 'ℹ️ Semantic analysis skipped: no model servers are reachable. Start a local server (LM Studio / Ollama / FreeLLMAPI) or configure a cloud model in ~/.daedalus/config.json to enable AI review. The deterministic static checks above are authoritative.'
+        : `⚠️ Semantic analysis failed to run: ${msg}. ` +
+          'The deterministic static checks above are authoritative; re-run the review if the model call is flaky.';
     }
   }
 
