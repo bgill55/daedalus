@@ -6,6 +6,7 @@ import { createRequire } from 'module';
 import readline from 'readline';
 import os from 'os';
 import pc from 'picocolors';
+import { execSafe } from './utils/spawn.js';
 
 import { setRouterClient } from './tools/builtin/delegation.js';
 import { createRouter, RouterConfig } from './router/index.js';
@@ -417,8 +418,7 @@ async function main() {
         try {
           const tmpFile = path.join(os.tmpdir(), `daedalus-ci-review-${Date.now()}.md`);
           fs.writeFileSync(tmpFile, res.markdownReport, 'utf8');
-          const { execSync } = await import('child_process');
-          execSync(`gh pr comment ${prNumber} --body-file "${tmpFile}"`, { cwd: sessionManager.projectRoot });
+          execSafe(`gh pr comment ${prNumber} --body-file "${tmpFile}"`, { cwd: sessionManager.projectRoot });
           fs.unlinkSync(tmpFile);
           console.log(`\n✔ Posted CI review comment to PR #${prNumber}`);
         } catch {

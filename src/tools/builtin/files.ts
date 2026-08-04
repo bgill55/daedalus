@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import { execSync, spawn } from 'child_process';
+import { execSync } from 'child_process';
+import { spawnDetached } from '../../utils/spawn.js';
 import { ToolContext, ToolResult } from '../../types.js';
 import { guardGitPath } from '../git-guard.js';
 import { createGitCheckpoint } from '../git-checkpoint.js';
@@ -497,7 +498,7 @@ export async function searchFiles(args: { pattern?: string; target?: 'content' |
       rgArgs.push(searchPath);
 
       return new Promise((resolve) => {
-        const child = spawn('rg', rgArgs, { cwd: context.projectRoot, stdio: ['ignore', 'pipe', 'pipe'] });
+        const child = spawnDetached('rg', rgArgs, { cwd: context.projectRoot });
         let output = '';
         child.stdout?.on('data', (data: Buffer) => { output += data.toString(); });
         child.stderr?.on('data', () => { /* stderr implicitly collected */ });

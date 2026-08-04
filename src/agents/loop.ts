@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
-import { execSync } from 'child_process';
+import { execSafe } from '../utils/spawn.js';
 import pc from 'picocolors';
 import { ToolContext, messageText } from '../types.js';
 import { CommandContext } from '../commands.js';
@@ -39,7 +39,7 @@ function errMessage(e: unknown): string {
 
 export function getGitRepoInfo(cwd: string): { owner: string; repo: string } | null {
   try {
-    const url = execSync('git remote get-url origin', { cwd, encoding: 'utf8' }).trim();
+    const url = execSafe('git remote get-url origin', { cwd, encoding: 'utf8' }).trim();
     // Matches git@github.com:owner/repo.git or https://github.com/owner/repo.git
     const match = url.match(/(?:github\.com[:\/])([^\/]+)\/([^\/\.]+)(?:\.git)?/);
     if (match) {
@@ -142,7 +142,7 @@ export async function handleSpecCommand(args: string, ctx: CommandContext) {
   let token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
   if (!token) {
     try {
-      token = execSync('gh auth token', { cwd: ctx.sessionManager.projectRoot, encoding: 'utf8' }).trim();
+      token = execSafe('gh auth token', { cwd: ctx.sessionManager.projectRoot, encoding: 'utf8' }).trim();
     } catch {
       // Fallback
     }
@@ -242,7 +242,7 @@ export async function startLoopDaemon(ctx: ToolContext, config: DaedalusConfig, 
   let token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
   if (!token) {
     try {
-      token = execSync('gh auth token', { cwd: sessionManager.projectRoot, encoding: 'utf8' }).trim();
+      token = execSafe('gh auth token', { cwd: sessionManager.projectRoot, encoding: 'utf8' }).trim();
     } catch {
       // Fallback
     }
@@ -340,7 +340,7 @@ export async function startLoopDaemon(ctx: ToolContext, config: DaedalusConfig, 
       if (result.includes('Orchestration failed')) {
         console.error(pc.red(`\n✗ Orchestration failed for Issue #${issue.number}. Reverting changes...`));
         try {
-          execSync('git reset --hard && git clean -fd', { cwd: sessionManager.projectRoot });
+          execSafe('git reset --hard && git clean -fd', { cwd: sessionManager.projectRoot });
         } catch {
           // Ignore git reset errors if working directory is already clean
         }
@@ -379,9 +379,9 @@ export async function startLoopDaemon(ctx: ToolContext, config: DaedalusConfig, 
         // Get full diff of working tree against the base branch
         let diffPatch = '';
         try {
-          diffPatch = execSync('git diff HEAD', { cwd: sessionManager.projectRoot, encoding: 'utf8' }).trim();
+          diffPatch = execSafe('git diff HEAD', { cwd: sessionManager.projectRoot, encoding: 'utf8' }).trim();
           if (!diffPatch) {
-            diffPatch = execSync('git diff --cached', { cwd: sessionManager.projectRoot, encoding: 'utf8' }).trim();
+            diffPatch = execSafe('git diff --cached', { cwd: sessionManager.projectRoot, encoding: 'utf8' }).trim();
           }
         } catch { /* no diff available */ }
 
@@ -451,7 +451,7 @@ Output ONLY "PASS" if no bugs or contract violations found, or a numbered list o
         console.error(pc.red(pc.bold(`\n  [FAILED] Self-review gate failed after ${MAX_REVIEW_RETRIES + 1} attempts. Reverting workspace changes.`)));
         console.log(`  ${pc.dim('─'.repeat(64))}\n`);
         try {
-          execSync('git reset --hard && git clean -fd', { cwd: sessionManager.projectRoot });
+          execSafe('git reset --hard && git clean -fd', { cwd: sessionManager.projectRoot });
         } catch { /* ignore */ }
         await fetch(`https://api.github.com/repos/${repo.owner}/${repo.repo}/issues/${issue.number}`, {
           method: 'PATCH',
@@ -476,10 +476,10 @@ Output ONLY "PASS" if no bugs or contract violations found, or a numbered list o
       const branchName = `daedalus-issue-${issue.number}`;
       const cleanTitle = issue.title.replace(/"/g, "'");
       try {
-        execSync(`git checkout -B ${branchName}`, { cwd: sessionManager.projectRoot });
-        execSync('git add .', { cwd: sessionManager.projectRoot });
-        execSync(`git commit -m "feat(issue-${issue.number}): ${cleanTitle}"`, { cwd: sessionManager.projectRoot });
-        execSync(`git push -u origin ${branchName} --force`, { cwd: sessionManager.projectRoot });
+        execSafe(`git checkout -B ${branchName}`, { cwd: sessionManager.projectRoot });
+        execSafe('git add .', { cwd: sessionManager.projectRoot });
+        execSafe(`git commit -m "feat(issue-${issue.number}): ${cleanTitle}"`, { cwd: sessionManager.projectRoot });
+        execSafe(`git push -u origin ${branchName} --force`, { cwd: sessionManager.projectRoot });
       } catch (err) {
         console.error(pc.red(`Git push failed: ${errMessage(err)}`));
         return;
@@ -568,7 +568,7 @@ Output ONLY "PASS" if no bugs or contract violations found, or a numbered list o
 
       // Go back to main branch
       try {
-        execSync('git checkout main', { cwd: sessionManager.projectRoot });
+        execSafe('git checkout main', { cwd: sessionManager.projectRoot });
       } catch {
         // Ignore git checkout error if main branch is unavailable or already checked out
       }
