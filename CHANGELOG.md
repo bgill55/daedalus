@@ -1,3 +1,10 @@
+# [3.14.0](https://github.com/bgill55/daedalus/compare/v3.13.3...v3.14.0) (2026-08-04)
+
+
+### Features
+
+* **skills:** merge load-only skill system + add skills documentation ([#44](https://github.com/bgill55/daedalus/issues/44)) ([f0c0060](https://github.com/bgill55/daedalus/commit/f0c0060f9d20c6b8a3c76fb23887f13513a51612))
+
 ## [3.13.3](https://github.com/bgill55/daedalus/compare/v3.13.2...v3.13.3) (2026-08-04)
 
 
