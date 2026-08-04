@@ -1,3 +1,10 @@
+## [3.14.2](https://github.com/bgill55/daedalus/compare/v3.14.1...v3.14.2) (2026-08-04)
+
+
+### Bug Fixes
+
+* **tools:** centralize crash-hardened process spawning in src/utils/spawn.ts ([#50](https://github.com/bgill55/daedalus/issues/50)) ([4e3b864](https://github.com/bgill55/daedalus/commit/4e3b864a575457574bcaf3ddc215874c9f0b66f9))
+
 ## [3.14.1](https://github.com/bgill55/daedalus/compare/v3.14.0...v3.14.1) (2026-08-04)
 
 
