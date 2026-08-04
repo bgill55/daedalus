@@ -110,7 +110,12 @@ export function rankOf(level: TaskComplexity): number {
 }
 
 export function stepRouting(state: RoutingState, s: TurnSignals): RoutingState {
-  const trivial = s.writesThisTurn === 0 && s.failedToolsThisTurn === 0 && s.completionTokensThisTurn <= TRIVIAL_OUTPUT_TOKENS;
+  // A turn that actually did work (made tool calls, wrote files, or emitted
+  // substantial output) is never "trivial" — even if it produced few output
+  // tokens. Tool-heavy planning/refactor turns (e.g. reading files, running
+  // builds) must not be downgraded just because they generated little prose.
+  const didWork = s.toolCallsThisTurn >= 2 || s.writesThisTurn > 0 || s.completionTokensThisTurn > TRIVIAL_OUTPUT_TOKENS;
+  const trivial = !didWork && s.failedToolsThisTurn === 0;
   const trivialTurnStreak = trivial ? state.trivialTurnStreak + 1 : 0;
   const totalCompletionTokens = state.totalCompletionTokens + s.completionTokensThisTurn;
 

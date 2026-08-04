@@ -92,6 +92,12 @@ describe('stepRouting', () => {
     expect(st.hasDowngraded).toBe(true);
   });
 
+  it('does NOT downgrade a tool-heavy turn (e.g. planning/refactor) that produced few output tokens', () => {
+    const st = stepRouting({ current: 'complex', totalCompletionTokens: 2000, trivialTurnStreak: 5 }, { completionTokensThisTurn: 0, writesThisTurn: 0, toolCallsThisTurn: 8, failedToolsThisTurn: 0 });
+    expect(st.current).toBe('complex');
+    expect(st.trivialTurnStreak).toBe(0);
+  });
+
   it('blocks cascading downgrades within one turn (complex → standard only)', () => {
     let st = stepRouting({ current: 'complex', totalCompletionTokens: 2000, trivialTurnStreak: 2 }, { completionTokensThisTurn: 100, writesThisTurn: 0, toolCallsThisTurn: 1, failedToolsThisTurn: 0 });
     expect(st.current).toBe('standard');
