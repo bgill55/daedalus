@@ -1,3 +1,10 @@
+## [3.13.1](https://github.com/bgill55/daedalus/compare/v3.13.0...v3.13.1) (2026-08-04)
+
+
+### Bug Fixes
+
+* **tools:** prevent false-revert of valid edits on lines with pre-existing errors ([#40](https://github.com/bgill55/daedalus/issues/40)) ([ce2cc8b](https://github.com/bgill55/daedalus/commit/ce2cc8bdc253afaae8dc4f040606c6744e6d7169))
+
 # [3.13.0](https://github.com/bgill55/daedalus/compare/v3.12.0...v3.13.0) (2026-08-04)
 
 
