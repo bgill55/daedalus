@@ -1,3 +1,10 @@
+# [3.11.0](https://github.com/bgill55/daedalus/compare/v3.10.1...v3.11.0) (2026-08-04)
+
+
+### Features
+
+* **spinner:** visible braille 'thinking' indicator with min-duration ([#34](https://github.com/bgill55/daedalus/issues/34)) ([2d36d92](https://github.com/bgill55/daedalus/commit/2d36d920691ae5efb2640af73617da1908591a13))
+
 ## [3.10.1](https://github.com/bgill55/daedalus/compare/v3.10.0...v3.10.1) (2026-08-04)
 
 
