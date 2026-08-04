@@ -1,3 +1,10 @@
+# [3.13.0](https://github.com/bgill55/daedalus/compare/v3.12.0...v3.13.0) (2026-08-04)
+
+
+### Features
+
+* **commands:** add /spinner command to list and switch thinking-spinner on the fly ([#39](https://github.com/bgill55/daedalus/issues/39)) ([94494d9](https://github.com/bgill55/daedalus/commit/94494d9d84f9704a0b7127bd65943b8f7a2095c7))
+
 # [3.12.0](https://github.com/bgill55/daedalus/compare/v3.11.3...v3.12.0) (2026-08-04)
 
 
