@@ -478,7 +478,11 @@ export function createModelFunctions(deps: ModelDeps) {
         const failedWriteTools = ['patch', 'write_file'];
         if (!result.success && failedWriteTools.includes(result.name)) {
           const repeated = failureCounts.get(sig) ?? 0;
-          if (repeated >= 2) {
+          const errText = `${result.error ?? ''}\n${result.content ?? ''}`;
+          const isSyntaxLoop = /syntax error|revert|invalid (ts|typescript)|unexpected token|expected ['"]/.test(errText);
+          if (isSyntaxLoop) {
+            content += `\n\n[SYSTEM WARNING] Your ${result.name} on this file keeps failing validation and the change was reverted to the last-good state. STOP rewriting the whole file — that is what keeps producing invalid syntax. Instead: (1) call read_file on the current file to get its exact content, then (2) call patch with mode='replace' on the SMALLEST unique region that needs to change. Do not emit a full-file rewrite. If you cannot make a clean minimal edit, stop and summarize the blocker to the user.`;
+          } else if (repeated >= 2) {
             content += `\n\n[SYSTEM WARNING] You have repeatedly failed to apply this change (${repeated} attempts). STOP attempting the same patch. Read the exact current file content and construct a patch that matches it exactly, or switch strategy (e.g. write_file with full content), or move on and summarize the blocker to the user.`;
           } else {
             content += `\n\n[SYSTEM WARNING] The changes to the file were NOT applied due to the error above. You MUST first resolve this error (e.g. by using "read_file" to get the current content if it was a stale read, or correcting code syntax/types) and successfully apply the file change before moving on to other tasks or files. Do not skip or ignore this file.`;
@@ -583,10 +587,15 @@ export function createModelFunctions(deps: ModelDeps) {
       }
 
       const routerConfig = typeof router.getConfig === 'function' ? router.getConfig() : undefined;
+      const syntaxLoopThisTurn = failedResults.some(r =>
+        ['patch', 'write_file'].includes(r.name) &&
+        /syntax error|revert|invalid (ts|typescript)|unexpected token|expected ['"]/.test(`${r.error ?? ''}\n${r.content ?? ''}`)
+      );
       const canEscalate = !config.modelOverride
         && routerConfig?.autoEscalate !== false
         && escalationCount < 3
-        && !escalatedThisStreak;
+        && !escalatedThisStreak
+        && !syntaxLoopThisTurn;
       if (canEscalate && (consecutiveToolFailures >= 2 || worstRepeatedFailures >= 2)) {
         const currentName = pinnedModel || router.lastRoutedModelName || '';
         const nextModel = currentName && typeof router.getNextModel === 'function' ? router.getNextModel(currentName) : undefined;

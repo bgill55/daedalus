@@ -528,6 +528,50 @@ describe('Tool failure handling', () => {
     delete process.env.DAEDALUS_AUTO_APPROVE;
   });
 
+  it('guides the agent out of a syntax-error-revert loop without escalating', async () => {
+    process.env.DAEDALUS_AUTO_APPROVE = 'true';
+
+    let callCount = 0;
+    const chatStreamMock = vi.fn().mockImplementation(() => {
+      callCount++;
+      // Vary the broken content each turn to simulate a model re-attempting the
+      // same edit with different invalid syntax (not identical calls), which is
+      // what slips past the repetitive-identical-loop detector in the wild.
+      return toolStream('write_file', `{"path":"a.ts","content":"export const x${callCount} = ("}`);
+    });
+
+    const executorMod = await import('./tools/executor.js');
+    vi.spyOn(executorMod, 'executeToolCalls').mockResolvedValue([{
+      toolCallId: 'call_1',
+      name: 'write_file',
+      success: false,
+      content: '',
+      error: 'Syntax error in a.ts — file reverted',
+    }]);
+
+    const { callModelWithTools } = createModelFunctions({
+      messages,
+      config: TEST_CONFIG,
+      router: makeRouter(chatStreamMock),
+      toolContext,
+      buildFileContext: () => '',
+      askLine: vi.fn().mockResolvedValue('y'),
+    });
+
+    const result = await callModelWithTools('test');
+    const output = consoleOutput();
+
+    // Does NOT escalate to a stronger model for a syntax loop
+    expect(output).not.toContain('[ESCALATE]');
+    // Injects the targeted syntax-loop guidance
+    const warning = messages.find(m => m.role === 'tool' && typeof m.content === 'string' && m.content.includes('STOP rewriting the whole file'));
+    expect(warning).toBeDefined();
+    // Still halts rather than looping forever
+    expect(output).toContain('[STOP] Repeated tool failures. Stopping to avoid looping.');
+    expect(result.toolCalls).toEqual([]);
+    delete process.env.DAEDALUS_AUTO_APPROVE;
+  });
+
   it('stops on repeated failures of the same operation even with interleaved successes', async () => {
     process.env.DAEDALUS_AUTO_APPROVE = 'true';
 
