@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { classifyTaskStart, stepRouting } from './complexity.js';
+import { classifyTaskStart, stepRouting, floorForTask } from './complexity.js';
 import type { RoutingState } from './complexity.js';
 import type { TaskComplexity } from './types.js';
 
@@ -49,6 +49,16 @@ describe('classifyTaskStart', () => {
 
   it('defaults to standard for short prompts without explicit signals', () => {
     expect(classifyTaskStart('change the port to 3000')).toBe('standard');
+  });
+
+  it('floorForTask returns complex for build-fix / refactor / multi-file phrasing', () => {
+    expect(floorForTask('the TypeScript build is broken, fix the build errors')).toBe('complex');
+    expect(floorForTask('refactor the auth module across files')).toBe('complex');
+    expect(floorForTask('fix the type errors in validation.ts')).toBe('complex');
+  });
+
+  it('floorForTask returns standard (no floor) for trivial prompts', () => {
+    expect(floorForTask('fix the typo in the readme')).toBe('standard');
   });
 });
 
@@ -171,5 +181,36 @@ describe('stepRouting', () => {
       toolMentionsThisTurn: 2,
     });
     expect(st.current).toBe('standard');
+  });
+
+  it('holds a build-fix task at complex despite trivial-streak downgrade attempts', () => {
+    // Mirrors the prompt-vault observation: a complex build-fix task was being
+    // demoted to a weak "standard" model. With a complex floor it must hold.
+    const st = stepRouting(
+      { current: 'complex', totalCompletionTokens: 2000, trivialTurnStreak: 3, floor: 'complex' },
+      { completionTokensThisTurn: 100, writesThisTurn: 0, toolCallsThisTurn: 1, failedToolsThisTurn: 0 },
+    );
+    expect(st.current).toBe('complex');
+  });
+
+  it('does not enforce a floor when the task has no keep-on-intelligence signals', () => {
+    // No floor set → normal trivial-streak downgrade still applies.
+    const st = stepRouting(
+      { current: 'complex', totalCompletionTokens: 2000, trivialTurnStreak: 3 },
+      { completionTokensThisTurn: 100, writesThisTurn: 0, toolCallsThisTurn: 1, failedToolsThisTurn: 0 },
+    );
+    expect(st.current).toBe('standard');
+  });
+
+  it('never pushes a floored task below its floor even across repeated turns', () => {
+    let st = stepRouting(
+      { current: 'complex', totalCompletionTokens: 2000, trivialTurnStreak: 3, floor: 'complex' },
+      { completionTokensThisTurn: 100, writesThisTurn: 0, toolCallsThisTurn: 1, failedToolsThisTurn: 0 },
+    );
+    expect(st.current).toBe('complex');
+    for (let i = 0; i < 6; i++) {
+      st = stepRouting(st, { completionTokensThisTurn: 100, writesThisTurn: 0, toolCallsThisTurn: 1, failedToolsThisTurn: 0 });
+    }
+    expect(st.current).toBe('complex');
   });
 });

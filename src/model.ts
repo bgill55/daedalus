@@ -10,7 +10,7 @@ import type { ToolContext, ToolCall, ChatMessage } from './types.js';
 import { messageText } from './types.js';
 import type { LocalRouter } from './router/index.js';
 import type { DaedalusConfig } from './config/index.js';
-import { classifyTaskStart, stepRouting } from './router/complexity.js';
+import { classifyTaskStart, stepRouting, floorForTask } from './router/complexity.js';
 
 const TOOL_RESULT_MAX_CHARS = 32_000;
 const MAX_TOOL_TURNS = 40;
@@ -150,6 +150,9 @@ export function createModelFunctions(deps: ModelDeps) {
 
     const complexityEnabled = config?.router?.complexityRouting !== false && !config.modelOverride;
     const taskComplexity = complexityEnabled ? classifyTaskStart(userContent || '') : undefined;
+    // Floor: build-fix / refactor / multi-file tasks must not be demoted to a
+    // weak "standard" model (see complexity.ts KEEP_ON_INTELLIGENCE_KEYWORDS).
+    const complexityFloor = complexityEnabled ? floorForTask(userContent || '') : undefined;
     if (taskComplexity && process.env.DAEDALUS_DEBUG === 'true') {
       console.log(pc.dim(`  [ROUTE] Task classified as ${taskComplexity}`));
     }
@@ -652,7 +655,7 @@ export function createModelFunctions(deps: ModelDeps) {
         const writesThisTurn = results.filter(r => r.success && ['patch', 'write_file'].includes(r.name)).length;
         const failedThisTurn = results.filter(r => !r.success).length;
         const nextState = stepRouting(
-          { current: currentComplexity, totalCompletionTokens, trivialTurnStreak, hasDowngraded },
+          { current: currentComplexity, totalCompletionTokens, trivialTurnStreak, hasDowngraded, floor: complexityFloor },
           {
             completionTokensThisTurn: turnUsageOut ?? 0,
             writesThisTurn,
