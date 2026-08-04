@@ -1,3 +1,10 @@
+## [3.11.3](https://github.com/bgill55/daedalus/compare/v3.11.2...v3.11.3) (2026-08-04)
+
+
+### Bug Fixes
+
+* robust syntax check and keep refactor turns on intelligence tier ([#37](https://github.com/bgill55/daedalus/issues/37)) ([68a0a75](https://github.com/bgill55/daedalus/commit/68a0a75761399db0a1edbf9f1b689f7629fe86a7))
+
 ## [3.11.2](https://github.com/bgill55/daedalus/compare/v3.11.1...v3.11.2) (2026-08-04)
 
 
