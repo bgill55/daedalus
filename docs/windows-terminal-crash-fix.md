@@ -5,6 +5,8 @@ fixes that together took Daedalus from "stalls on a broken build" to "completes 
 type-safety refactor with zero diagnostics" on Windows, and the live monitoring
 runs that validated them.*
 
+![Daedalus Robustness Roadmap — from systematic stalls to zero-diagnostic builds](images/windows-robustness-roadmap.png)
+
 ---
 
 ## TL;DR
