@@ -309,9 +309,9 @@ export function loadConfig(): DaedalusConfig {
     const content = fs.readFileSync(configPath, 'utf8');
     const parsed = JSON.parse(content);
     return ConfigSchema.parse(parsed);
-  } catch (err: any) {
+  } catch (err) {
     logger.error('\n[WARN] Failed to load config file:');
-    logger.error(`  ${err.message}`);
+    logger.error(`  ${(err instanceof Error ? err.message : String(err))}`);
     logger.error('  Falling back to defaults. Edit ~/.daedalus/config.json or run /onboard');
     return DEFAULT_CONFIG;
   }
@@ -361,13 +361,17 @@ export async function discoverLocalServers(): Promise<Array<{ name: string; endp
     try {
       const res = await fetch(c.url, { signal: AbortSignal.timeout(3000) });
       if (res.ok) {
-        const data: any = await res.json();
+        const data: Record<string, unknown> = (await res.json()) as Record<string, unknown>;
         let models: string[] = [];
         
         if (c.name === 'Ollama') {
-          models = data.models?.map((m: any) => m.name) || [];
+          models = (data.models as Array<{ name?: string }> | undefined)
+            ?.map((m) => m.name?.trim() || '')
+            .filter((name) => name.length > 0) || [];
         } else {
-          models = data.data?.map((m: any) => m.id) || [];
+          models = (data.data as Array<{ id?: string }> | undefined)
+            ?.map((m) => m.id?.trim() || '')
+            .filter((id) => id.length > 0) || [];
         }
         
         if (models.length > 0) {

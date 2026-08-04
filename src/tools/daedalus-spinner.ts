@@ -35,7 +35,7 @@ export class DaedalusSpinner {
   }
 
   private isTui(): boolean {
-    return (globalThis as any).isTui === true;
+    return (globalThis as { isTui?: boolean }).isTui === true;
   }
 
   private isTTY(): boolean {

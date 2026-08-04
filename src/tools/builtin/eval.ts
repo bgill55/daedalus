@@ -86,7 +86,7 @@ __result.then(v => { if (v !== undefined) process.stdout.write(String(v) + '\\n'
       success: proc.status === 0,
       content: parts.join('\n\n'),
     };
-  } catch (err: any) {
-    return formatError(`eval_code failed: ${err.message}`);
+  } catch (err) {
+    return formatError(`eval_code failed: ${(err instanceof Error ? err.message : String(err))}`);
   }
 }

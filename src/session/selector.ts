@@ -132,7 +132,7 @@ export function runInteractiveFileSelector(
     console.log();
     render();
 
-    const onKeypress = (str: string, key: any) => {
+    const onKeypress = (str: string, key: readline.Key) => {
       // Handle Ctrl+C or Escape
       if ((key.ctrl && key.name === 'c') || key.name === 'escape') {
         cleanup();

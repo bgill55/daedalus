@@ -12,6 +12,7 @@ import { getClipboardText, getClipboardImage } from '../clipboard.js';
 import { createSessionBranch, checkoutSessionBranch, listSessionBranches, mergeSessionBranch } from '../session/branching.js';
 
 import type { Command } from './types.js';
+import { messageText } from '../types.js';
 
 export const contextCommands: Command[] = [
   {
@@ -108,8 +109,8 @@ export const contextCommands: Command[] = [
                 console.log(pc.yellow('\n  [RETRY] Trying fallback mode...'));
                 await ctx.callModelWithFallback(userContent, base64);
                 ctx.sessionManager.saveSessionState(ctx.messages, ctx.activeFiles, getSessionTodos(ctx.toolContext.sessionId));
-              } catch (fallbackErr: any) {
-                const firstLine = (fallbackErr.message || '').split('\n')[0];
+              } catch (fallbackErr) {
+                const firstLine = ((fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr)) || '').split('\n')[0];
                 console.log(pc.red(`\n  ${pc.bold('[ERROR]')} Fallback also failed: ${firstLine}`));
               }
             }
@@ -139,8 +140,8 @@ export const contextCommands: Command[] = [
             console.log(pc.yellow('\n  [RETRY] Trying fallback mode...'));
             await ctx.callModelWithFallback(userContent, base64);
             ctx.sessionManager.saveSessionState(ctx.messages, ctx.activeFiles, getSessionTodos(ctx.toolContext.sessionId));
-          } catch (fallbackErr: any) {
-            const firstLine = (fallbackErr.message || '').split('\n')[0];
+          } catch (fallbackErr) {
+            const firstLine = ((fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr)) || '').split('\n')[0];
             console.log(pc.red(`\n  ${pc.bold('[ERROR]')} Fallback also failed: ${firstLine}`));
           }
         }
@@ -285,7 +286,7 @@ export const contextCommands: Command[] = [
             temperature: 0.3,
             max_tokens: 600,
           });
-          return resp.choices[0]?.message?.content || '';
+          return messageText(resp.choices[0]?.message?.content ?? '');
         } catch {
           return '';
         }
@@ -615,8 +616,8 @@ export const contextCommands: Command[] = [
               undoneCount++;
             }
           }
-        } catch (err: any) {
-          console.log(pc.red(`[WARN] Failed to undo patch on ${last.filePath}: ${err.message}`));
+        } catch (err) {
+          console.log(pc.red(`[WARN] Failed to undo patch on ${last.filePath}: ${(err instanceof Error ? err.message : String(err))}`));
         }
       }
 

@@ -444,8 +444,8 @@ export async function runDiffWorkflow(
           }
           // No change, re-prompt
           continue;
-        } catch (err: any) {
-          process.stdout.write(pc.red(`\u26a0 Editor error: ${err.message}\n`));
+        } catch (err) {
+          process.stdout.write(pc.red(`⚠ Editor error: ${err instanceof Error ? err.message : String(err)}\n`));
           continue;
         }
       }

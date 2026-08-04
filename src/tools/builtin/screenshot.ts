@@ -10,9 +10,9 @@ export async function screenshotPage(
   args: { url: string; selector?: string; width?: number; height?: number },
   _context: ToolContext
 ): Promise<ToolResult> {
-  let browser: any = null;
+  let browser: import('puppeteer-core').Browser | null = null;
   try {
-    let puppeteer: any;
+    let puppeteer: typeof import('puppeteer-core').default;
     try {
       puppeteer = (await import('puppeteer-core')).default;
     } catch {
@@ -82,8 +82,8 @@ export async function screenshotPage(
         mimeType: 'image/png',
       }),
     };
-  } catch (err: any) {
-    return formatError(`Screenshot failed: ${err.message}`);
+  } catch (err) {
+    return formatError(`Screenshot failed: ${(err instanceof Error ? err.message : String(err))}`);
   } finally {
     if (browser) await browser.close().catch((err: unknown) => console.error('browser close error:', (err as Error).message));
   }

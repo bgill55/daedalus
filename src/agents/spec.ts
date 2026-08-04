@@ -1,6 +1,8 @@
 // SpecFirst Generator & Spec Contract Manager for Daedalus CLI
 import fs from 'fs';
 import path from 'path';
+import type { LocalRouter } from '../router/index.js';
+import { messageText } from '../types.js';
 
 export interface SpecInterface {
   name: string;
@@ -149,7 +151,7 @@ export function formatSpecForPrompt(spec: SpecContract): string {
 
 export async function generateSpecContract(
   goal: string,
-  router: any,
+  router: LocalRouter,
   projectRoot: string
 ): Promise<SpecContract> {
   const systemPrompt = `You are a SpecFirst System Architect Agent. Your job is to create an explicit, unambiguous specification contract before any code is written.
@@ -186,7 +188,7 @@ Project Root: ${projectRoot}`;
       temperature: 0.2,
     });
 
-    let content = response.choices[0]?.message?.content || '{}';
+    let content = messageText(response.choices[0]?.message?.content ?? '') || '{}';
     // Clean potential markdown JSON fences
     content = content.replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/i, '').trim();
 

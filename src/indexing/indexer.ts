@@ -1072,8 +1072,8 @@ export async function indexCodebase(
       }
 
       indexedFiles++;
-    } catch (err: any) {
-      errors.push(`${path.relative(root, file) || file}: ${err.message}`);
+    } catch (err) {
+      errors.push(`${path.relative(root, file) || file}: ${(err instanceof Error ? err.message : String(err))}`);
     }
     // Yield every file so the event loop stays responsive for keyboard input
     await yieldToEventLoop();

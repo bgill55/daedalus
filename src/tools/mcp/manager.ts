@@ -44,7 +44,7 @@ export interface RegistryServerEntry {
 interface RegistryResponse {
   servers: Array<{
     server: RegistryServerEntry;
-    _meta: Record<string, any>;
+    _meta: Record<string, unknown>;
   }>;
   metadata: {
     count: number;
@@ -177,7 +177,7 @@ export async function fetchAllServers(limit = 100): Promise<RegistryServerEntry[
     for (const entry of data.servers) {
       const s = entry.server;
       const meta = entry._meta?.['io.modelcontextprotocol.registry/official'];
-      if (meta?.isLatest && !seen.has(s.name)) {
+      if ((meta as { isLatest?: boolean } | undefined)?.isLatest === true && !seen.has(s.name)) {
         seen.set(s.name, s);
       }
     }

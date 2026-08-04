@@ -78,8 +78,8 @@ export async function watchProcess(
       toolCallId: '', name: 'watch_process', success: true,
       content: `Process started with id '${id}' (pid ${proc.pid}). Use read_process('${id}') to see output.`,
     };
-  } catch (err: any) {
-    return formatError(`watch_process failed: ${err.message}`);
+  } catch (err) {
+    return formatError(`watch_process failed: ${(err instanceof Error ? err.message : String(err))}`);
   }
 }
 
@@ -110,7 +110,7 @@ export async function killProcess(
     wp.alive = false;
     state.watched.delete(args.id);
     return { toolCallId: '', name: 'kill_process', success: true, content: `Process '${args.id}' killed.` };
-  } catch (err: any) {
-    return formatError(`Failed to kill process: ${err.message}`);
+  } catch (err) {
+    return formatError(`Failed to kill process: ${(err instanceof Error ? err.message : String(err))}`);
   }
 }

@@ -148,8 +148,8 @@ export async function executeCommand(input: string, ctx: CommandContext, _depth 
     }
     try {
       await command.execute(args, ctx);
-    } catch (err: any) {
-      console.log(pc.red(`[ERROR] Command ${command.name} failed: ${err.message}`));
+    } catch (err) {
+      console.log(pc.red(`[ERROR] Command ${command.name} failed: ${(err instanceof Error ? err.message : String(err))}`));
     }
     return true;
   }

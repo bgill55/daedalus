@@ -227,8 +227,8 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
               sessionManager.saveSessionState(messages, activeFiles, getSessionTodos(sessionId));
               await extractAndSave(router, sessionManager, messages);
             }
-          } catch (fallbackErr: any) {
-            const firstLine = (fallbackErr.message || '').split('\n')[0];
+          } catch (fallbackErr) {
+            const firstLine = ((fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr)) || '').split('\n')[0];
             console.log(pc.red(`\n  ${pc.bold('[ERROR]')} Fallback also failed: ${firstLine}`));
             console.log(pc.dim('         Check that at least one local server is running or run /doctor to debug.'));
           }

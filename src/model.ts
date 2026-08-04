@@ -7,7 +7,9 @@ import { DaedalusSpinner } from './tools/daedalus-spinner.js';
 import { calculateSessionTokens, pruneMessages } from './session/tokens.js';
 import { parseTextToolCalls, openAssistantBlock, writeAssistantChunk, closeAssistantBlock, printContextWarning, printContextResult, printContextPrune, printToolStart, printToolResult, printToolContentPreview, turnGatePrompt } from './formatting.js';
 import type { ToolContext, ToolCall, ChatMessage } from './types.js';
+import { messageText } from './types.js';
 import type { LocalRouter } from './router/index.js';
+import type { DaedalusConfig } from './config/index.js';
 import { classifyTaskStart, stepRouting } from './router/complexity.js';
 
 const TOOL_RESULT_MAX_CHARS = 32_000;
@@ -95,7 +97,7 @@ function detectRepetition(text: string): boolean {
 
 export interface ModelDeps {
   messages: ChatMessage[];
-  config: any;
+  config: DaedalusConfig;
   router: LocalRouter;
   toolContext: ToolContext;
   buildFileContext: () => string;
@@ -171,7 +173,7 @@ export function createModelFunctions(deps: ModelDeps) {
             temperature: 0.3,
             max_tokens: 600,
           });
-          return resp.choices[0]?.message?.content || '';
+          return messageText(resp.choices[0]?.message?.content ?? '');
         } catch {
           return '';
         }
@@ -322,7 +324,7 @@ export function createModelFunctions(deps: ModelDeps) {
           return { content: fullContent, toolCalls: [] };
         }
 
-      } catch (error: any) {
+      } catch (error) {
         if (signal.aborted) {
           spinner.stop();
           closeAssistantBlock((lastContent || fullContent).length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
@@ -331,7 +333,7 @@ export function createModelFunctions(deps: ModelDeps) {
           return { content: repetitionAborted ? fullContent : '', toolCalls: [] };
         }
         spinner.stop();
-        const firstLine = (error.message || '').split('\n')[0];
+        const firstLine = (error instanceof Error ? error.message : String(error)).split('\n')[0];
         console.log(pc.yellow(`\n  ${pc.bold('[WARN]')} Error calling model: ${firstLine}`));
         console.log(pc.dim(`         (Tip: Run /doctor to diagnose connection or loading issues)`));
         throw error;
@@ -444,11 +446,11 @@ export function createModelFunctions(deps: ModelDeps) {
       let results;
       try {
         results = await executeToolCalls(approvedCalls, toolContext);
-      } catch (err: any) {
+      } catch (err) {
         toolContext.pauseSpinner = () => {};
         toolContext.resumeSpinner = () => {};
         results = approvedCalls.map(tc => ({
-          toolCallId: tc.id, name: tc.function.name, success: false, content: '', error: err.message,
+          toolCallId: tc.id, name: tc.function.name, success: false, content: '', error: err instanceof Error ? err.message : String(err),
         }));
       }
 
@@ -673,15 +675,15 @@ export function createModelFunctions(deps: ModelDeps) {
         temperature: 0.1,
       });
 
-      const reply = response.choices[0]?.message?.content || '';
+      const reply = messageText(response.choices[0]?.message?.content ?? '');
       messages.push({ role: 'assistant', content: reply });
       openAssistantBlock();
       writeAssistantChunk(reply);
       const elapsed = Date.now() - _turnStartTime;
       closeAssistantBlock(reply.length, elapsed, undefined, router.lastRoutedModel);
       return reply;
-    } catch (error: any) {
-      const firstLine = (error.message || '').split('\n')[0];
+    } catch (error) {
+      const firstLine = ((error instanceof Error ? error.message : String(error)) || '').split('\n')[0];
       console.log(pc.yellow(`\n  ${pc.bold('[WARN]')} Fallback error: ${firstLine}`));
       console.log(pc.dim(`         (Tip: Run /doctor to diagnose connection or loading issues)`));
       throw error;

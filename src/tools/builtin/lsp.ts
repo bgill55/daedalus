@@ -94,8 +94,8 @@ export async function lspDiagnostics(
       return { toolCallId: '', name: 'lsp_diagnostics', success: true, content: 'No type errors found.' };
     }
     return { toolCallId: '', name: 'lsp_diagnostics', success: true, content: results.join('\n') };
-  } catch (err: any) {
-    return formatError(`lsp_diagnostics failed: ${err.message}`);
+  } catch (err) {
+    return formatError(`lsp_diagnostics failed: ${(err instanceof Error ? err.message : String(err))}`);
   }
 }
 
@@ -117,8 +117,8 @@ export async function lspHover(
     const docStr = ts.displayPartsToString(info.documentation ?? []);
     const content = docStr ? `${typeStr}\n\n${docStr}` : typeStr;
     return { toolCallId: '', name: 'lsp_hover', success: true, content };
-  } catch (err: any) {
-    return formatError(`lsp_hover failed: ${err.message}`);
+  } catch (err) {
+    return formatError(`lsp_hover failed: ${(err instanceof Error ? err.message : String(err))}`);
   }
 }
 
@@ -165,7 +165,7 @@ export async function lspRename(
       toolCallId: '', name: 'lsp_rename', success: true,
       content: `Renamed '${renameInfo.displayName}' to '${args.new_name}' in ${changed.length} file(s):\n${changed.join('\n')}`,
     };
-  } catch (err: any) {
-    return formatError(`lsp_rename failed: ${err.message}`);
+  } catch (err) {
+    return formatError(`lsp_rename failed: ${(err instanceof Error ? err.message : String(err))}`);
   }
 }

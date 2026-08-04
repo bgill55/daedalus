@@ -4,11 +4,26 @@ import path from 'path';
 import pc from 'picocolors';
 
 import { discoverLocalServers, PROVIDER_REGISTRY } from '../config/index.js';
+import type { ModelEntry } from '../router/types.js';
 import { getSessionTodos } from '../tools/builtin/todo.js';
 import { turnSeparator } from '../formatting.js';
 import { getRecentRouteDecisions, getRoutingLogPath } from '../router/routing-logger.js';
 
 import type { Command } from './types.js';
+import type { ProviderHealth } from '../types.js';
+import { messageText } from '../types.js';
+
+interface WatcherInstance {
+  close(): void;
+}
+declare global {
+  // eslint-disable-next-line no-var
+  var __daedalusWatcher: WatcherInstance | undefined;
+}
+
+function errMessage(e: unknown): string {
+  return e instanceof Error ? e.message : String(e);
+}
 
 export const devCommands: Command[] = [
   {
@@ -41,8 +56,8 @@ export const devCommands: Command[] = [
             }
           }
         }
-      } catch (err: any) {
-        console.log(pc.red(`[WARN] Branch command error: ${err.message}`));
+      } catch (err) {
+        console.log(pc.red(`[WARN] Branch command error: ${errMessage(err)}`));
       }
     }
   },
@@ -103,7 +118,7 @@ export const devCommands: Command[] = [
           temperature: 0.3,
         });
 
-        const prDesc = (aiResponse.choices[0]?.message?.content || '').trim();
+        const prDesc = messageText(aiResponse.choices[0]?.message?.content ?? '').trim();
         if (!prDesc) {
           console.log(pc.red('  Failed to generate PR description.'));
           return;
@@ -116,8 +131,8 @@ export const devCommands: Command[] = [
         const outPath = path.join(process.cwd(), 'pr-desc.md');
         fs.writeFileSync(outPath, prDesc, 'utf8');
         console.log(pc.green(`\n[OK] PR description saved to ${pc.cyan('pr-desc.md')}`));
-      } catch (err: any) {
-        console.log(pc.red(`[WARN] PR command error: ${err.message}`));
+      } catch (err) {
+        console.log(pc.red(`[WARN] PR command error: ${errMessage(err)}`));
       }
     }
   },
@@ -182,8 +197,8 @@ Once you have finished making changes, I will automatically re-run the command t
 
           await ctx.callModelWithTools(debugPrompt);
 
-        } catch (err: any) {
-          console.log(pc.red(`\n  Error in debugging loop: ${err.message}`));
+        } catch (err) {
+          console.log(pc.red(`\n  Error in debugging loop: ${errMessage(err)}`));
           break;
         }
 
@@ -234,7 +249,7 @@ Once you have finished making changes, I will automatically re-run the command t
                 temperature: 0.2,
                 max_tokens: 80,
               });
-              const suggested = ((aiResponse.choices[0]?.message?.content) || '').trim().split('\n')[0].trim();
+              const suggested = messageText(aiResponse.choices[0]?.message?.content ?? '').trim().split('\n')[0].trim();
               if (suggested) {
                 console.log(`\n  ${pc.dim('Suggested:')} ${pc.cyan(suggested)}`);
                 const choice = await ctx.askLine(pc.dim('  [Enter] accept  [e] edit  [n] cancel: '));
@@ -268,8 +283,8 @@ Once you have finished making changes, I will automatically re-run the command t
         } else {
           console.log(pc.red(`Commit failed: ${commitResult.error}`));
         }
-      } catch (err: any) {
-        console.log(pc.red(`[WARN] Commit error: ${err.message}`));
+      } catch (err) {
+        console.log(pc.red(`[WARN] Commit error: ${errMessage(err)}`));
       }
     }
   },
@@ -320,12 +335,12 @@ Once you have finished making changes, I will automatically re-run the command t
           console.log(pc.red('Usage: /project set <key> = <value>'));
         } else {
           const cfg = loadProjectConfig(process.cwd());
-          let parsedVal: any = value;
+          let parsedVal: string | boolean | number = value;
           if (value.toLowerCase() === 'true') parsedVal = true;
           else if (value.toLowerCase() === 'false') parsedVal = false;
           else if (!isNaN(Number(value))) parsedVal = Number(value);
 
-          (cfg as Record<string, any>)[key] = parsedVal;
+          (cfg as unknown as Record<string, unknown>)[key] = parsedVal;
           const isLocal = hasLocalConfig(process.cwd());
           saveProjectConfig(cfg, isLocal);
           console.log(pc.green(`Set ${key} = ${value} (${isLocal ? '.daedalusrc' : 'global'})`));
@@ -395,9 +410,9 @@ Once you have finished making changes, I will automatically re-run the command t
       const action = args.trim().toLowerCase() || 'start';
 
       if (action === 'stop') {
-        if ((globalThis as any).__daedalusWatcher) {
-          (globalThis as any).__daedalusWatcher.close();
-          delete (globalThis as any).__daedalusWatcher;
+        if (globalThis.__daedalusWatcher) {
+          globalThis.__daedalusWatcher.close();
+          delete globalThis.__daedalusWatcher;
           console.log(pc.green('\n[OK] Codebase file watcher stopped.'));
         } else {
           console.log(pc.yellow('\n[INFO] File watcher is not currently running.'));
@@ -406,12 +421,12 @@ Once you have finished making changes, I will automatically re-run the command t
       }
 
       if (action === 'status') {
-        const isRunning = !!(globalThis as any).__daedalusWatcher;
+        const isRunning = !!globalThis.__daedalusWatcher;
         console.log(pc.cyan(`\n⚡ File Watcher Status: ${isRunning ? pc.bold(pc.green('ACTIVE')) : pc.dim('INACTIVE')}`));
         return;
       }
 
-      if ((globalThis as any).__daedalusWatcher) {
+      if (globalThis.__daedalusWatcher) {
         console.log(pc.yellow('\n[INFO] File watcher is already running in background.'));
         return;
       }
@@ -422,10 +437,10 @@ Once you have finished making changes, I will automatically re-run the command t
         const db = initIndexDb(dbPath);
         const projectHash = 'local';
         const instance = watchCodebase(db, cwd, projectHash);
-        (globalThis as any).__daedalusWatcher = instance;
+        globalThis.__daedalusWatcher = instance;
         console.log(pc.green('\n[OK] Started background codebase watcher! Symbol index will auto-update on file save.'));
-      } catch (err: any) {
-        console.log(pc.red(`\n[ERROR] Failed to start file watcher: ${err.message}`));
+      } catch (err) {
+        console.log(pc.red(`\n[ERROR] Failed to start file watcher: ${errMessage(err)}`));
       }
     }
   },
@@ -488,8 +503,8 @@ Once you have finished making changes, I will automatically re-run the command t
             console.log(pc.gray(`  ... and ${result.errors.length - 10} more`));
           }
         }
-      } catch (err: any) {
-        console.error(pc.red(`\n[ERROR] Indexing failed: ${err.message}`));
+      } catch (err) {
+        console.error(pc.red(`\n[ERROR] Indexing failed: ${errMessage(err)}`));
       }
     }
   },
@@ -947,7 +962,7 @@ Once you have finished making changes, I will automatically re-run the command t
         }
 
         const { saveConfig, ConfigSchema } = await import('../config/index.js');
-        let parsedVal: any = value;
+        let parsedVal: string | boolean | number = value;
         if (value.toLowerCase() === 'true') parsedVal = true;
         else if (value.toLowerCase() === 'false') parsedVal = false;
         else if (!isNaN(Number(value))) parsedVal = Number(value);
@@ -962,20 +977,20 @@ Once you have finished making changes, I will automatically re-run the command t
             const modelIdentifier = parts[1];
             const property = parts.slice(2).join('.');
             const chain = ctx.config.router.chain;
-            const modelEntry = chain.find((m: any) => m.name === modelIdentifier || m.model === modelIdentifier);
+            const modelEntry = chain.find((m: ModelEntry) => m.name === modelIdentifier || m.model === modelIdentifier);
             if (!modelEntry) {
               console.log(pc.red(`[WARN] Model '${modelIdentifier}' not found in router chain.`));
               return;
             }
-            (modelEntry as Record<string, any>)[property] = parsedVal;
+            (modelEntry as Record<string, unknown>)[property] = parsedVal;
           } else {
             const parts = key.split('.');
-            let currentObj: any = ctx.config;
+            let currentObj: Record<string, unknown> = ctx.config as unknown as Record<string, unknown>;
             for (let i = 0; i < parts.length - 1; i++) {
               if (currentObj[parts[i]] === undefined) {
                 currentObj[parts[i]] = {};
               }
-              currentObj = currentObj[parts[i]];
+              currentObj = currentObj[parts[i]] as Record<string, unknown>;
             }
             currentObj[parts[parts.length - 1]] = parsedVal;
           }
@@ -989,8 +1004,8 @@ Once you have finished making changes, I will automatically re-run the command t
           }
           
           console.log(pc.green(`[OK] Set global config: ${key} = ${value}`));
-        } catch (err: any) {
-          console.log(pc.red(`[WARN] Invalid configuration value: ${err.message}`));
+        } catch (err) {
+          console.log(pc.red(`[WARN] Invalid configuration value: ${errMessage(err)}`));
         }
       } else {
         console.log(pc.red('[WARN] Usage: /config | /config set <key> = <value>'));
@@ -1066,7 +1081,7 @@ Once you have finished making changes, I will automatically re-run the command t
       const { maskKey } = await import('../utils/apiKeyMask.js');
       const config = loadConfig();
 
-      const providers: Record<string, any> = {};
+      const providers: Record<string, ProviderHealth> = {};
       for (const p of config.router?.chain || []) {
         const isUp = p.enabled !== false;
         providers[p.name || 'default'] = {

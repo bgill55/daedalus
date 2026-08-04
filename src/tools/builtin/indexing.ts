@@ -53,13 +53,13 @@ export async function index_codebase(
         `[OK] Indexed ${result.indexedFiles} file(s), skipped ${result.skippedFiles} unchanged ` +
         `(${result.totalFiles} total scanned).${errNote}`,
     };
-  } catch (err: any) {
+  } catch (err) {
     return {
       toolCallId: '',
       name: 'index_codebase',
       success: false,
       content: '',
-      error: `Failed to index codebase: ${err.message}`,
+      error: `Failed to index codebase: ${(err instanceof Error ? err.message : String(err))}`,
     };
   }
 }
@@ -95,13 +95,13 @@ export async function find_symbol(
       success: true,
       content: `Found ${symbols.length} symbol(s) matching "${args.query}":\n\n${lines.join('\n\n')}`,
     };
-  } catch (err: any) {
+  } catch (err) {
     return {
       toolCallId: '',
       name: 'find_symbol',
       success: false,
       content: '',
-      error: `Failed to search symbols: ${err.message}`,
+      error: `Failed to search symbols: ${(err instanceof Error ? err.message : String(err))}`,
     };
   }
 }
@@ -139,13 +139,13 @@ export async function get_definition(
       success: true,
       content: `Definition(s) for "${args.name}":\n\n${lines.join('\n\n')}`,
     };
-  } catch (err: any) {
+  } catch (err) {
     return {
       toolCallId: '',
       name: 'get_definition',
       success: false,
       content: '',
-      error: `Failed to find definitions: ${err.message}`,
+      error: `Failed to find definitions: ${(err instanceof Error ? err.message : String(err))}`,
     };
   }
 }
@@ -176,13 +176,13 @@ export async function get_references(
       success: true,
       content: `${refs.length} reference(s) to "${args.name}":\n\n${lines.join('\n')}`,
     };
-  } catch (err: any) {
+  } catch (err) {
     return {
       toolCallId: '',
       name: 'get_references',
       success: false,
       content: '',
-      error: `Failed to find references: ${err.message}`,
+      error: `Failed to find references: ${(err instanceof Error ? err.message : String(err))}`,
     };
   }
 }
@@ -225,13 +225,13 @@ export async function get_call_graph(
       success: true,
       content: out,
     };
-  } catch (err: any) {
+  } catch (err) {
     return {
       toolCallId: '',
       name: 'get_call_graph',
       success: false,
       content: '',
-      error: `Failed to build call graph: ${err.message}`,
+      error: `Failed to build call graph: ${(err instanceof Error ? err.message : String(err))}`,
     };
   }
 }
