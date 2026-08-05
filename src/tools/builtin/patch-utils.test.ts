@@ -55,8 +55,7 @@ describe('syntaxCheck file-scoping', () => {
     const good = path.join(dir, 'good.ts');
     const orig = fs.readFileSync(good, 'utf8');
     fs.writeFileSync(good, orig + 'export const z: number = 2;\n');
-    const modifiedLine = orig.split('\n').length;
-    const err = await syntaxCheck(good, dir, [modifiedLine]);
+    const err = await syntaxCheck(good, dir, orig + 'export const z: number = 2;\n', orig);
     fs.writeFileSync(good, orig);
     expect(err).toBeNull();
   });
@@ -66,8 +65,7 @@ describe('syntaxCheck file-scoping', () => {
     const good = path.join(dir, 'good.ts');
     const orig = fs.readFileSync(good, 'utf8');
     fs.writeFileSync(good, orig + 'export const z: number = ;\n');
-    const modifiedLine = orig.split('\n').length;
-    const err = await syntaxCheck(good, dir, [modifiedLine]);
+    const err = await syntaxCheck(good, dir, orig + 'export const z: number = ;\n', orig);
     fs.writeFileSync(good, orig);
     expect(err).not.toBeNull();
     expect(err).toContain('good.ts');
@@ -87,7 +85,7 @@ describe('syntaxCheck file-scoping', () => {
     // Valid edit: add an import of a module that does NOT exist in node_modules.
     const edited = "import express from 'express';\nimport helmet from 'helmet-that-does-not-exist';\nexport const app = express();\napp.use(helmet());\n";
     fs.writeFileSync(file, edited);
-    const err = await syntaxCheck(file, dir, [2, 4], orig);
+    const err = await syntaxCheck(file, dir, edited, orig);
     fs.rmSync(dir, { recursive: true, force: true });
     expect(err).toBeNull();
   });
@@ -102,9 +100,43 @@ describe('syntaxCheck file-scoping', () => {
     // Real syntax break: stray token / unbalanced bracket.
     const edited = 'export const x = 1;\nconst broken = (;\n';
     fs.writeFileSync(file, edited);
-    const err = await syntaxCheck(file, dir, [2], orig);
+    const err = await syntaxCheck(file, dir, edited, orig);
     fs.rmSync(dir, { recursive: true, force: true });
     expect(err).not.toBeNull();
     expect(err).toContain('app.ts');
+  });
+
+  it('blocks a NEWLY introduced type error but not a pre-existing one', async () => {
+    // Pre-existing file has a type error (unused var). The agent fixes a DIFFERENT
+    // line but accidentally introduces a NEW type error. Only the new one blocks.
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'daedalus-syntax-new-'));
+    fs.writeFileSync(path.join(dir, 'tsconfig.json'), JSON.stringify({
+      compilerOptions: { strict: true, noUnusedLocals: true, noEmit: true, skipLibCheck: true },
+    }));
+    const file = path.join(dir, 'thing.ts');
+    const orig = 'const unused = 1;\nexport const ok = 2;\n';
+    // Edit introduces a NEW error on line 2 (assigns string to number) while the
+    // pre-existing unused-var on line 1 remains.
+    const edited = 'const unused = 1;\nexport const ok: number = "not a number";\n';
+    fs.writeFileSync(file, edited);
+    const err = await syntaxCheck(file, dir, edited, orig);
+    fs.rmSync(dir, { recursive: true, force: true });
+    expect(err).not.toBeNull();
+    expect(err).toContain('thing.ts');
+  });
+
+  it('does NOT block when the only errors are pre-existing (valid edit, nothing new)', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'daedalus-syntax-pre-'));
+    fs.writeFileSync(path.join(dir, 'tsconfig.json'), JSON.stringify({
+      compilerOptions: { strict: true, noUnusedLocals: true, noEmit: true, skipLibCheck: true },
+    }));
+    const file = path.join(dir, 'thing.ts');
+    const orig = 'const unused = 1;\nexport const ok = 2;\n';
+    // Valid edit on line 2; pre-existing unused-var on line 1 stays untouched.
+    const edited = 'const unused = 1;\nexport const ok = 3;\n';
+    fs.writeFileSync(file, edited);
+    const err = await syntaxCheck(file, dir, edited, orig);
+    fs.rmSync(dir, { recursive: true, force: true });
+    expect(err).toBeNull();
   });
 });

@@ -284,35 +284,21 @@ function formatDiagnostic(d: ts.Diagnostic): string {
   return `${name}${loc}: error TS${d.code}: ${msg}`;
 }
 
-// Compute the set of (code:line) keys for a hypothetical pre-edit version of
-// the file by compiling a temp sibling copy. Used to exclude pre-existing
-// errors when deciding whether a patch introduced new ones.
-function preEditFileKeys(tsconfigRoot: string, targetAbs: string, originalContent: string): Set<string> {
-  const dir = path.dirname(targetAbs);
-  // Temp sibling named after the target so relative imports still resolve.
-  const tmpPathForTs = path.join(dir, `__daedalus_pre_${path.basename(targetAbs)}`.replace(/\.(ts|tsx|js|mjs|cjs)$/i, '') + '.ts');
-  try {
-    fs.writeFileSync(tmpPathForTs, originalContent);
-    const all = runTscDiagnostics(tsconfigRoot);
-    if (!all) return new Set();
-    return new Set(
-      diagnosticsForFile(all, tmpPathForTs)
-        .filter(d => !isDeprecation(d))
-        .map(diagKey)
-    );
-  } catch {
-    return new Set();
-  } finally {
-    try { fs.rmSync(tmpPathForTs, { force: true }); } catch { /* ignore */ }
-  }
-}
-
-export async function syntaxCheck(filePath: string, projectRoot: string, modifiedLines?: number[], originalContent?: string): Promise<string | null> {
+export async function syntaxCheck(
+  filePath: string,
+  projectRoot: string,
+  proposedContent?: string,
+  originalContent?: string,
+  modifiedLines?: number[],
+): Promise<string | null> {
   const ext = path.extname(filePath).toLowerCase();
+  const targetAbs = path.resolve(filePath);
 
   if (ext === '.json') {
+    const text = proposedContent ?? safeRead(filePath);
+    if (text === null) return null;
     try {
-      JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      JSON.parse(text);
       return null;
     } catch (e) {
       return `JSON syntax error: ${(e instanceof Error ? e.message : String(e))}`;
@@ -320,8 +306,9 @@ export async function syntaxCheck(filePath: string, projectRoot: string, modifie
   }
 
   if (ext === '.yaml' || ext === '.yml') {
-    const content = fs.readFileSync(filePath, 'utf8');
-    const tabLine = content.split('\n').findIndex(l => l.includes('\t'));
+    const text = proposedContent ?? safeRead(filePath);
+    if (text === null) return null;
+    const tabLine = text.split('\n').findIndex(l => l.includes('\t'));
     if (tabLine !== -1) return `YAML syntax error: tab character on line ${tabLine + 1} (YAML requires spaces)`;
     return null;
   }
@@ -331,59 +318,40 @@ export async function syntaxCheck(filePath: string, projectRoot: string, modifie
     if (!tsconfigPath) return null;
 
     const tsconfigRoot = path.dirname(tsconfigPath);
+    const content = proposedContent ?? safeRead(filePath);
+    if (content === null) return null;
 
-    // Definitive syntax gate: transpile ONLY this file. A genuine syntax break
-    // (bad brackets, stray token) fails here regardless of the rest of the project.
-    // This is what "Syntax error introduced by patch" should mean — not a type or
-    // module-resolution quirk elsewhere in the repo.
-    const transpileDiag = singleFileSyntaxError(filePath);
+    // 1) Definitive syntax gate: transpile ONLY the proposed content in memory.
+    // A genuine syntax break (bad brackets, stray token) fails here regardless of
+    // the rest of the project, and we never touch disk to discover it.
+    const transpileDiag = transpileContent(content, targetAbs);
     if (transpileDiag) return transpileDiag;
 
+    // 2) Type-error gate: compile the proposed content in memory and diff its
+    // (code:line) diagnostics against the original content. Only NEWLY INTRODUCED
+    // errors block. Module-resolution failures (TS2307 etc.) and deprecations are
+    // environment noise the agent cannot patch away, so they never block — that
+    // was the false-revert class (e.g. installing helmet then importing it).
     const allDiags = runTscDiagnostics(tsconfigRoot);
     if (!allDiags) return null;
 
-    const targetAbs = path.resolve(filePath);
-    const fileDiags = diagnosticsForFile(allDiags, targetAbs).filter(d => !isDeprecation(d) && !isModuleResolutionError(d));
-    const tsconfigMtime = fs.statSync(tsconfigPath).mtimeMs;
-    const baseline = tscBaselines.get(tsconfigRoot);
-    const hasFreshBaseline = baseline !== undefined && baseline.tsconfigMtime === tsconfigMtime;
+    const proposedDiags = diagnosticsForFile(allDiags, targetAbs)
+      .filter(d => !isDeprecation(d) && !isModuleResolutionError(d));
 
-    let introduced: ts.Diagnostic[];
-    if (originalContent !== undefined) {
-      // Diff post-edit diagnostics against the pre-edit file so pre-existing
-      // errors on touched lines are never blamed on the patch. This is the
-      // correct path; modifiedLines is only a fallback when no baseline exists.
-      const preKeys = preEditFileKeys(tsconfigRoot, targetAbs, originalContent);
-      introduced = fileDiags.filter(d => !preKeys.has(diagKey(d)));
-    } else if (hasFreshBaseline) {
-      const beforeKeys = new Set(
-        diagnosticsForFile(baseline.diagnostics, targetAbs)
-          .filter(d => !isDeprecation(d) && !isModuleResolutionError(d))
-          .map(diagKey)
-      );
-      introduced = fileDiags.filter(d => !beforeKeys.has(diagKey(d)));
-    } else if (modifiedLines && modifiedLines.length > 0) {
-      // No original content and no fresh baseline: only flag errors that land
-      // on lines this patch touched. Less precise — a pre-existing error on a
-      // touched line can slip through as a false revert — but it's the safest
-      // we can do without the pre-edit content.
-      introduced = fileDiags.filter(d => {
-        const line = diagLine(d);
-        return line > 0 && modifiedLines.includes(line);
-      });
-    } else {
-      // No baseline and no line info: establish the baseline, don't flag on
-      // first touch (avoids false reverts of valid edits to already-broken files).
-      introduced = [];
-    }
+    const originalKeys = originalContent !== undefined
+      ? baselineKeysFromOriginal(tsconfigRoot, targetAbs, originalContent)
+      : new Set<string>();
 
-    tscBaselines.set(tsconfigRoot, { diagnostics: allDiags, tsconfigMtime });
+    const introduced = proposedDiags.filter(d => !originalKeys.has(diagKey(d)));
     if (introduced.length === 0) return null;
     return formatDiagnostic(introduced[0]);
   }
 
-  if (ext === '.js' || ext === '.mjs' || ext === '.cjs' || ext === '.ts' || ext === '.tsx') {
+  if (ext === '.js' || ext === '.mjs' || ext === '.cjs') {
+    const text = proposedContent ?? safeRead(filePath);
+    if (text === null) return null;
     const result = spawnSync(process.execPath, ['--check', filePath], {
+      input: text,
       timeout: 10000,
       encoding: 'utf8',
     });
@@ -394,6 +362,58 @@ export async function syntaxCheck(filePath: string, projectRoot: string, modifie
   }
 
   return null;
+}
+
+function safeRead(filePath: string): string | null {
+  try {
+    return fs.readFileSync(filePath, 'utf8');
+  } catch {
+    return null;
+  }
+}
+
+// Transpile proposed content in isolation to catch genuine syntax errors.
+function transpileContent(content: string, filePath: string): string | null {
+  try {
+    const result = ts.transpileModule(content, {
+      fileName: filePath,
+      compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 },
+      reportDiagnostics: true,
+    });
+    const syntax = (result.diagnostics ?? []).filter(d => d.category === ts.DiagnosticCategory.Error);
+    if (syntax.length === 0) return null;
+    return formatDiagnostic(syntax[0]);
+  } catch {
+    return null;
+  }
+}
+
+// Compute the (code:line) diagnostic keys for `originalContent` as if it were the
+// target file, so we can tell which diagnostics the patch NEWLY introduced. We do a
+// short disk swap (write orig, compile, restore) because tsc resolves types from the
+// project's own tsconfig/node_modules — an in-memory CompilerHost would instead pull
+// types from Daedalus's own install and give wrong results. The file is restored to
+// its prior state (the proposed content) before returning, so the caller's disk is
+// unchanged. Module-resolution + deprecation noise is excluded.
+function baselineKeysFromOriginal(tsconfigRoot: string, targetAbs: string, originalContent: string): Set<string> {
+  let prior: string | null = null;
+  try {
+    prior = fs.readFileSync(targetAbs, 'utf8');
+    fs.writeFileSync(targetAbs, originalContent, 'utf8');
+    const all = runTscDiagnostics(tsconfigRoot);
+    if (!all) return new Set();
+    return new Set(
+      diagnosticsForFile(all, targetAbs)
+        .filter(d => !isDeprecation(d) && !isModuleResolutionError(d))
+        .map(diagKey),
+    );
+  } catch {
+    return new Set();
+  } finally {
+    if (prior !== null) {
+      try { fs.writeFileSync(targetAbs, prior, 'utf8'); } catch { /* ignore */ }
+    }
+  }
 }
 
 export function checkWriteWithoutRead(targetPath: string, context: ToolContext): string | null {
