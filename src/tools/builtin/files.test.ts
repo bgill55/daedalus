@@ -551,4 +551,43 @@ describe('dependency manifest checkpoint', () => {
   });
 });
 
+describe('actionable error guidance', () => {
+  let tmpDir: string;
+
+  beforeEach(() => { tmpDir = makeTmpDir(); });
+  afterEach(() => { fs.rmSync(tmpDir, { recursive: true, force: true }); });
+
+  it('patch suggests read_file or write_file when old_string not found', async () => {
+    const file = path.join(tmpDir, 'mismatch.js');
+    fs.writeFileSync(file, 'const x = 42;\n');
+    const ctx = makeContext(tmpDir);
+
+    const result = await patchFile(
+      { path: file, old_string: 'zzz_completely_unrelated_zzz', new_string: '' },
+      ctx,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Old string not found");
+    expect(result.error).toContain("Hint: Use read_file to inspect the exact current lines, or use write_file if replacing the entire file.");
+  });
+
+  it('write_file suggests read_file when the stale-read guard fires', async () => {
+    const file = path.join(tmpDir, 'stale.js');
+    fs.writeFileSync(file, 'const a = 1;\n');
+    // Seed the read cache with an old mtime so the write-without-read guard trips.
+    const ctx = makeContextWithRead(tmpDir, [file]);
+    // Force a stale read: the cache holds mtime 0 while the file was just rewritten.
+    ctx.sessionReadCache!.set(file, 0);
+    // Mutate the file on disk (simulating external change) after the cached read.
+    fs.writeFileSync(file, 'const a = 2;\n');
+
+    const result = await writeFile({ path: file, content: 'const a = 3;\n' }, ctx);
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('[STALE READ]');
+    expect(result.error).toContain('Hint: Call read_file on this file first to update your context before writing.');
+  });
+});
+
 

@@ -194,7 +194,7 @@ export async function writeFile(args: { path: string; content: string }, context
 
     if (!context.autoApproveTools && process.env.DAEDALUS_AUTO_APPROVE !== 'true') {
       const readGuard = checkWriteWithoutRead(targetPath, context);
-      if (readGuard) return formatError(readGuard);
+      if (readGuard) return formatError(`${readGuard}\nHint: Call read_file on this file first to update your context before writing.`);
     }
 
     const dir = path.dirname(targetPath);
@@ -300,7 +300,7 @@ export async function patchFile(args: { path: string; old_string: string; new_st
           const lines = content.split('\n');
           const showLines = lines.slice(0, 100).map((line, index) => `${index + 1}: ${line}`).join('\n');
           const suffix = lines.length > 100 ? `\n... (showing first 100 lines of ${lines.length} total)` : '';
-          return formatError(`Old string not found in file (checked with CRLF normalization and fuzzy whitespace matching).\nTo fix this: call read_file on ${args.path} to fetch the latest text and indentation.\n\nHere is the current content of the file (with line numbers) to help you construct the correct old_string:\n${'─'.repeat(40)}\n${showLines}${suffix}\n${'─'.repeat(40)}\nModify your old_string to match the exact lines above.`);
+          return formatError(`Old string not found in file (checked with CRLF normalization and fuzzy whitespace matching).\nTo fix this: call read_file on ${args.path} to fetch the latest text and indentation.\n\nHere is the current content of the file (with line numbers) to help you construct the correct old_string:\n${'─'.repeat(40)}\n${showLines}${suffix}\n${'─'.repeat(40)}\nModify your old_string to match the exact lines above.\nHint: Use read_file to inspect the exact current lines, or use write_file if replacing the entire file.`);
         }
         patched = fuzzy.patched;
       } else {
@@ -325,7 +325,7 @@ export async function patchFile(args: { path: string; old_string: string; new_st
             const suffix = lines.length > 100 ? `\n... (showing first 100 lines of ${lines.length} total)` : '';
             hintMsg = `\n\nNo close match found. Here is the current content of the file (with line numbers) to help you construct the correct old_string:\n${'─'.repeat(40)}\n${showLines}${suffix}\n${'─'.repeat(40)}\nModify your old_string to match the exact lines above.`;
           }
-          return formatError(`Old string not found in ${args.path}.\nTo fix this: call read_file on ${args.path} to fetch the latest text and indentation.${hintMsg}`);
+          return formatError(`Old string not found in ${args.path}.\nTo fix this: call read_file on ${args.path} to fetch the latest text and indentation.${hintMsg}\nHint: Use read_file to inspect the exact current lines, or use write_file if replacing the entire file.`);
         }
       } else {
         const secondIdx = content.indexOf(oldStr, idx + oldStr.length);
