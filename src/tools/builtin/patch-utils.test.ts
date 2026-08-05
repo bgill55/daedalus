@@ -139,4 +139,43 @@ describe('syntaxCheck file-scoping', () => {
     fs.rmSync(dir, { recursive: true, force: true });
     expect(err).toBeNull();
   });
+
+  it('reports ALL newly-introduced diagnostics, not just the first', async () => {
+    // A single edit that introduces TWO new type errors. The agent should see
+    // both at once so it can fix them atomically instead of looping one-at-a-time.
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'daedalus-syntax-all-'));
+    fs.writeFileSync(path.join(dir, 'tsconfig.json'), JSON.stringify({
+      compilerOptions: { strict: true, noEmit: true, skipLibCheck: true },
+    }));
+    const file = path.join(dir, 'thing.ts');
+    const orig = 'export const a = 1;\nexport const b = 2;\nexport const c = 3;\n';
+    const edited =
+      'export const a: number = "x";\n' +   // TS2322: type 'string' not assignable to number
+      'export const b: number = "y";\n' +   // TS2322: second distinct new error
+      'export const c = 3;\n';
+    fs.writeFileSync(file, edited);
+    const err = await syntaxCheck(file, dir, edited, orig);
+    fs.rmSync(dir, { recursive: true, force: true });
+    expect(err).not.toBeNull();
+    // Both distinct TS2322 errors must be present in the message.
+    const matches = (err ?? '').match(/TS2322/g) || [];
+    expect(matches.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('hints when an import is nested inside a function body (TS1128)', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'daedalus-syntax-nested-'));
+    fs.writeFileSync(path.join(dir, 'tsconfig.json'), JSON.stringify({
+      compilerOptions: { strict: true, noEmit: true, skipLibCheck: true, module: 'esnext', moduleResolution: 'bundler' },
+    }));
+    const file = path.join(dir, 'thing.ts');
+    const orig = 'export function go(): void {\n  console.log("hi");\n}\n';
+    // Agent mistakenly places the import INSIDE the function (illegal in ES modules).
+    const edited =
+      'export function go(): void {\n  import { x } from "./x";\n  console.log("hi");\n}\n';
+    fs.writeFileSync(file, edited);
+    const err = await syntaxCheck(file, dir, edited, orig);
+    fs.rmSync(dir, { recursive: true, force: true });
+    expect(err).not.toBeNull();
+    expect(err).toContain('imports must be at the TOP LEVEL');
+  });
 });

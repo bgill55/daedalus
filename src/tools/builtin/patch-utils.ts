@@ -344,7 +344,25 @@ export async function syntaxCheck(
 
     const introduced = proposedDiags.filter(d => !originalKeys.has(diagKey(d)));
     if (introduced.length === 0) return null;
-    return formatDiagnostic(introduced[0]);
+
+    // Report ALL newly-introduced diagnostics, not just the first, so the agent
+    // can fix every issue in a single corrected patch instead of looping
+    // (fix one -> re-validate -> hit the next -> revert again). This is the
+    // exact loop that previously sent weak-tier models to an unvalidated
+    // MCP filesystem editor as an escape hatch.
+    const allErrors = introduced.map(formatDiagnostic);
+
+    // Targeted hint for the most common agent mistake: imports placed inside a
+    // function body (illegal in ES modules) or otherwise misplaced. Caught as
+    // TS1128 ("Import declarations cannot be nested"), TS1138 ("import only
+    // allowed at top level"), or TS1232 ("import declaration can only be used at
+    // the top level of a namespace or module").
+    const hasMisplacedImport = introduced.some(d => d.code === 1128 || d.code === 1138 || d.code === 1232);
+    const hint = hasMisplacedImport
+      ? '\n\nHint: imports must be at the TOP LEVEL of the file (before any function), not inside a function body. Move each `import` statement above `export function createApp`.'
+      : '';
+
+    return `${allErrors.join('\n')}${hint}`;
   }
 
   if (ext === '.js' || ext === '.mjs' || ext === '.cjs') {
