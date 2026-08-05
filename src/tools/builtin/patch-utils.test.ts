@@ -73,24 +73,38 @@ describe('syntaxCheck file-scoping', () => {
     expect(err).toContain('good.ts');
   });
 
-  it('does NOT false-revert a valid edit on a line that already had a pre-existing error', async () => {
-    // Reproduces the residual gap: a valid in-place edit on a line that still
-    // carries a pre-existing error (e.g. unused var) must not be reverted.
-    // The fix requires the caller to pass the pre-edit content so syntaxCheck
-    // can diff pre vs post and exclude pre-existing errors.
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'daedalus-syntax-gap-'));
+  it('does NOT false-revert a valid edit that imports a module tsc cannot resolve', async () => {
+    // Reproduces the helmet incident: npm install succeeds, the import +
+    // usage is correct, but the in-process tsc can't resolve the package's types
+    // (TS2307). A correct edit must NOT be reverted just because of an
+    // environment/module-resolution quirk.
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'daedalus-syntax-mod-'));
     fs.writeFileSync(path.join(dir, 'tsconfig.json'), JSON.stringify({
-      compilerOptions: { strict: true, noUnusedLocals: true, noEmit: true, skipLibCheck: true },
+      compilerOptions: { strict: true, noEmit: true, skipLibCheck: true, esModuleInterop: true },
     }));
-    // line 1: unused const (pre-existing TS6133). line 2: ok.
-    const file = path.join(dir, 'thing.ts');
-    const orig = 'const unused = 1;\nexport const ok = 2;\n';
-    fs.writeFileSync(file, orig);
-    // VALID edit on line 1 (add a comment) — does NOT fix the unused-var error.
-    const edited = 'const unused = 1; // valid edit, pre-existing error remains\nexport const ok = 2;\n';
+    const file = path.join(dir, 'app.ts');
+    const orig = "import express from 'express';\nexport const app = express();\n";
+    // Valid edit: add an import of a module that does NOT exist in node_modules.
+    const edited = "import express from 'express';\nimport helmet from 'helmet-that-does-not-exist';\nexport const app = express();\napp.use(helmet());\n";
     fs.writeFileSync(file, edited);
-    const err = await syntaxCheck(file, dir, [1], orig);
+    const err = await syntaxCheck(file, dir, [2, 4], orig);
     fs.rmSync(dir, { recursive: true, force: true });
     expect(err).toBeNull();
+  });
+
+  it('still reverts a genuine syntax-error edit (not a resolution quirk)', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'daedalus-syntax-real-'));
+    fs.writeFileSync(path.join(dir, 'tsconfig.json'), JSON.stringify({
+      compilerOptions: { strict: true, noEmit: true, skipLibCheck: true, esModuleInterop: true },
+    }));
+    const file = path.join(dir, 'app.ts');
+    const orig = 'export const x = 1;\n';
+    // Real syntax break: stray token / unbalanced bracket.
+    const edited = 'export const x = 1;\nconst broken = (;\n';
+    fs.writeFileSync(file, edited);
+    const err = await syntaxCheck(file, dir, [2], orig);
+    fs.rmSync(dir, { recursive: true, force: true });
+    expect(err).not.toBeNull();
+    expect(err).toContain('app.ts');
   });
 });
