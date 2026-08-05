@@ -288,16 +288,29 @@ async function callModelWithTools(userContent: string, imageBase64?: string): Pr
 let chatLoop: () => Promise<void>;
 
 async function main() {
+  // Always restore canonical terminal mode (raw mode off) on every shutdown path.
+  // A raw-mode feature that leaks (unrecognized key, exception, or an abort) would
+  // otherwise leave the terminal stuck (^H/^C echo, no way to close it).
+  const restoreTerminalMode = () => {
+    try {
+      if (process.stdin.isTTY) process.stdin.setRawMode?.(false);
+      if (process.stdin.isPaused()) process.stdin.resume();
+    } catch { /* best-effort cleanup */ }
+  };
+
   process.on('SIGINT', () => {
     if (indexWatcher) {
       indexWatcher.close();
     }
     if (currentAbortController) {
       abortTurn();
+      restoreTerminalMode();
+      // Return to the REPL in canonical mode rather than exiting — the user can
+      // keep working. Raw mode must be off first or the REPL keys won't work.
       return;
     }
     router.stopHealthChecks?.();
-    if (process.stdin.isTTY) process.stdin.setRawMode?.(false);
+    restoreTerminalMode();
     process.stdout.write('\n');
     process.exit(0);
   });
@@ -309,7 +322,12 @@ async function main() {
     }
     router.stopHealthChecks?.();
     import('./tools/builtin/process-watcher.js').then(m => m.killAllWatchedProcesses()).catch(() => {});
+    restoreTerminalMode();
   });
+
+  // Belt-and-suspenders: if the process tears down for any other reason, make sure
+  // the terminal is left usable.
+  process.on('beforeExit', restoreTerminalMode);
 
   // Print the awesome banner first! (skip in CI/review mode so captured stdout stays clean)
   const enabledCount = config.router.chain.filter(m => m.enabled).length;
