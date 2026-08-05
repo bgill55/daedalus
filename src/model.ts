@@ -2,6 +2,7 @@ import pc from 'picocolors';
 import { BUILTIN_TOOLS, POWER_TOOLS } from './tools/definitions.js';
 import { executeToolCalls } from './tools/executor.js';
 import { getSessionTodos } from './tools/builtin/todo.js';
+import { detectFalseCompletion, falseCompletionWarning } from './agents/completion-guard.js';
 import { mcpRegistry } from './tools/mcp/registry.js';
 import { DaedalusSpinner } from './tools/daedalus-spinner.js';
 import { calculateSessionTokens, pruneMessages } from './session/tokens.js';
@@ -387,6 +388,22 @@ export function createModelFunctions(deps: ModelDeps) {
         if (currentComplexity && process.env.DAEDALUS_DEBUG === 'true') {
           console.log(pc.dim(`  [ROUTE] Task summary: start ${taskComplexity ?? 'n/a'} → end ${currentComplexity} | ${totalCompletionTokens + (turnUsageOut ?? 0)} output tokens | ${escalationCount} escalation(s)`));
         }
+
+        // Hard guard: do not let the agent end the turn claiming whole-task
+        // completion while its todo list still has open items. A false "done"
+        // report would mislead an end user who trusts it. Force reconciliation.
+        const closingTodos = getSessionTodos(toolContext.sessionId);
+        if (closingTodos.length > 0 && detectFalseCompletion(fullContent, closingTodos)) {
+          const remaining = closingTodos.filter((t) => t.status !== 'completed').length;
+          console.log(pc.red(`\n  [GUARD] Completion claim blocked — ${remaining} todo(s) still open.`));
+          messages.push({ role: 'assistant', content: fullContent });
+          messages.push({
+            role: 'user',
+            content: falseCompletionWarning(remaining),
+          } as ChatMessage);
+          continue;
+        }
+
         messages.push({ role: 'assistant', content: fullContent });
         return { content: fullContent, toolCalls: [] };
       }
