@@ -1,19 +1,19 @@
 import { describe, it, expect, vi } from 'vitest';
-import { Readable } from 'stream';
 import { restoreTerminal, withRawMode } from './terminal-mode.js';
 
 // Build a fake TTY-ish stream so we can assert raw-mode on/off deterministically
 // without touching process.stdin's read-only getters.
+type AnyFn = (...args: any[]) => any;
 function fakeStream(): any {
-  const listeners = new Map<string, Function[]>();
+  const listeners = new Map<string, AnyFn[]>();
   const s: any = {
     isTTY: true,
     _raw: false,
     setRawMode(v: boolean) { this._raw = v; },
     isPaused() { return false; },
     resume() { return s; },
-    on(ev: string, fn: Function) { const a = listeners.get(ev) ?? []; a.push(fn); listeners.set(ev, a); return s; },
-    off(ev: string, fn: Function) { const a = listeners.get(ev); if (a) listeners.set(ev, a.filter((f: Function) => f !== fn)); return s; },
+    on(ev: string, fn: AnyFn) { const a = listeners.get(ev) ?? []; a.push(fn); listeners.set(ev, a); return s; },
+    off(ev: string, fn: AnyFn) { const a = listeners.get(ev); if (a) listeners.set(ev, a.filter((f: AnyFn) => f !== fn)); return s; },
     emitData(buf: Buffer) { for (const fn of listeners.get('data') ?? []) fn(buf); },
   };
   return s;
