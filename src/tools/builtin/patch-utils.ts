@@ -236,6 +236,42 @@ function isDeprecation(d: ts.Diagnostic): boolean {
   return d.code >= 5000 && d.code <= 5999;
 }
 
+// Module-resolution failures (missing/!unresolved imports, missing types) are
+// environment issues, not patch syntax errors. Blocking a correct edit because a
+// freshly-installed package's types aren't resolvable by the in-process tsc would
+// cause the agent to loop on a valid change — so we never treat these as
+// "introduced" by a patch.
+function isModuleResolutionError(d: ts.Diagnostic): boolean {
+  return [
+    2307, // Cannot find module 'X' or its corresponding type declarations.
+    2792, // Cannot find module 'X'. Did you mean to set moduleResolution?
+    2891, // Cannot find module or type declarations for 'X'.
+    2306, // 'X' refers to a UMD global, but not in a module.
+    2503, // Cannot find namespace 'X'.
+    7016, // Could not find a declaration file for module 'X'.
+    1259, // Module 'X' can only be default-imported using esModuleInterop.
+  ].includes(d.code);
+}
+
+// Transpile a single file in isolation to catch genuine syntax errors. This is
+// independent of the rest of the project, so unrelated type errors or missing
+// dependencies never cause a false "syntax error introduced by patch".
+function singleFileSyntaxError(filePath: string): string | null {
+  try {
+    const code = fs.readFileSync(filePath, 'utf8');
+    const result = ts.transpileModule(code, {
+      fileName: filePath,
+      compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 },
+      reportDiagnostics: true,
+    });
+    const syntax = (result.diagnostics ?? []).filter(d => d.category === ts.DiagnosticCategory.Error);
+    if (syntax.length === 0) return null;
+    return formatDiagnostic(syntax[0]);
+  } catch {
+    return null;
+  }
+}
+
 function diagKey(d: ts.Diagnostic): string {
   return `${d.code}:${diagLine(d)}`;
 }
@@ -295,11 +331,19 @@ export async function syntaxCheck(filePath: string, projectRoot: string, modifie
     if (!tsconfigPath) return null;
 
     const tsconfigRoot = path.dirname(tsconfigPath);
+
+    // Definitive syntax gate: transpile ONLY this file. A genuine syntax break
+    // (bad brackets, stray token) fails here regardless of the rest of the project.
+    // This is what "Syntax error introduced by patch" should mean — not a type or
+    // module-resolution quirk elsewhere in the repo.
+    const transpileDiag = singleFileSyntaxError(filePath);
+    if (transpileDiag) return transpileDiag;
+
     const allDiags = runTscDiagnostics(tsconfigRoot);
     if (!allDiags) return null;
 
     const targetAbs = path.resolve(filePath);
-    const fileDiags = diagnosticsForFile(allDiags, targetAbs).filter(d => !isDeprecation(d));
+    const fileDiags = diagnosticsForFile(allDiags, targetAbs).filter(d => !isDeprecation(d) && !isModuleResolutionError(d));
     const tsconfigMtime = fs.statSync(tsconfigPath).mtimeMs;
     const baseline = tscBaselines.get(tsconfigRoot);
     const hasFreshBaseline = baseline !== undefined && baseline.tsconfigMtime === tsconfigMtime;
@@ -314,7 +358,7 @@ export async function syntaxCheck(filePath: string, projectRoot: string, modifie
     } else if (hasFreshBaseline) {
       const beforeKeys = new Set(
         diagnosticsForFile(baseline.diagnostics, targetAbs)
-          .filter(d => !isDeprecation(d))
+          .filter(d => !isDeprecation(d) && !isModuleResolutionError(d))
           .map(diagKey)
       );
       introduced = fileDiags.filter(d => !beforeKeys.has(diagKey(d)));
