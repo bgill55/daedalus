@@ -1,6 +1,7 @@
 import { spawnSync } from 'child_process';
 import ts from 'typescript';
 import { ToolContext, ToolResult } from '../../types.js';
+import { withRawMode } from '../../utils/terminal-mode.js';
 
 function formatError(error: string): ToolResult {
   return { toolCallId: '', name: 'eval_code', success: false, content: '', error };
@@ -10,17 +11,13 @@ async function promptApproval(code: string): Promise<boolean> {
   if (!process.stdin.isTTY) return false;
   process.stdout.write(`\n[EVAL] About to execute:\n${'-'.repeat(50)}\n${code.slice(0, 500)}\n${'-'.repeat(50)}\nProceed? [y/n]: `);
   return new Promise(resolve => {
-    if (process.stdin.isTTY) process.stdin.setRawMode?.(true);
-    const onKey = (key: Buffer) => {
+    const stop = withRawMode((key: Buffer) => {
       const ch = key.toString().toLowerCase();
-      if (ch === 'y') { cleanup(); process.stdout.write('Y\n'); resolve(true); }
-      else if (ch === 'n' || ch === '\u0003') { cleanup(); process.stdout.write('N\n'); resolve(false); }
-    };
-    process.stdin.on('data', onKey);
-    const cleanup = () => {
-      process.stdin.off('data', onKey);
-      if (process.stdin.isTTY) process.stdin.setRawMode?.(false);
-    };
+      if (ch === 'y') { stop(); process.stdout.write('Y\n'); resolve(true); }
+      else if (ch === 'n' || ch === '\u0003') { stop(); process.stdout.write('N\n'); resolve(false); }
+      else if (ch === '\r' || ch === '\n') { /* ignore enter / stray keys */ }
+      else { stop(); process.stdout.write('N\n'); resolve(false); }
+    }, 30_000, () => { process.stdout.write('N\n'); resolve(false); });
   });
 }
 

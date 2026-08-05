@@ -4,6 +4,7 @@
 import pc from 'picocolors';
 import * as diff from 'diff';
 import { ToolContext } from '../../types.js';
+import { withRawMode } from '../../utils/terminal-mode.js';
 
 export interface DiffHunk {
   oldStart: number;
@@ -152,15 +153,7 @@ export async function promptDiffDecision(
   process.stdout.write(pc.bold(`\nApply this masterpiece? [y]es / [n]o / [c]hunks / [a]ll / [s]kip / [d]iff / [e]dit: `));
 
   return new Promise((resolve) => {
-    // Raw mode for single keypress
-    if (process.stdin.isTTY) {
-      process.stdin.setRawMode?.(true);
-    }
-    if (process.stdin.isPaused()) {
-      process.stdin.resume();
-    }
-
-    const onKey = (key: Buffer) => {
+    const stop = withRawMode((key: Buffer) => {
       const char = key.toString().toLowerCase();
       let decision: DiffDecision | null = null;
 
@@ -174,26 +167,24 @@ export async function promptDiffDecision(
         case 'e': decision = 'edit'; break;
         case '\u0003': // Ctrl+C
           process.stdout.write('\n');
-          cleanup();
+          stop();
           resolve({ decision: 'no' });
           return;
       }
 
       if (decision) {
         process.stdout.write(`${char.toUpperCase()}\n`);
-        cleanup();
+        stop();
         resolve({ decision });
       }
-    };
-
-    process.stdin.on('data', onKey);
-
-    function cleanup() {
-      process.stdin.off('data', onKey);
-      if (process.stdin.isTTY) {
-        process.stdin.setRawMode?.(false);
+      // Any other key is ignored but the terminal is restored by withRawMode's
+      // cleanup only when a decision is made — to avoid leaking raw mode on stray
+      // input, treat an unrecognized key as "no".
+      if (char && char !== '\r' && char !== '\n') {
+        stop();
+        resolve({ decision: 'no' });
       }
-    }
+    });
   });
 }
 
@@ -294,11 +285,7 @@ export async function promptHunkDecision(
   process.stdout.write(pc.bold(`Stage this hunk? [y]es / [n]o / [a]ll remaining / [q]uit: `));
 
   return new Promise((resolve) => {
-    if (process.stdin.isTTY) {
-      process.stdin.setRawMode?.(true);
-    }
-
-    const onKey = (key: Buffer) => {
+    const stop = withRawMode((key: Buffer) => {
       const char = key.toString().toLowerCase();
       let choice: 'yes' | 'no' | 'all' | 'quit' | null = null;
 
@@ -309,26 +296,22 @@ export async function promptHunkDecision(
         case 'q': choice = 'quit'; break;
         case '\u0003': // Ctrl+C
           process.stdout.write('\n');
-          cleanup();
+          stop();
           resolve('quit');
           return;
       }
 
       if (choice) {
         process.stdout.write(`${choice.toUpperCase()}\n`);
-        cleanup();
+        stop();
         resolve(choice);
       }
-    };
-
-    process.stdin.on('data', onKey);
-
-    function cleanup() {
-      process.stdin.off('data', onKey);
-      if (process.stdin.isTTY) {
-        process.stdin.setRawMode?.(false);
+      // Unrecognized key: restore terminal and default to "no" so raw mode can't leak.
+      if (char && char !== '\r' && char !== '\n') {
+        stop();
+        resolve('no');
       }
-    }
+    });
   });
 }
 
