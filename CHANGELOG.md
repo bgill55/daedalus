@@ -1,3 +1,10 @@
+## [3.15.5](https://github.com/bgill55/daedalus/compare/v3.15.4...v3.15.5) (2026-08-05)
+
+
+### Bug Fixes
+
+* **tools:** add terminal streak breaker, batch short-circuit, and actionable edit hints ([#62](https://github.com/bgill55/daedalus/issues/62)) ([6d7e605](https://github.com/bgill55/daedalus/commit/6d7e605d14a12ca6aea22e66d3a6992380e9788a))
+
 ## [3.15.4](https://github.com/bgill55/daedalus/compare/v3.15.3...v3.15.4) (2026-08-05)
 
 
