@@ -1,3 +1,10 @@
+## [3.15.4](https://github.com/bgill55/daedalus/compare/v3.15.3...v3.15.4) (2026-08-05)
+
+
+### Bug Fixes
+
+* **tools:** harden patch verification — block only real breaks, never env noise ([#61](https://github.com/bgill55/daedalus/issues/61)) ([26016c4](https://github.com/bgill55/daedalus/commit/26016c4c51d0b3c4e1ef7235ee6432e17cd47c84))
+
 ## [3.15.3](https://github.com/bgill55/daedalus/compare/v3.15.2...v3.15.3) (2026-08-05)
 
 
