@@ -1,3 +1,10 @@
+## [3.15.1](https://github.com/bgill55/daedalus/compare/v3.15.0...v3.15.1) (2026-08-05)
+
+
+### Bug Fixes
+
+* **agents:** block false 'task complete' reports while todos remain open ([#58](https://github.com/bgill55/daedalus/issues/58)) ([e7435ee](https://github.com/bgill55/daedalus/commit/e7435eee47eb27f5ffb95eca0a1e24525a7879e4))
+
 # [3.15.0](https://github.com/bgill55/daedalus/compare/v3.14.2...v3.15.0) (2026-08-04)
 
 
