@@ -13,6 +13,7 @@
   - [Autonomous Finn Loop](finn-loop.md)
   - [Autonomous CI/CD PR Reviewer](ci-pr-reviewer.md)
   - [Execution Sandboxing](sandboxing.md)
+  - [Guardrails & Resilience](guardrails-and-resilience.md)
   - [Discord Bot & Webhooks](discord-bot.md)
   - [MCP Integration](mcp.md)
 

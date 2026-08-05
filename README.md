@@ -103,7 +103,7 @@ AI assistance without:
 
 ### Tools
 - **File tools** — read, write, patch with interactive diff UI; fuzzy whitespace matching, syntax validation with auto-revert
-- **Trust layer** — write-without-read guardrail, circuit breaker, import/export validation, auto-test loop, large-rewrite annotation
+- **Trust layer** — write-without-read guardrail, terminal + patch circuit breakers, batch short-circuit on failed file edits, actionable edit hints, import/export validation, auto-test loop, large-rewrite annotation
 - **Terminal** — cross-platform shell execution (bash/cmd/powershell) with custom preference support, timeout, and abort
 - **Git** — status, diff, stage-all-and-commit, undo
 - **Web** — DuckDuckGo search and URL fetching (no API key needed)
