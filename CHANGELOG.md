@@ -1,3 +1,10 @@
+# [3.16.0](https://github.com/bgill55/daedalus/compare/v3.15.7...v3.16.0) (2026-08-05)
+
+
+### Features
+
+* **config:** add router presets, minimal config, and interactive /preset and /model commands ([9a65336](https://github.com/bgill55/daedalus/commit/9a653363f5f3315e3404bd2b8485c4e33e19dfc0))
+
 ## [3.15.7](https://github.com/bgill55/daedalus/compare/v3.15.6...v3.15.7) (2026-08-05)
 
 
