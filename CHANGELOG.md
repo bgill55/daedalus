@@ -1,3 +1,10 @@
+## [3.15.2](https://github.com/bgill55/daedalus/compare/v3.15.1...v3.15.2) (2026-08-05)
+
+
+### Bug Fixes
+
+* **terminal:** restore canonical mode on every exit path so Ctrl+C/keys work ([#59](https://github.com/bgill55/daedalus/issues/59)) ([36f419f](https://github.com/bgill55/daedalus/commit/36f419f5397631131ee80a136d1c7e22ac40ca1b))
+
 ## [3.15.1](https://github.com/bgill55/daedalus/compare/v3.15.0...v3.15.1) (2026-08-05)
 
 
