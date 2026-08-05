@@ -1,3 +1,10 @@
+## [3.15.7](https://github.com/bgill55/daedalus/compare/v3.15.6...v3.15.7) (2026-08-05)
+
+
+### Bug Fixes
+
+* **tools:** surface all introduced type errors + nested-import hint in patch validation ([#65](https://github.com/bgill55/daedalus/issues/65)) ([8126d9d](https://github.com/bgill55/daedalus/commit/8126d9d3f8e14b7ef3caf2f3aac8d304f35313f8))
+
 ## [3.15.6](https://github.com/bgill55/daedalus/compare/v3.15.5...v3.15.6) (2026-08-05)
 
 
