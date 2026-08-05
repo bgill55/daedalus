@@ -1,3 +1,10 @@
+## [3.15.6](https://github.com/bgill55/daedalus/compare/v3.15.5...v3.15.6) (2026-08-05)
+
+
+### Bug Fixes
+
+* **tools:** add terminal repeat circuit breaker for no-progress loops ([#64](https://github.com/bgill55/daedalus/issues/64)) ([6041a02](https://github.com/bgill55/daedalus/commit/6041a024d45b1a5837cad8409259908305225429))
+
 ## [3.15.5](https://github.com/bgill55/daedalus/compare/v3.15.4...v3.15.5) (2026-08-05)
 
 
