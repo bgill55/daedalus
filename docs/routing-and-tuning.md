@@ -43,6 +43,21 @@ Configuration is located under the `"router"` object in `~/.daedalus/config.json
 }
 ```
 
+### Quick Setup with Presets & CLI Commands
+
+Instead of editing `config.json` manually, you can apply pre-configured router setups and manage models interactively inside the CLI:
+
+* **Apply Presets**: Run `/preset` to view or apply router presets:
+  - `/preset apply local-free`: Fast setup for local LM Studio / Ollama.
+  - `/preset apply cloud-power`: High-intelligence BYOK setup for OpenAI/Anthropic/OpenRouter.
+  - `/preset apply hybrid`: Dual-tier routing (Local fast tier + Cloud intelligence tier).
+  - `/preset apply privacy-strict`: 100% offline local execution only.
+* **Manage Models**: Run `/model` to view, add, or remove models interactively:
+  - `/model list`: Show configured models, status, and tiers.
+  - `/model add <name> <endpoint> <model>`: Add a new model entry.
+  - `/model remove <name>`: Remove a model entry.
+  - `/model enable <name>` / `/model disable <name>`: Toggle model availability.
+
 ### Routing Strategies
 
 1.  **Priority**: Routes all requests to the first enabled and healthy model in the chain. Falls back to subsequent models if a higher-priority model is unhealthy or rate-limited.

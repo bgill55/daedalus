@@ -5,6 +5,7 @@ import readline from 'readline';
 import pc from 'picocolors';
 import { loadConfig, saveConfig, discoverLocalServers } from '../config/index.js';
 import { DaedalusConfig } from '../config/index.js';
+import { applyPreset, PRESETS } from '../config/presets.js';
 import { checkModelHealth } from '../router/health.js';
 import type { ModelEntry } from '../router/types.js';
 
@@ -99,12 +100,10 @@ export async function runOnboarding(force = false): Promise<void> {
   console.log(pc.gray('  I need at least one LLM backend to start chatting.'));
   console.log(pc.gray('  Let me help you get connected.'));
   console.log();
-  console.log(pc.gray('  You have two options:'));
-  console.log(pc.gray('    1) Use a local LLM server (like LM Studio, Ollama, llama.cpp, or vLLM)'));
-  console.log(pc.gray('    2) Connect to a remote API (OpenAI, Groq, OpenRouter, Anthropic, etc.)'));
-  console.log();
-  console.log(pc.gray('  Local servers run on your computer and are free to use.'));
-  console.log(pc.gray('  Remote APIs require an API key but offer more models and capabilities.'));
+  console.log(pc.gray('  You have options:'));
+  console.log(pc.gray('    1) Use a local LLM server (LM Studio, Ollama, llama.cpp, vLLM)'));
+  console.log(pc.gray('    2) Connect to a remote API (OpenAI, Groq, OpenRouter, Anthropic)'));
+  console.log(pc.gray('    3) Apply a pre-configured Preset (Local Free, Hybrid, Cloud)'));
   console.log();
 
   // ── Step 1: Auto-discover ──
@@ -147,6 +146,8 @@ export async function runOnboarding(force = false): Promise<void> {
   if (configChanged) {
     saveConfig(config);
     console.log(pc.green('\n✔ Configuration saved!'));
+    console.log(pc.gray('  Minimal config saved to ~/.daedalus/config.json'));
+    console.log(pc.gray('  Reference cheat-sheet generated at ~/.daedalus/config.example.jsonc'));
   }
 
   // ── Step 4: Test ──
@@ -157,9 +158,9 @@ export async function runOnboarding(force = false): Promise<void> {
   } else {
     console.log(pc.yellow('  [WARN] No healthy model detected.'));
     console.log(pc.gray('  • Run /doctor to diagnose the issue.'));
-    console.log(pc.gray('  • Verify your server is running and reachable.'));
+    console.log(pc.gray('  • Run /preset to view ready-to-use router presets.'));
     console.log(pc.gray('  • Check your API keys in ~/.daedalus/config.json.'));
-    console.log(pc.gray('  • Use /config to view current configuration.'));
+    console.log(pc.gray('  • Use /config or /model to manage current settings.'));
   }
 
   console.log(pc.gray('\n  Tip: type /help or /commands anytime to see what I can do.'));
@@ -181,10 +182,11 @@ async function showOptionsMenu(rl: readline.Interface, config: DaedalusConfig): 
     console.log();
     console.log('    1)  Start a local server and scan again');
     console.log('    2)  Connect to a remote API (OpenAI, Groq, OpenRouter, etc.)');
-    console.log('    3)  I\'ll configure it myself later');
+    console.log('    3)  Apply a pre-configured Preset (Local Free, Hybrid, Cloud)');
+    console.log('    4)  I\'ll configure it myself later');
     console.log();
 
-    const choice = await question(rl, pc.bold('  Your choice (1-3): '));
+    const choice = await question(rl, pc.bold('  Your choice (1-4): '));
     const trimmed = choice.trim();
 
     if (trimmed === '1') {
@@ -213,13 +215,33 @@ async function showOptionsMenu(rl: readline.Interface, config: DaedalusConfig): 
     }
 
     if (trimmed === '3') {
+      console.log(pc.bold('\n  Select a Preset:'));
+      const keys = Object.keys(PRESETS);
+      keys.forEach((k, idx) => {
+        console.log(`    ${idx + 1}) ${PRESETS[k].name} — ${PRESETS[k].description}`);
+      });
+      const presetAns = await question(rl, pc.bold(`  Choice (1-${keys.length}): `));
+      const idx = parseInt(presetAns.trim(), 10) - 1;
+      if (idx >= 0 && idx < keys.length) {
+        const selectedKey = keys[idx];
+        const updated = applyPreset(config, selectedKey);
+        Object.assign(config, updated);
+        console.log(pc.green(`  ✔ Applied preset "${PRESETS[selectedKey].name}"`));
+        return;
+      } else {
+        console.log(pc.yellow('  Invalid preset selection. Returning to menu.'));
+        continue;
+      }
+    }
+
+    if (trimmed === '4') {
       console.log(pc.gray('\n  No problem! Run /doctor anytime to auto-detect servers,'));
-      console.log(pc.gray('  or edit ~/.daedalus/config.json manually.'));
-      console.log(pc.gray('  Type /config to see current settings.'));
+      console.log(pc.gray('  or edit ~/.daedalus/config.json manually (or ~/.daedalus/config.example.jsonc).'));
+      console.log(pc.gray('  Type /preset or /model to manage configurations inside the CLI.'));
       return;
     }
 
-    console.log(pc.red('  Invalid choice. Please enter 1, 2, or 3.'));
+    console.log(pc.red('  Invalid choice. Please enter 1, 2, 3, or 4.'));
   }
 }
 

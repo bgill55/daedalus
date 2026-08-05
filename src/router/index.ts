@@ -56,6 +56,12 @@ export class LocalRouter {
     this.initializeRateLimiters();
   }
 
+  reloadConfig(config: RouterConfig): void {
+    this.config = config;
+    this.clients.clear();
+    this.initializeRateLimiters();
+  }
+
   getSessionBlacklist(): Array<{ endpoint: string; model: string; reason: string; at: number }> {
     return this.sessionBlacklist.list().map(e => ({
       endpoint: e.endpoint,

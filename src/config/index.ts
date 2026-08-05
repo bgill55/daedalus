@@ -40,6 +40,7 @@ export const ModelEntrySchema = z.object({
   supportsVision: z.boolean().optional(),
   tier: z.enum(['standard', 'fast', 'intelligence']).default('standard').optional(),
 });
+export type ModelEntry = z.infer<typeof ModelEntrySchema>;
 
 export const RouterConfigSchema = z.object({
   strategy: z.enum(['priority', 'round-robin', 'fastest']).default('priority'),
@@ -299,6 +300,120 @@ function getConfigPath(): string {
   return path.join(getConfigDir(), 'config.json');
 }
 
+export function toMinimalConfig(config: DaedalusConfig): Record<string, unknown> {
+  const minimal: Record<string, unknown> = {
+    version: config.version,
+    router: {
+      strategy: config.router.strategy,
+      chain: config.router.chain,
+      autoEscalate: config.router.autoEscalate === DEFAULT_CONFIG.router.autoEscalate ? undefined : config.router.autoEscalate,
+      complexityRouting: config.router.complexityRouting === DEFAULT_CONFIG.router.complexityRouting ? undefined : config.router.complexityRouting,
+    },
+  };
+
+  // Clean undefined properties inside router
+  const routerClean = Object.fromEntries(
+    Object.entries(minimal.router as Record<string, unknown>).filter(([, v]) => v !== undefined)
+  );
+  minimal.router = routerClean;
+
+  if (config.modelOverride) {
+    minimal.modelOverride = config.modelOverride;
+  }
+
+  // Include non-default settings only if user explicitly changed them
+  if (JSON.stringify(config.agents) !== JSON.stringify(DEFAULT_CONFIG.agents)) {
+    minimal.agents = config.agents;
+  }
+  if (JSON.stringify(config.tools) !== JSON.stringify(DEFAULT_CONFIG.tools)) {
+    minimal.tools = config.tools;
+  }
+  if (JSON.stringify(config.context) !== JSON.stringify(DEFAULT_CONFIG.context)) {
+    minimal.context = config.context;
+  }
+  if (JSON.stringify(config.ui) !== JSON.stringify(DEFAULT_CONFIG.ui)) {
+    minimal.ui = config.ui;
+  }
+  if (JSON.stringify(config.indexing) !== JSON.stringify(DEFAULT_CONFIG.indexing)) {
+    minimal.indexing = config.indexing;
+  }
+
+  return minimal;
+}
+
+export function generateExampleConfigJsonc(configDir: string): void {
+  const examplePath = path.join(configDir, 'config.example.jsonc');
+  const exampleContent = `// Daedalus Configuration Reference & Examples (~/.daedalus/config.json)
+// Edit your active config.json or use slash commands like /preset and /model in the CLI.
+
+{
+  "version": 1,
+
+  // ── MODEL ROUTER & BACKEND CHAINS ──
+  "router": {
+    // Routing strategy: "priority" (default), "round-robin", or "fastest"
+    "strategy": "priority",
+
+    // Enable dynamic task complexity classification (trivial -> fast, heavy -> intelligence)
+    "complexityRouting": true,
+
+    // Auto-escalate to stronger models upon repeated tool errors
+    "autoEscalate": true,
+
+    // Router model chain list (tried in order)
+    "chain": [
+      // Example 1: Local LM Studio (Free)
+      {
+        "name": "lmstudio-gemma",
+        "endpoint": "http://127.0.0.1:1234/v1",
+        "model": "google/gemma-4-e4b",
+        "priority": 0,
+        "enabled": true,
+        "supportsTools": true,
+        "tier": "intelligence"
+      },
+      // Example 2: Local Ollama (Free)
+      {
+        "name": "ollama-qwen",
+        "endpoint": "http://127.0.0.1:11434/v1",
+        "model": "qwen2.5-coder:7b",
+        "priority": 1,
+        "enabled": false,
+        "supportsTools": true,
+        "tier": "fast"
+      },
+      // Example 3: OpenAI API (Bring Your Own Key)
+      {
+        "name": "openai-gpt4",
+        "endpoint": "https://api.openai.com/v1",
+        "apiKey": "sk-proj-YOUR_API_KEY_HERE",
+        "model": "gpt-4o",
+        "priority": 2,
+        "enabled": false,
+        "supportsTools": true,
+        "provider": "openai",
+        "tier": "intelligence"
+      }
+    ]
+  },
+
+  // ── CLI & UI PREFERENCES ──
+  "ui": {
+    "theme": "dark",
+    "compactMode": true,
+    "spinner": "braille"
+  }
+}
+`;
+
+  try {
+    if (!fs.existsSync(configDir)) {
+      fs.mkdirSync(configDir, { recursive: true });
+    }
+    fs.writeFileSync(examplePath, exampleContent, 'utf8');
+  } catch { /* best effort */ }
+}
+
 export function loadConfig(): DaedalusConfig {
   const configPath = getConfigPath();
   
@@ -328,7 +443,9 @@ export function saveConfig(config: DaedalusConfig): void {
     fs.mkdirSync(configDir, { recursive: true });
   }
   
-  fs.writeFileSync(configPath, JSON.stringify(config, null, 2), 'utf8');
+  const minimal = toMinimalConfig(config);
+  fs.writeFileSync(configPath, JSON.stringify(minimal, null, 2), 'utf8');
+  generateExampleConfigJsonc(configDir);
 
   // Restrict permissions on non-Windows — only owner can read
   if (process.platform !== 'win32') {

@@ -84,13 +84,31 @@ When you run Daedalus for the first time, it automatically starts the onboarding
 2.  **Remote Provider Setup**: If no local models are detected or if you prefer to use remote LLMs, the wizard will prompt you to configure API keys for services like Anthropic or OpenAI.
 3.  **Tier Assignment**: Daedalus configures model tiers (`fast` / `standard` / `intelligence`) for each model. Trivial tasks route to `fast` models, heavy refactors route to `intelligence` models, and Daedalus re-routes between tiers on the fly as the workload evolves mid-task.
 
-### Manual Onboarding
+### Manual Onboarding & Quick Presets
 
-If you need to reconfigure your models or rerun the initial setup at any time, run the following command inside the Daedalus interactive shell:
+If you need to reconfigure your models or switch setups at any time:
 
-```text
-/onboard
-```
+* **Rerun Setup Wizard**: Type `/onboard` inside the CLI.
+* **Apply Ready-to-Use Presets**: Type `/preset` to view and apply pre-configured model router chains:
+  - `local-free`: LM Studio / Ollama local defaults (zero token fees).
+  - `cloud-power`: High-intelligence setup for OpenAI, Anthropic, or OpenRouter.
+  - `hybrid`: Local fast tier for quick edits + cloud API for heavy refactoring.
+  - `privacy-strict`: 100% offline local execution with web tools disabled.
+  ```text
+  /preset apply hybrid
+  ```
+* **Manage Models Interactively**: Type `/model` to inspect, add, or remove models without opening JSON files:
+  ```text
+  /model list
+  /model add openai https://api.openai.com/v1 gpt-4o
+  /model remove lmstudio-gemma
+  ```
+
+### Minimal Configuration & Reference File
+
+Daedalus keeps configuration files human-friendly:
+* **`~/.daedalus/config.json`**: Minimal configuration containing only user overrides and model router chains (~10 lines).
+* **`~/.daedalus/config.example.jsonc`**: Auto-generated cheat-sheet reference file with rich inline comments and model provider examples.
 
 ---
 
