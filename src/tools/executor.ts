@@ -152,8 +152,27 @@ export async function executeToolCalls(
   context: ToolContext
 ): Promise<ToolResult[]> {
   const results: ToolResult[] = [];
+  let mutatingFailed = false;
   for (const tc of toolCalls) {
-    results.push(await executeToolCall(tc, context));
+    const name = tc.function.name;
+    // If a file-mutating tool already failed in this batch, skip subsequent
+    // file-mutating or build/test (terminal) calls — running them would operate
+    // on a broken/incomplete state and waste the global failure budget.
+    if (mutatingFailed && (name === 'patch' || name === 'write_file' || name === 'terminal')) {
+      results.push({
+        toolCallId: tc.id,
+        name,
+        success: false,
+        content: '',
+        error: '[SKIPPED] Skipped because a prior file-mutation tool in this batch failed.',
+      });
+      continue;
+    }
+    const result = await executeToolCall(tc, context);
+    if ((name === 'patch' || name === 'write_file') && !result.success) {
+      mutatingFailed = true;
+    }
+    results.push(result);
   }
   return results;
 }

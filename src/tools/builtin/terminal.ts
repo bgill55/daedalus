@@ -105,10 +105,50 @@ export function resetCachedShell(): void {
   state.cachedShell = null;
 }
 
+function normalizeCommandPrefix(command: string): string {
+  const tokens = command.trim().split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return '(empty)';
+  // `cd <dir>` collapses to `cd` so any failed cd trips the same breaker;
+  // most other commands keep their first two tokens (e.g. `npm install`).
+  if (tokens[0] === 'cd') return 'cd';
+  return tokens.slice(0, 2).join(' ');
+}
+
+function getTerminalStreakMap(context: ToolContext): Map<string, number> {
+  if (!context.terminalFailureStreak) {
+    context.terminalFailureStreak = new Map<string, number>();
+  }
+  return context.terminalFailureStreak;
+}
+
+function recordTerminalOutcome(context: ToolContext, prefix: string, success: boolean): void {
+  const map = getTerminalStreakMap(context);
+  if (success) {
+    map.set(prefix, 0);
+  } else {
+    map.set(prefix, (map.get(prefix) ?? 0) + 1);
+  }
+}
+
 export async function execute(args: { command: string; timeout?: number; workdir?: string }, context: ToolContext): Promise<ToolResult> {
   const timeout = args.timeout ?? 180;
   const workdir = args.workdir ?? context.projectRoot;
   const command = args.command;
+
+  // Terminal failure circuit breaker: if the same normalized command prefix has
+  // failed 2+ consecutive times, stop retrying and let the agent inspect/adapt
+  // instead of burning the global 5-failure budget on an identical failing command.
+  const prefix = normalizeCommandPrefix(command);
+  const streakMap = getTerminalStreakMap(context);
+  if ((streakMap.get(prefix) ?? 0) >= 2) {
+    return Promise.resolve({
+      toolCallId: '',
+      name: 'terminal',
+      success: false,
+      content: '',
+      error: `[CIRCUIT BREAKER] command '${prefix}' failed 2 consecutive times. Inspect the terminal error output, fix the arguments, or switch approach instead of retrying the same command.`,
+    });
+  }
 
   // Gate: destructive git commands are blocked (configurable via safety.protectGit)
   let protectGit = true;
@@ -335,6 +375,7 @@ export async function execute(args: { command: string; timeout?: number; workdir
             }
           }, 5000);
         }
+        recordTerminalOutcome(context, prefix, false);
         resolve({
           toolCallId: '',
           name: 'terminal',
@@ -361,6 +402,7 @@ export async function execute(args: { command: string; timeout?: number; workdir
           cmdSpinner.stop();
           console.log(pc.red(`[FAIL] ${label} error: ${err.message}`));
         }
+        recordTerminalOutcome(context, prefix, false);
         resolve({
           toolCallId: '',
           name: 'terminal',
@@ -394,6 +436,7 @@ export async function execute(args: { command: string; timeout?: number; workdir
         } else if (code !== 0 && command.includes('zip') && (fullOutput.includes('is not recognized') || fullOutput.includes('command not found') || code === 127)) {
           diagHint = ` — DIAGNOSTIC HINT: Linux 'zip' command is unavailable on Windows cmd/powershell. Use PowerShell 'Compress-Archive -Path .\\* -DestinationPath archive.zip -Force' instead.`;
         }
+        recordTerminalOutcome(context, prefix, code === 0);
         resolve({
           toolCallId: '',
           name: 'terminal',
@@ -410,6 +453,7 @@ export async function execute(args: { command: string; timeout?: number; workdir
         exited = true;
         clearTimeout(killTimer);
         child.kill('SIGTERM');
+        recordTerminalOutcome(context, prefix, false);
         resolve({
           toolCallId: '',
           name: 'terminal',

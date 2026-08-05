@@ -350,4 +350,57 @@ describe('terminal execute', () => {
       realFs.rmSync(tmpDir, { recursive: true, force: true });
     }
   });
+
+  it('trips circuit breaker after 2 consecutive failures of the same command prefix', async () => {
+    const ctx = makeContext();
+    ctx.terminalFailureStreak = new Map<string, number>();
+    const mockProc = makeMockProcess();
+    (spawn as any).mockReturnValue(mockProc);
+
+    // First failure: streak -> 1, command still runs.
+    let p1 = execute({ command: 'cd non_existent_dir' }, ctx);
+    mockProc.emit('close', 1);
+    const r1 = await p1;
+    expect(r1.success).toBe(false);
+    expect(spawn).toHaveBeenCalledTimes(1);
+
+    // Second failure: streak -> 2.
+    const mockProc2 = makeMockProcess();
+    (spawn as any).mockReturnValue(mockProc2);
+    let p2 = execute({ command: 'cd non_existent_dir' }, ctx);
+    mockProc2.emit('close', 1);
+    const r2 = await p2;
+    expect(r2.success).toBe(false);
+
+    // Third attempt: circuit breaker trips BEFORE spawning.
+    (spawn as any).mockClear();
+    const r3 = await execute({ command: 'cd non_existent_dir' }, ctx);
+    expect(spawn).not.toHaveBeenCalled();
+    expect(r3.success).toBe(false);
+    expect(r3.error).toContain('[CIRCUIT BREAKER]');
+    expect(r3.error).toContain("command 'cd'");
+  });
+
+  it('resets the streak on a successful command', async () => {
+    const ctx = makeContext();
+    ctx.terminalFailureStreak = new Map<string, number>([['cd', 1]]);
+    const mockProc = makeMockProcess();
+    (spawn as any).mockReturnValue(mockProc);
+
+    const p = execute({ command: 'cd some_dir' }, ctx);
+    mockProc.emit('close', 0);
+    const r = await p;
+
+    expect(r.success).toBe(true);
+    expect(ctx.terminalFailureStreak.get('cd')).toBe(0);
+
+    // A fresh failure afterward is treated as the first (streak 1), not a breaker.
+    (spawn as any).mockClear();
+    const mockProc2 = makeMockProcess();
+    (spawn as any).mockReturnValue(mockProc2);
+    const p2 = execute({ command: 'cd other_dir' }, ctx);
+    mockProc2.emit('close', 1);
+    await p2;
+    expect(ctx.terminalFailureStreak.get('cd')).toBe(1);
+  });
 });

@@ -114,4 +114,36 @@ describe('Tool executor', () => {
     expect(result.success).toBe(true);
   });
 
+  it('skips a dependent terminal call when a prior file-mutation tool failed in the batch', async () => {
+    const calls: ToolCall[] = [
+      { id: 'p', type: 'function', function: { name: 'patch', arguments: '{"path":"x.ts","new_string":"y"}' } }, // missing old_string -> failure
+      { id: 't', type: 'function', function: { name: 'terminal', arguments: '{"command":"npm test"}' } },
+    ];
+    const results = await executeToolCalls(calls, mockContext);
+    expect(results).toHaveLength(2);
+    expect(results[0].success).toBe(false);
+    expect(results[1].success).toBe(false);
+    expect(results[1].error).toContain('[SKIPPED]');
+  }, 30_000);
+
+  it('still executes read-only tools after a prior file-mutation failure', async () => {
+    const calls: ToolCall[] = [
+      { id: 'p', type: 'function', function: { name: 'patch', arguments: '{"path":"x.ts","new_string":"y"}' } },
+      { id: 'r', type: 'function', function: { name: 'read_file', arguments: '{"path":"nope.ts"}' } },
+    ];
+    const results = await executeToolCalls(calls, mockContext);
+    expect(results).toHaveLength(2);
+    expect(results[0].success).toBe(false);
+    expect(results[1].error).not.toContain('[SKIPPED]');
+  }, 30_000);
+
+  it('does not skip a terminal call when no prior file-mutation tool failed', async () => {
+    const calls: ToolCall[] = [
+      { id: 'r', type: 'function', function: { name: 'git_status', arguments: '{}' } },
+      { id: 't', type: 'function', function: { name: 'terminal', arguments: '{"command":"echo hi"}' } },
+    ];
+    const results = await executeToolCalls(calls, mockContext);
+    expect(results).toHaveLength(2);
+    expect(results[1].error ?? '').not.toContain('[SKIPPED]');
+  }, 30_000);
 });
