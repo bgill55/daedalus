@@ -1,3 +1,10 @@
+## [3.15.3](https://github.com/bgill55/daedalus/compare/v3.15.2...v3.15.3) (2026-08-05)
+
+
+### Bug Fixes
+
+* **tools:** stop false-reverting correct edits on module-resolution errors ([#60](https://github.com/bgill55/daedalus/issues/60)) ([2ffda6b](https://github.com/bgill55/daedalus/commit/2ffda6b7f5ee350c204e3b2c4f1f7cdb4963bed5))
+
 ## [3.15.2](https://github.com/bgill55/daedalus/compare/v3.15.1...v3.15.2) (2026-08-05)
 
 
