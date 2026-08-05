@@ -21,6 +21,12 @@ Message:
 - The breaker tracks the **normalized command prefix** — `cd some-dir` collapses to
   `cd`, while `npm install foo` collapses to `npm install`. That way any failing
   `cd` trips the same breaker, but a passing `npm install` won't trip a failing `npm test`.
+- There is a **companion repeat breaker** for no-progress loops: if the *exact same*
+  command is re-issued 3 consecutive times (even when it exits successfully — e.g.
+  a weak-tier model re-spawning `npm run dev & sleep 3` on a broken project), it
+  trips `[CIRCUIT BREAKER] ... has run 3 consecutive times unchanged with no progress.`
+  Only consecutive identical commands accumulate; any different command resets the
+  counter, so normal edit → test → edit iteration never trips it.
 - How to recover: read the stderr in the failed terminal output. A `cd` breaker almost
   always means the directory doesn't exist (typo or wrong cwd) — fix the path. An
   `npm install` breaker means the package name is wrong or the registry is unreachable.

@@ -114,11 +114,25 @@ function normalizeCommandPrefix(command: string): string {
   return tokens.slice(0, 2).join(' ');
 }
 
+function normalizeCommandFull(command: string): string {
+  // Full command with collapsed whitespace, used to detect no-progress loops
+  // where the SAME command is re-issued (a reclassification runaway, e.g.
+  // `cd x && npm run dev & sleep 3` repeated hundreds of times).
+  return command.trim().replace(/\s+/g, ' ');
+}
+
 function getTerminalStreakMap(context: ToolContext): Map<string, number> {
   if (!context.terminalFailureStreak) {
     context.terminalFailureStreak = new Map<string, number>();
   }
   return context.terminalFailureStreak;
+}
+
+function getTerminalRepeatMap(context: ToolContext): Map<string, number> {
+  if (!context.terminalRepeatStreak) {
+    context.terminalRepeatStreak = new Map<string, number>();
+  }
+  return context.terminalRepeatStreak;
 }
 
 function recordTerminalOutcome(context: ToolContext, prefix: string, success: boolean): void {
@@ -149,6 +163,30 @@ export async function execute(args: { command: string; timeout?: number; workdir
       error: `[CIRCUIT BREAKER] command '${prefix}' failed 2 consecutive times. Inspect the terminal error output, fix the arguments, or switch approach instead of retrying the same command.`,
     });
   }
+
+  // Terminal repeat circuit breaker: detect a no-progress loop where the SAME
+  // command is re-issued (the reclassification runaway seen when a weak-tier
+  // model keeps re-spawning e.g. `npm run dev & sleep 3`). The command exits 0
+  // so the failure breaker never trips; here we count consecutive IDENTICAL
+  // commands and trip after 3. Legitimate iteration (edit -> test -> edit)
+  // changes the command between runs, so it never false-trips.
+  const full = normalizeCommandFull(command);
+  const repeatMap = getTerminalRepeatMap(context);
+  if ((repeatMap.get(full) ?? 0) >= 2) {
+    return Promise.resolve({
+      toolCallId: '',
+      name: 'terminal',
+      success: false,
+      content: '',
+      error: `[CIRCUIT BREAKER] command '${full}' has run 3 consecutive times unchanged with no progress. Stop re-issuing it and reassess the approach (check the prior output instead of repeating).`,
+    });
+  }
+  // Count this command; reset every other command so only consecutive identical
+  // runs accumulate.
+  for (const key of repeatMap.keys()) {
+    if (key !== full) repeatMap.set(key, 0);
+  }
+  repeatMap.set(full, (repeatMap.get(full) ?? 0) + 1);
 
   // Gate: destructive git commands are blocked (configurable via safety.protectGit)
   let protectGit = true;

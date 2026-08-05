@@ -403,4 +403,46 @@ describe('terminal execute', () => {
     await p2;
     expect(ctx.terminalFailureStreak.get('cd')).toBe(1);
   });
+
+  it('trips a no-progress breaker after 3 consecutive identical successful commands', async () => {
+    const ctx = makeContext();
+    ctx.terminalRepeatStreak = new Map<string, number>();
+
+    for (let i = 0; i < 2; i++) {
+      const mockProc = makeMockProcess();
+      (spawn as any).mockReturnValue(mockProc);
+      const p = execute({ command: 'cd D:\\prompt-vault && npm run dev & sleep 3' }, ctx);
+      mockProc.emit('close', 0);
+      const r = await p;
+      expect(r.success).toBe(true);
+    }
+
+    // Third identical run: breaker trips BEFORE spawning (note it exits 0, so the
+    // failure breaker would never catch this).
+    (spawn as any).mockClear();
+    const r3 = await execute({ command: 'cd D:\\prompt-vault && npm run dev & sleep 3' }, ctx);
+    expect(spawn).not.toHaveBeenCalled();
+    expect(r3.success).toBe(false);
+    expect(r3.error).toContain('[CIRCUIT BREAKER]');
+    expect(r3.error).toContain('has run 3 consecutive times');
+  });
+
+  it('does not trip when a different command is issued between runs', async () => {
+    const ctx = makeContext();
+    ctx.terminalRepeatStreak = new Map<string, number>();
+    const runCmd = async (cmd: string) => {
+      const mockProc = makeMockProcess();
+      (spawn as any).mockReturnValue(mockProc);
+      const p = execute({ command: cmd }, ctx);
+      mockProc.emit('close', 0);
+      return p;
+    };
+
+    // edit -> test -> edit: commands differ between runs, so no no-progress loop.
+    await runCmd('npm run dev & sleep 3');
+    await runCmd('npm run build');
+    await runCmd('npm run dev & sleep 3');
+
+    expect(spawn).toHaveBeenCalledTimes(3);
+  });
 });
