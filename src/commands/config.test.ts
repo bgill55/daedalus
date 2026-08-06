@@ -54,6 +54,30 @@ describe('config slash commands', () => {
     spy.mockRestore();
   });
 
+  it('selects and promotes a model to priority 0 via /model <name|num|id>', async () => {
+    const configDir = path.join(TEST_DIR, '.daedalus');
+    fs.mkdirSync(configDir, { recursive: true });
+    fs.writeFileSync(path.join(configDir, 'config.json'), JSON.stringify({
+      router: {
+        strategy: 'priority',
+        chain: [
+          { name: 'm1', endpoint: 'http://localhost:3001/v1', model: 'auto', priority: 0, enabled: true },
+          { name: 'freellmapi-gpt-oss-120b', endpoint: 'http://localhost:3001/v1', model: 'openai/gpt-oss-120b', priority: 5, enabled: true },
+        ],
+      },
+    }));
+
+    const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    await modelManagerCommand.execute('GPT-OSS 120B', dummyCtx as CommandContext);
+    spy.mockRestore();
+
+    const saved = JSON.parse(fs.readFileSync(path.join(configDir, 'config.json'), 'utf8'));
+    expect(saved.router.chain[0].name).toBe('freellmapi-gpt-oss-120b');
+    expect(saved.router.chain[0].priority).toBe(0);
+    expect(saved.router.chain[1].name).toBe('m1');
+    expect(saved.router.chain[1].priority).toBe(1);
+  });
+
   it('syncs models from an endpoint via /model sync', async () => {
     // Write a config that has a freellmapi endpoint entry.
     const configDir = path.join(TEST_DIR, '.daedalus');

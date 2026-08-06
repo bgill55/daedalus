@@ -68,9 +68,9 @@ Examples:
 export const modelManagerCommand: Command = {
   name: '/model',
   aliases: ['models-manage'],
-  description: 'Manage router models (list, add, remove, enable, disable)',
-  usage: '/model [list | add <name> <endpoint> <model> | remove <name> | enable <name> | disable <name> | sync [endpoint-name]]',
-  helpText: `Inspect and manage model entries in your local router chain.\n\nSubcommands:\n  list                 - List all configured models and their health/priority\n  add <name> <url> <m> - Add a new model entry\n  remove <name>        - Remove a model entry\n  enable <name>        - Enable a model entry\n  disable <name>       - Disable a model entry\n  sync [endpoint-name] - Pull models from an OpenAI-compatible /v1/models catalog\n                        (defaults to the freellmapi endpoint) and add them as\n                        individually-selectable entries. The "auto" entry is kept.\n\nExamples:\n  /model list\n  /model add openai https://api.openai.com/v1 gpt-4o\n  /model disable lmstudio-gemma\n  /model sync freellmapi`,
+  description: 'Manage router models (list, select/switch, add, remove, enable, disable, sync)',
+  usage: '/model [list | <name|id|num> | use <name|id|num> | add <name> <endpoint> <model> | remove <name> | enable <name> | disable <name> | sync [endpoint-name]]',
+  helpText: `Inspect and manage model entries in your local router chain.\n\nSubcommands:\n  list                 - List all configured models and their health/priority\n  <name|id|num>        - Select/switch active model (promotes to top priority & enables it)\n  use <name|id|num>    - Select/switch active model\n  add <name> <url> <m> - Add a new model entry\n  remove <name>        - Remove a model entry\n  enable <name>        - Enable a model entry\n  disable <name>       - Disable a model entry\n  sync [endpoint-name] - Pull models from an OpenAI-compatible /v1/models catalog\n                        (defaults to the freellmapi endpoint) and add them as\n                        individually-selectable entries. The "auto" entry is kept.\n\nExamples:\n  /model list\n  /model gpt-oss-120b\n  /model 6\n  /model use gemini-3.5-flash\n  /model add openai https://api.openai.com/v1 gpt-4o\n  /model sync freellmapi`,
   execute: async (args: string, ctx: CommandContext) => {
     const trimmed = args.trim();
     const parts = trimmed.split(/\s+/);
@@ -96,7 +96,8 @@ export const modelManagerCommand: Command = {
           console.log(`     API Key:  ${pc.gray('***' + m.apiKey.slice(-4))}`);
         }
       });
-      console.log(pc.gray('\n  Use /model add or /model remove <name> to modify models.\n'));
+      console.log(pc.gray('\n  To select a model: ') + pc.cyan('/model <name|number|id>'));
+      console.log(pc.gray('  Use /model add, /model sync, or /model remove to modify entries.\n'));
       return;
     }
 
@@ -215,7 +216,7 @@ export const modelManagerCommand: Command = {
         console.log(pc.green(`\n✔ Synced ${catalog.length} models from "${sourceName}".`));
         console.log(pc.gray(`  Added ${added}, updated ${updated}. The "auto" entry is kept as the smart default.`));
         console.log(pc.gray('  Only currently-available models are enabled; unavailable ones are listed but disabled.'));
-        console.log(pc.gray('  Pick a specific model with /model, or let Daedalus route automatically via "auto".\n'));
+        console.log(pc.gray('  Pick a specific model with /model <name|number|id>, or let Daedalus route automatically via "auto".\n'));
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         console.log(pc.red(`\n[ERROR] ${msg}`));
@@ -223,6 +224,56 @@ export const modelManagerCommand: Command = {
       return;
     }
 
-    console.log(pc.red(`\n[WARN] Unknown subcommand "${sub}". Type /help /model for usage.`));
+    // Select/switch active model (handles /model <name|id|num> or /model use <name|id|num>)
+    const isExplicitSelect = sub === 'use' || sub === 'set' || sub === 'select' || sub === 'pick';
+    const targetQuery = isExplicitSelect ? parts.slice(1).join(' ').trim() : trimmed;
+    if (!targetQuery) {
+      console.log(pc.red('\n[WARN] Please specify a model name, ID, or number. Example: /model freellmapi-gpt-oss-120b or /model 6'));
+      return;
+    }
+
+    const num = parseInt(targetQuery, 10);
+    let matchedEntry: ModelEntry | undefined;
+
+    if (!isNaN(num) && num >= 1 && num <= chain.length) {
+      matchedEntry = chain[num - 1];
+    } else {
+      const cleanQuery = targetQuery.toLowerCase().replace(/[^a-z0-9]/g, '');
+      matchedEntry = chain.find(m => m.name.toLowerCase() === targetQuery.toLowerCase());
+      if (!matchedEntry) {
+        matchedEntry = chain.find(m => m.model.toLowerCase() === targetQuery.toLowerCase());
+      }
+      if (!matchedEntry) {
+        matchedEntry = chain.find(m => {
+          const cleanName = m.name.toLowerCase().replace(/[^a-z0-9]/g, '');
+          const cleanModel = m.model.toLowerCase().replace(/[^a-z0-9]/g, '');
+          return cleanName === cleanQuery || cleanModel === cleanQuery || cleanName.includes(cleanQuery) || cleanModel.includes(cleanQuery);
+        });
+      }
+    }
+
+    if (!matchedEntry) {
+      console.log(pc.red(`\n[ERROR] Could not find any model entry matching "${targetQuery}".`));
+      console.log(pc.gray('  Run /model list to see available model entries, or use /model sync to pull catalog.\n'));
+      return;
+    }
+
+    matchedEntry.enabled = true;
+    matchedEntry.priority = 0;
+
+    let p = 1;
+    for (const m of chain) {
+      if (m !== matchedEntry) {
+        m.priority = p++;
+      }
+    }
+
+    config.router.chain.sort((a, b) => a.priority - b.priority);
+
+    saveConfig(config);
+    if (ctx.router) ctx.router.reloadConfig(config.router);
+
+    console.log(pc.green(`\n✔ Switched active model to "${pc.bold(matchedEntry.name)}" (${matchedEntry.model}) at top priority (Priority 0).`));
+    console.log(pc.gray('  Saved updated model chain to ~/.daedalus/config.json\n'));
   },
 };

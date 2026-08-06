@@ -206,7 +206,7 @@ AI assistance without:
 | `/blacklist` | Show or clear the session model blacklist |
 | `/stats` / `stats` | Display session analytics, token usage, index count, and router status |
 | `/preset` / `preset` | View or apply preset LLM router configurations |
-| `/model` / `models-manage` | Manage router models (list, add, remove, enable, disable) |
+| `/model` / `models-manage` | Manage router models (list, select/switch, add, remove, enable, disable, sync) |
 | `/shortcut` / `/sc` | Manage custom slash-command aliases |
 | `/feedback` / `report` | Send bug reports or feature requests to the Daedalus team |
 | `/skills` | List active skills and pending skill drafts; approve or discard agent-proposed drafts. |
