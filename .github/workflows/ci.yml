@@ -12,7 +12,7 @@ jobs:
   pr-title:
     name: PR Title (conventional-commits)
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    if: github.event_name == 'push' || github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     steps:
       - name: Validate PR title follows conventional commits
         if: github.event_name == 'pull_request'
@@ -32,9 +32,9 @@ jobs:
             echo "Example: feat(router): add catalog-aware model health checks"
             exit 1
           fi
-      - name: No PR title to validate on push
-        if: github.event_name == 'push'
-        run: echo "Push event — skipping PR title validation."
+      - name: No PR title to validate on push/dispatch
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        run: echo "Push or dispatch event — skipping PR title validation."
 
   lint:
     name: Lint
