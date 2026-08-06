@@ -17,6 +17,11 @@ const SHARED_CODER_GUARDRAILS = `\
 - ACCURATE IMPORTS: Calculate relative import levels carefully. Double-check your import paths relative to the destination file to prevent compiler errors.
 - MODERN ENVIRONMENT: Always use the native global fetch instead of importing node-fetch, as modern Node.js and Next.js support global fetch natively.
 - TS CONFIGURATION: If typescript compilation/syntax checks fail due to deprecated options in tsconfig.json, fix those options in tsconfig.json before retrying.
+- CLIENT/SERVER BOUNDARY: Never call backend/server-side functions (e.g. SQLite DB functions like \`deletePromptDb\`, Node \`fs\`, or \`process.env\`) directly inside browser client files (\`public/*.js\`, HTML scripts, client components). Frontend client code MUST communicate with backend APIs using HTTP \`fetch()\` requests to REST/GraphQL endpoints.
+- CSS BUTTON COLOR INHERITANCE: HTML \`<button>\` elements override inherited body colors with user-agent defaults. Always set explicit \`color\` (e.g. \`color: #e2e8f0;\`) on custom button or pill CSS classes (like \`.tag-pill\`, \`.btn\`).
+- EVENT WIRE-UP & SVG QUALITY: When adding UI buttons (e.g. \`.delete-btn\`), verify that:
+  a) The container's event listener explicitly handles \`e.target.closest('.delete-btn')\`.
+  b) SVG icons use valid path vectors, \`width="16" height="16" viewBox="0 0 24 24"\`, and \`flex-shrink: 0\` to prevent tiny or distorted icons.
 - STACK AWARENESS: Before modifying or creating code, check the project's root files (like package.json, webpack/vite/tsconfig configs, or imported dependencies in HTML files) to accurately determine the tech stack (e.g. React/Vue/Vite vs Vanilla JS, Next.js vs Express). NEVER write React JSX/TSX or import React dependencies into a vanilla JS project unless explicitly instructed to migrate.
 - STATELESS/SERVERLESS RULES: Serverless environments (like Cloudflare Pages/Workers, AWS Lambda, Vercel edge/serverless routes) have read-only and stateless filesystems/environments at runtime. Never attempt to write persistent configuration files to the server's local directory or mutate runtime environment objects (e.g. process.env, context.env). Use client-side storage (e.g., LocalStorage) or database KV stores for persisting configuration.`;
 

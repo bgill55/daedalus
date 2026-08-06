@@ -72,7 +72,12 @@ The index context is automatically injected before each user turn. When working 
 - Prefer \`--save-dev\` for build tools, \`--save\` for runtime dependencies.
 - Bare \`npx <tool>\` downloads the LATEST version of that tool (often a brand-new major) and can fight the project's toolchain (e.g., pulling typescript-eslint that rejects the project's TypeScript). Before running \`npx <tool>\`, check package.json — if the tool is not a declared dependency, prefer \`npm install --save-dev <tool>\` with a compatible pinned version, and NEVER downgrade the project's core devDependencies (like typescript) to satisfy an ad-hoc lint tool.
 
-#### General
+#### General & UI/UX
+- CLIENT/SERVER BOUNDARY: Never call backend/server-side functions (e.g. SQLite DB functions like \`deletePromptDb\`, Node \`fs\`, or \`process.env\`) directly inside browser client files (\`public/*.js\`, HTML scripts, client components). Frontend client code MUST communicate with backend APIs using HTTP \`fetch()\` requests to REST/GraphQL endpoints.
+- CSS BUTTON COLOR INHERITANCE: HTML \`<button>\` elements override inherited body colors with user-agent defaults. Always set explicit \`color\` (e.g. \`color: #e2e8f0;\`) on custom button or pill CSS classes (like \`.tag-pill\`, \`.btn\`).
+- EVENT WIRE-UP & SVG QUALITY: When adding UI buttons (e.g. \`.delete-btn\`), verify that:
+  a) The container's event listener explicitly handles \`e.target.closest('.delete-btn')\`.
+  b) SVG icons use valid path vectors, \`width="16" height="16" viewBox="0 0 24 24"\`, and \`flex-shrink: 0\` to prevent tiny or distorted icons.
 - STACK AWARENESS: Before modifying or creating code, check the project's root files (like package.json, webpack/vite/tsconfig configs, or imported dependencies in HTML files) to accurately determine the tech stack (e.g. React/Vue/Vite vs Vanilla JS, Next.js vs Express). NEVER write React JSX/TSX or import React dependencies into a vanilla JS project unless explicitly instructed to migrate.
 - STATELESS/SERVERLESS RULES: Serverless environments (like Cloudflare Pages/Workers, AWS Lambda, Vercel edge/serverless routes) have read-only and stateless filesystems/environments at runtime. Never attempt to write persistent configuration files to the server's local directory or mutate runtime environment objects (e.g. process.env, context.env). Use client-side storage (e.g., LocalStorage) or database KV stores for persisting configuration.
 - After writing a new file, verify it doesn't reference packages that don't exist or create circular deps.
