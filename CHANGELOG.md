@@ -1,3 +1,16 @@
+# [3.18.0](https://github.com/bgill55/daedalus/compare/v3.17.3...v3.18.0) (2026-08-06)
+
+
+### Bug Fixes
+
+* **agent:** normalize tool arg aliases and prevent thinking block repetition loops ([638dc96](https://github.com/bgill55/daedalus/commit/638dc96aa362dd01c912133262a785157c46040f))
+* **ci:** allow workflow_dispatch event in pr-title job condition ([f74e78f](https://github.com/bgill55/daedalus/commit/f74e78f16cd8d087f5dfca0a53db122f0becf99e))
+
+
+### Features
+
+* **commands:** add model selection/switching to /model command ([dc36ed2](https://github.com/bgill55/daedalus/commit/dc36ed22a6c04e3375cedb1a2ea0c2ceddaa3d18))
+
 ## [3.17.3](https://github.com/bgill55/daedalus/compare/v3.17.2...v3.17.3) (2026-08-06)
 
 
