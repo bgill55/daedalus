@@ -2,6 +2,7 @@ import pc from 'picocolors';
 import { loadConfig, saveConfig } from '../config/index.js';
 import { PRESETS, getPreset, applyPreset } from '../config/presets.js';
 import type { Command, CommandContext } from './types.js';
+import type { ModelEntry } from '../router/types.js';
 
 export const presetCommand: Command = {
   name: '/preset',
@@ -68,20 +69,8 @@ export const modelManagerCommand: Command = {
   name: '/model',
   aliases: ['models-manage'],
   description: 'Manage router models (list, add, remove, enable, disable)',
-  usage: '/model [list | add <name> <endpoint> <model> | remove <name> | enable <name> | disable <name>]',
-  helpText: `Inspect and manage model entries in your local router chain.
-
-Subcommands:
-  list                 - List all configured models and their health/priority
-  add <name> <url> <m> - Add a new model entry
-  remove <name>        - Remove a model entry
-  enable <name>        - Enable a model entry
-  disable <name>       - Disable a model entry
-
-Examples:
-  /model list
-  /model add openai https://api.openai.com/v1 gpt-4o
-  /model disable lmstudio-gemma`,
+  usage: '/model [list | add <name> <endpoint> <model> | remove <name> | enable <name> | disable <name> | sync [endpoint-name]]',
+  helpText: `Inspect and manage model entries in your local router chain.\n\nSubcommands:\n  list                 - List all configured models and their health/priority\n  add <name> <url> <m> - Add a new model entry\n  remove <name>        - Remove a model entry\n  enable <name>        - Enable a model entry\n  disable <name>       - Disable a model entry\n  sync [endpoint-name] - Pull models from an OpenAI-compatible /v1/models catalog\n                        (defaults to the freellmapi endpoint) and add them as\n                        individually-selectable entries. The "auto" entry is kept.\n\nExamples:\n  /model list\n  /model add openai https://api.openai.com/v1 gpt-4o\n  /model disable lmstudio-gemma\n  /model sync freellmapi`,
   execute: async (args: string, ctx: CommandContext) => {
     const trimmed = args.trim();
     const parts = trimmed.split(/\s+/);
@@ -174,6 +163,63 @@ Examples:
       saveConfig(config);
       if (ctx.router) ctx.router.reloadConfig(config.router);
       console.log(pc.green(`\n✔ Added model "${name}" (${model}) at ${endpoint}.`));
+      return;
+    }
+
+    if (sub === 'sync') {
+      const target = parts[1];
+      try {
+        const catalog = await ctx.router.syncCatalog(target);
+        if (catalog.length === 0) {
+          console.log(pc.yellow('\nNo models returned from the endpoint. It may be down or keyless-blocked.'));
+          return;
+        }
+        const sourceName = target
+          ? (config.router.chain.find(e => e.name.toLowerCase() === target.toLowerCase())?.name ?? target)
+          : (config.router.chain.find(e => e.provider === 'freellmapi')?.name
+            ?? config.router.chain.find(e => e.enabled)?.name
+            ?? target ?? 'endpoint');
+        const existing = new Map(config.router.chain.map(m => [m.name.toLowerCase(), m]));
+        let added = 0;
+        let updated = 0;
+        for (const row of catalog) {
+          const entryName = `${sourceName}:${row.id}`;
+          const key = entryName.toLowerCase();
+          if (existing.has(key)) {
+            const e = existing.get(key)!;
+            e.model = row.id;
+            e.endpoint = config.router.chain.find(c => c.name === sourceName)?.endpoint ?? e.endpoint;
+            e.enabled = row.available;
+            e.maxTokens = row.contextWindow ?? e.maxTokens;
+            updated++;
+            continue;
+          }
+          const rank = row.intelligenceRank ?? 50;
+          const newEntry: ModelEntry = {
+            name: entryName,
+            endpoint: config.router.chain.find(c => c.name === sourceName)?.endpoint ?? '',
+            model: row.id,
+            priority: rank,
+            enabled: row.available,
+            supportsTools: true,
+            tier: 'intelligence',
+            provider: 'freellmapi',
+            maxTokens: row.contextWindow ?? undefined,
+          };
+          config.router.chain.push(newEntry);
+          existing.set(key, newEntry);
+          added++;
+        }
+        saveConfig(config);
+        if (ctx.router) ctx.router.reloadConfig(config.router);
+        console.log(pc.green(`\n✔ Synced ${catalog.length} models from "${sourceName}".`));
+        console.log(pc.gray(`  Added ${added}, updated ${updated}. The "auto" entry is kept as the smart default.`));
+        console.log(pc.gray('  Only currently-available models are enabled; unavailable ones are listed but disabled.'));
+        console.log(pc.gray('  Pick a specific model with /model, or let Daedalus route automatically via "auto".\n'));
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.log(pc.red(`\n[ERROR] ${msg}`));
+      }
       return;
     }
 
