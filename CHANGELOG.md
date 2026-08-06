@@ -1,3 +1,10 @@
+## [3.17.3](https://github.com/bgill55/daedalus/compare/v3.17.2...v3.17.3) (2026-08-06)
+
+
+### Bug Fixes
+
+* **formatting:** parse pipe-style tool call syntax <|toolcall>call:func{...}<tool_call|> ([a4940cd](https://github.com/bgill55/daedalus/commit/a4940cd11424c6dc7574d9b488987932199ec5d8))
+
 ## [3.17.2](https://github.com/bgill55/daedalus/compare/v3.17.1...v3.17.2) (2026-08-06)
 
 
