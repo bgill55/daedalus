@@ -1,3 +1,10 @@
+## [3.16.1](https://github.com/bgill55/daedalus/compare/v3.16.0...v3.16.1) (2026-08-06)
+
+
+### Bug Fixes
+
+* **test:** isolate test config directory in config.test.ts ([8cd38f7](https://github.com/bgill55/daedalus/commit/8cd38f77345a28ad1d8f118c1aacd3a33b80d706))
+
 # [3.16.0](https://github.com/bgill55/daedalus/compare/v3.15.7...v3.16.0) (2026-08-05)
 
 
