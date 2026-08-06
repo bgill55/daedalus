@@ -1,3 +1,10 @@
+## [3.17.2](https://github.com/bgill55/daedalus/compare/v3.17.1...v3.17.2) (2026-08-06)
+
+
+### Bug Fixes
+
+* **agent:** enforce client-server boundary and CSS/UI button wire-up rules ([a18e189](https://github.com/bgill55/daedalus/commit/a18e1893c049038c3f190bcb60cd8cb84b5edc0c))
+
 ## [3.17.1](https://github.com/bgill55/daedalus/compare/v3.17.0...v3.17.1) (2026-08-06)
 
 
