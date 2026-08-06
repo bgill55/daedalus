@@ -2,13 +2,15 @@ import { describe, it, expect } from 'vitest';
 import { systemPrompt } from './system-prompt.js';
 
 describe('systemPrompt', () => {
-  it('should tell the agent to present audit/review/todo findings and ask before implementing', () => {
-    expect(systemPrompt).toMatch(/STOP and ask the user which items they want implemented/);
-    expect(systemPrompt).toMatch(/Do NOT start calling/);
+  it('should instruct the agent on clear plan headers and simple approval prompts', () => {
+    expect(systemPrompt).toMatch(/### 📋 Proposed Plan \(Not Executed Yet\)/);
+    expect(systemPrompt).toMatch(/Would you like me to proceed with this plan\? \(Yes \/ No\)/);
+    expect(systemPrompt).toMatch(/NEVER dump giant full-source code blocks/);
   });
 
-  it('should still tell the agent to act directly on concrete action requests', () => {
-    expect(systemPrompt).toMatch(/just DO it/);
-    expect(systemPrompt).toMatch(/USE the appropriate tool/);
+  it('should instruct the agent to execute tools immediately on proceed with zero preamble narration', () => {
+    expect(systemPrompt).toMatch(/Instant Tool Execution on Proceed \/ Yes/);
+    expect(systemPrompt).toMatch(/ZERO Narration Before Tools/);
+    expect(systemPrompt).toMatch(/Permission is already granted/);
   });
 });
