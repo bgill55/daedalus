@@ -1,3 +1,10 @@
+# [3.17.0](https://github.com/bgill55/daedalus/compare/v3.16.1...v3.17.0) (2026-08-06)
+
+
+### Features
+
+* **commands:** add /model sync to expand an endpoint catalog into selectable models ([#66](https://github.com/bgill55/daedalus/issues/66)) ([c3136bf](https://github.com/bgill55/daedalus/commit/c3136bf5213922acac4ba56d436c0941fddab5e2))
+
 ## [3.16.1](https://github.com/bgill55/daedalus/compare/v3.16.0...v3.16.1) (2026-08-06)
 
 
