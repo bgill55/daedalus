@@ -28,6 +28,21 @@ interface JsonSchemaProperty {
   description?: string;
 }
 
+export function normalizeToolArgs(toolName: string, args: Record<string, unknown>): Record<string, unknown> {
+  const normalized = { ...args };
+  if (['write_file', 'patch', 'edit_file', 'read_file'].includes(toolName)) {
+    if (!normalized.path) {
+      const altPath = normalized.filepath ?? normalized.file_path ?? normalized.file ?? normalized.target_file ?? normalized.filename;
+      if (typeof altPath === 'string' && altPath.trim()) normalized.path = altPath.trim();
+    }
+    if (!normalized.content && toolName === 'write_file') {
+      const altContent = normalized.new_content ?? normalized.file_content ?? normalized.code_content ?? normalized.code ?? normalized.newcontent;
+      if (typeof altContent === 'string') normalized.content = altContent;
+    }
+  }
+  return normalized;
+}
+
 function validateArgs(toolName: string, args: Record<string, unknown>): string | null {
   const allTools = [...(BUILTIN_TOOLS || []), ...(POWER_TOOLS || [])];
   const tool = allTools.find(t => t.function.name === toolName);
@@ -87,6 +102,7 @@ export async function executeToolCall(
   let args: Record<string, unknown>;
   try {
     args = JSON.parse(toolCall.function.arguments);
+    args = normalizeToolArgs(toolName, args);
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     return {

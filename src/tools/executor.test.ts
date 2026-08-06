@@ -16,6 +16,13 @@ const mockContext: ToolContext = {
 
 describe('Tool executor', () => {
 
+  it('normalizes tool argument aliases like new_content and filepath', async () => {
+    const { normalizeToolArgs } = await import('./executor.js');
+    const args = normalizeToolArgs('write_file', { filepath: 'README.md', new_content: '# PromptVault' });
+    expect(args.path).toBe('README.md');
+    expect(args.content).toBe('# PromptVault');
+  });
+
   it('returns error for unknown tool', async () => {
     const tc: ToolCall = {
       id: 'call_1', type: 'function',

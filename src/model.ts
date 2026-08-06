@@ -73,9 +73,19 @@ function failureSignature(name: string, rawArgs: string): string {
 }
 
 function detectRepetition(text: string): boolean {
-  if (text.length < 200) return false;
-  const tail = text.slice(-400);
-  const len = 32;
+  if (text.length < 150) return false;
+  const tail = text.slice(-1200);
+
+  // Check 1: Paragraph / line repetition loop (e.g. repeated closing sentences or </think> blocks)
+  const paragraphs = tail.split(/\n\s*\n/).map(p => p.trim()).filter(p => p.length >= 25);
+  const pCounts: Record<string, number> = {};
+  for (const p of paragraphs) {
+    pCounts[p] = (pCounts[p] || 0) + 1;
+    if (pCounts[p] >= 3) return true;
+  }
+
+  // Check 2: Substring repetition loop across tail window
+  const len = 30;
   const counts: Record<string, number> = {};
   for (let i = 0; i <= tail.length - len; i++) {
     const sub = tail.substring(i, i + len);
@@ -89,7 +99,7 @@ function detectRepetition(text: string): boolean {
       occurrences++;
       pos = tail.indexOf(sub, pos + len);
     }
-    if (occurrences >= 4) {
+    if (occurrences >= 3) {
       return true;
     }
   }
