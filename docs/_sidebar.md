@@ -18,6 +18,7 @@
   - [MCP Integration](mcp.md)
 
 - **Case Studies**
+  - [PromptVault Sandboxed Integration Case Study](prompt-vault-case-study.md)
   - [Finn Loop & CI Reviewer Case Study](finn-loop-case-study.md)
   - [Gold Standard Spec](example-spec-stats.md)
   - [Social Media Manager](social-media-manager-sprint.md)
