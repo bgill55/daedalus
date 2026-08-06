@@ -1,3 +1,10 @@
+## [3.17.1](https://github.com/bgill55/daedalus/compare/v3.17.0...v3.17.1) (2026-08-06)
+
+
+### Bug Fixes
+
+* **agent:** enforce clear plan headers and instant tool execution on proceed ([3f6aa1a](https://github.com/bgill55/daedalus/commit/3f6aa1af7dfac97793e8a5522e60ee8375d7e0b6))
+
 # [3.17.0](https://github.com/bgill55/daedalus/compare/v3.16.1...v3.17.0) (2026-08-06)
 
 
