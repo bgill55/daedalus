@@ -708,6 +708,44 @@ describe('LocalRouter', () => {
       expect(Array.isArray(last.skipped)).toBe(true);
     });
   });
+
+  describe('syncCatalog', () => {
+    function makeSyncRouter() {
+      return new LocalRouter(makeConfig({
+        chain: [
+          { name: 'freellmapi', endpoint: 'http://localhost:3001/v1', model: 'auto', priority: 0, enabled: true, provider: 'freellmapi' },
+        ],
+      }));
+    }
+
+    it('returns rich metadata per model and skips the auto entry', async () => {
+      const router = makeSyncRouter();
+      const catalog = [
+        { id: 'auto', context_window: 128000, available: 1, display_name: 'Auto', intelligence_rank: 0, platform: 'cf' },
+        { id: 'gemini-2.5-flash', context_window: 1000000, available: 1, display_name: 'Gemini 2.5 Flash', intelligence_rank: 5, platform: 'google' },
+        { id: 'llama-3.3-70b', context_window: 128000, available: 0, display_name: 'Llama 3.3 70B', intelligence_rank: 20, platform: 'cf' },
+      ];
+      vi.spyOn(router as any, 'getOrCreateClient').mockReturnValue({
+        models: { list: vi.fn().mockResolvedValue({ data: catalog }) },
+      });
+      const rows = await router.syncCatalog();
+      expect(rows.length).toBe(2); // 'auto' excluded
+      const gemini = rows.find(r => r.id === 'gemini-2.5-flash')!;
+      expect(gemini.contextWindow).toBe(1000000);
+      expect(gemini.available).toBe(true);
+      expect(gemini.intelligenceRank).toBe(5);
+      const llama = rows.find(r => r.id === 'llama-3.3-70b')!;
+      expect(llama.available).toBe(false);
+    });
+
+    it('throws a readable error when the endpoint is unreachable', async () => {
+      const router = makeSyncRouter();
+      vi.spyOn(router as any, 'getOrCreateClient').mockReturnValue({
+        models: { list: vi.fn().mockRejectedValue(new Error('connect ECONNREFUSED')) },
+      });
+      await expect(router.syncCatalog()).rejects.toThrow(/Failed to read models from/);
+    });
+  });
 });
 
 

@@ -687,6 +687,60 @@ export class LocalRouter {
     return models;
   }
 
+  // Rich catalog metadata for a single endpoint, used by `/model sync` to expand
+  // a single "auto" entry into individually-selectable models. Reads the upstream
+  // OpenAI-compatible /v1/models payload (FreeLLM API augments each row with
+  // context_window + available, which the OpenAI SDK types as `any`).
+  async syncCatalog(endpointName?: string): Promise<Array<{
+    id: string;
+    displayName: string;
+    contextWindow: number | null;
+    available: boolean;
+    intelligenceRank: number | null;
+    platform: string | null;
+  }>> {
+    const entry = endpointName
+      ? this.config.chain.find(e => e.name.toLowerCase() === endpointName.toLowerCase())
+      : this.config.chain.find(e => e.provider === 'freellmapi') ?? this.getEnabledModels()[0];
+    if (!entry) throw new Error('No model endpoint found to sync. Add one with /model add first.');
+    try {
+      const client = this.getOrCreateClient(entry);
+      const list = await client.models.list();
+      const rows: Array<{
+        id: string;
+        displayName: string;
+        contextWindow: number | null;
+        available: boolean;
+        intelligenceRank: number | null;
+        platform: string | null;
+      }> = [];
+      for (const m of list.data) {
+        if (!m.id || m.id === 'auto') continue; // keep the virtual auto entry out of the expanded list
+        const extra = m as unknown as {
+          context_window?: number | null;
+          contextWindow?: number | null;
+          available?: boolean | number;
+          display_name?: string;
+          intelligence_rank?: number | null;
+          platform?: string | null;
+        };
+        const avail = extra.available;
+        rows.push({
+          id: m.id,
+          displayName: extra.display_name ?? m.id,
+          contextWindow: extra.context_window ?? extra.contextWindow ?? null,
+          available: avail === true || avail === 1,
+          intelligenceRank: extra.intelligence_rank ?? null,
+          platform: extra.platform ?? null,
+        });
+      }
+      return rows;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new Error(`Failed to read models from ${entry.endpoint}: ${msg}`);
+    }
+  }
+
   getConfig(): RouterConfig {
     return this.config;
   }
