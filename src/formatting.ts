@@ -413,6 +413,59 @@ export function parseTextToolCalls(text: string): ToolCall[] {
   }
 
   if (toolCalls.length === 0) {
+    const pipeToolCallRe = /<\|?tool_?call\|?>\s*(?:call:)?([a-zA-Z0-9_-]+)\s*(\{[\s\S]*?\}|\([\s\S]*?\))\s*<\|?tool_?call\|?>?/g;
+    let pipeMatch;
+    while ((pipeMatch = pipeToolCallRe.exec(text)) !== null) {
+      let rawName = pipeMatch[1].toLowerCase();
+      const rawBody = pipeMatch[2].trim();
+      
+      let toolName = rawName;
+      if (rawName.includes('writefile') || rawName.includes('write_file')) toolName = 'write_file';
+      else if (rawName.includes('patchfile') || rawName.includes('patch')) toolName = 'patch';
+      else if (rawName.includes('readfile') || rawName.includes('read_file')) toolName = 'read_file';
+      else {
+        const resolved = resolveToolName(rawName);
+        if (resolved) toolName = resolved;
+      }
+
+      const args: Record<string, unknown> = {};
+      if (rawBody.startsWith('{') && rawBody.endsWith('}')) {
+        const kvRe = /([a-zA-Z0-9_-]+)\s*:\s*(?:"([\s\S]*?)"|'([\s\S]*?)'|([^\s,}]+))/g;
+        let kvm;
+        while ((kvm = kvRe.exec(rawBody)) !== null) {
+          const k = kvm[1];
+          let v = kvm[2] ?? kvm[3] ?? kvm[4];
+          if (v.startsWith("'") && v.endsWith("'")) v = v.slice(1, -1);
+          args[k] = v;
+        }
+      }
+
+      if (toolName === 'write_file' || toolName === 'patch') {
+        if (!args.path && args.filepath) {
+          args.path = args.filepath;
+          delete args.filepath;
+        }
+        if (!args.path && args.file_path) {
+          args.path = args.file_path;
+          delete args.file_path;
+        }
+        if (!args.content && args.newcontent) {
+          args.content = args.newcontent;
+          delete args.newcontent;
+        }
+      }
+
+      if (Object.keys(args).length > 0 || toolName === 'terminal') {
+        toolCalls.push({
+          id: `call_pipe_${Date.now()}_${toolCalls.length}`,
+          type: 'function',
+          function: { name: toolName, arguments: JSON.stringify(args) },
+        });
+      }
+    }
+  }
+
+  if (toolCalls.length === 0) {
     const toolBlockRe = /```tool\s*\n(\w+)\(([\s\S]*?)\)\s*\n```/;
     const blockMatch = text.match(toolBlockRe);
     if (blockMatch) {

@@ -55,3 +55,16 @@ describe('formatMarkdownPRReply', () => {
     expect(cleaned).toBe(`Line 1\n\nLine 2`);
   });
 });
+
+describe('parseTextToolCalls', () => {
+  it('parses pipe-style tool calls like <|toolcall>call:mcpfilesystemwritefile{...}<tool_call|>', async () => {
+    const { parseTextToolCalls } = await import('./formatting.js');
+    const raw = `<|toolcall>call:mcpfilesystemwritefile{filepath: 'README.md', newcontent: '# PromptVault'}<tool_call|>`;
+    const calls = parseTextToolCalls(raw);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].function.name).toBe('write_file');
+    const args = JSON.parse(calls[0].function.arguments);
+    expect(args.path).toBe('README.md');
+    expect(args.content).toBe('# PromptVault');
+  });
+});
