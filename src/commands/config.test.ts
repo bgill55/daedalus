@@ -1,10 +1,26 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
 import { presetCommand, modelManagerCommand } from './config.js';
 import type { CommandContext } from './types.js';
 
+const TEST_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'daedalus-cmd-config-test-'));
+
 describe('config slash commands', () => {
+  beforeEach(() => {
+    vi.stubEnv('HOME', TEST_DIR);
+    vi.stubEnv('USERPROFILE', TEST_DIR);
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    const configDir = path.join(TEST_DIR, '.daedalus');
+    try { fs.rmSync(configDir, { recursive: true, force: true }); } catch { /* ignored */ }
+  });
+
   const dummyCtx: Partial<CommandContext> = {
-    configDir: process.cwd(),
+    configDir: TEST_DIR,
     router: {
       reloadConfig: vi.fn(),
     } as any,
