@@ -1,3 +1,10 @@
+## [3.20.1](https://github.com/bgill55/daedalus/compare/v3.20.0...v3.20.1) (2026-08-07)
+
+
+### Bug Fixes
+
+* **ui:** synchronize top and bottom box width via shared state for 100% character alignment ([702c4c9](https://github.com/bgill55/daedalus/commit/702c4c99a8661b42f23313d1d2c0189ba2a08ac0))
+
 # [3.20.0](https://github.com/bgill55/daedalus/compare/v3.19.0...v3.20.0) (2026-08-07)
 
 
