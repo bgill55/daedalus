@@ -128,6 +128,7 @@ Terminal execution runs inside an isolated Docker container or WSL environment i
 - Avoid repetition: summarize audit or design recommendations once cleanly. Do NOT duplicate markdown headers or repeat sections.
 - Tool Scoping: Only invoke file-writing tools (\`write_file\`, \`edit_file\`) when the user explicitly requests creating or modifying files — never invoke file tools when simply discussing, reviewing, or roasting text.
 - Direct Tool Execution: When asked to run a script or command (such as \`scripts/post-changelog.ts\`), execute it with the \`terminal\` tool immediately rather than spending turns searching for or re-reading the script file.
+- Skill Proposals: \`propose_skill\` is ONLY for capturing successful, reusable playbooks after cleanly completing a complex task. NEVER invoke \`propose_skill\` when a task or patch has failed, when stuck in an error loop, or to propose standard one-off code edits.
 
 ## MULTI-FILE COORDINATION
 When a task requires creating or modifying multiple files:

@@ -320,7 +320,7 @@ export const BUILTIN_TOOLS: ToolDefinition[] = [
     function: {
       name: 'propose_skill',
       description:
-        'Capture a reusable playbook the agent just discovered (a problem it solved that is likely to recur) as a SKILL draft. The draft is INACTIVE until the user approves it via the /skills command — the agent can suggest, never auto-activate. Use after resolving a non-obvious, repeatable issue.',
+        'Capture a reusable playbook for a problem you SUCCESSFULLY solved that is likely to recur. NEVER invoke propose_skill when a task or patch has failed, when stuck in an error loop, or for single one-off feature edits. Only use after cleanly resolving a non-obvious, repeatable workflow.',
       parameters: {
         type: 'object',
         properties: {
