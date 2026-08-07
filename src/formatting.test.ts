@@ -67,4 +67,11 @@ describe('parseTextToolCalls', () => {
     expect(args.path).toBe('README.md');
     expect(args.content).toBe('# PromptVault');
   });
+
+  it('strips pipe-style tool call tags from assistant response text', async () => {
+    const { stripToolCallMarkup } = await import('./formatting.js');
+    const raw = `<|toolcall>call:mcpfilesystemreadtextfile{path: "public/script.js"}<toolcall|>The collection dropdown should now update.`;
+    const cleaned = stripToolCallMarkup(raw);
+    expect(cleaned).toBe('The collection dropdown should now update.');
+  });
 });

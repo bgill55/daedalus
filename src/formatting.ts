@@ -525,8 +525,6 @@ export function parseTextToolCalls(text: string): ToolCall[] {
     }
   }
 
-
-
   if (toolCalls.length === 0) {
     const bracketRe = /\[([^\]]{2,})\]/g;
     let bm;
@@ -548,6 +546,16 @@ export function parseTextToolCalls(text: string): ToolCall[] {
   }
 
   return toolCalls;
+}
+
+export function stripToolCallMarkup(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/<\|?tool_?call\|?>[\s\S]*?<\|?tool_?call\|?>?/gi, '')
+    .replace(/<(longcat_)?tool_call>[\s\S]*?<\/(longcat_)?tool_call>/gi, '')
+    .replace(/```tool\s*\n[\s\S]*?\n```/gi, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
 
 export function formatMarkdownPRReply(text: string): string {

@@ -6,7 +6,7 @@ import { detectFalseCompletion, falseCompletionWarning } from './agents/completi
 import { mcpRegistry } from './tools/mcp/registry.js';
 import { DaedalusSpinner } from './tools/daedalus-spinner.js';
 import { calculateSessionTokens, pruneMessages } from './session/tokens.js';
-import { parseTextToolCalls, openAssistantBlock, writeAssistantChunk, closeAssistantBlock, printContextWarning, printContextResult, printContextPrune, printToolStart, printToolResult, printToolContentPreview, turnGatePrompt } from './formatting.js';
+import { parseTextToolCalls, stripToolCallMarkup, openAssistantBlock, writeAssistantChunk, closeAssistantBlock, printContextWarning, printContextResult, printContextPrune, printToolStart, printToolResult, printToolContentPreview, turnGatePrompt } from './formatting.js';
 import type { ToolContext, ToolCall, ChatMessage } from './types.js';
 import { messageText } from './types.js';
 import type { LocalRouter } from './router/index.js';
@@ -380,13 +380,14 @@ export function createModelFunctions(deps: ModelDeps) {
           toolCallArray = parsedCalls;
         }
       }
-      lastContent = fullContent;
+      const cleanContent = stripToolCallMarkup(fullContent);
+      lastContent = cleanContent;
 
       if (toolCallArray.length === 0) {
         if (countToolMentions(fullContent) >= 3) {
           console.log(pc.yellow(`\n  [WARN] Model planned tools but omitted JSON syntax. Retrying.`));
           totalCompletionTokens += turnUsageOut ?? 0;
-          messages.push({ role: 'assistant', content: fullContent });
+          messages.push({ role: 'assistant', content: cleanContent });
           messages.push({
             role: 'user',
             content: `[SYSTEM WARNING] You narrated plans to call tools but did not output any actual tool calls. Please output the proper JSON array of tool calls now.`,
@@ -394,7 +395,7 @@ export function createModelFunctions(deps: ModelDeps) {
           continue;
         }
 
-        closeAssistantBlock(fullContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
+        closeAssistantBlock(cleanContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
         if (currentComplexity && process.env.DAEDALUS_DEBUG === 'true') {
           console.log(pc.dim(`  [ROUTE] Task summary: start ${taskComplexity ?? 'n/a'} → end ${currentComplexity} | ${totalCompletionTokens + (turnUsageOut ?? 0)} output tokens | ${escalationCount} escalation(s)`));
         }
@@ -403,10 +404,10 @@ export function createModelFunctions(deps: ModelDeps) {
         // completion while its todo list still has open items. A false "done"
         // report would mislead an end user who trusts it. Force reconciliation.
         const closingTodos = getSessionTodos(toolContext.sessionId);
-        if (closingTodos.length > 0 && detectFalseCompletion(fullContent, closingTodos)) {
+        if (closingTodos.length > 0 && detectFalseCompletion(cleanContent, closingTodos)) {
           const remaining = closingTodos.filter((t) => t.status !== 'completed').length;
           console.log(pc.red(`\n  [GUARD] Completion claim blocked — ${remaining} todo(s) still open.`));
-          messages.push({ role: 'assistant', content: fullContent });
+          messages.push({ role: 'assistant', content: cleanContent });
           messages.push({
             role: 'user',
             content: falseCompletionWarning(remaining),
@@ -414,13 +415,13 @@ export function createModelFunctions(deps: ModelDeps) {
           continue;
         }
 
-        messages.push({ role: 'assistant', content: fullContent });
-        return { content: fullContent, toolCalls: [] };
+        messages.push({ role: 'assistant', content: cleanContent });
+        return { content: cleanContent, toolCalls: [] };
       }
 
       messages.push({
         role: 'assistant',
-        content: fullContent || '',
+        content: cleanContent || '',
         tool_calls: toolCallArray,
       });
 
