@@ -102,11 +102,11 @@ export function collapseCommentary(): void {
       const summary = _toolBuffer.map(t => {
         return t.success !== false ? pc.dim(t.name) : pc.red(t.name);
       }).join(', ');
-      console.log(`  ${badge} ${pc.dim('Executed tools:')} ${summary}`);
+      console.log(`  ${pc.dim('┊')} ${badge} ${pc.dim('Executed tools:')} ${summary}`);
 
       for (const entry of _toolBuffer) {
         if (entry.contentPreview) {
-          console.log(`  ${pc.dim('  ')}${pc.gray(entry.contentPreview)}`);
+          console.log(`  ${pc.dim('┊')}   ${pc.gray(entry.contentPreview)}`);
         }
       }
     }
@@ -119,7 +119,7 @@ export function collapseCommentary(): void {
       const summary = _toolBuffer.map(t => {
         return t.success !== false ? pc.dim(t.name) : pc.red(t.name);
       }).join(', ');
-      console.log(`  ${badge} ${pc.dim('Executed tools:')} ${summary}`);
+      console.log(`  ${pc.dim('┊')} ${badge} ${pc.dim('Executed tools:')} ${summary}`);
     }
   }
 
@@ -127,19 +127,44 @@ export function collapseCommentary(): void {
   _commentaryLines = 0;
 }
 
+function getBoxWidth(): number {
+  const cols = process.stdout.columns ?? 80;
+  return Math.max(45, Math.min(85, cols - 4));
+}
+
 export function openAssistantBlock(): void {
   collapseCommentary();
-  console.log(`\n  ${pc.cyan(pc.bold('Daedalus'))} ${sepLine('─', 40)}`);
+  const boxW = getBoxWidth();
+  const headerText = ' ⚡ Daedalus ';
+  const topBar = '─'.repeat(Math.max(2, boxW - stripAnsi(headerText).length - 2));
+  console.log(`\n  ${pc.cyan('╭─')}${pc.bold(pc.cyan(headerText))}${pc.cyan(topBar)}${pc.cyan('╮')}`);
+}
+
+function printBoxLine(line: string): void {
+  const boxW = getBoxWidth();
+  const innerW = boxW - 4;
+  const parts = wrapLine(line, innerW);
+  for (const part of parts) {
+    const visLen = stripAnsi(part).length;
+    const pad = ' '.repeat(Math.max(0, innerW - visLen));
+    console.log(`  ${pc.cyan('│')} ${part}${pad} ${pc.cyan('│')}`);
+  }
 }
 
 function emitCodeBlock(): void {
   if (_codeLines.length === 0) return;
+  const boxW = getBoxWidth();
+  const innerW = boxW - 4;
   const lineDigits = String(_codeLines.length).length;
   for (let i = 0; i < _codeLines.length; i++) {
     const lineNo = String(i + 1).padStart(lineDigits);
     const content = _codeLines[i];
-    for (const part of wrapLine(content, termW - lineDigits - 3)) {
-      console.log(`  ${bar} ${pc.dim(`${lineNo} │`)} ${part}`);
+    const wrapped = wrapLine(content, innerW - lineDigits - 3);
+    for (const part of wrapped) {
+      const lineStr = `${pc.dim(`${lineNo} │`)} ${part}`;
+      const visLen = stripAnsi(lineStr).length;
+      const pad = ' '.repeat(Math.max(0, innerW - visLen));
+      console.log(`  ${pc.cyan('│')} ${lineStr}${pad} ${pc.cyan('│')}`);
     }
   }
   _codeLines = [];
@@ -169,9 +194,7 @@ export function writeAssistantChunk(chunk: string): void {
     }
 
     const formatted = formatMarkdownLine(line);
-    for (const part of wrapLine(formatted, termW)) {
-      console.log(`  ${part}`);
-    }
+    printBoxLine(formatted);
   }
 }
 
@@ -192,9 +215,7 @@ export function closeAssistantBlock(
         emitCodeBlock();
       } else {
         const formatted = formatMarkdownLine(line);
-        for (const part of wrapLine(formatted, termW)) {
-          console.log(`  ${part}`);
-        }
+        printBoxLine(formatted);
       }
     }
   }
@@ -203,22 +224,26 @@ export function closeAssistantBlock(
   _buf = '';
 
   const parts: string[] = [];
-  if (tier) parts.push(pc.dim(tier));
-  if (modelName) parts.push(pc.dim(modelName));
-  if (toolCount !== undefined) parts.push(pc.dim(`${toolCount} tool(s)`));
+  if (tier) parts.push(tier);
+  if (modelName) parts.push(modelName);
+  if (toolCount !== undefined) parts.push(`${toolCount} tool(s)`);
   const estTokens = Math.round(tokens / 4);
   const outTokens = realOutTokens !== undefined ? realOutTokens : estTokens;
   const tokenStr = realOutTokens !== undefined
     ? (realOutTokens >= 1000 ? `${(realOutTokens / 1000).toFixed(1)}k out` : `${realOutTokens} out`)
     : (tokens >= 4000 ? `${(tokens / 4 / 1000).toFixed(1)}k out` : `${estTokens} out`);
-  parts.push(pc.dim(tokenStr));
+  parts.push(tokenStr);
   const elapsed = elapsedMs >= 1000 ? `${(elapsedMs / 1000).toFixed(1)}s` : `${elapsedMs}ms`;
-  parts.push(pc.dim(elapsed));
+  parts.push(elapsed);
   if (elapsedMs > 0 && outTokens > 0) {
     const tps = (outTokens / (elapsedMs / 1000)).toFixed(1);
-    parts.push(pc.dim(`${tps} tok/s`));
+    parts.push(`${tps} tok/s`);
   }
-  console.log(`  ${pc.dim('└')} ${parts.join(` ${pc.dim('·')} `)}`);
+
+  const boxW = getBoxWidth();
+  const statsStr = ` ${parts.join(' · ')} `;
+  const rem = Math.max(2, boxW - stripAnsi(statsStr).length - 2);
+  console.log(`  ${pc.cyan('╰─')}${pc.dim(statsStr)}${pc.cyan('─'.repeat(rem))}${pc.cyan('╯')}`);
 }
 
 // ── Inline markdown ────────────────────────────────────────────
