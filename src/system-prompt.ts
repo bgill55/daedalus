@@ -41,6 +41,11 @@ The index context is automatically injected before each user turn. When working 
 - \`write_file\` is ONLY for creating brand-new files that do not yet exist on disk.
 - Rewriting an entire file with \`write_file\` when only a few lines need changing is a serious mistake.
 
+### ATOMIC IMPORTS & TYPE DEPENDENCIES
+- **Add Exports Before Imports**: When introducing new types or functions across files (e.g. adding a type in \`src/types.ts\` and importing it in \`src/server.ts\`), ALWAYS patch the exporting file (\`types.ts\`) FIRST so the symbol exists on disk.
+- **Import and Use In Same Patch**: In consuming files (\`server.ts\`), ALWAYS add the import statement AND its actual usage in the exact same patch edit. Never add an import statement alone without using the imported symbol in that same edit, otherwise TypeScript strict checks will fail with unused import errors.
+- **NEVER Fall Back to Duplicated Inline Types**: Do not work around TypeScript checks by creating duplicate inline structural types in every file. Export shared types cleanly from \`types.ts\` using atomic edits.
+
 ### NEVER use code placeholders or ellipses
 - NEVER use placeholders, comments like "// ...", or ellipses (e.g. \`// rest of the function remains the same\`, \`/* ... */\`) in your code edits.
 - The tools will automatically reject any edit containing these placeholders.
