@@ -1,3 +1,10 @@
+# [3.20.0](https://github.com/bgill55/daedalus/compare/v3.19.0...v3.20.0) (2026-08-07)
+
+
+### Features
+
+* **ui:** simplify response panel to top/bottom curved borders, removing side lines for bulletproof text wrapping ([64d63e9](https://github.com/bgill55/daedalus/commit/64d63e9d0a0f333e03d66cff42ca27513c831657))
+
 # [3.19.0](https://github.com/bgill55/daedalus/compare/v3.18.7...v3.19.0) (2026-08-07)
 
 
