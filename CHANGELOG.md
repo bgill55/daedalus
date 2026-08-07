@@ -1,3 +1,10 @@
+## [3.18.5](https://github.com/bgill55/daedalus/compare/v3.18.4...v3.18.5) (2026-08-07)
+
+
+### Bug Fixes
+
+* **bot:** add Partials.Channel and Partials.Message so discord.js emits direct message events ([fe5e82e](https://github.com/bgill55/daedalus/commit/fe5e82e73f1f84c292100ad8047e8d685f12b688))
+
 ## [3.18.4](https://github.com/bgill55/daedalus/compare/v3.18.3...v3.18.4) (2026-08-07)
 
 
