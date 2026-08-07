@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits } from 'discord.js';
+import { Client, GatewayIntentBits, Partials } from 'discord.js';
 import dotenv from 'dotenv';
 import { createRouter } from '../router/index.js';
 import { loadConfig } from '../config/index.js';
@@ -26,7 +26,10 @@ function createClient(usePrivileged = true): Client {
     intents.push(GatewayIntentBits.MessageContent);
     intents.push(GatewayIntentBits.GuildMembers);
   }
-  return new Client({ intents });
+  return new Client({
+    intents,
+    partials: [Partials.Channel, Partials.Message],
+  });
 }
 
 let client = createClient(true);
