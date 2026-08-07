@@ -154,7 +154,10 @@ export async function promptDiffDecision(
 
   return new Promise((resolve) => {
     const stop = withRawMode((key: Buffer) => {
-      const char = key.toString().toLowerCase();
+      const str = key.toString().trim().toLowerCase();
+      if (!str) return; // Ignore leading spaces, tabs, and newlines in input buffer
+
+      const char = str[0];
       let decision: DiffDecision | null = null;
 
       switch (char) {
@@ -176,11 +179,7 @@ export async function promptDiffDecision(
         process.stdout.write(`${char.toUpperCase()}\n`);
         stop();
         resolve({ decision });
-      }
-      // Any other key is ignored but the terminal is restored by withRawMode's
-      // cleanup only when a decision is made — to avoid leaking raw mode on stray
-      // input, treat an unrecognized key as "no".
-      if (char && char !== '\r' && char !== '\n') {
+      } else {
         stop();
         resolve({ decision: 'no' });
       }
