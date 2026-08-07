@@ -131,19 +131,20 @@ let _lastBoxW = 70;
 
 function getBoxWidth(): number {
   const cols = process.stdout.columns ?? 80;
-  return Math.max(50, Math.min(75, cols - 6));
+  return Math.max(40, cols - 6);
 }
 
 export function openAssistantBlock(): void {
   collapseCommentary();
   _lastBoxW = getBoxWidth();
-  const prefixVis = 17; // '  ╭─ ⚡ Daedalus '.length
+  const prefixVis = 17; // Account for 2-column display width of ⚡ emoji
   const dashes = Math.max(2, _lastBoxW - prefixVis - 1);
   console.log(`\n${pc.cyan('  ╭─ ')}${pc.bold(pc.cyan('⚡ Daedalus '))}${pc.cyan('─'.repeat(dashes))}${pc.cyan('╮')}`);
 }
 
 function printBoxLine(line: string): void {
-  const parts = wrapLine(line, termW);
+  const innerW = Math.max(30, _lastBoxW - 6);
+  const parts = wrapLine(line, innerW);
   for (const part of parts) {
     console.log(`  ${part}`);
   }
@@ -151,11 +152,12 @@ function printBoxLine(line: string): void {
 
 function emitCodeBlock(): void {
   if (_codeLines.length === 0) return;
+  const innerW = Math.max(30, _lastBoxW - 6);
   const lineDigits = String(_codeLines.length).length;
   for (let i = 0; i < _codeLines.length; i++) {
     const lineNo = String(i + 1).padStart(lineDigits);
     const content = _codeLines[i];
-    const wrapped = wrapLine(content, termW - lineDigits - 3);
+    const wrapped = wrapLine(content, innerW - lineDigits - 3);
     for (const part of wrapped) {
       console.log(`  ${bar} ${pc.dim(`${lineNo} │`)} ${part}`);
     }
@@ -236,10 +238,10 @@ export function closeAssistantBlock(
   const rawStats = parts.join(' · ');
   const prefixVis = 5; // '  ╰─ '.length
   const suffixVis = 1; // '╯'.length
-  const minRequiredW = prefixVis + rawStats.length + 4 + suffixVis;
-  const boxW = Math.max(_lastBoxW, minRequiredW);
+  const minRequiredW = prefixVis + rawStats.length + 4;
+  const targetW = Math.max(_lastBoxW, minRequiredW);
 
-  const dashes = Math.max(2, boxW - prefixVis - rawStats.length - 2 - suffixVis);
+  const dashes = Math.max(2, targetW - prefixVis - rawStats.length - 2);
   console.log(`${pc.cyan('  ╰─ ')}${pc.dim(rawStats)} ${pc.cyan('─'.repeat(dashes))}${pc.cyan('╯')}`);
 }
 
