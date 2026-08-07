@@ -141,30 +141,21 @@ export function openAssistantBlock(): void {
 }
 
 function printBoxLine(line: string): void {
-  const boxW = getBoxWidth();
-  const innerW = boxW - 4;
-  const parts = wrapLine(line, innerW);
+  const parts = wrapLine(line, termW);
   for (const part of parts) {
-    const visLen = stripAnsi(part).length;
-    const pad = ' '.repeat(Math.max(0, innerW - visLen));
-    console.log(`  ${pc.cyan('│')} ${part}${pad} ${pc.cyan('│')}`);
+    console.log(`  ${part}`);
   }
 }
 
 function emitCodeBlock(): void {
   if (_codeLines.length === 0) return;
-  const boxW = getBoxWidth();
-  const innerW = boxW - 4;
   const lineDigits = String(_codeLines.length).length;
   for (let i = 0; i < _codeLines.length; i++) {
     const lineNo = String(i + 1).padStart(lineDigits);
     const content = _codeLines[i];
-    const wrapped = wrapLine(content, innerW - lineDigits - 3);
+    const wrapped = wrapLine(content, termW - lineDigits - 3);
     for (const part of wrapped) {
-      const lineStr = `${pc.dim(`${lineNo} │`)} ${part}`;
-      const visLen = stripAnsi(lineStr).length;
-      const pad = ' '.repeat(Math.max(0, innerW - visLen));
-      console.log(`  ${pc.cyan('│')} ${lineStr}${pad} ${pc.cyan('│')}`);
+      console.log(`  ${bar} ${pc.dim(`${lineNo} │`)} ${part}`);
     }
   }
   _codeLines = [];
