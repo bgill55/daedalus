@@ -1,3 +1,10 @@
+## [3.20.3](https://github.com/bgill55/daedalus/compare/v3.20.2...v3.20.3) (2026-08-07)
+
+
+### Bug Fixes
+
+* **ui:** adjust top header prefixVis to 16 for exact character length parity with bottom footer line ([476698a](https://github.com/bgill55/daedalus/commit/476698a4a6e8c16057b0a8d110629ba66d6402c0))
+
 ## [3.20.2](https://github.com/bgill55/daedalus/compare/v3.20.1...v3.20.2) (2026-08-07)
 
 
