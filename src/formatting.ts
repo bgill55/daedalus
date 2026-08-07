@@ -127,17 +127,19 @@ export function collapseCommentary(): void {
   _commentaryLines = 0;
 }
 
+let _lastBoxW = 70;
+
 function getBoxWidth(): number {
   const cols = process.stdout.columns ?? 80;
-  return Math.max(45, Math.min(85, cols - 4));
+  return Math.max(50, Math.min(75, cols - 6));
 }
 
 export function openAssistantBlock(): void {
   collapseCommentary();
-  const boxW = getBoxWidth();
-  const headerText = ' ⚡ Daedalus ';
-  const topBar = '─'.repeat(Math.max(2, boxW - stripAnsi(headerText).length - 2));
-  console.log(`\n  ${pc.cyan('╭─')}${pc.bold(pc.cyan(headerText))}${pc.cyan(topBar)}${pc.cyan('╮')}`);
+  _lastBoxW = getBoxWidth();
+  const prefixVis = 17; // '  ╭─ ⚡ Daedalus '.length
+  const dashes = Math.max(2, _lastBoxW - prefixVis - 1);
+  console.log(`\n${pc.cyan('  ╭─ ')}${pc.bold(pc.cyan('⚡ Daedalus '))}${pc.cyan('─'.repeat(dashes))}${pc.cyan('╮')}`);
 }
 
 function printBoxLine(line: string): void {
@@ -231,10 +233,14 @@ export function closeAssistantBlock(
     parts.push(`${tps} tok/s`);
   }
 
-  const boxW = getBoxWidth();
-  const statsStr = ` ${parts.join(' · ')} `;
-  const rem = Math.max(2, boxW - stripAnsi(statsStr).length - 2);
-  console.log(`  ${pc.cyan('╰─')}${pc.dim(statsStr)}${pc.cyan('─'.repeat(rem))}${pc.cyan('╯')}`);
+  const rawStats = parts.join(' · ');
+  const prefixVis = 5; // '  ╰─ '.length
+  const suffixVis = 1; // '╯'.length
+  const minRequiredW = prefixVis + rawStats.length + 4 + suffixVis;
+  const boxW = Math.max(_lastBoxW, minRequiredW);
+
+  const dashes = Math.max(2, boxW - prefixVis - rawStats.length - 2 - suffixVis);
+  console.log(`${pc.cyan('  ╰─ ')}${pc.dim(rawStats)} ${pc.cyan('─'.repeat(dashes))}${pc.cyan('╯')}`);
 }
 
 // ── Inline markdown ────────────────────────────────────────────
