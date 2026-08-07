@@ -1,3 +1,10 @@
+# [3.19.0](https://github.com/bgill55/daedalus/compare/v3.18.7...v3.19.0) (2026-08-07)
+
+
+### Features
+
+* **ui:** format Daedalus responses inside framed text box panel with tree-guided tool outputs ([285049e](https://github.com/bgill55/daedalus/commit/285049e192b2ac32658f358dd943e2a28b853450))
+
 ## [3.18.7](https://github.com/bgill55/daedalus/compare/v3.18.6...v3.18.7) (2026-08-07)
 
 
