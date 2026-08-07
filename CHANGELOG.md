@@ -1,3 +1,10 @@
+## [3.18.1](https://github.com/bgill55/daedalus/compare/v3.18.0...v3.18.1) (2026-08-07)
+
+
+### Bug Fixes
+
+* **agent:** prohibit re-proposing plans after user approval ([df8f760](https://github.com/bgill55/daedalus/commit/df8f76044503dad0dc337cddec733c4f7e71ce02))
+
 # [3.18.0](https://github.com/bgill55/daedalus/compare/v3.17.3...v3.18.0) (2026-08-06)
 
 
