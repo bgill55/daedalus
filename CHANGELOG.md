@@ -1,3 +1,10 @@
+## [3.18.7](https://github.com/bgill55/daedalus/compare/v3.18.6...v3.18.7) (2026-08-07)
+
+
+### Bug Fixes
+
+* **formatting:** strip raw tool call markup tags from assistant output responses ([084deb8](https://github.com/bgill55/daedalus/commit/084deb8c2d41ca7f2799992f243c8bb097caeedb))
+
 ## [3.18.6](https://github.com/bgill55/daedalus/compare/v3.18.5...v3.18.6) (2026-08-07)
 
 
