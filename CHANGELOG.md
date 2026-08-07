@@ -1,3 +1,10 @@
+## [3.20.2](https://github.com/bgill55/daedalus/compare/v3.20.1...v3.20.2) (2026-08-07)
+
+
+### Bug Fixes
+
+* **ui:** account for 2-column emoji display width of ⚡ in openAssistantBlock for 100% pixel-perfect right corner alignment ([0a4db6d](https://github.com/bgill55/daedalus/commit/0a4db6dfa01f94c4c7ce621943d1097722572c9b))
+
 ## [3.20.1](https://github.com/bgill55/daedalus/compare/v3.20.0...v3.20.1) (2026-08-07)
 
 
