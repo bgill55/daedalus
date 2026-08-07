@@ -1,3 +1,10 @@
+## [3.18.4](https://github.com/bgill55/daedalus/compare/v3.18.3...v3.18.4) (2026-08-07)
+
+
+### Bug Fixes
+
+* **agent:** restrict propose_skill tool usage to successful workflows only ([cf400eb](https://github.com/bgill55/daedalus/commit/cf400eb96ff261012c5c9e0331d359f01e9c2c20))
+
 ## [3.18.3](https://github.com/bgill55/daedalus/compare/v3.18.2...v3.18.3) (2026-08-07)
 
 
