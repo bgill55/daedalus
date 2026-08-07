@@ -10,7 +10,7 @@ describe('systemPrompt', () => {
 
   it('should instruct the agent to execute tools immediately on proceed with zero preamble narration', () => {
     expect(systemPrompt).toMatch(/Instant Tool Execution on Proceed \/ Yes/);
-    expect(systemPrompt).toMatch(/ZERO Narration Before Tools/);
-    expect(systemPrompt).toMatch(/Permission is already granted/);
+    expect(systemPrompt).toMatch(/ZERO Narration & ZERO Re-proposing/);
+    expect(systemPrompt).toMatch(/Permission is granted/);
   });
 });
