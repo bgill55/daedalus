@@ -1,3 +1,10 @@
+## [3.18.2](https://github.com/bgill55/daedalus/compare/v3.18.1...v3.18.2) (2026-08-07)
+
+
+### Bug Fixes
+
+* **agent:** add atomic imports and type dependency guardrails ([3a43691](https://github.com/bgill55/daedalus/commit/3a436916cd757f3994c05b288aedb21aaf7500a6))
+
 ## [3.18.1](https://github.com/bgill55/daedalus/compare/v3.18.0...v3.18.1) (2026-08-07)
 
 
