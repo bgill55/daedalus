@@ -1,3 +1,10 @@
+## [3.18.6](https://github.com/bgill55/daedalus/compare/v3.18.5...v3.18.6) (2026-08-07)
+
+
+### Bug Fixes
+
+* **bot:** configure IntegrationTypes and Contexts so slash commands display in DMs and Group DMs ([4f76973](https://github.com/bgill55/daedalus/commit/4f7697384342faae537d15543df0786804bf20c9))
+
 ## [3.18.5](https://github.com/bgill55/daedalus/compare/v3.18.4...v3.18.5) (2026-08-07)
 
 
