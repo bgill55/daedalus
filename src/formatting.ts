@@ -137,7 +137,7 @@ function getBoxWidth(): number {
 export function openAssistantBlock(): void {
   collapseCommentary();
   _lastBoxW = getBoxWidth();
-  const prefixVis = 17; // Account for 2-column display width of ⚡ emoji
+  const prefixVis = 16; // '  ╭─ ⚡ Daedalus '.length
   const dashes = Math.max(2, _lastBoxW - prefixVis - 1);
   console.log(`\n${pc.cyan('  ╭─ ')}${pc.bold(pc.cyan('⚡ Daedalus '))}${pc.cyan('─'.repeat(dashes))}${pc.cyan('╮')}`);
 }
