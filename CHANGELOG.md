@@ -1,3 +1,10 @@
+## [3.18.3](https://github.com/bgill55/daedalus/compare/v3.18.2...v3.18.3) (2026-08-07)
+
+
+### Bug Fixes
+
+* **diff-ui:** ignore leading whitespace in raw keypress mode so pasted text does not reject patches ([5c2a1db](https://github.com/bgill55/daedalus/commit/5c2a1db7f960325570f35c44a852824ebbaddb9b))
+
 ## [3.18.2](https://github.com/bgill55/daedalus/compare/v3.18.1...v3.18.2) (2026-08-07)
 
 
