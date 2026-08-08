@@ -1,3 +1,10 @@
+## [3.20.10](https://github.com/bgill55/daedalus/compare/v3.20.9...v3.20.10) (2026-08-08)
+
+
+### Bug Fixes
+
+* **prompt:** instruct agent to verify project state with tools before assuming errors ([#73](https://github.com/bgill55/daedalus/issues/73)) ([ede60db](https://github.com/bgill55/daedalus/commit/ede60dbe8ef062b6f2d9cb6049589261d3bbcac0))
+
 ## [3.20.9](https://github.com/bgill55/daedalus/compare/v3.20.8...v3.20.9) (2026-08-08)
 
 
