@@ -1,3 +1,10 @@
+## [3.20.9](https://github.com/bgill55/daedalus/compare/v3.20.8...v3.20.9) (2026-08-08)
+
+
+### Bug Fixes
+
+* **ui:** render assistant box as two aligned straight rules (no curves, no side rails) ([#72](https://github.com/bgill55/daedalus/issues/72)) ([6c8f577](https://github.com/bgill55/daedalus/commit/6c8f57793f392c32883f5d134f9f60b1acde01a4))
+
 ## [3.20.8](https://github.com/bgill55/daedalus/compare/v3.20.7...v3.20.8) (2026-08-08)
 
 
