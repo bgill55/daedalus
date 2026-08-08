@@ -5,11 +5,40 @@ import ts from 'typescript';
 import { ToolContext } from '../../types.js';
 
 export function normalizeWhitespace(str: string): string {
-  return str
+  return normalizeUnicode(str)
     .replace(/\r\n/g, '\n')
     .split('\n')
     .map(line => (line.match(/^\s+/) ? ' ' : '') + line.trimStart().trimEnd())
     .join('\n');
+}
+
+// Maps common Unicode punctuation variants to their ASCII equivalents so that a
+// patch whose old_string uses a hyphen still matches a file that contains an
+// en-dash, or straight quotes match smart quotes, etc. These are all 1:1
+// single-character substitutions, so a character index in the normalized string
+// maps 1:1 to the same index in the original — safe to use for match lookup while
+// still slicing the original content for the actual replacement. (Only 1:1 mappings
+// are included; multi-character expansions like ellipsis are intentionally excluded
+// to preserve index alignment.)
+const UNICODE_MAP: Record<string, string> = {
+  '\u2013': '-', // en dash
+  '\u2014': '-', // em dash
+  '\u2010': '-', // hyphen
+  '\u2011': '-', // non-breaking hyphen
+  '\u00A0': ' ', // non-breaking space
+  '\u2009': ' ', // thin space
+  '\u201C': '"', // left double smart quote
+  '\u201D': '"', // right double smart quote
+  '\u2018': "'", // left single smart quote
+  '\u2019': "'", // right single smart quote
+};
+
+export function normalizeUnicode(str: string): string {
+  let out = '';
+  for (const ch of str) {
+    out += UNICODE_MAP[ch] ?? ch;
+  }
+  return out;
 }
 
 export function levenshtein(a: string, b: string): number {

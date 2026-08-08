@@ -19,6 +19,7 @@ import {
   recordPatchFailure,
   runColocatedTests,
   buildPostWriteWarnings,
+  normalizeUnicode,
 } from './patch-utils.js';
 
 const DEFAULT_EXCLUDE_DIRS = [
@@ -311,7 +312,14 @@ export async function patchFile(args: { path: string; old_string: string; new_st
         patched = content.split(oldStr).join(newStr);
       }
     } else {
-      const idx = content.indexOf(oldStr);
+      let idx = content.indexOf(oldStr);
+      // Fallback: a Unicode punctuation variant in old_string (e.g. hyphen vs en-dash,
+      // straight vs smart quotes) that the model couldn't see would otherwise fail the
+      // exact match. normalizeUnicode is 1:1, so the index maps back to the original.
+      if (idx === -1) {
+        const nIdx = normalizeUnicode(content).indexOf(normalizeUnicode(oldStr));
+        if (nIdx !== -1) idx = nIdx;
+      }
       if (idx === -1) {
         const fuzzy = fuzzyWhitespacePatch(content, oldStr, newStr, false);
         if (fuzzy.error && fuzzy.error !== 'no_fuzzy_match') return formatError(fuzzy.error);
