@@ -358,11 +358,19 @@ export async function syntaxCheck(
     // allowed at top level"), or TS1232 ("import declaration can only be used at
     // the top level of a namespace or module").
     const hasMisplacedImport = introduced.some(d => d.code === 1128 || d.code === 1138 || d.code === 1232);
-    const hint = hasMisplacedImport
+    const misplacedHint = hasMisplacedImport
       ? '\n\nHint: imports must be at the TOP LEVEL of the file (before any function), not inside a function body. Move each `import` statement above `export function createApp`.'
       : '';
 
-    return `${allErrors.join('\n')}${hint}`;
+    // Targeted hint for the "removed a symbol but it's still referenced" mistake:
+    // the patch deletes a declaration (e.g. a function parameter) yet the symbol
+    // is still used downstream, so the resulting TS2304 errors look like a generic
+    // "syntax error" to the user/agent and the agent loops re-proposing the same
+    // partial edit. Point at the exact still-referenced lines so it fixes them
+    // together instead of retrying.
+    const removedSymbolHint = buildRemovedSymbolHint(introduced, proposedContent, originalContent);
+
+    return `${allErrors.join('\n')}${misplacedHint}${removedSymbolHint}`;
   }
 
   if (ext === '.js' || ext === '.mjs' || ext === '.cjs') {
@@ -380,6 +388,54 @@ export async function syntaxCheck(
   }
 
   return null;
+}
+
+// Detects when an introduced TS2304 ("Cannot find name 'X'") refers to a symbol the
+// patch itself deleted (present in originalContent, absent in proposedContent), and
+// returns a hint listing the lines where X is still referenced in the proposed file.
+export function buildRemovedSymbolHint(
+  introduced: ts.Diagnostic[],
+  proposed?: string | null,
+  original?: string | null,
+): string {
+  if (!proposed || !original) return '';
+  const nameErrors = introduced.filter(d => d.code === 2304);
+  if (nameErrors.length === 0) return '';
+  const removedNames = new Set<string>();
+  for (const m of original.matchAll(/\b([A-Za-z_$][A-Za-z0-9_$]*)\b/g)) {
+    const name = m[1];
+    // A declaration of `name` in the original that is absent in the proposed means
+    // the patch deleted it. We match declaration shapes (param, binding, def) rather
+    // than mere token presence, because the name may still appear as a *usage* in the
+    // proposed file (e.g. `app.listen(port)`) — that usage is exactly what breaks.
+    const declRe = new RegExp(
+      `(?:\\b(?:const|let|var|function|class|interface|type|enum)\\s+${name}\\b` +
+      `|[(,\\s]\\s*${name}\\s*\\??\\s*:` +
+      `|\\b${name}\\s*=\\s)`,
+    );
+    if (declRe.test(original) && !declRe.test(proposed)) removedNames.add(name);
+  }
+  if (removedNames.size === 0) return '';
+  const lines = proposed.split('\n');
+  const hints: string[] = [];
+  for (const err of nameErrors) {
+    const mm = err.messageText && typeof err.messageText === 'string'
+      ? err.messageText.match(/Cannot find name '([^']+)'/)
+      : null;
+    const name = mm ? mm[1] : null;
+    if (!name || !removedNames.has(name)) continue;
+    const refs: number[] = [];
+    const usageRe = new RegExp(`\\b${name}\\b`);
+    lines.forEach((ln, i) => {
+      if (usageRe.test(ln) && !new RegExp(`\\b(?:const|let|var|function|class|interface|type|enum)\\s+${name}\\b`).test(ln)) {
+        refs.push(i + 1);
+      }
+    });
+    if (refs.length > 0) {
+      hints.push(`'${name}' was removed by this patch but is still referenced at line(s) ${refs.join(', ')}. Remove or update those usages in the same edit (or read the current file and fix them together) — do not re-propose the same partial change.`);
+    }
+  }
+  return hints.length > 0 ? `\n\nHint: ${hints.join(' ')}` : '';
 }
 
 function safeRead(filePath: string): string | null {
