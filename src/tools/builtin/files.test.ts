@@ -86,6 +86,46 @@ describe('patchFile — fuzzy whitespace matching', () => {
   });
 });
 
+describe('patchFile — Unicode punctuation normalization', () => {
+  let tmpDir: string;
+
+  beforeEach(() => { tmpDir = makeTmpDir(); });
+  afterEach(() => { fs.rmSync(tmpDir, { recursive: true, force: true }); });
+
+  it('matches old_string using a hyphen against a file containing an en-dash', async () => {
+    // The file uses an en-dash (U+2013) in the comment; the agent's old_string uses a
+    // regular hyphen. Previously this failed with "Old string not found"; now it should
+    // match and apply, preserving the original en-dash byte in untouched regions.
+    const file = path.join(tmpDir, 'test.js');
+    fs.writeFileSync(file, '// Start listening (optional \u2013 caller may also listen)\nconst x = 1;\n');
+    const ctx = makeContext(tmpDir);
+
+    const result = await patchFile(
+      { path: file, old_string: '// Start listening (optional - caller may also listen)\nconst x = 1;', new_string: '// Start listening (optional \u2013 caller may also listen)\nconst x = 2;' },
+      ctx,
+    );
+
+    expect(result.success).toBe(true);
+    const after = fs.readFileSync(file, 'utf8');
+    expect(after).toContain('const x = 2;');
+    expect(after).toContain('\u2013'); // original en-dash preserved
+  });
+
+  it('matches straight quotes against smart quotes in old_string', async () => {
+    const file = path.join(tmpDir, 'test.js');
+    fs.writeFileSync(file, 'const msg = \u201Chello\u201D;\n');
+    const ctx = makeContext(tmpDir);
+
+    const result = await patchFile(
+      { path: file, old_string: 'const msg = "hello";', new_string: 'const msg = "hi";' },
+      ctx,
+    );
+
+    expect(result.success).toBe(true);
+    expect(fs.readFileSync(file, 'utf8')).toContain('const msg = "hi";');
+  });
+});
+
 describe('patchFile — context-aware hint on failure', () => {
   let tmpDir: string;
 
