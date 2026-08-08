@@ -1,3 +1,10 @@
+# [3.21.0](https://github.com/bgill55/daedalus/compare/v3.20.10...v3.21.0) (2026-08-08)
+
+
+### Features
+
+* **ui:** replace lightning bolt ⚡ with winged emblem 🪽 in Daedalus CLI header ([ce3ad14](https://github.com/bgill55/daedalus/commit/ce3ad1416477f3e55a17436ac15fb611e3ac85c5))
+
 ## [3.20.10](https://github.com/bgill55/daedalus/compare/v3.20.9...v3.20.10) (2026-08-08)
 
 
