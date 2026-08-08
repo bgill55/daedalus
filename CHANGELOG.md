@@ -1,3 +1,10 @@
+## [3.20.8](https://github.com/bgill55/daedalus/compare/v3.20.7...v3.20.8) (2026-08-08)
+
+
+### Bug Fixes
+
+* **tools:** label patch failures by real category (Syntax vs Type) with file:line ([#71](https://github.com/bgill55/daedalus/issues/71)) ([6db3d9c](https://github.com/bgill55/daedalus/commit/6db3d9c22b953b1a99b995ce3e3d900c8c8f6a1c))
+
 ## [3.20.7](https://github.com/bgill55/daedalus/compare/v3.20.6...v3.20.7) (2026-08-08)
 
 
