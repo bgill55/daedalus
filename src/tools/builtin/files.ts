@@ -221,7 +221,7 @@ export async function writeFile(args: { path: string; content: string }, context
         fs.unlinkSync(targetPath);
         context.sessionReadCache?.delete(targetPath);
       }
-      return formatError(`Syntax error in ${args.path} — file reverted.\n${syntaxError}\nFix the error and retry.`);
+      return formatError(`${syntaxError}\n\nFile reverted: ${args.path}. Fix the error and retry.`);
     }
 
     if (context.patchHistory) {
@@ -368,7 +368,7 @@ export async function patchFile(args: { path: string; old_string: string; new_st
       if (syntaxError) {
         fs.writeFileSync(targetPath, rawContent, 'utf8');
         recordRevert(targetPath, context);
-        return formatError(`Syntax error introduced by patch — reverted.\n${syntaxError}\nAnalyze the TypeScript/JavaScript compiler error above, check your brackets, semicolons, import declarations, and type definitions, and retry with a corrected patch.`);
+        return formatError(`${syntaxError}\n\nAnalyze the compiler error above (note the file path and line:column shown), check your brackets, semicolons, import declarations, and type definitions, and retry with a corrected patch.`);
       }
       if (context.patchHistory) {
         context.patchHistory.push({
@@ -420,7 +420,7 @@ export async function patchFile(args: { path: string; old_string: string; new_st
     if (syntaxError) {
       fs.writeFileSync(targetPath, rawContent, 'utf8');
       recordRevert(targetPath, context);
-      return formatError(`Syntax error introduced by patch — reverted.\n${syntaxError}\nAnalyze the TypeScript/JavaScript compiler error above, check your brackets, semicolons, import declarations, and type definitions, and retry with a corrected patch.`);
+      return formatError(`${syntaxError}\n\nAnalyze the compiler error above (note the file path and line:column shown), check your brackets, semicolons, import declarations, and type definitions, and retry with a corrected patch.`);
     }
 
     if (diffResult.decision === 'all') {

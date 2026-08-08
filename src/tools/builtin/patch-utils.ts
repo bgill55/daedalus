@@ -309,7 +309,7 @@ function formatDiagnostic(d: ts.Diagnostic): string {
   const msg = ts.flattenDiagnosticMessageText(d.messageText, '\n');
   const pos = d.file && d.start !== undefined ? d.file.getLineAndCharacterOfPosition(d.start) : null;
   const loc = pos ? `(${pos.line + 1},${pos.character + 1})` : '';
-  const name = d.file ? path.basename(d.file.fileName) : '?';
+  const name = d.file ? d.file.fileName : '?';
   return `${name}${loc}: error TS${d.code}: ${msg}`;
 }
 
@@ -354,7 +354,7 @@ export async function syntaxCheck(
     // A genuine syntax break (bad brackets, stray token) fails here regardless of
     // the rest of the project, and we never touch disk to discover it.
     const transpileDiag = transpileContent(content, targetAbs);
-    if (transpileDiag) return transpileDiag;
+    if (transpileDiag) return `Syntax error introduced by patch — reverted.\n${transpileDiag}`;
 
     // 2) Type-error gate: compile the proposed content in memory and diff its
     // (code:line) diagnostics against the original content. Only NEWLY INTRODUCED
@@ -399,7 +399,7 @@ export async function syntaxCheck(
     // together instead of retrying.
     const removedSymbolHint = buildRemovedSymbolHint(introduced, proposedContent, originalContent);
 
-    return `${allErrors.join('\n')}${misplacedHint}${removedSymbolHint}`;
+    return `Type error introduced by patch — reverted.\n${allErrors.join('\n')}${misplacedHint}${removedSymbolHint}`;
   }
 
   if (ext === '.js' || ext === '.mjs' || ext === '.cjs') {
@@ -412,7 +412,7 @@ export async function syntaxCheck(
     });
     if (result.status !== 0) {
       const output = (result.stderr ?? result.stdout ?? '').split('\n')[0];
-      return output || 'Syntax error detected';
+      return `Syntax error introduced by patch — reverted.\n${output || 'Syntax error detected'}`;
     }
   }
 
