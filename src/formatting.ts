@@ -3,10 +3,41 @@ import type { ToolCall } from './types.js';
 import { TOOL_IMPLEMENTATIONS } from './tools/definitions.js';
 
 export const termW = Math.max(50, (process.stdout.columns ?? 80) - 5);
-const bar = pc.dim('│');
 
 function stripAnsi(str: string): string {
   return str.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '');
+}
+
+// Display (cell) width of a string. ANSI codes contribute 0; most chars are 1 cell,
+// but East-Asian Wide / Fullwidth / CJK / pictographic (emoji) glyphs occupy 2 cells
+// in a terminal. Box-drawing chars (U+2500–U+257F) are intentionally 1 cell. Using
+// string.length (or stripAnsi length) here is what makes boxes misalign when a header
+// contains an emoji like ⚡ — that glyph is 2 cells wide but was counted as 1.
+function isWide(ch: string): boolean {
+  const cp = ch.codePointAt(0) ?? 0;
+  return (
+    (cp >= 0x1100 && cp <= 0x115f) || // Hangul Jamo
+    (cp >= 0x2e80 && cp <= 0x303e) || // CJK radicals
+    (cp >= 0x3041 && cp <= 0x33ff) || // Hiragana, Katakana, CJK
+    (cp >= 0x3400 && cp <= 0x4dbf) || // CJK Ext A
+    (cp >= 0x4e00 && cp <= 0x9fff) || // CJK Unified
+    (cp >= 0xac00 && cp <= 0xd7a3) || // Hangul Syllables
+    (cp >= 0xf900 && cp <= 0xfaff) || // CJK Compatibility
+    (cp >= 0xfe30 && cp <= 0xfe4f) || // CJK Compatibility Forms
+    (cp >= 0xff00 && cp <= 0xff60) || // Fullwidth forms
+    (cp >= 0xffe0 && cp <= 0xffe6) || // Fullwidth symbols
+    (cp >= 0x1f000 && cp <= 0x1faff) || // Emoji / pictographs
+    (cp >= 0x2600 && cp <= 0x27bf) // Misc symbols + Dingbats (includes ⚡)
+  );
+}
+
+export function displayWidth(str: string): number {
+  const clean = stripAnsi(str);
+  let w = 0;
+  for (const ch of clean) {
+    w += isWide(ch) ? 2 : 1;
+  }
+  return w;
 }
 
 function sepLine(char = '─', len = 40): string {
@@ -137,29 +168,49 @@ function getBoxWidth(): number {
 export function openAssistantBlock(): void {
   collapseCommentary();
   _lastBoxW = getBoxWidth();
-  const prefixVis = 16; // '  ╭─ ⚡ Daedalus '.length
-  const dashes = Math.max(2, _lastBoxW - prefixVis - 1);
-  console.log(`\n${pc.cyan('  ╭─ ')}${pc.bold(pc.cyan('⚡ Daedalus '))}${pc.cyan('─'.repeat(dashes))}${pc.cyan('╮')}`);
+  // Straight top rule: title padded to a fixed width with displayWidth-aware padding
+  // so an emoji in the title (⚡ = 2 cells) can't throw the alignment off.
+  printRule(`${pc.bold(pc.cyan('⚡ Daedalus'))}`);
 }
 
+// Horizontal rule of exactly _lastBoxW cells. `content` (if any) is placed at the
+// start and the rest is filled with '─'. Uses displayWidth so wide glyphs count as 2.
+function printRule(content: string): void {
+  const inner = '─'.repeat(Math.max(2, _lastBoxW - 2));
+  const prefix = '  ';
+  if (!content) {
+    console.log(`${prefix}${pc.cyan(inner)}`);
+    return;
+  }
+  const vis = displayWidth(content);
+  const fill = '─'.repeat(Math.max(0, _lastBoxW - 2 - vis));
+  console.log(`${prefix}${pc.cyan(content)}${pc.cyan(fill)}`);
+}
+
+// Box geometry: total visible width = _lastBoxW (includes the 2-space indent).
+// Body lines are indented text (no side rails); they wrap at _lastBoxW - 2.
 function printBoxLine(line: string): void {
-  const innerW = Math.max(30, _lastBoxW - 6);
+  const innerW = Math.max(20, _lastBoxW - 2);
   const parts = wrapLine(line, innerW);
   for (const part of parts) {
-    console.log(`  ${part}`);
+    const vis = displayWidth(part);
+    const pad = Math.max(0, innerW - vis);
+    console.log(`  ${part}${' '.repeat(pad)}`);
   }
 }
 
 function emitCodeBlock(): void {
   if (_codeLines.length === 0) return;
-  const innerW = Math.max(30, _lastBoxW - 6);
+  const innerW = Math.max(20, _lastBoxW - 2);
   const lineDigits = String(_codeLines.length).length;
   for (let i = 0; i < _codeLines.length; i++) {
     const lineNo = String(i + 1).padStart(lineDigits);
     const content = _codeLines[i];
     const wrapped = wrapLine(content, innerW - lineDigits - 3);
     for (const part of wrapped) {
-      console.log(`  ${bar} ${pc.dim(`${lineNo} │`)} ${part}`);
+      const vis = displayWidth(part);
+      const pad = Math.max(0, innerW - lineDigits - 3 - vis);
+      console.log(`  ${pc.dim(`${lineNo} │`)} ${part}${' '.repeat(pad)}`);
     }
   }
   _codeLines = [];
@@ -236,13 +287,17 @@ export function closeAssistantBlock(
   }
 
   const rawStats = parts.join(' · ');
-  const prefixVis = 5; // '  ╰─ '.length
-  const suffixVis = 1; // '╯'.length
-  const minRequiredW = prefixVis + rawStats.length + 4;
-  const targetW = Math.max(_lastBoxW, minRequiredW);
-
-  const dashes = Math.max(2, targetW - prefixVis - rawStats.length - 2);
-  console.log(`${pc.cyan('  ╰─ ')}${pc.dim(rawStats)} ${pc.cyan('─'.repeat(dashes))}${pc.cyan('╯')}`);
+  // Bottom rule: stats as the leading content, filled to a fixed width. Truncate with
+  // an ellipsis if the stats are longer than the box so the rule stays exactly _lastBoxW.
+  let stats = rawStats;
+  const avail = _lastBoxW - 2;
+  if (displayWidth(stats) > avail) {
+    // Reserve 1 cell for the trailing '…' so the truncated stats + ellipsis fit.
+    let s = stats;
+    while (displayWidth(s) > avail - 1) s = s.slice(0, -1);
+    stats = s.trimEnd() + '…';
+  }
+  printRule(pc.dim(stats));
 }
 
 // ── Inline markdown ────────────────────────────────────────────
@@ -440,7 +495,7 @@ export function parseTextToolCalls(text: string): ToolCall[] {
     const pipeToolCallRe = /<\|?tool_?call\|?>\s*(?:call:)?([a-zA-Z0-9_-]+)\s*(\{[\s\S]*?\}|\([\s\S]*?\))\s*<\|?tool_?call\|?>?/g;
     let pipeMatch;
     while ((pipeMatch = pipeToolCallRe.exec(text)) !== null) {
-      let rawName = pipeMatch[1].toLowerCase();
+      const rawName = pipeMatch[1].toLowerCase();
       const rawBody = pipeMatch[2].trim();
       
       let toolName = rawName;
