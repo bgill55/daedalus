@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { extractErrorLines, normalizeErrorLine, syntaxCheck, recordRevert, recordWriteSuccess, checkGlobalPatchBreaker } from './patch-utils.js';
+import { extractErrorLines, normalizeErrorLine, syntaxCheck, recordRevert, recordWriteSuccess, checkGlobalPatchBreaker, buildRemovedSymbolHint } from './patch-utils.js';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -213,3 +213,28 @@ describe('global patch-failure loop breaker', () => {
     expect(checkGlobalPatchBreaker(ctx)).toBeNull();
   });
 });
+
+describe('buildRemovedSymbolHint', () => {
+  function diag(message: string): any {
+    return { code: 2304, messageText: message };
+  }
+
+  it('points at still-referenced lines when the patch removed a symbol', () => {
+    const original = 'function foo(port: number) {\n  app.listen(port);\n}\ncreateApp(DEFAULT_PORT);';
+    const proposed = 'function foo() {\n  app.listen(port);\n}\ncreateApp(DEFAULT_PORT);';
+    const hint = buildRemovedSymbolHint([diag("Cannot find name 'port'.")], proposed, original);
+    expect(hint).toContain("'port' was removed by this patch");
+    expect(hint).toContain('line(s) 2'); // app.listen(port) is on line 2 of proposed
+    expect(hint).toContain('do not re-propose the same partial change');
+  });
+
+  it('returns empty when no TS2304 errors', () => {
+    expect(buildRemovedSymbolHint([diag('Something else')], 'x', 'x')).toBe('');
+  });
+
+  it('returns empty when the name was not removed by the patch', () => {
+    const both = 'const port = 1;\nconsole.log(port);';
+    expect(buildRemovedSymbolHint([diag("Cannot find name 'port'.")], both, both)).toBe('');
+  });
+});
+
