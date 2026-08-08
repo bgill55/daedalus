@@ -13,4 +13,10 @@ describe('systemPrompt', () => {
     expect(systemPrompt).toMatch(/ZERO Narration & ZERO Re-proposing/);
     expect(systemPrompt).toMatch(/Permission is granted/);
   });
+
+  it('should instruct the agent to verify state with tools before assuming reported errors', () => {
+    expect(systemPrompt).toMatch(/VERIFY BEFORE ASSUMING/);
+    expect(systemPrompt).toMatch(/npx tsc --noEmit/);
+    expect(systemPrompt).toMatch(/do NOT re-derive the same/i);
+  });
 });
