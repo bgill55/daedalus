@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { formatMarkdownPRReply, closeAssistantBlock } from './formatting.js';
+import { formatMarkdownPRReply, closeAssistantBlock, openAssistantBlock, displayWidth } from './formatting.js';
 
 describe('closeAssistantBlock', () => {
   let consoleSpy: ReturnType<typeof vi.spyOn>;
@@ -36,6 +36,25 @@ describe('closeAssistantBlock', () => {
     expect(text).toContain('2 tool(s)');
     expect(text).toContain('1.0k out');
     expect(text).toContain('500.0 tok/s');
+  });
+
+  it('bottom rule width matches the top rule when stats are long', () => {
+    // Simulate an open+close so _lastBoxW is set from a fixed terminal width.
+    process.stdout.columns = 80;
+    openAssistantBlock();
+    // Long stats line that previously made the bottom wider than the top.
+    closeAssistantBlock(12345, 9876, 4, 'freellmapi-gemini-3.5-flash-preview', 12345);
+    // Each console.log call is one string (may contain an embedded leading \n).
+    const allLines = consoleSpy.mock.calls
+      .map(c => String(c[0]))
+      .flatMap(s => s.split('\n'));
+    const top = allLines.find(l => l.includes('⚡'))!;
+    const bot = allLines.find(l => l.includes('·'))!;
+    // displayWidth counts terminal cell width (emoji/wide glyphs = 2 cells). Both rules
+    // must be exactly _lastBoxW wide (cols - 6 = 74) so the box frame stays aligned.
+    const expected = 80 - 6;
+    expect(displayWidth(top)).toBe(expected);
+    expect(displayWidth(bot)).toBe(expected);
   });
 });
 
