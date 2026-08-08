@@ -4,6 +4,7 @@ import {
   countIncompleteTodos,
   detectFalseCompletion,
   falseCompletionWarning,
+  detectFalseCompletionOnDisk,
 } from './completion-guard.js';
 import type { SqliteTodo } from '../session/sqlite.js';
 
@@ -51,5 +52,35 @@ describe('completion-guard', () => {
 
   it('warning names the remaining count', () => {
     expect(falseCompletionWarning(3)).toContain('3 todo item(s)');
+  });
+});
+
+describe('detectFalseCompletionOnDisk', () => {
+  function ctx(opts: { history?: string[]; streak?: string[]; total?: number }): any {
+    return {
+      patchHistory: (opts.history ?? []).map(f => ({ filePath: f })),
+      patchFailureStreak: new Map((opts.streak ?? []).map(f => [f, 1])),
+      patchFailureTotal: opts.total ?? (opts.streak?.length ?? 0),
+    };
+  }
+
+  it('returns null when the claimed file was successfully patched', () => {
+    const c = ctx({ history: ['/repo/src/server.ts'], streak: ['/repo/src/server.ts'] });
+    expect(detectFalseCompletionOnDisk('Fixed createApp in src/server.ts', c)).toBeNull();
+  });
+
+  it('flags a file that was only reverted and never written', () => {
+    const c = ctx({ history: [], streak: ['/repo/src/server.ts'] });
+    expect(detectFalseCompletionOnDisk('All issues resolved, createApp no longer starts the server (src/server.ts)', c)).toBe('src/server.ts');
+  });
+
+  it('flags a session with reverts but no successful patch at all', () => {
+    const c = ctx({ history: [], streak: ['/repo/src/server.ts'], total: 3 });
+    expect(detectFalseCompletionOnDisk('All issues resolved', c)).toBe('(no successful patch recorded this session)');
+  });
+
+  it('returns null for a plain completion claim with no file mentions and no reverts', () => {
+    const c = ctx({ history: [], streak: [] });
+    expect(detectFalseCompletionOnDisk('All tasks complete.', c)).toBeNull();
   });
 });

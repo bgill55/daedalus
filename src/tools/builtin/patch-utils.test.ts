@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { extractErrorLines, normalizeErrorLine, syntaxCheck } from './patch-utils.js';
+import { extractErrorLines, normalizeErrorLine, syntaxCheck, recordRevert, recordWriteSuccess, checkGlobalPatchBreaker } from './patch-utils.js';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -177,5 +177,39 @@ describe('syntaxCheck file-scoping', () => {
     fs.rmSync(dir, { recursive: true, force: true });
     expect(err).not.toBeNull();
     expect(err).toContain('imports must be at the TOP LEVEL');
+  });
+});
+
+describe('global patch-failure loop breaker', () => {
+  function blankContext(): any {
+    return { patchFailureStreak: new Map<string, number>() };
+  }
+
+  it('does not trip below the limit', () => {
+    const ctx = blankContext();
+    recordRevert('/p/a.ts', ctx);
+    recordRevert('/p/a.ts', ctx);
+    expect(checkGlobalPatchBreaker(ctx)).toBeNull();
+    expect(ctx.patchFailureTotal).toBe(2);
+  });
+
+  it('trips at 3 total reverts regardless of file or intervening reads', () => {
+    const ctx = blankContext();
+    recordRevert('/p/a.ts', ctx);
+    recordRevert('/p/b.ts', ctx); // different file — per-path breaker would miss this
+    recordRevert('/p/a.ts', ctx);
+    const msg = checkGlobalPatchBreaker(ctx);
+    expect(msg).not.toBeNull();
+    expect(msg).toContain('[PATCH CIRCUIT BREAKER]');
+    expect(ctx.patchFailureTotal).toBe(3);
+  });
+
+  it('resets the total on a successful write', () => {
+    const ctx = blankContext();
+    recordRevert('/p/a.ts', ctx);
+    recordRevert('/p/a.ts', ctx);
+    recordWriteSuccess('/p/a.ts', ctx);
+    expect(ctx.patchFailureTotal).toBe(0);
+    expect(checkGlobalPatchBreaker(ctx)).toBeNull();
   });
 });

@@ -2,7 +2,7 @@ import pc from 'picocolors';
 import { BUILTIN_TOOLS, POWER_TOOLS } from './tools/definitions.js';
 import { executeToolCalls } from './tools/executor.js';
 import { getSessionTodos } from './tools/builtin/todo.js';
-import { detectFalseCompletion, falseCompletionWarning } from './agents/completion-guard.js';
+import { detectFalseCompletion, falseCompletionWarning, detectFalseCompletionOnDisk } from './agents/completion-guard.js';
 import { mcpRegistry } from './tools/mcp/registry.js';
 import { DaedalusSpinner } from './tools/daedalus-spinner.js';
 import { calculateSessionTokens, pruneMessages } from './session/tokens.js';
@@ -415,6 +415,21 @@ export function createModelFunctions(deps: ModelDeps) {
           continue;
         }
 
+        // Hard guard (on-disk): do not let the agent claim a fix/completion for a file it
+        // only ever reverted patches against this session and never successfully wrote.
+        // Catches the false "All issues resolved" report where the edit was attempted but
+        // reverted by the syntax guard and never actually landed on disk.
+        const falselyClaimed = detectFalseCompletionOnDisk(cleanContent, toolContext);
+        if (falselyClaimed) {
+          console.log(pc.red(`\n  [GUARD] Completion claim blocked — no successful patch to ${falselyClaimed} this session (only reverts).`));
+          messages.push({ role: 'assistant', content: cleanContent });
+          messages.push({
+            role: 'user',
+            content: `[SYSTEM WARNING] You claimed a fix/completion involving ${falselyClaimed}, but this session has NO successful patch to that file — only patches the syntax guard reverted. Reconcile with disk reality: either (1) actually apply and verify the change (run build/test and confirm it on disk), or (2) report the blocker honestly instead of claiming it is done. Do NOT report completion for changes that were not written.`,
+          } as ChatMessage);
+          continue;
+        }
+
         messages.push({ role: 'assistant', content: cleanContent });
         return { content: cleanContent, toolCalls: [] };
       }
@@ -624,6 +639,14 @@ export function createModelFunctions(deps: ModelDeps) {
           role: 'user',
           content: `[SYSTEM WARNING] ${detail}You MUST change your approach: stop re-running the same failing command; read the error message, use a different tool or strategy, or stop and summarize the blocker to the user.`,
         } as ChatMessage);
+      }
+
+      // Hard stop: a patch circuit breaker fired this turn. The agent exhausted its
+      // patch-attempt budget and must not keep retrying or escalating models — force the
+      // turn to close so it reports the blocker to the user instead of looping.
+      if (failedResults.some(r => `${r.error ?? ''}\n${r.content ?? ''}`.includes('[PATCH CIRCUIT BREAKER]'))) {
+        closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
+        return { content: `${lastContent}\n\n[SYSTEM] Patch circuit breaker tripped — too many reverted patches this session. Stopping to avoid a loop. Report the blocker to the user.`, toolCalls: [] };
       }
 
       const routerConfig = typeof router.getConfig === 'function' ? router.getConfig() : undefined;

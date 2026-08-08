@@ -13,6 +13,7 @@ import {
   syntaxCheck,
   checkWriteWithoutRead,
   checkCircuitBreaker,
+  checkGlobalPatchBreaker,
   recordWriteSuccess,
   recordRevert,
   recordPatchFailure,
@@ -261,6 +262,9 @@ export async function patchFile(args: { path: string; old_string: string; new_st
     if (detectPlaceholders(args.new_string) && !detectPlaceholders(args.old_string)) {
       return formatError(`Code placeholders like '// ...' or '/* ... */' detected in new_string. You must write the complete, fully realized code. Do NOT abbreviate code.`);
     }
+    const globalBreaker = checkGlobalPatchBreaker(context);
+    if (globalBreaker) return formatError(globalBreaker);
+
     const targetPath = resolvePath(args.path, context.projectRoot);
     if (!fs.existsSync(targetPath)) {
       return formatError(`File not found: ${args.path}. Check the spelling and file extension, or run search_files / list_files to verify the correct path.`);

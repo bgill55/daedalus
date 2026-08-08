@@ -8,6 +8,7 @@
 // loop refuses to return and injects a blocking SYSTEM WARNING instead.
 
 import type { SqliteTodo } from '../session/sqlite.js';
+import type { ToolContext } from '../types.js';
 
 // Phrases that assert WHOLE-TASK completion (not a partial/local "X completed").
 // Scoped to global wrap-up claims so we don't fire on "the build completed".
@@ -41,4 +42,39 @@ export function falseCompletionWarning(remaining: number): string {
     `mark them completed via the todo tool BEFORE claiming completion. Reconcile the todo list with ` +
     `reality, then report accurately.`
   );
+}
+
+// On-disk verification of a completion/fix claim. A whole-task or "I fixed X" claim is a
+// false report when it references a file that the agent reverted patches against this
+// session but never successfully patched. This catches the exact case where the agent
+// says "All issues resolved" / "createApp no longer starts the server" while the change
+// was only ever attempted (and reverted by the syntax guard) and never actually written.
+//
+// `context` is the live ToolContext carrying patchHistory (successful patches) and
+// patchFailureStreak (per-file revert counts). Returns the first falsely-claimed file
+// path, or null when the claim is consistent with what was actually written.
+const FILE_MENTION_RE = /(?:src[\\/])?[\w.-]+\.(?:ts|tsx|js|mjs|cjs|jsx|py|go|rs|java|cs|rb|php)(?::\d+)?/gi;
+
+export function detectFalseCompletionOnDisk(text: string, context: ToolContext | undefined): string | null {
+  if (!text || !context) return null;
+  if (!isCompletionClaim(text) && !/\b(fix|fixed|refactor|refactored|resolved|removed|added|updated|changed)\b/i.test(text)) {
+    return null;
+  }
+  const history = context.patchHistory ?? [];
+  const streak = context.patchFailureStreak ?? new Map<string, number>();
+  const mentioned = text.match(FILE_MENTION_RE) ?? [];
+  for (const raw of mentioned) {
+    const base = raw.replace(/:\d+$/, '').replace(/^src[\\/]/, '').toLowerCase();
+    // Did we successfully patch this file at least once?
+    const succeeded = history.some(h => h.filePath.toLowerCase().replace(/^.*[\\/]/, '').replace(/^src[\\/]/, '') === base.split(/[\\/]/).pop());
+    if (succeeded) continue;
+    // Did we revert patches against it?
+    const reverted = [...streak.keys()].some(k => k.toLowerCase().replace(/^.*[\\/]/, '').replace(/^src[\\/]/, '') === base.split(/[\\/]/).pop());
+    if (reverted) return raw;
+  }
+  // Session had reverts but no successful patches at all, and the message asserts a fix.
+  if ((context.patchFailureTotal ?? 0) > 0 && history.length === 0 && /\b(fix|fixed|refactor|refactored|resolved|all issues|done)\b/i.test(text)) {
+    return '(no successful patch recorded this session)';
+  }
+  return null;
 }
