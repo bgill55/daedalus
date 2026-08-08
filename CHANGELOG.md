@@ -1,3 +1,10 @@
+## [3.20.5](https://github.com/bgill55/daedalus/compare/v3.20.4...v3.20.5) (2026-08-08)
+
+
+### Bug Fixes
+
+* **tools:** point the patch guard at the real cause when a removed symbol is still referenced ([#68](https://github.com/bgill55/daedalus/issues/68)) ([5642bd5](https://github.com/bgill55/daedalus/commit/5642bd55fd047d0cd767c6a4733c12e7858d5092))
+
 ## [3.20.4](https://github.com/bgill55/daedalus/compare/v3.20.3...v3.20.4) (2026-08-08)
 
 
