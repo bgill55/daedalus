@@ -1,3 +1,10 @@
+## [3.20.7](https://github.com/bgill55/daedalus/compare/v3.20.6...v3.20.7) (2026-08-08)
+
+
+### Bug Fixes
+
+* **tools:** normalize Unicode punctuation variants when matching patch old_string ([#70](https://github.com/bgill55/daedalus/issues/70)) ([5f40031](https://github.com/bgill55/daedalus/commit/5f4003127c0e93603f2b99251095417fe17003dc))
+
 ## [3.20.6](https://github.com/bgill55/daedalus/compare/v3.20.5...v3.20.6) (2026-08-08)
 
 
