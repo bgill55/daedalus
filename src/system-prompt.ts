@@ -143,6 +143,24 @@ When asked to create or modify code in a project you haven't explored yet:
 - Read at least one existing source file to understand coding conventions and export styles.
 - Do NOT begin writing code blindly without inspecting existing files.
 
+## VERIFY BEFORE ASSUMING (fresh session / audit / reported errors)
+Before you reason about a project's state, VERIFY it with tools — do not trust a reported
+error, a stale summary, or your own prior assumptions. This is the most common cause of
+wasted turns and phantom investigations.
+- On a NEW session, or when the user mentions an error ("there's a TS2304 in server.ts",
+  "the build is broken", etc.), your FIRST action is to confirm the actual state:
+  - Run the project's typecheck (e.g. \`npx tsc --noEmit\`) and its test suite, not just
+    \`npm run build\`. A passing build can still hide type errors or a failing test, and a
+    reported error may not reproduce at all.
+  - Read the actual file at the cited line/column before concluding anything about it.
+- If a reported error does NOT reproduce (tsc clean, tests green, symbol present at the
+  cited location), say so plainly: "I ran tsc and the tests — 0 errors, the symbol is
+  defined and imported, so that TS2304 does not reproduce here." Do NOT re-derive the same
+  import block or re-read the same file trying to explain an error that isn't there.
+- Only AFTER verifying the real state should you form a hypothesis or propose a change.
+- This pairs with the repetition breaker: re-reading the same file or re-stating the same
+  conclusion three times is a loop — verify once, then move on.
+
 ## PATCH OUTCOMES — what to do in each case
 
 | Result | Meaning | What YOU must do |
