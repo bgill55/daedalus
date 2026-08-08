@@ -467,6 +467,9 @@ export function checkCircuitBreaker(targetPath: string, context: ToolContext): s
 
 export function recordWriteSuccess(targetPath: string, context: ToolContext): void {
   getStreakMap(context).set(targetPath, 0);
+  // A successful patch to this file clears the session-wide loop counter too, so a
+  // later genuine failure on a different file/area starts the budget fresh.
+  context.patchFailureTotal = 0;
   if (context.sessionReadCache && fs.existsSync(targetPath)) {
     context.sessionReadCache.set(targetPath, fs.statSync(targetPath).mtimeMs);
   }
@@ -476,9 +479,33 @@ export function recordRevert(targetPath: string, context: ToolContext): void {
   const map = getStreakMap(context);
   const streak = map.get(targetPath) ?? 0;
   map.set(targetPath, streak + 1);
+  context.patchFailureTotal = (context.patchFailureTotal ?? 0) + 1;
   if (context.sessionReadCache && fs.existsSync(targetPath)) {
     context.sessionReadCache.set(targetPath, fs.statSync(targetPath).mtimeMs);
   }
+}
+
+// Global patch-failure loop breaker. Unlike the per-path streak (which resets on a
+// successful read of the same file), this counts EVERY syntax-reverting patch in the
+// session and is NOT cleared by intervening read_file calls. It exists to stop the
+// exact failure mode where an agent issues many differently-worded patches to the same
+// conceptual edit, each failing the in-memory syntax check, while interleaving reads
+// so the per-path/per-signature breakers never accumulate. After 3 total reverts the
+// caller must stop patching and produce a plan instead of retrying.
+export const PATCH_FAILURE_LIMIT = 3;
+
+export function checkGlobalPatchBreaker(context: ToolContext): string | null {
+  const total = context.patchFailureTotal ?? 0;
+  if (total >= PATCH_FAILURE_LIMIT) {
+    return (
+      `[PATCH CIRCUIT BREAKER] ${total} patch(es) were reverted by the in-memory syntax ` +
+      `check this session. Stop issuing further patches to this file/area. Diagnose the ` +
+      `root cause by reading the FULL current file, then either (1) produce a written plan ` +
+      `via the todo tool and a small, verified patch, or (2) report the blocker to the user ` +
+      `instead of looping. Do NOT keep retrying variations of the same edit.`
+    );
+  }
+  return null;
 }
 
 export function recordPatchFailure(targetPath: string, context: ToolContext): void {
