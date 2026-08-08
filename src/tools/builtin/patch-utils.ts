@@ -399,8 +399,6 @@ export function buildRemovedSymbolHint(
   original?: string | null,
 ): string {
   if (!proposed || !original) return '';
-  const nameErrors = introduced.filter(d => d.code === 2304);
-  if (nameErrors.length === 0) return '';
   const removedNames = new Set<string>();
   for (const m of original.matchAll(/\b([A-Za-z_$][A-Za-z0-9_$]*)\b/g)) {
     const name = m[1];
@@ -418,16 +416,12 @@ export function buildRemovedSymbolHint(
   if (removedNames.size === 0) return '';
   const lines = proposed.split('\n');
   const hints: string[] = [];
-  for (const err of nameErrors) {
-    const mm = err.messageText && typeof err.messageText === 'string'
-      ? err.messageText.match(/Cannot find name '([^']+)'/)
-      : null;
-    const name = mm ? mm[1] : null;
-    if (!name || !removedNames.has(name)) continue;
+  for (const name of removedNames) {
     const refs: number[] = [];
     const usageRe = new RegExp(`\\b${name}\\b`);
+    const declRe = new RegExp(`\\b(?:const|let|var|function|class|interface|type|enum)\\s+${name}\\b`);
     lines.forEach((ln, i) => {
-      if (usageRe.test(ln) && !new RegExp(`\\b(?:const|let|var|function|class|interface|type|enum)\\s+${name}\\b`).test(ln)) {
+      if (usageRe.test(ln) && !declRe.test(ln)) {
         refs.push(i + 1);
       }
     });
