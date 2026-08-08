@@ -1,3 +1,10 @@
+## [3.20.4](https://github.com/bgill55/daedalus/compare/v3.20.3...v3.20.4) (2026-08-08)
+
+
+### Bug Fixes
+
+* **agents:** block patch-failure loops and false completion claims on disk ([#67](https://github.com/bgill55/daedalus/issues/67)) ([46a7855](https://github.com/bgill55/daedalus/commit/46a78558027446a66b2ac1a30279e8feecd7ff15))
+
 ## [3.20.3](https://github.com/bgill55/daedalus/compare/v3.20.2...v3.20.3) (2026-08-07)
 
 
