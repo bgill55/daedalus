@@ -169,8 +169,8 @@ export function openAssistantBlock(): void {
   collapseCommentary();
   _lastBoxW = getBoxWidth();
   // Straight top rule: title padded to a fixed width with displayWidth-aware padding
-  // so an emoji in the title (⚡ = 2 cells) can't throw the alignment off.
-  printRule(`${pc.bold(pc.cyan('⚡ Daedalus'))}`);
+  // so an emoji in the title (🪽 = 2 cells) can't throw the alignment off.
+  printRule(`${pc.bold(pc.cyan('🪽 Daedalus'))}`);
 }
 
 // Horizontal rule of exactly _lastBoxW cells. `content` (if any) is placed at the

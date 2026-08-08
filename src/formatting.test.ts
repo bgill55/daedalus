@@ -48,7 +48,7 @@ describe('closeAssistantBlock', () => {
     const allLines = consoleSpy.mock.calls
       .map(c => String(c[0]))
       .flatMap(s => s.split('\n'));
-    const top = allLines.find(l => l.includes('⚡'))!;
+    const top = allLines.find(l => l.includes('Daedalus'))!;
     const bot = allLines.find(l => l.includes('·'))!;
     // displayWidth counts terminal cell width (emoji/wide glyphs = 2 cells). Both rules
     // must be exactly _lastBoxW wide (cols - 6 = 74) so the box frame stays aligned.
