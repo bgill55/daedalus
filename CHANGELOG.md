@@ -1,3 +1,10 @@
+## [3.20.6](https://github.com/bgill55/daedalus/compare/v3.20.5...v3.20.6) (2026-08-08)
+
+
+### Bug Fixes
+
+* **tools:** dedupe the removed-symbol patch hint (was emitted once per diagnostic) ([#69](https://github.com/bgill55/daedalus/issues/69)) ([be7b329](https://github.com/bgill55/daedalus/commit/be7b32905c01cf1454e7c64d2bd0c17693a6d074))
+
 ## [3.20.5](https://github.com/bgill55/daedalus/compare/v3.20.4...v3.20.5) (2026-08-08)
 
 
