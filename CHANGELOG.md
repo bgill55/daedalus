@@ -1,3 +1,10 @@
+## [3.22.1](https://github.com/bgill55/daedalus/compare/v3.22.0...v3.22.1) (2026-08-09)
+
+
+### Bug Fixes
+
+* **commands:** normalize leading slash on command aliases and trigger model execution when user accepts /enhance prompt ([1c49f17](https://github.com/bgill55/daedalus/commit/1c49f1768163de3519301ca65ef6c6c376b01976))
+
 # [3.22.0](https://github.com/bgill55/daedalus/compare/v3.21.1...v3.22.0) (2026-08-09)
 
 
