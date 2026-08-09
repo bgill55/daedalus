@@ -147,7 +147,11 @@ export async function executeCommand(input: string, ctx: CommandContext, _depth 
 
   const command = commandsList.find(c =>
     c.name.toLowerCase() === mappedName ||
-    c.aliases?.some(alias => alias.toLowerCase() === mappedName)
+    c.aliases?.some(alias => {
+      const a = alias.toLowerCase();
+      const slashed = a.startsWith('/') ? a : `/${a}`;
+      return a === mappedName || slashed === mappedName;
+    })
   );
 
   if (command) {

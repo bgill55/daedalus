@@ -1,4 +1,5 @@
 import pc from 'picocolors';
+import { printUserTurn } from '../formatting.js';
 import type { Command, CommandContext } from './types.js';
 
 export const ENHANCE_SYSTEM_PROMPT = `You are a prompt engineering specialist for AI coding agents. 
@@ -59,9 +60,16 @@ export const enhanceCommand: Command = {
       const confirm = await ctx.askLine(pc.green('Proceed with this enhanced prompt? (Y/n): '));
       const answer = confirm.trim().toLowerCase();
       if (answer === '' || answer === 'y' || answer === 'yes') {
-        // Execute enhanced prompt in session
-        ctx.messages.push({ role: 'user', content: enhanced });
-        return true; // Signal REPL to trigger model execution
+        if (typeof ctx.callModelWithTools === 'function') {
+          const indexCtx = typeof ctx.buildIndexContext === 'function' ? await ctx.buildIndexContext(enhanced) : '';
+          const filesCtx = typeof ctx.buildFileContext === 'function' ? ctx.buildFileContext() : '';
+          const userContent = `${indexCtx}${filesCtx}User Prompt: ${enhanced}`;
+          printUserTurn(enhanced);
+          await ctx.callModelWithTools(userContent);
+        } else {
+          ctx.messages.push({ role: 'user', content: enhanced });
+        }
+        return true;
       } else {
         console.log(pc.dim('  Enhanced prompt discarded.'));
       }

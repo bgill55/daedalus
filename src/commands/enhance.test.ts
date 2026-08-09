@@ -25,27 +25,23 @@ describe('enhanceCommand', () => {
   });
 
   it('enhanceCommand asks for prompt if empty and handles user response', async () => {
-    const mockRouter = {
-      chat: vi.fn().mockResolvedValue({
-        content: 'Enhanced prompt text',
-      }),
-    } as any;
-
     const askLineMock = vi.fn()
       .mockResolvedValueOnce('review server.ts') // raw prompt input
       .mockResolvedValueOnce('y'); // confirm y
 
     const mockCallModel = vi.fn().mockResolvedValue('Enhanced prompt text');
+    const mockCallTools = vi.fn().mockResolvedValue({ content: 'Model response', toolCalls: [] });
 
     const mockCtx = {
       callModelWithFallback: mockCallModel,
+      callModelWithTools: mockCallTools,
       askLine: askLineMock,
       messages: [],
     } as any;
 
     const shouldRun = await enhanceCommand.execute('', mockCtx);
     expect(shouldRun).toBe(true);
-    expect(mockCtx.messages.length).toBe(1);
-    expect(mockCtx.messages[0].content).toBe('Enhanced prompt text');
+    expect(mockCallTools).toHaveBeenCalledTimes(1);
+    expect(mockCallTools.mock.calls[0][0]).toContain('Enhanced prompt text');
   });
 });
