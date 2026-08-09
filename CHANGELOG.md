@@ -1,3 +1,10 @@
+## [3.22.3](https://github.com/bgill55/daedalus/compare/v3.22.2...v3.22.3) (2026-08-09)
+
+
+### Bug Fixes
+
+* **commands:** prohibit empty template placeholders in ENHANCE_SYSTEM_PROMPT to prevent LLM text-echo repetition loops ([42695d7](https://github.com/bgill55/daedalus/commit/42695d766f12c62b13254a8fbaa6bc03253a4cd8))
+
 ## [3.22.2](https://github.com/bgill55/daedalus/compare/v3.22.1...v3.22.2) (2026-08-09)
 
 
