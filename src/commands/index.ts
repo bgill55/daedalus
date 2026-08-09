@@ -9,6 +9,7 @@ import { spinnerCommands } from './spinner.js';
 import { skillsCommand } from './skills.js';
 import { presetCommand, modelManagerCommand } from './config.js';
 import { enhanceCommand } from './enhance.js';
+import { cheatsheetCommand } from './cheatsheet.js';
 import type { Command, CommandContext } from './types.js';
 
 export type { Command, CommandContext } from './types.js';
@@ -115,6 +116,7 @@ export const commandsList: Command[] = [
   feedbackCommand,
   skillsCommand,
   enhanceCommand,
+  cheatsheetCommand,
   helpCommand,
 ];
 
