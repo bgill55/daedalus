@@ -17,7 +17,7 @@ export interface CommandContext {
   messages: ChatMessage[];
   activeFiles: Map<string, string>;
   toolContext: ToolContext;
-  getSystemPromptWithMemory: () => string;
+  getSystemPromptWithMemory: (userRequest?: string) => string;
   callModelWithTools: (userContent: string, imageBase64?: string) => Promise<{ content: string; toolCalls: ToolCall[] }>;
   callModelWithFallback: (userContent: string, imageBase64?: string) => Promise<string>;
   rl: readline.Interface;

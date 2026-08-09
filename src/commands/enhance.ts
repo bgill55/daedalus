@@ -1,15 +1,17 @@
 import pc from 'picocolors';
-import { printUserTurn } from '../formatting.js';
+import { printUserTurn, turnSeparator } from '../formatting.js';
+import { extractAndSave } from '../extraction.js';
+import { getSessionTodos } from '../tools/builtin/todo.js';
 import type { Command, CommandContext } from './types.js';
 
-export const ENHANCE_SYSTEM_PROMPT = `You are a prompt engineering specialist for AI coding agents. 
-Expand the user's raw or casual request into a crisp, high-yield, structured prompt.
-Requirements:
-1. Specify clear scope and target areas.
-2. Include concrete structure expectations (e.g. tables for architecture, bulleted recommendations).
-3. Set explicit acceptance criteria (e.g. top 3 security/performance wins, test gaps).
-4. Keep the enhanced prompt direct and actionable.
-5. Return ONLY the enhanced prompt string without meta-commentary or wrapping quotes.`;
+export const ENHANCE_SYSTEM_PROMPT = `You are an expert prompt engineer for AI coding agents. 
+Expand the user's raw or casual request into a crisp, high-yield engineering prompt for Daedalus.
+Rules for the generated prompt:
+1. Direct the agent to inspect relevant files and codebase context before answering.
+2. Direct the agent to format its output cleanly with Markdown section headers, comparison tables, and bullet points.
+3. Specify concrete target deliverables (e.g. architecture table, test gap analysis, top 3 security/performance recommendations).
+4. NEVER request plain text without formatting or forbid markdown formatting.
+5. Return ONLY the final enhanced prompt text without meta-commentary, introductory remarks, or surrounding quote marks.`;
 
 export async function enhancePrompt(rawPrompt: string, ctx: CommandContext): Promise<string> {
   const fullPrompt = `${ENHANCE_SYSTEM_PROMPT}\n\nUser request to enhance: "${rawPrompt}"`;
@@ -25,7 +27,7 @@ export async function enhancePrompt(rawPrompt: string, ctx: CommandContext): Pro
     // Fallback if model call fails
   }
 
-  return `Review and analyze: "${rawPrompt}". Summarize key components, identify test gaps, and provide top 3 actionable improvement suggestions.`;
+  return `Review and analyze: "${rawPrompt}". Summarize key components, identify test gaps, and provide top 3 actionable improvement suggestions in Markdown tables.`;
 }
 
 export const enhanceCommand: Command = {
@@ -65,7 +67,17 @@ export const enhanceCommand: Command = {
           const filesCtx = typeof ctx.buildFileContext === 'function' ? ctx.buildFileContext() : '';
           const userContent = `${indexCtx}${filesCtx}User Prompt: ${enhanced}`;
           printUserTurn(enhanced);
+          if (ctx.messages.length > 0 && ctx.messages[0].role === 'system' && typeof ctx.getSystemPromptWithMemory === 'function') {
+            ctx.messages[0] = { role: 'system', content: ctx.getSystemPromptWithMemory(enhanced) };
+          }
           await ctx.callModelWithTools(userContent);
+          if (ctx.sessionManager?.sessionDb) {
+            ctx.sessionManager.saveSessionState(ctx.messages, ctx.activeFiles, getSessionTodos(ctx.sessionManager.sessionId));
+          }
+          if (ctx.router && ctx.sessionManager) {
+            await extractAndSave(ctx.router, ctx.sessionManager, ctx.messages);
+          }
+          turnSeparator();
         } else {
           ctx.messages.push({ role: 'user', content: enhanced });
         }
