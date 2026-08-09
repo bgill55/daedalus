@@ -42,6 +42,11 @@ describe('enhanceCommand', () => {
     const shouldRun = await enhanceCommand.execute('', mockCtx);
     expect(shouldRun).toBe(true);
     expect(mockCallTools).toHaveBeenCalledTimes(1);
-    expect(mockCallTools.mock.calls[0][0]).toContain('Enhanced prompt text');
+    const dispatched = mockCallTools.mock.calls[0][0] as string;
+    expect(dispatched).toContain('Enhanced prompt text');
+    // The enhanced prompt must be dispatched as a TASK TO EXECUTE, not re-labeled as a
+    // user prompt to enhance — otherwise the model re-enhances instead of answering.
+    expect(dispatched).toMatch(/Execute the following task:/);
+    expect(dispatched).not.toMatch(/User Prompt:\s*Enhanced prompt text/);
   });
 });
