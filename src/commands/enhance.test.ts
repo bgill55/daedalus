@@ -1,6 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
 import { enhancePrompt, enhanceCommand } from './enhance.js';
-import type { CommandContext } from './types.js';
 
 describe('enhanceCommand', () => {
   it('has name, aliases, description, and usage', () => {
@@ -48,12 +47,16 @@ describe('enhanceCommand', () => {
 
     const mockCallModel = vi.fn().mockResolvedValue('Enhanced prompt text');
     const mockCallTools = vi.fn().mockResolvedValue({ content: 'Model response', toolCalls: [] });
+    const sysPromptSpy = vi.fn().mockReturnValue('system prompt');
 
     const mockCtx = {
       callModelWithFallback: mockCallModel,
       callModelWithTools: mockCallTools,
+      getSystemPromptWithMemory: sysPromptSpy,
       askLine: askLineMock,
-      messages: [],
+      // The REPL always seeds messages[0] with the system prompt before the
+      // command runs; the enhance execution-turn guard relies on that.
+      messages: [{ role: 'system', content: 'existing system prompt' }],
     } as any;
 
     const shouldRun = await enhanceCommand.execute('', mockCtx);
@@ -65,5 +68,11 @@ describe('enhanceCommand', () => {
     // user prompt to enhance — otherwise the model re-enhances instead of answering.
     expect(dispatched).toMatch(/Execute the following task:/);
     expect(dispatched).not.toMatch(/User Prompt:\s*Enhanced prompt text/);
+    // REGRESSION GUARD: the execution-turn system prompt must be rebuilt from the
+    // USER'S ORIGINAL request, not the enhanced text. Using the enhanced text as the
+    // skill-match key let an audit prompt's "Pre-Flight Audit" phrase spuriously match
+    // the grade-and-fix-daedalus skill and hijack the turn (see a4c26bc regression).
+    expect(sysPromptSpy).toHaveBeenCalledTimes(1);
+    expect(sysPromptSpy).toHaveBeenCalledWith('review server.ts');
   });
 });
