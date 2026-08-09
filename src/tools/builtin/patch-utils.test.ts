@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { extractErrorLines, normalizeErrorLine, syntaxCheck, recordRevert, recordWriteSuccess, checkGlobalPatchBreaker, buildRemovedSymbolHint } from './patch-utils.js';
+import { extractErrorLines, normalizeErrorLine, syntaxCheck, preflightDependencyCheck, recordRevert, recordWriteSuccess, checkGlobalPatchBreaker, buildRemovedSymbolHint } from './patch-utils.js';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -235,6 +235,67 @@ describe('buildRemovedSymbolHint', () => {
   it('returns empty when the name was not removed by the patch', () => {
     const both = 'const port = 1;\nconsole.log(port);';
     expect(buildRemovedSymbolHint([diag("Cannot find name 'port'.")], both, both)).toBe('');
+  });
+});
+
+describe('preflightDependencyCheck (pre-write prevention gate)', () => {
+  function makeProject(withTypes: boolean): string {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'daedalus-preflight-'));
+    fs.writeFileSync(path.join(dir, 'tsconfig.json'), JSON.stringify({
+      compilerOptions: { strict: true, noEmit: true, skipLibCheck: true, esModuleInterop: true },
+    }));
+    // A resolvable package (express) + its types always present in the daemon's own node_modules
+    // is not what we test; instead we simulate a package present in node_modules with/without types.
+    const modDir = path.join(dir, 'node_modules', 'goodpkg');
+    fs.mkdirSync(modDir, { recursive: true });
+    fs.writeFileSync(path.join(modDir, 'package.json'), JSON.stringify(
+      withTypes ? { name: 'goodpkg', types: './index.d.ts' } : { name: 'goodpkg' },
+    ));
+    if (withTypes) fs.writeFileSync(path.join(modDir, 'index.d.ts'), 'export const ok = 1;\n');
+    return dir;
+  }
+
+  it('returns null when all imported packages resolve to types', () => {
+    const dir = makeProject(true);
+    const file = path.join(dir, 'app.ts');
+    const content = "import { ok } from 'goodpkg';\nexport const x = ok;\n";
+    const res = preflightDependencyCheck(file, dir, content);
+    fs.rmSync(dir, { recursive: true, force: true });
+    expect(res).toBeNull();
+  });
+
+  it('flags a package with no bundled types and no @types companion BEFORE write', () => {
+    // Simulates the helmet incident: package installed, but @types/helmet missing.
+    const dir = makeProject(false); // goodpkg has no types and no @types/goodpkg
+    const file = path.join(dir, 'app.ts');
+    const content = "import thing from 'goodpkg';\nexport const x = thing;\n";
+    const res = preflightDependencyCheck(file, dir, content);
+    fs.rmSync(dir, { recursive: true, force: true });
+    expect(res).not.toBeNull();
+    expect(res).toContain('goodpkg');
+    expect(res).toContain('npm install --save-dev @types/goodpkg');
+    expect(res).toContain('Resolve BEFORE patching');
+  });
+
+  it('passes when an @types/<pkg> companion exists', () => {
+    const dir = makeProject(false);
+    const typesDir = path.join(dir, 'node_modules', '@types', 'goodpkg');
+    fs.mkdirSync(typesDir, { recursive: true });
+    fs.writeFileSync(path.join(typesDir, 'index.d.ts'), 'export const ok: number;\n');
+    const file = path.join(dir, 'app.ts');
+    const content = "import { ok } from 'goodpkg';\nexport const x = ok;\n";
+    const res = preflightDependencyCheck(file, dir, content);
+    fs.rmSync(dir, { recursive: true, force: true });
+    expect(res).toBeNull();
+  });
+
+  it('ignores relative imports (scoped to the edit, not resolvable here)', () => {
+    const dir = makeProject(true);
+    const file = path.join(dir, 'app.ts');
+    const content = "import { x } from './local';\nexport const y = x;\n";
+    const res = preflightDependencyCheck(file, dir, content);
+    fs.rmSync(dir, { recursive: true, force: true });
+    expect(res).toBeNull();
   });
 });
 

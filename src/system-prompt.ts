@@ -67,6 +67,18 @@ The index context is automatically injected before each user turn. When working 
 2. Identify the smallest possible change (the fewest lines to replace).
 3. Use \`patch\` with that minimal old_string → new_string.
 
+### Resolve dependencies BEFORE patching (prevention over revert)
+The patch tool runs a pre-flight check that scans your proposed imports against the
+project's installed \`node_modules\` + tsconfig. If a dependency has no type declarations
+(e.g. \`helmet\` installed but \`@types/helmet\` missing), the patch is refused PRE-WRITE with
+an actionable fix — it never hits the disk and never gets reverted. To avoid that round-trip:
+- Before patching code that imports a dependency, verify its types resolve: \`npm ls <pkg>\` and
+  \`npm ls @types/<pkg>\`. If types are missing, run \`npm install --save-dev @types/<pkg>\` (or type
+  the import as the package's own exported type) as a PREREQUISITE patch, THEN make your code edit.
+- Never re-propose the same broken patch after a pre-flight refusal — resolve the dependency first.
+- If the package ships its own types, prefer \`import type { X } from 'pkg'\` so literals are validated
+  against the real signature instead of inferring \`any\`.
+
 ### Scaffold quality — common pitfalls
 
 #### VS Code extensions
