@@ -389,13 +389,19 @@ export function createModelFunctions(deps: ModelDeps) {
       lastContent = cleanContent;
 
       if (toolCallArray.length === 0) {
-        if (countToolMentions(fullContent) >= 3) {
-          console.log(pc.yellow(`\n  [WARN] Model planned tools but omitted JSON syntax. Retrying.`));
+        // Only treat this as a "planned but omitted JSON" failure when the model
+        // actually emitted tool-call markup (the structured <tool_call> block) but
+        // no parseable JSON. A bare mention of tool names in prose (e.g. an audit
+        // report saying "I ran read_file and terminal") must NOT trip this — that
+        // is normal narration, and forcing a retry loops on a finished report.
+        const narratedToolCalls = parseTextToolCalls(fullContent);
+        if (narratedToolCalls.length >= 1) {
+          console.log(pc.yellow(`\n  [WARN] Model planned tools but omitted valid JSON. Retrying.`));
           totalCompletionTokens += turnUsageOut ?? 0;
           messages.push({ role: 'assistant', content: cleanContent });
           messages.push({
             role: 'user',
-            content: `[SYSTEM WARNING] You narrated plans to call tools but did not output any actual tool calls. Please output the proper JSON array of tool calls now.`,
+            content: `[SYSTEM WARNING] You emitted a <tool_call> block but it was not valid JSON. Please output the proper JSON array of tool calls now.`,
           } as ChatMessage);
           continue;
         }

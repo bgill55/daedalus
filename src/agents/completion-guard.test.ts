@@ -83,4 +83,24 @@ describe('detectFalseCompletionOnDisk', () => {
     const c = ctx({ history: [], streak: [] });
     expect(detectFalseCompletionOnDisk('All tasks complete.', c)).toBeNull();
   });
+
+  it('does NOT fire when a file is only mentioned in incidental prose (read-only report)', () => {
+    const c = ctx({ history: [], streak: ['/repo/extension/popup.js'] });
+    const report =
+      'The audit is complete. Recommendations: split public/script.js into modules and ' +
+      'refactor popup.js for clarity. No patches were made this session.';
+    expect(detectFalseCompletionOnDisk(report, c)).toBeNull();
+  });
+
+  it('does NOT fire when the message disclaims any patch while naming a reverted file', () => {
+    const c = ctx({ history: [], streak: ['/repo/src/server.ts'] });
+    const disclaimer =
+      "I haven't made any patches to src/server.ts this session — the git changes are from prior work.";
+    expect(detectFalseCompletionOnDisk(disclaimer, c)).toBeNull();
+  });
+
+  it('still fires when a claim sentence asserts a fix to a reverted-only file', () => {
+    const c = ctx({ history: [], streak: ['/repo/src/server.ts'] });
+    expect(detectFalseCompletionOnDisk('All issues resolved, createApp no longer starts the server (src/server.ts)', c)).toBe('src/server.ts');
+  });
 });
