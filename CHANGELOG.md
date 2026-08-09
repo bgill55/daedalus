@@ -1,3 +1,10 @@
+## [3.22.4](https://github.com/bgill55/daedalus/compare/v3.22.3...v3.22.4) (2026-08-09)
+
+
+### Bug Fixes
+
+* **commands:** enforce filled-in analytical directives in ENHANCE_SYSTEM_PROMPT to prevent text-reprinting loops ([5b4ffa2](https://github.com/bgill55/daedalus/commit/5b4ffa25ae28b11783204bd7509ec1ee8fd793ca))
+
 ## [3.22.3](https://github.com/bgill55/daedalus/compare/v3.22.2...v3.22.3) (2026-08-09)
 
 
