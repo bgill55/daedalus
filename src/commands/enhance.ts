@@ -9,9 +9,10 @@ Expand the user's raw or casual request into a crisp, high-yield engineering pro
 Rules for the generated prompt:
 1. Direct the agent to inspect relevant files and codebase context before answering.
 2. Direct the agent to format its output cleanly with Markdown section headers, comparison tables, and bullet points.
-3. Specify concrete target deliverables (e.g. architecture table, test gap analysis, top 3 security/performance recommendations).
+3. Specify concrete target deliverables (e.g. architecture table, code quality table, top 3 security/performance recommendations).
 4. NEVER request plain text without formatting or forbid markdown formatting.
-5. Return ONLY the final enhanced prompt text without meta-commentary, introductory remarks, or surrounding quote marks.`;
+5. NEVER output empty template placeholders, empty table cells (e.g. "| Aspect | | |"), or bracketed fill-ins (e.g. "[Specific recommendation]"). Instead, write clear instructions directing the agent to analyze and populate those sections.
+6. Return ONLY the final enhanced prompt text without meta-commentary, introductory remarks, or surrounding quote marks.`;
 
 export async function enhancePrompt(rawPrompt: string, ctx: CommandContext): Promise<string> {
   const fullPrompt = `${ENHANCE_SYSTEM_PROMPT}\n\nUser request to enhance: "${rawPrompt}"`;
@@ -27,7 +28,12 @@ export async function enhancePrompt(rawPrompt: string, ctx: CommandContext): Pro
     // Fallback if model call fails
   }
 
-  return `Review and analyze: "${rawPrompt}". Summarize key components, identify test gaps, and provide top 3 actionable improvement suggestions in Markdown tables.`;
+  return `Perform a comprehensive technical audit of the codebase:
+1. Inspect project structure, configuration files, and core source files.
+2. Provide a Project Overview table listing Component, Responsibility, and Key Files.
+3. Provide a Code Quality Assessment table evaluating Type Safety, Error Handling, Code Organization, Test Coverage, and Documentation with Rating and Notes for each.
+4. List Top 5 specific security and performance recommendations with rationale.
+5. Summarize overall codebase health and production readiness.`;
 }
 
 export const enhanceCommand: Command = {
