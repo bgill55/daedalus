@@ -1,3 +1,10 @@
+# [3.22.0](https://github.com/bgill55/daedalus/compare/v3.21.1...v3.22.0) (2026-08-09)
+
+
+### Features
+
+* **cli:** add /enhance slash command and REPL startup prompt tip banner ([cedbbb7](https://github.com/bgill55/daedalus/commit/cedbbb72e22ce46cee7ecb1d5e69724fd67eb1bc))
+
 ## [3.21.1](https://github.com/bgill55/daedalus/compare/v3.21.0...v3.21.1) (2026-08-09)
 
 
