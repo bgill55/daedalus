@@ -1,3 +1,10 @@
+## [3.23.1](https://github.com/bgill55/daedalus/compare/v3.23.0...v3.23.1) (2026-08-09)
+
+
+### Bug Fixes
+
+* **commands:** sync /cheatsheet output with docs/cheat-sheet.md ([#79](https://github.com/bgill55/daedalus/issues/79)) ([2614988](https://github.com/bgill55/daedalus/commit/2614988f5ae5795669d162804f2d4db666a5c60f))
+
 # [3.23.0](https://github.com/bgill55/daedalus/compare/v3.22.7...v3.23.0) (2026-08-09)
 
 
