@@ -53,27 +53,66 @@ export function falseCompletionWarning(remaining: number): string {
 // `context` is the live ToolContext carrying patchHistory (successful patches) and
 // patchFailureStreak (per-file revert counts). Returns the first falsely-claimed file
 // path, or null when the claim is consistent with what was actually written.
+//
+// IMPORTANT: we only inspect the sentence/phrase that ASSERTS completion or a fix. A
+// file mentioned in incidental prose (e.g. an audit report recommending "split
+// popup.js into modules") must not trip this guard — otherwise a read-only report that
+// names files falsely accuses the agent of a revert-only edit it never made.
+// NOTE: FILE_MENTION_RE must NOT be used with the global flag via String.match in a
+// loop — a shared global-flag regex carries persistent lastIndex state across calls,
+// which silently makes subsequent matches return empty. We build a fresh regex per
+// call (see matchFileMentions) to keep matching correct.
 const FILE_MENTION_RE = /(?:src[\\/])?[\w.-]+\.(?:ts|tsx|js|mjs|cjs|jsx|py|go|rs|java|cs|rb|php)(?::\d+)?/gi;
+
+function matchFileMentions(text: string): string[] {
+  // Fresh regex each call: avoids the shared-global lastIndex bug that made
+  // "src/server.ts" in a claim segment silently fail to match.
+  return [...text.matchAll(new RegExp(FILE_MENTION_RE.source, FILE_MENTION_RE.flags))].map(m => m[0]);
+}
+
+// A claim sentence is one that asserts a fix/completion actually HAPPENED
+// (past-tense / perfect verbs or a whole-task completion phrase) AND is not a
+// self-disclaimer. We deliberately exclude bare imperatives ("refactor popup.js",
+// "split script.js") — those are recommendations, not claims of work performed, and
+// treating them as claims made a read-only audit report falsely accuse the agent of
+// revert-only edits it never made. Negation phrases ("I haven't patched X", "no patch
+// was made") disqualify a sentence as a claim.
+function claimSegments(text: string): string[] {
+  const segments = text
+    .split(/(?<=[.!?])\s+|\n+/)
+    .map(s => s.trim())
+    .filter(Boolean);
+  const isClaim = (s: string): boolean => {
+    // Real disclaimers only — bare "no" is excluded so "no longer starts" in a
+    // genuine claim ("All issues resolved, createApp no longer starts the server")
+    // is not wrongly disqualified.
+    if (/\b(I\s+(?:haven't|didn't|have not|did not)|haven't|didn't|hasn't|not\s+\w|never\s+(?:patched|edited|wrote|made)|without\s+(?:making|any)|no\s+(?:patch|change|edit|fix|file|successful|success|changes|edits))\b/i.test(s)) return false;
+    return isCompletionClaim(s) || /\b(fixed|refactored|resolved|removed|added|updated|changed|wrote|implemented|completed|done)\b/i.test(s);
+  };
+  return segments.filter(isClaim);
+}
 
 export function detectFalseCompletionOnDisk(text: string, context: ToolContext | undefined): string | null {
   if (!text || !context) return null;
-  if (!isCompletionClaim(text) && !/\b(fix|fixed|refactor|refactored|resolved|removed|added|updated|changed)\b/i.test(text)) {
-    return null;
-  }
   const history = context.patchHistory ?? [];
   const streak = context.patchFailureStreak ?? new Map<string, number>();
-  const mentioned = text.match(FILE_MENTION_RE) ?? [];
-  for (const raw of mentioned) {
-    const base = raw.replace(/:\d+$/, '').replace(/^src[\\/]/, '').toLowerCase();
-    // Did we successfully patch this file at least once?
-    const succeeded = history.some(h => h.filePath.toLowerCase().replace(/^.*[\\/]/, '').replace(/^src[\\/]/, '') === base.split(/[\\/]/).pop());
-    if (succeeded) continue;
-    // Did we revert patches against it?
-    const reverted = [...streak.keys()].some(k => k.toLowerCase().replace(/^.*[\\/]/, '').replace(/^src[\\/]/, '') === base.split(/[\\/]/).pop());
-    if (reverted) return raw;
+  const baseOf = (p: string): string =>
+    p.replace(/:\d+$/, '').replace(/^src[\\/]/, '').toLowerCase().split(/[\\/]/).pop() ?? p.toLowerCase();
+  const segments = claimSegments(text);
+  for (const seg of segments) {
+    const mentioned = matchFileMentions(seg);
+    for (const raw of mentioned) {
+      const base = baseOf(raw);
+      const succeeded = history.some(h => baseOf(h.filePath) === base);
+      if (succeeded) continue;
+      const reverted = [...streak.keys()].some(k => baseOf(k) === base);
+      if (reverted) return raw;
+    }
   }
-  // Session had reverts but no successful patches at all, and the message asserts a fix.
-  if ((context.patchFailureTotal ?? 0) > 0 && history.length === 0 && /\b(fix|fixed|refactor|refactored|resolved|all issues|done)\b/i.test(text)) {
+  // Session had reverts but no successful patches at all, and a claim sentence asserts
+  // a fix (with no specific file named). Only fires on an actual claim segment — never
+  // on incidental prose that merely contains a fix-word.
+  if ((context.patchFailureTotal ?? 0) > 0 && history.length === 0 && segments.some(s => /\b(fix|fixed|refactor|refactored|resolved|all issues|done)\b/i.test(s))) {
     return '(no successful patch recorded this session)';
   }
   return null;
