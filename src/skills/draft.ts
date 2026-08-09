@@ -21,8 +21,15 @@ export interface SkillDraft {
   createdAt: string;
 }
 
+// Tests can override the base (real homedir by default) so draft I/O uses an
+// isolated temp dir and never races with sibling test files or real state.
+let baseDirOverride: string | null = null;
+export function setSkillsBaseDir(dir: string | null): void {
+  baseDirOverride = dir;
+}
+
 function userSkillsDir(): string {
-  return path.join(homedir(), '.daedalus', 'skills');
+  return path.join(baseDirOverride ?? homedir(), '.daedalus', 'skills');
 }
 
 function draftsDir(): string {

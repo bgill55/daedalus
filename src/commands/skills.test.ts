@@ -2,26 +2,27 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import os from 'os';
 import fs from 'fs';
 import path from 'path';
-import { writeSkillDraft, acceptSkillDraft, discardSkillDraft, listSkillDrafts } from '../skills/draft.js';
+import { writeSkillDraft, acceptSkillDraft, discardSkillDraft, listSkillDrafts, setSkillsBaseDir } from '../skills/draft.js';
 import { skillsCommand } from './skills.js';
 import type { CommandContext } from './types.js';
 
-const DRAFTS = path.join(os.homedir(), '.daedalus', 'skills', '.drafts');
-const USER_SKILLS = path.join(os.homedir(), '.daedalus', 'skills');
+const ISOLATED = fs.mkdtempSync(path.join(os.tmpdir(), 'daedalus-skills-'));
+const DRAFTS = path.join(ISOLATED, '.daedalus', 'skills', '.drafts');
+const USER_SKILLS = path.join(ISOLATED, '.daedalus', 'skills');
 
 function cleanup() {
   fs.rmSync(DRAFTS, { recursive: true, force: true });
   fs.rmSync(path.join(USER_SKILLS, 'smoke-test-skill'), { recursive: true, force: true });
 }
 
+beforeEach(() => { setSkillsBaseDir(ISOLATED); cleanup(); });
+afterEach(() => { cleanup(); setSkillsBaseDir(null); });
+
 function makeCtx(args: string): CommandContext {
   return { config: {} as any, configDir: '', cliTempDir: '' } as unknown as CommandContext;
 }
 
 describe('/skills command', () => {
-  beforeEach(cleanup);
-  afterEach(cleanup);
-
   it('accept promotes a draft into an active trusted skill', async () => {
     writeSkillDraft({
       name: 'Smoke Test Skill',
