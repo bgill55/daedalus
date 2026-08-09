@@ -313,6 +313,92 @@ function formatDiagnostic(d: ts.Diagnostic): string {
   return `${name}${loc}: error TS${d.code}: ${msg}`;
 }
 
+/**
+ * Pre-flight dependency resolver. Runs BEFORE the file is written (and before the
+ * post-write syntaxCheck revert net) so a patch that depends on a missing type
+ * package or unresolvable import fails *preventively* with an actionable fix, not
+ * after a revert. This is the "clean code from the get-go" gate: resolve the
+ * environment first, then patch once.
+ *
+ * It statically scans the proposed content for `import ... from 'X'` specifiers and
+ * resolves each against the project's node_modules + tsconfig (moduleResolution,
+ * esModuleInterop, types). Returns a human-readable "resolve first" message if any
+ * dependency has no usable type declarations, or null if the proposed imports are
+ * resolvable. Import-resolution errors (TS2307/TS1259/...) are exactly the class the
+ * post-write gate filters as environment noise — here we surface them pre-write as a
+ * concrete install/type step instead of letting the agent re-propose the same patch.
+ */
+export function preflightDependencyCheck(
+  filePath: string,
+  projectRoot: string,
+  proposedContent?: string,
+): string | null {
+  const ext = path.extname(filePath).toLowerCase();
+  if (ext !== '.ts' && ext !== '.tsx' && ext !== '.js' && ext !== '.mjs' && ext !== '.cjs') {
+    return null;
+  }
+  const content = proposedContent ?? safeRead(filePath);
+  if (content === null) return null;
+
+  const tsconfigPath = findTsconfig(filePath, projectRoot);
+  if (!tsconfigPath) return null;
+  const tsconfigRoot = path.dirname(tsconfigPath);
+
+  const specifiers = new Set<string>();
+  const importRe = /(?:import\s+(?:[^'"]*?\s+from\s+)?|require\(\s*)['"]([^'"]+)['"]/g;
+  let m: RegExpExecArray | null;
+  while ((m = importRe.exec(content)) !== null) {
+    const spec = m[1];
+    if (spec.startsWith('.') || spec.startsWith('/')) continue;
+    // strip subpath (e.g. 'helmet/dist' -> 'helmet')
+    const pkg = spec.split('/').reduce((acc, part) => {
+      if (part.startsWith('@')) return part; // scoped: keep @scope
+      if (acc.startsWith('@')) return `${acc}/${part}`; // @scope/name
+      return part;
+    }, '');
+    if (pkg) specifiers.add(pkg);
+  }
+  if (specifiers.size === 0) return null;
+
+  const missing: string[] = [];
+  for (const pkg of specifiers) {
+    if (packageResolves(pkg, tsconfigRoot)) continue;
+    missing.push(pkg);
+  }
+  if (missing.length === 0) return null;
+
+  const scoped = missing.map(p => `@types/${p.replace(/^@[^/]+\//, '')}`);
+  return (
+    `Pre-flight: patch would fail typecheck - missing type declarations for: ${missing.join(', ')}.\n` +
+    `Resolve BEFORE patching (do not re-propose the same edit):\n` +
+    `  npm install --save-dev ${scoped.join(' ')}\n` +
+    `Then re-run the patch. If the package ships its own types, instead type the import ` +
+    `(e.g. \`import type { HelmetOptions } from 'helmet'\`) so the literal is validated against the real signature.`
+  );
+}
+
+/** True if `pkg` is resolvable from node_modules with usable type declarations under this tsconfig. */
+function packageResolves(pkg: string, tsconfigRoot: string): boolean {
+  // 1) package with bundled types: package.json "types"/"typings" or an index.d.ts present
+  const pkgDir = path.join(tsconfigRoot, 'node_modules', pkg);
+  if (fs.existsSync(pkgDir)) {
+    const pkgJson = path.join(pkgDir, 'package.json');
+    if (fs.existsSync(pkgJson)) {
+      try {
+        const j = JSON.parse(fs.readFileSync(pkgJson, 'utf8'));
+        if (j.types || j.typings) return true;
+      } catch { /* fall through */ }
+    }
+    if (fs.existsSync(path.join(pkgDir, 'index.d.ts'))) return true;
+  }
+  // 2) @types/<pkg> companion present
+  const typesPkg = `@types/${pkg.replace(/^@[^/]+\//, '')}`;
+  if (fs.existsSync(path.join(tsconfigRoot, 'node_modules', typesPkg))) return true;
+  // 3) package name itself is a @types/* package
+  if (pkg.startsWith('@types/') && fs.existsSync(pkgDir)) return true;
+  return false;
+}
+
 export async function syntaxCheck(
   filePath: string,
   projectRoot: string,

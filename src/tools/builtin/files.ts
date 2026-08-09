@@ -11,6 +11,7 @@ import {
   fuzzyWhitespacePatch,
   computeChangedLines,
   syntaxCheck,
+  preflightDependencyCheck,
   checkWriteWithoutRead,
   checkCircuitBreaker,
   checkGlobalPatchBreaker,
@@ -210,6 +211,10 @@ export async function writeFile(args: { path: string; content: string }, context
     const newNormalized = args.content.replace(/\r/g, '');
     const changedLines = prevNormalized ? computeChangedLines(prevNormalized, newNormalized) : [];
     const checkpointNoteStr = checkpointNote(targetPath, context.projectRoot);
+    const preflight = preflightDependencyCheck(targetPath, context.projectRoot, finalContent);
+    if (preflight) {
+      return formatError(`${preflight}\n\nFile NOT written: ${args.path}. Resolve the dependency, then retry.`);
+    }
     fs.writeFileSync(targetPath, finalContent, 'utf8');
 
     const syntaxError = await syntaxCheck(targetPath, context.projectRoot, finalContent, previousContent ?? undefined);
@@ -363,6 +368,10 @@ export async function patchFile(args: { path: string; old_string: string; new_st
 
     if (autoApply === 'all') {
       const changedLines = computeChangedLines(content, finalNormalized);
+      const preflight = preflightDependencyCheck(targetPath, context.projectRoot, finalNormalized);
+      if (preflight) {
+        return formatError(`${preflight}\n\nPatch NOT written: ${args.path}. Resolve the dependency, then retry.`);
+      }
       fs.writeFileSync(targetPath, finalNormalized, 'utf8');
       const syntaxError = await syntaxCheck(targetPath, context.projectRoot, finalNormalized, content);
       if (syntaxError) {
@@ -412,6 +421,11 @@ export async function patchFile(args: { path: string; old_string: string; new_st
     const writeContent = diffResult.editedContent
       ? (hasCRLF ? diffResult.editedContent.replace(/\n/g, '\r\n') : diffResult.editedContent)
       : finalNormalized;
+
+    const preflight = preflightDependencyCheck(targetPath, context.projectRoot, writeContent);
+    if (preflight) {
+      return formatError(`${preflight}\n\nPatch NOT written: ${args.path}. Resolve the dependency, then retry.`);
+    }
 
     fs.writeFileSync(targetPath, writeContent, 'utf8');
 
