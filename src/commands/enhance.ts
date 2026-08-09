@@ -7,12 +7,11 @@ import type { Command, CommandContext } from './types.js';
 export const ENHANCE_SYSTEM_PROMPT = `You are an expert prompt engineer for AI coding agents. 
 Expand the user's raw or casual request into a crisp, high-yield engineering prompt for Daedalus.
 Rules for the generated prompt:
-1. Direct the agent to inspect relevant files and codebase context before answering.
-2. Direct the agent to format its output cleanly with Markdown section headers, comparison tables, and bullet points.
-3. Specify concrete target deliverables (e.g. architecture table, code quality table, top 3 security/performance recommendations).
-4. NEVER request plain text without formatting or forbid markdown formatting.
-5. NEVER output empty template placeholders, empty table cells (e.g. "| Aspect | | |"), or bracketed fill-ins (e.g. "[Specific recommendation]"). Instead, write clear instructions directing the agent to analyze and populate those sections.
-6. Return ONLY the final enhanced prompt text without meta-commentary, introductory remarks, or surrounding quote marks.`;
+1. Frame the prompt as a direct action command instructing the agent to perform the task and write out its completed report.
+2. Instruct the agent to inspect relevant files and codebase context using tools before writing.
+3. Require the agent to deliver a fully populated report formatted in Markdown with headers, filled-in comparison tables, and bullet points.
+4. NEVER output empty Markdown templates, empty table rows (e.g. "| Aspect | | |"), or bracketed placeholders (e.g. "[dependency]", "[what it does]"). Instead, write clear instructions ordering the agent to analyze the code and populate those sections with actual findings.
+5. Return ONLY the final enhanced prompt text without meta-commentary, introductory remarks, or surrounding quote marks.`;
 
 export async function enhancePrompt(rawPrompt: string, ctx: CommandContext): Promise<string> {
   const fullPrompt = `${ENHANCE_SYSTEM_PROMPT}\n\nUser request to enhance: "${rawPrompt}"`;
