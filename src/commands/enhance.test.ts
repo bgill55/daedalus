@@ -24,6 +24,23 @@ describe('enhanceCommand', () => {
     expect(mockCallModel).toHaveBeenCalledTimes(1);
   });
 
+  it('enhancePrompt does not pollute the shared messages history', async () => {
+    const mockCallModel = vi.fn().mockResolvedValue('Structured audit prompt');
+    const messages: any[] = [{ role: 'system', content: 'sys' }];
+    const mockCtx = {
+      callModelWithFallback: mockCallModel,
+      messages,
+    } as any;
+
+    const result = await enhancePrompt('look at this project', mockCtx);
+    expect(result).toBe('Structured audit prompt');
+    // The enhance step must snapshot+restore history so the intermediate enhanced
+    // prompt (a user+assistant pair) never leaks into the real conversation.
+    expect(messages).toEqual([{ role: 'system', content: 'sys' }]);
+    expect(mockCallModel).toHaveBeenCalledTimes(1);
+  });
+
+
   it('enhanceCommand asks for prompt if empty and handles user response', async () => {
     const askLineMock = vi.fn()
       .mockResolvedValueOnce('review server.ts') // raw prompt input

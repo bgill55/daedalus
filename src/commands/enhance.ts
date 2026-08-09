@@ -18,7 +18,15 @@ export async function enhancePrompt(rawPrompt: string, ctx: CommandContext): Pro
 
   try {
     if (typeof ctx.callModelWithFallback === 'function') {
+      // callModelWithFallback appends the request + its reply to the shared messages
+      // history. The enhanced prompt is an intermediate artifact, NOT a conversation
+      // turn — if it leaks into history, the follow-up "execute this" call sees an
+      // assistant message that already "answered" with an enhanced prompt and
+      // re-enhances it instead of acting on it. Snapshot and restore history so the
+      // enhancement never pollutes the real conversation.
+      const restore = Array.isArray(ctx.messages) ? ctx.messages.length : 0;
       const res = await ctx.callModelWithFallback(fullPrompt);
+      if (Array.isArray(ctx.messages)) ctx.messages.length = restore;
       if (res && res.trim()) {
         return res.trim();
       }
