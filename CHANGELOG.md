@@ -1,3 +1,10 @@
+## [3.22.6](https://github.com/bgill55/daedalus/compare/v3.22.5...v3.22.6) (2026-08-09)
+
+
+### Bug Fixes
+
+* **commands:** stop /enhance from leaking the enhanced prompt into chat history ([#77](https://github.com/bgill55/daedalus/issues/77)) ([4072156](https://github.com/bgill55/daedalus/commit/407215608d29c2551a63ce2bcff11967b0785138))
+
 ## [3.22.5](https://github.com/bgill55/daedalus/compare/v3.22.4...v3.22.5) (2026-08-09)
 
 
