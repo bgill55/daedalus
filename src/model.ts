@@ -72,7 +72,7 @@ function failureSignature(name: string, rawArgs: string): string {
   }
 }
 
-function detectRepetition(text: string): boolean {
+export function detectRepetition(text: string): boolean {
   if (text.length < 150) return false;
   const tail = text.slice(-1200);
 
@@ -84,8 +84,13 @@ function detectRepetition(text: string): boolean {
     if (pCounts[p] >= 3) return true;
   }
 
-  // Check 2: Substring repetition loop across tail window
-  const len = 30;
+  // Check 2: Long substring repetition loop across the tail window.
+  // Uses a 60-char minimum (was 30). A 30-char span is too tight: normal report
+  // boilerplate — e.g. a Markdown table column repeating "Healthy - actively
+  // maintained" once per row — trips it and aborts legitimate work (a real audit
+  // that lists dependencies). A 60-char exact repeat is almost never natural prose;
+  // it signals a genuine loop (the model re-emitting a long verbatim span).
+  const len = 60;
   const counts: Record<string, number> = {};
   for (let i = 0; i <= tail.length - len; i++) {
     const sub = tail.substring(i, i + len);

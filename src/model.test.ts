@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { createModelFunctions, abortTurn, resetTurnAborted } from './model.js';
+import { createModelFunctions, abortTurn, resetTurnAborted, detectRepetition } from './model.js';
 import { setSessionTodos } from './tools/builtin/todo.js';
 import type { ToolContext, ChatMessage } from './types.js';
 import type { DaedalusConfig } from './config/index.js';
@@ -740,5 +740,35 @@ describe('Tool failure handling', () => {
     expect(output).toContain('[INFO] Stopping. Type "continue" to resume.');
     expect(result.content).toBe('');
     delete process.env.DAEDALUS_AUTO_APPROVE;
+  });
+});
+
+describe('detectRepetition', () => {
+  it('does NOT flag a legitimate report with repeated table-column boilerplate', () => {
+    // A real audit lists dependencies in a table; a column value like
+    // "Healthy - actively maintained" repeats once per row. This must NOT trip
+    // the breaker (the 30->60 char floor fixes the false positive).
+    const table = Array.from(
+      { length: 11 },
+      (_, i) => `| dep${i} | ^1.${i}.0 | runtime | Healthy - actively maintained |`,
+    ).join('\n');
+    const report = `Comprehensive Codebase Audit\n\n## Dependency Analysis\n${table}\n\n## Top 5 Recommendations\n1. Item\n2. Item`;
+    expect(detectRepetition(report)).toBe(false);
+  });
+
+  it('flags a genuine loop: a long verbatim span repeated 3+ times', () => {
+    const span = 'The previous analysis concluded the module is sound and requires no changes and the same holds for the adjacent module which is also sound.';
+    const loop = `${span}\n${span}\n${span}`;
+    expect(detectRepetition(loop)).toBe(true);
+  });
+
+  it('flags a paragraph repeated 3+ times (Check 1)', () => {
+    const para = 'We have finished reviewing the file and found no issues that require changes at this time.';
+    const loop = `${para}\n\n${para}\n\n${para}`;
+    expect(detectRepetition(loop)).toBe(true);
+  });
+
+  it('does not flag short text', () => {
+    expect(detectRepetition('short')).toBe(false);
   });
 });
