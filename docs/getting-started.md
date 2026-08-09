@@ -9,7 +9,9 @@ Welcome to Daedalus, a local-first, terminal-based AI coding assistant. This gui
 ---
 
 > **Looking to build & sell your own AI CLI?**
-> Check out **[Daedalus-Lite](https://bgill55.github.io/daedalus-lite/)** — the zero-dependency, rebrandable TypeScript starter template designed for developers to build, rebrand, and sell their own custom AI coding tools! [Learn more →](https://bgill55.github.io/daedalus-lite/)
+> **Looking to build & sell your own AI CLI?** Check out **[Daedalus-Lite](https://bgill55.github.io/daedalus-lite/)** — the zero-dependency, rebrandable TypeScript starter template designed for developers to build, rebrand, and sell their own custom AI coding tools! [Learn more →](https://bgill55.github.io/daedalus-lite/)
+>
+> **Want to try Daedalus in your browser first?** No install needed — open the **[Daedalus-Lite Live Demo ⚡](https://bgill55.github.io/daedalus-lite/live-demo.html)** and chat with the interactive REPL sandbox right now (a few free queries included).
 
 ---
 

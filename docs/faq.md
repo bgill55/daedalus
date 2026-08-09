@@ -6,6 +6,9 @@ This FAQ answers the most common setup questions, architectural concepts, and tr
 
 ### 🖥️ Hardware & Local Execution
 
+#### Q: How do I try Daedalus without installing anything?
+Open the [Daedalus-Lite Live Demo ⚡](https://bgill55.github.io/daedalus-lite/live-demo.html) — a browser-based interactive REPL sandbox (no install, a few free queries included). To run the full CLI locally, install via `npm install -g daedalus-cli` (Node.js 20+) and point it at a local model (Ollama/LM Studio) or your own API key.
+
 #### Q: What are the hardware requirements for running Daedalus 100% locally?
 To run Daedalus locally and offline with near-instant generation times, your machine should ideally meet the following hardware profile:
 * **GPU:** 8GB VRAM minimum.
