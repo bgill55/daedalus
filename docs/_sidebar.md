@@ -1,6 +1,7 @@
 - **Getting Started**
   - [Quick Start](getting-started.md)
   - [Onboarding Cheat Sheet 🚀](cheat-sheet.md)
+  - [Local-First FAQ 💬](faq.md)
   - [NotebookLM & Architecture](notebooklm-summary.md)
   - [Configuration](configuration-reference.md)
 

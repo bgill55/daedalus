@@ -10,6 +10,7 @@ import { skillsCommand } from './skills.js';
 import { presetCommand, modelManagerCommand } from './config.js';
 import { enhanceCommand } from './enhance.js';
 import { cheatsheetCommand } from './cheatsheet.js';
+import { faqCommand } from './faq.js';
 import type { Command, CommandContext } from './types.js';
 
 export type { Command, CommandContext } from './types.js';
@@ -117,6 +118,7 @@ export const commandsList: Command[] = [
   skillsCommand,
   enhanceCommand,
   cheatsheetCommand,
+  faqCommand,
   helpCommand,
 ];
 

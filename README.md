@@ -212,6 +212,7 @@ AI assistance without:
 | `/skills` | List active skills and pending skill drafts; approve or discard agent-proposed drafts. |
 | `/enhance` / `prompt` / `refine` | Auto-expand a casual user request into a structured, high-performing engineering prompt |
 | `/cheatsheet` / `cheat` / `guide` | Display the Daedalus local-first onboarding cheat sheet |
+| `/faq` / `questions` / `faqs` | Display the Daedalus local-first FAQ (setup, architecture, troubleshooting) |
 
 <!-- END_COMMANDS_TABLE -->
 
