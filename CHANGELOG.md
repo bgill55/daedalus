@@ -1,3 +1,10 @@
+## [3.22.5](https://github.com/bgill55/daedalus/compare/v3.22.4...v3.22.5) (2026-08-09)
+
+
+### Bug Fixes
+
+* **commands:** dispatch enhanced prompt as a task to execute, not re-enhance ([#76](https://github.com/bgill55/daedalus/issues/76)) ([52560ae](https://github.com/bgill55/daedalus/commit/52560aee04e97c28c0f5ec8945fb2a397ee80e88))
+
 ## [3.22.4](https://github.com/bgill55/daedalus/compare/v3.22.3...v3.22.4) (2026-08-09)
 
 
