@@ -1,3 +1,10 @@
+## [3.22.7](https://github.com/bgill55/daedalus/compare/v3.22.6...v3.22.7) (2026-08-09)
+
+
+### Bug Fixes
+
+* **model:** loosen repetition breaker so legitimate reports are not aborted ([#78](https://github.com/bgill55/daedalus/issues/78)) ([85faa5b](https://github.com/bgill55/daedalus/commit/85faa5b0448b261970ea6bc7be1dfa741ac689ca))
+
 ## [3.22.6](https://github.com/bgill55/daedalus/compare/v3.22.5...v3.22.6) (2026-08-09)
 
 
