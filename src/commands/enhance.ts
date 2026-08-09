@@ -70,7 +70,7 @@ export const enhanceCommand: Command = {
         if (typeof ctx.callModelWithTools === 'function') {
           const indexCtx = typeof ctx.buildIndexContext === 'function' ? await ctx.buildIndexContext(enhanced) : '';
           const filesCtx = typeof ctx.buildFileContext === 'function' ? ctx.buildFileContext() : '';
-          const userContent = `${indexCtx}${filesCtx}User Prompt: ${enhanced}`;
+          const userContent = `${indexCtx}${filesCtx}Execute the following task:\n\n${enhanced}`;
           printUserTurn(enhanced);
           if (ctx.messages.length > 0 && ctx.messages[0].role === 'system' && typeof ctx.getSystemPromptWithMemory === 'function') {
             ctx.messages[0] = { role: 'system', content: ctx.getSystemPromptWithMemory(enhanced) };
