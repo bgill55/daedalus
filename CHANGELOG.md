@@ -1,3 +1,10 @@
+## [3.22.2](https://github.com/bgill55/daedalus/compare/v3.22.1...v3.22.2) (2026-08-09)
+
+
+### Bug Fixes
+
+* **commands:** enforce markdown tables in ENHANCE_SYSTEM_PROMPT and trigger full model execution turn with session saving ([a4c26bc](https://github.com/bgill55/daedalus/commit/a4c26bc8d9f3633f40ab48527f2d9a14e6ac7b04))
+
 ## [3.22.1](https://github.com/bgill55/daedalus/compare/v3.22.0...v3.22.1) (2026-08-09)
 
 
