@@ -1,3 +1,10 @@
+## [3.25.1](https://github.com/bgill55/daedalus/compare/v3.25.0...v3.25.1) (2026-08-09)
+
+
+### Bug Fixes
+
+* **build:** copy skill playbooks to dist so they ship to npm users ([#86](https://github.com/bgill55/daedalus/issues/86)) ([56d6aa4](https://github.com/bgill55/daedalus/commit/56d6aa4cc0acd092694ca80b421d7592e8f48991)), closes [#85](https://github.com/bgill55/daedalus/issues/85)
+
 # [3.25.0](https://github.com/bgill55/daedalus/compare/v3.24.0...v3.25.0) (2026-08-09)
 
 
