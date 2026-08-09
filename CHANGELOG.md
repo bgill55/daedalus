@@ -1,3 +1,10 @@
+# [3.23.0](https://github.com/bgill55/daedalus/compare/v3.22.7...v3.23.0) (2026-08-09)
+
+
+### Features
+
+* **docs:** add Daedalus Local-First Onboarding Cheat Sheet and /cheatsheet slash command ([d297b33](https://github.com/bgill55/daedalus/commit/d297b333ebe4508eef67b43d813d9ba1bdb726ce))
+
 ## [3.22.7](https://github.com/bgill55/daedalus/compare/v3.22.6...v3.22.7) (2026-08-09)
 
 
