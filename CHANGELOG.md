@@ -1,3 +1,10 @@
+# [3.24.0](https://github.com/bgill55/daedalus/compare/v3.23.1...v3.24.0) (2026-08-09)
+
+
+### Features
+
+* **commands:** add /faq command and drift-guard both embedded docs against docs/ ([#80](https://github.com/bgill55/daedalus/issues/80)) ([6358cfa](https://github.com/bgill55/daedalus/commit/6358cfad07b7897462c0c5769cfea401ca7c5ab1)), closes [#79](https://github.com/bgill55/daedalus/issues/79)
+
 ## [3.23.1](https://github.com/bgill55/daedalus/compare/v3.23.0...v3.23.1) (2026-08-09)
 
 
