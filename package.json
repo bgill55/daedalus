@@ -21,7 +21,7 @@
     "start": "tsx src/index.ts",
     "bot": "tsx src/bot/index.ts",
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
+    "build": "tsc && node scripts/copy-skills.mjs",
     "lint": "eslint src --ext .ts",
     "prepublishOnly": "npm run build",
     "test": "vitest run",
