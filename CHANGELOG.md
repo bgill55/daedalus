@@ -1,3 +1,10 @@
+## [3.21.1](https://github.com/bgill55/daedalus/compare/v3.21.0...v3.21.1) (2026-08-09)
+
+
+### Bug Fixes
+
+* **agent:** add CONCISE REVIEWS guardrail to system-prompt to prevent exhaustive API enumeration spirals ([9fc9031](https://github.com/bgill55/daedalus/commit/9fc9031439243747f0a6825a7302617bdbe5d325))
+
 # [3.21.0](https://github.com/bgill55/daedalus/compare/v3.20.10...v3.21.0) (2026-08-08)
 
 
