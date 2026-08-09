@@ -1,3 +1,10 @@
+# [3.25.0](https://github.com/bgill55/daedalus/compare/v3.24.0...v3.25.0) (2026-08-09)
+
+
+### Features
+
+* **tools:** add pre-flight dependency check to prevent patch reverts ([#84](https://github.com/bgill55/daedalus/issues/84)) ([7d180e1](https://github.com/bgill55/daedalus/commit/7d180e1bdbc6a416aee3355cef35fbdfc0753814))
+
 # [3.24.0](https://github.com/bgill55/daedalus/compare/v3.23.1...v3.24.0) (2026-08-09)
 
 
