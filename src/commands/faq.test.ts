@@ -12,6 +12,7 @@ const docsFaq = readFileSync(resolve(__dirname, '../../docs/faq.md'), 'utf8');
 // form) in the embedded faqText. This is the drift guard: if docs/faq.md is edited and
 // the embedded copy is not updated to match, this test fails.
 const expectedQuestions = [
+  'How do I try Daedalus without installing anything',
   'hardware requirements for running Daedalus 100% locally',
   'My local LLM is running incredibly slow',
   'Which local models are officially recommended',

@@ -5,6 +5,11 @@ export const faqText = `
 ${pc.bold(pc.cyan('🧑‍💻 Daedalus Local-First FAQ'))}
 
 ${pc.bold(pc.yellow('🖥️  HARDWARE & LOCAL EXECUTION'))}
+${pc.bold('Q: How do I try Daedalus without installing anything?')}
+  Open the Daedalus-Lite Live Demo (https://bgill55.github.io/daedalus-lite/live-demo.html) — a
+  browser-based interactive REPL sandbox (no install, a few free queries included). For the full
+  CLI: npm install -g daedalus-cli (Node.js 20+) pointed at Ollama/LM Studio or your own API key.
+
 ${pc.bold('Q: What are the hardware requirements for running Daedalus 100% locally?')}
   GPU: 8GB VRAM minimum. System memory: 32GB RAM. Node.js: version 20 or higher.
 
