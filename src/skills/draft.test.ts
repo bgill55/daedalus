@@ -7,20 +7,22 @@ import {
   listSkillDrafts,
   acceptSkillDraft,
   discardSkillDraft,
+  setSkillsBaseDir,
 } from './draft.js';
 
-const DRAFTS = path.join(os.homedir(), '.daedalus', 'skills', '.drafts');
-const USER_SKILLS = path.join(os.homedir(), '.daedalus', 'skills');
+const ISOLATED = fs.mkdtempSync(path.join(os.tmpdir(), 'daedalus-skills-'));
+const DRAFTS = path.join(ISOLATED, '.daedalus', 'skills', '.drafts');
+const USER_SKILLS = path.join(ISOLATED, '.daedalus', 'skills');
 
 function cleanup() {
   fs.rmSync(DRAFTS, { recursive: true, force: true });
   fs.rmSync(path.join(USER_SKILLS, 'my-test-skill'), { recursive: true, force: true });
 }
 
-describe('skill drafts', () => {
-  beforeEach(cleanup);
-  afterEach(cleanup);
+beforeEach(() => setSkillsBaseDir(ISOLATED));
+afterEach(() => setSkillsBaseDir(null));
 
+describe('skill drafts', () => {
   it('writes a draft that discovery ignores (separate dir)', () => {
     const p = writeSkillDraft({
       name: 'My Test Skill',
