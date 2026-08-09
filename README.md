@@ -284,7 +284,7 @@ npm run docs      # generate Typedoc HTML documentation
 ### Architecture
 
 <p align="center">
-  <img src="docs/images/daedalus_evolution_infographic.jpg" alt="Daedalus Evolution: From Foundation to Fortress" width="100%" />
+  <img src="docs/images/daedalus_mythic_intelligence_ecosystem.jpg" alt="The Daedalus Ecosystem: Mythic Intelligence, Local Power" width="100%" />
 </p>
 
 ```
