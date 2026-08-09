@@ -11,6 +11,17 @@ Daedalus (published on npm as `daedalus-cli`) is a local-first AI coding compani
 
 ---
 
+## Latest Walkthrough & Ecosystem Overview
+
+* **3-minute NotebookLM walkthrough** — how Daedalus verifies its own patches and the full ecosystem architecture: [Watch on NotebookLM](https://notebook.google.com/notebook/c9d27926-1a36-49b1-8af5-ab43e626e7fa/artifact/7d56eccf-6eac-4718-83f1-dcd3a6aa83e1?utm_source=nlm_web_share&utm_medium=google_oo&utm_campaign=art_share_1)
+* **Interactive live demo** — try the REPL sandbox in your browser, no install: [Daedalus-Lite Live Demo ⚡](https://bgill55.github.io/daedalus-lite/live-demo.html)
+
+<p align="center">
+  <img src="images/daedalus_ecosystem_overview.png" alt="Daedalus Technical Ecosystem Overview" width="100%"/>
+</p>
+
+---
+
 ## Core Philosophy & Design
 
 * **Local-First & Private**: Integrates with local LLM providers (LM Studio, Ollama, llama.cpp, vLLM, FreeLLMAPI) so that your source code does not leave your local network. It can also route to cloud providers (OpenAI, Anthropic, Gemini, Groq) if configured.
