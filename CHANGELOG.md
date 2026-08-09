@@ -1,3 +1,11 @@
+## [3.25.2](https://github.com/bgill55/daedalus/compare/v3.25.1...v3.25.2) (2026-08-09)
+
+
+### Bug Fixes
+
+* **enhance:** rebuild execution-turn system prompt from rawQuery, not enhanced text ([#88](https://github.com/bgill55/daedalus/issues/88)) ([8a3978c](https://github.com/bgill55/daedalus/commit/8a3978cbb758a3f41d2e00827ecf8a9b9f0750da))
+* **guards:** stop false-positive completion/tool-plan guards on read-only reports ([#89](https://github.com/bgill55/daedalus/issues/89)) ([b224d17](https://github.com/bgill55/daedalus/commit/b224d177c9061fd894194586197749ec9865e9a0))
+
 ## [3.25.1](https://github.com/bgill55/daedalus/compare/v3.25.0...v3.25.1) (2026-08-09)
 
 
