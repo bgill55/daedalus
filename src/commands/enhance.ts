@@ -80,8 +80,15 @@ export const enhanceCommand: Command = {
           const filesCtx = typeof ctx.buildFileContext === 'function' ? ctx.buildFileContext() : '';
           const userContent = `${indexCtx}${filesCtx}Execute the following task:\n\n${enhanced}`;
           printUserTurn(enhanced);
+          // Rebuild the system prompt for the execution turn using the USER'S
+          // ORIGINAL request — NOT the enhanced prompt. The enhanced prompt is a
+          // generated intermediate artifact (often an audit/expansion) that can
+          // spuriously match skill triggers (e.g. "Pre-Flight Audit" hits the
+          // grade-and-fix-daedalus skill via "pre-flight"), injecting unrelated
+          // skill bodies that hijack the execution turn. Skill matching must stay
+          // keyed to the user's actual intent, just like the REPL loop does.
           if (ctx.messages.length > 0 && ctx.messages[0].role === 'system' && typeof ctx.getSystemPromptWithMemory === 'function') {
-            ctx.messages[0] = { role: 'system', content: ctx.getSystemPromptWithMemory(enhanced) };
+            ctx.messages[0] = { role: 'system', content: ctx.getSystemPromptWithMemory(rawQuery) };
           }
           await ctx.callModelWithTools(userContent);
           if (ctx.sessionManager?.sessionDb) {
