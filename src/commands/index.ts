@@ -8,6 +8,7 @@ import { shortcutCommand, normalizeAlias, createShortcutManager } from './shortc
 import { spinnerCommands } from './spinner.js';
 import { skillsCommand } from './skills.js';
 import { presetCommand, modelManagerCommand } from './config.js';
+import { enhanceCommand } from './enhance.js';
 import type { Command, CommandContext } from './types.js';
 
 export type { Command, CommandContext } from './types.js';
@@ -62,7 +63,7 @@ const helpCommand: Command = {
     };
     for (const cmd of commandsList) {
       const name = cmd.name.replace('/', '');
-      if (['add', 'remove', 'context', 'paste', 'clear'].includes(name)) {
+      if (['add', 'remove', 'context', 'paste', 'clear', 'enhance', 'prompt'].includes(name)) {
         categories.Core.push(cmd);
       } else if (['memory', 'fact', 'convention', 'extract', 'summarize', 'compress', 'profile', 'style', 'lite'].includes(name)) {
         categories.Context.push(cmd);
@@ -113,6 +114,7 @@ export const commandsList: Command[] = [
   shortcutCommand,
   feedbackCommand,
   skillsCommand,
+  enhanceCommand,
   helpCommand,
 ];
 

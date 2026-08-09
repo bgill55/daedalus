@@ -137,8 +137,20 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
     console.log(pc.gray(`Loaded ${loaded.turns.length} message turn(s)`));
   }
 
+  let isFirstTurn = true;
+
   async function chatLoop(): Promise<void> {
     try {
+      if (isFirstTurn && process.stdin.isTTY) {
+        isFirstTurn = false;
+        try {
+          const { getRandomPromptHint } = await import('./prompt-hints.js');
+          console.log(`\n  ${getRandomPromptHint()}`);
+        } catch {
+          // ignore if hint module unavailable
+        }
+      }
+
       while (true) {
         if (pendingNotifications.length > 0) {
           console.log();
