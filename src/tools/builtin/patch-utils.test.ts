@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { extractErrorLines, normalizeErrorLine, syntaxCheck, preflightDependencyCheck, recordRevert, recordWriteSuccess, checkGlobalPatchBreaker, buildRemovedSymbolHint } from './patch-utils.js';
+import { extractErrorLines, normalizeErrorLine, syntaxCheck, preflightDependencyCheck, recordRevert, recordWriteSuccess, checkGlobalPatchBreaker, buildRemovedSymbolHint, isTestFile, checkTestFileLock } from './patch-utils.js';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -321,4 +321,34 @@ describe('preflightDependencyCheck (pre-write prevention gate)', () => {
     expect(res).toContain('totally-missing-pkg');
   });
 });
+
+describe('isTestFile and checkTestFileLock', () => {
+  it('identifies test files correctly', () => {
+    expect(isTestFile('src/app.test.ts')).toBe(true);
+    expect(isTestFile('src/app.spec.ts')).toBe(true);
+    expect(isTestFile('tests/app.ts')).toBe(true);
+    expect(isTestFile('src/__tests__/app.ts')).toBe(true);
+    expect(isTestFile('src/app.ts')).toBe(false);
+  });
+
+  it('blocks test file modifications when allowTestEdits is not true', () => {
+    const mockCtx: any = {};
+    const res = checkTestFileLock('src/app.test.ts', mockCtx);
+    expect(res).not.toBeNull();
+    expect(res).toContain('[TEST SUITE LOCK]');
+  });
+
+  it('allows non-test file modifications', () => {
+    const mockCtx: any = {};
+    const res = checkTestFileLock('src/app.ts', mockCtx);
+    expect(res).toBeNull();
+  });
+
+  it('allows test file modifications when allowTestEdits is true', () => {
+    const mockCtx: any = { allowTestEdits: true };
+    const res = checkTestFileLock('src/app.test.ts', mockCtx);
+    expect(res).toBeNull();
+  });
+});
+
 

@@ -313,15 +313,40 @@ function formatDiagnostic(d: ts.Diagnostic): string {
   return `${name}${loc}: error TS${d.code}: ${msg}`;
 }
 
+export function isTestFile(filePath: string): boolean {
+  const norm = filePath.replace(/\\/g, '/').toLowerCase();
+  return (
+    norm.includes('.test.') ||
+    norm.includes('.spec.') ||
+    norm.includes('/tests/') ||
+    norm.includes('/__tests__/') ||
+    norm.includes('/test/') ||
+    norm.startsWith('tests/') ||
+    norm.startsWith('test/')
+  );
+}
+
+export function checkTestFileLock(filePath: string, context: ToolContext): string | null {
+  if (!isTestFile(filePath)) return null;
+  if (context.allowTestEdits) return null;
+
+  return (
+    `[TEST SUITE LOCK] Patch refused for test file "${path.basename(filePath)}". ` +
+    `Modifying test suite files is blocked by default during feature runs to prevent test-assertion weakening. ` +
+    `If you intended to update or write tests, include "update test" or "test" in your request.`
+  );
+}
+
 /**
- * Pre-flight dependency resolver. Runs BEFORE the file is written (and before the
- * post-write syntaxCheck revert net) so a patch that depends on a missing type
- * package or unresolvable import fails *preventively* with an actionable fix, not
- * after a revert. This is the "clean code from the get-go" gate: resolve the
- * environment first, then patch once.
+ * Pre-flight dependency resolution check.
+ * Run BEFORE writing content to disk or invoking syntaxCheck, to avoid the failure mode
+ * where a patch introduces an import of an uninstalled package / package without @types
+ * (e.g. `helmet` without `@types/helmet`), generating a real TS7016/TS2307 diagnostic that
+ * correctly triggers a revert — which the agent then re-proposes 3x until it breaks the
+ * patch circuit breaker or spins on side quests (running bare tsc, installing unrelated deps).
  *
- * It statically scans the proposed content for `import ... from 'X'` specifiers and
- * resolves each against the project's node_modules + tsconfig (moduleResolution,
+ * This check verifies that every module specifier in `proposedContent` can be resolved by
+ * TypeScript using the project's tsconfig.json compiler options (paths, baseUrl,
  * esModuleInterop, types). Returns a human-readable "resolve first" message if any
  * dependency has no usable type declarations, or null if the proposed imports are
  * resolvable. Import-resolution errors (TS2307/TS1259/...) are exactly the class the
@@ -645,7 +670,7 @@ export function checkCircuitBreaker(targetPath: string, context: ToolContext): s
   const map = getStreakMap(context);
   const streak = map.get(targetPath) ?? 0;
   if (streak >= 2) {
-    return `[PAUSED] patch reverted ${streak} consecutive times on ${path.basename(targetPath)}. Re-read the current file with read_file and reconstruct your patch from the actual content.`;
+    return `[CIRCUIT BREAKER] patch reverted ${streak} consecutive times on ${path.basename(targetPath)}. Re-read the current file with read_file and reconstruct your patch from the actual content.`;
   }
   return null;
 }

@@ -12,6 +12,7 @@ import {
   computeChangedLines,
   syntaxCheck,
   preflightDependencyCheck,
+  checkTestFileLock,
   checkWriteWithoutRead,
   checkCircuitBreaker,
   checkGlobalPatchBreaker,
@@ -211,6 +212,10 @@ export async function writeFile(args: { path: string; content: string }, context
     const newNormalized = args.content.replace(/\r/g, '');
     const changedLines = prevNormalized ? computeChangedLines(prevNormalized, newNormalized) : [];
     const checkpointNoteStr = checkpointNote(targetPath, context.projectRoot);
+    const testLock = checkTestFileLock(targetPath, context);
+    if (testLock) {
+      return formatError(`${testLock}\n\nFile NOT written: ${args.path}.`);
+    }
     const preflight = preflightDependencyCheck(targetPath, context.projectRoot, finalContent);
     if (preflight) {
       return formatError(`${preflight}\n\nFile NOT written: ${args.path}. Resolve the dependency, then retry.`);
@@ -367,6 +372,10 @@ export async function patchFile(args: { path: string; old_string: string; new_st
     }
 
     if (autoApply === 'all') {
+      const testLock = checkTestFileLock(targetPath, context);
+      if (testLock) {
+        return formatError(`${testLock}\n\nPatch NOT written: ${args.path}.`);
+      }
       const changedLines = computeChangedLines(content, finalNormalized);
       const preflight = preflightDependencyCheck(targetPath, context.projectRoot, finalNormalized);
       if (preflight) {
@@ -422,6 +431,10 @@ export async function patchFile(args: { path: string; old_string: string; new_st
       ? (hasCRLF ? diffResult.editedContent.replace(/\n/g, '\r\n') : diffResult.editedContent)
       : finalNormalized;
 
+    const testLock = checkTestFileLock(targetPath, context);
+    if (testLock) {
+      return formatError(`${testLock}\n\nPatch NOT written: ${args.path}.`);
+    }
     const preflight = preflightDependencyCheck(targetPath, context.projectRoot, writeContent);
     if (preflight) {
       return formatError(`${preflight}\n\nPatch NOT written: ${args.path}. Resolve the dependency, then retry.`);

@@ -217,6 +217,8 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
         } else {
           toolContext.agentRole = config.agents?.default || 'coder';
         }
+        const allowTestsRe = /\b(test|tests|vitest|jest|spec|specs|assert|assertion|unit\s*test|integration\s*test|update\s*test|fix\s*test|add\s*test)\b/i;
+        toolContext.allowTestEdits = allowTestsRe.test(activePrompt);
 
         try {
           const filesContext = buildFileContext();

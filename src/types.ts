@@ -75,6 +75,7 @@ export interface ToolContext {
   terminalFailureStreak?: Map<string, number>; // normalized command prefix -> consecutive failure count
   terminalRepeatStreak?: Map<string, number>; // full normalized command -> consecutive identical-run count (no-progress loop guard)
   askLine?: (prompt: string) => Promise<string>;
+  allowTestEdits?: boolean;
 }
 
 export interface PatchEntry {
