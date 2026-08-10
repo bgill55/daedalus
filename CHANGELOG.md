@@ -1,3 +1,10 @@
+## [3.25.3](https://github.com/bgill55/daedalus/compare/v3.25.2...v3.25.3) (2026-08-10)
+
+
+### Bug Fixes
+
+* **patch:** whitelist Node built-ins in pre-flight dependency check ([#91](https://github.com/bgill55/daedalus/issues/91)) ([bde4fe5](https://github.com/bgill55/daedalus/commit/bde4fe52b56364661cf7387da228b99c039e0469))
+
 ## [3.25.2](https://github.com/bgill55/daedalus/compare/v3.25.1...v3.25.2) (2026-08-09)
 
 
