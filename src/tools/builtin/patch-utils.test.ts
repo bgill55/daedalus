@@ -200,7 +200,7 @@ describe('global patch-failure loop breaker', () => {
     recordRevert('/p/a.ts', ctx);
     const msg = checkGlobalPatchBreaker(ctx);
     expect(msg).not.toBeNull();
-    expect(msg).toContain('[PATCH CIRCUIT BREAKER]');
+    expect(msg).toContain('[PAUSED]');
     expect(ctx.patchFailureTotal).toBe(3);
   });
 

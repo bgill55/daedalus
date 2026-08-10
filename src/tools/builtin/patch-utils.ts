@@ -645,7 +645,7 @@ export function checkCircuitBreaker(targetPath: string, context: ToolContext): s
   const map = getStreakMap(context);
   const streak = map.get(targetPath) ?? 0;
   if (streak >= 2) {
-    return `[CIRCUIT BREAKER] patch failed ${streak} consecutive times on ${path.basename(targetPath)}. Use read_file to inspect the current state and reconstruct your patch from the actual content.`;
+    return `[PAUSED] patch reverted ${streak} consecutive times on ${path.basename(targetPath)}. Re-read the current file with read_file and reconstruct your patch from the actual content.`;
   }
   return null;
 }
@@ -683,11 +683,11 @@ export function checkGlobalPatchBreaker(context: ToolContext): string | null {
   const total = context.patchFailureTotal ?? 0;
   if (total >= PATCH_FAILURE_LIMIT) {
     return (
-      `[PATCH CIRCUIT BREAKER] ${total} patch(es) were reverted by the in-memory syntax ` +
-      `check this session. Stop issuing further patches to this file/area. Diagnose the ` +
-      `root cause by reading the FULL current file, then either (1) produce a written plan ` +
-      `via the todo tool and a small, verified patch, or (2) report the blocker to the user ` +
-      `instead of looping. Do NOT keep retrying variations of the same edit.`
+      '[PAUSED] ' + total + ' patch(es) were reverted by the in-memory syntax ' +
+      'check this session. Pause issuing further patches to this file/area. Diagnose the ' +
+      'root cause by reading the FULL current file, then either (1) produce a written plan ' +
+      'via the todo tool and a small, verified patch, or (2) report the blocker to the user ' +
+      'instead of looping. Do NOT keep retrying variations of the same edit.'
     );
   }
   return null;
