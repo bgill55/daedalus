@@ -1,3 +1,10 @@
+## [3.25.7](https://github.com/bgill55/daedalus/compare/v3.25.6...v3.25.7) (2026-08-10)
+
+
+### Bug Fixes
+
+* **agent:** diagnose git-hook failures instead of blindly retrying or escalating ([#98](https://github.com/bgill55/daedalus/issues/98)) ([8b729d8](https://github.com/bgill55/daedalus/commit/8b729d8741768d0dd1080b81c6384f83b1243e44))
+
 ## [3.25.6](https://github.com/bgill55/daedalus/compare/v3.25.5...v3.25.6) (2026-08-10)
 
 
