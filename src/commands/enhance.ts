@@ -2,6 +2,7 @@ import pc from 'picocolors';
 import { printUserTurn, turnSeparator } from '../formatting.js';
 import { extractAndSave } from '../extraction.js';
 import { getSessionTodos } from '../tools/builtin/todo.js';
+import { stripToolCallMarkup } from '../formatting.js';
 import type { Command, CommandContext } from './types.js';
 
 export const ENHANCE_SYSTEM_PROMPT = `You are an expert prompt engineer for AI coding agents. 
@@ -11,7 +12,8 @@ Rules for the generated prompt:
 2. Instruct the agent to inspect relevant files and codebase context using tools before writing.
 3. Require the agent to deliver a fully populated report formatted in Markdown with headers, filled-in comparison tables, and bullet points.
 4. NEVER output empty Markdown templates, empty table rows (e.g. "| Aspect | | |"), or bracketed placeholders (e.g. "[dependency]", "[what it does]"). Instead, write clear instructions ordering the agent to analyze the code and populate those sections with actual findings.
-5. Return ONLY the final enhanced prompt text without meta-commentary, introductory remarks, or surrounding quote marks.`;
+5. Return ONLY the final enhanced prompt text without meta-commentary, introductory remarks, or surrounding quote marks.
+6. If the user's request already contains tool-call markup (e.g. \`<tool_call>\`, \`<function=...>\`), code fences, or XML-like tags, DO NOT copy that structured markup into the output. Rephrase the request as a clean natural-language instruction that a coding agent can act on directly. The enhanced prompt must be plain prose/Markdown an agent can execute — never raw tool-call XML.`;
 
 export async function enhancePrompt(rawPrompt: string, ctx: CommandContext): Promise<string> {
   const fullPrompt = `${ENHANCE_SYSTEM_PROMPT}\n\nUser request to enhance: "${rawPrompt}"`;
@@ -28,7 +30,11 @@ export async function enhancePrompt(rawPrompt: string, ctx: CommandContext): Pro
       const res = await ctx.callModelWithFallback(fullPrompt);
       if (Array.isArray(ctx.messages)) ctx.messages.length = restore;
       if (res && res.trim()) {
-        return res.trim();
+        // Defensive: the enhance model can echo raw <tool_call> XML from a pasted
+        // structured input instead of producing natural-language. Strip any such
+        // markup so the displayed/enhanced prompt is always plain prose an agent
+        // can execute (see bug where /enhance returned <tool_call><function=read_file>).
+        return stripToolCallMarkup(res.trim());
       }
     }
   } catch (_err) {
