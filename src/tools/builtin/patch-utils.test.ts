@@ -328,6 +328,9 @@ describe('isTestFile and checkTestFileLock', () => {
     expect(isTestFile('src/app.spec.ts')).toBe(true);
     expect(isTestFile('tests/app.ts')).toBe(true);
     expect(isTestFile('src/__tests__/app.ts')).toBe(true);
+    expect(isTestFile('vitest.config.ts')).toBe(true);
+    expect(isTestFile('jest.config.js')).toBe(true);
+    expect(isTestFile('.github/workflows/ci.yml')).toBe(true);
     expect(isTestFile('src/app.ts')).toBe(false);
   });
 

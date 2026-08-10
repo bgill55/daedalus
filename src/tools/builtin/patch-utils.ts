@@ -315,6 +315,7 @@ function formatDiagnostic(d: ts.Diagnostic): string {
 
 export function isTestFile(filePath: string): boolean {
   const norm = filePath.replace(/\\/g, '/').toLowerCase();
+  const base = path.basename(norm);
   return (
     norm.includes('.test.') ||
     norm.includes('.spec.') ||
@@ -322,7 +323,13 @@ export function isTestFile(filePath: string): boolean {
     norm.includes('/__tests__/') ||
     norm.includes('/test/') ||
     norm.startsWith('tests/') ||
-    norm.startsWith('test/')
+    norm.startsWith('test/') ||
+    base.startsWith('vitest.config.') ||
+    base.startsWith('jest.config.') ||
+    base.startsWith('playwright.config.') ||
+    base.startsWith('cypress.config.') ||
+    norm.includes('.github/workflows/') ||
+    norm.includes('.gitlab-ci')
   );
 }
 
