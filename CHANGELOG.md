@@ -1,3 +1,10 @@
+# [3.27.0](https://github.com/bgill55/daedalus/compare/v3.26.0...v3.27.0) (2026-08-10)
+
+
+### Features
+
+* **tools:** expand test-suite lock to protect test runner configs and CI workflow files ([885ac77](https://github.com/bgill55/daedalus/commit/885ac77a4bc0e06b7695b378cdaadcd70271ff06))
+
 # [3.26.0](https://github.com/bgill55/daedalus/compare/v3.25.7...v3.26.0) (2026-08-10)
 
 
