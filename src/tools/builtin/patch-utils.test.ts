@@ -297,5 +297,28 @@ describe('preflightDependencyCheck (pre-write prevention gate)', () => {
     fs.rmSync(dir, { recursive: true, force: true });
     expect(res).toBeNull();
   });
+
+  it('does NOT flag Node built-in imports (path/crypto/fs) as missing types', () => {
+    // Regression: Node built-ins resolve via @types/node, not node_modules/<name>.
+    // The pre-flight gate must never block a patch solely because the file imports
+    // 'path' or 'crypto' — that made every patch to a Node server file fail pre-write.
+    const dir = makeProject(false);
+    const file = path.join(dir, 'server.ts');
+    const content =
+      "import path from 'path';\nimport { randomUUID } from 'crypto';\nimport fs from 'fs';\nexport const x = path.join('a', 'b');\n";
+    const res = preflightDependencyCheck(file, dir, content);
+    fs.rmSync(dir, { recursive: true, force: true });
+    expect(res).toBeNull();
+  });
+
+  it('still flags a genuinely missing third-party package (not a built-in)', () => {
+    const dir = makeProject(false);
+    const file = path.join(dir, 'app.ts');
+    const content = "import thing from 'totally-missing-pkg';\nexport const x = thing;\n";
+    const res = preflightDependencyCheck(file, dir, content);
+    fs.rmSync(dir, { recursive: true, force: true });
+    expect(res).not.toBeNull();
+    expect(res).toContain('totally-missing-pkg');
+  });
 });
 

@@ -377,8 +377,28 @@ export function preflightDependencyCheck(
   );
 }
 
+/** Node.js built-in modules. These resolve via @types/node (a single package that
+ * declares ALL built-ins) — there is no `node_modules/path` or `node_modules/@types/path`.
+ * Flagging them as "missing type declarations" is always a false positive, so the
+ * pre-flight gate treats any built-in as resolved. This is what made every patch to a
+ * Node server file (which imports path/crypto/fs/etc.) fail pre-write. */
+const NODE_BUILTINS = new Set([
+  'assert', 'assert/strict', 'buffer', 'child_process', 'cluster', 'console', 'constants',
+  'crypto', 'dgram', 'dns', 'dns/promises', 'domain', 'events', 'fs', 'fs/promises',
+  'http', 'http2', 'https', 'inspector', 'module', 'net', 'os', 'path', 'perf_hooks',
+  'process', 'punycode', 'querystring', 'readline', 'repl', 'stream', 'stream/promises',
+  'string_decoder', 'timers', 'timers/promises', 'tls', 'trace_events', 'tty', 'url',
+  'util', 'util/types', 'v8', 'vm', 'wasi', 'worker_threads', 'zlib',
+]);
+
+function isNodeBuiltin(pkg: string): boolean {
+  return NODE_BUILTINS.has(pkg);
+}
+
 /** True if `pkg` is resolvable from node_modules with usable type declarations under this tsconfig. */
 function packageResolves(pkg: string, tsconfigRoot: string): boolean {
+  // Node built-ins are declared by @types/node; never flag them.
+  if (isNodeBuiltin(pkg)) return true;
   // 1) package with bundled types: package.json "types"/"typings" or an index.d.ts present
   const pkgDir = path.join(tsconfigRoot, 'node_modules', pkg);
   if (fs.existsSync(pkgDir)) {
