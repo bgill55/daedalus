@@ -304,7 +304,7 @@ describe('patchFile — circuit breaker', () => {
 
     const result = await patchFile({ path: file, old_string: 'MISSING_STRING_3', new_string: '' }, ctx);
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/CIRCUIT BREAKER/);
+    expect(result.error).toMatch(/PAUSED/);
   });
 
   it('resets streak after a successful patch', async () => {
@@ -330,7 +330,7 @@ describe('patchFile — circuit breaker', () => {
 
     const blocked = await patchFile({ path: file, old_string: 'const x = 1;', new_string: 'const x = 2;' }, ctx);
     expect(blocked.success).toBe(false);
-    expect(blocked.error).toMatch(/CIRCUIT BREAKER/);
+    expect(blocked.error).toMatch(/PAUSED/);
 
     await readFile({ path: file }, ctx);
 
