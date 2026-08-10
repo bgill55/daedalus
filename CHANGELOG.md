@@ -1,3 +1,10 @@
+## [3.25.4](https://github.com/bgill55/daedalus/compare/v3.25.3...v3.25.4) (2026-08-10)
+
+
+### Bug Fixes
+
+* **audit:** require verifying deps/config/imports before recommending changes ([#92](https://github.com/bgill55/daedalus/issues/92)) ([e4fc6df](https://github.com/bgill55/daedalus/commit/e4fc6df1ada2a3733cc22c723443d5eb7d9a8a65))
+
 ## [3.25.3](https://github.com/bgill55/daedalus/compare/v3.25.2...v3.25.3) (2026-08-10)
 
 
