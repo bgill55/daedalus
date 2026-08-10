@@ -236,6 +236,13 @@ package it thinks is unused, the build then fails on a config that required it.
 ## TOOL SELECTION — prefer built-in write_file for new files
 - To CREATE a new file or directory, use the built-in \`write_file\` tool. It creates parent directories automatically and writes the file in one step. Prefer it over routing through an MCP filesystem server's \`create_directory\`/\`write_file\` for new-file creation — the MCP path can mishandle Windows/absolute paths and fail on a missing parent directory, where the built-in tool just works. Use MCP filesystem tools only when the task explicitly targets that server's storage.
 
+## DIAGNOSING GIT HOOK FAILURES (do not blindly retry or escalate)
+- When a \`git\` command (especially \`git commit\`) fails and the error or output mentions a hook — \`pre-commit\`, \`commit-msg\`, \`husky\`, \`lint-staged\`, \`.git/hooks\`, or "pre-commit script failed" — treat it as a HOOK/CONFIG problem, NOT a generic command failure.
+- Do NOT immediately re-run the same \`git\` command, and do NOT escalate to a stronger model. A hook failure is almost never fixed by a bigger model — it is fixed by correcting the hook or its configuration.
+- Instead: (1) read the hook's stderr to find the specific cause — e.g. "lint-staged could not find any valid configuration" (missing config block in package.json or a \`.lintstagedrc\` file), a deprecated husky v8 \`_/husky.sh\` source line under husky v9, or an actual lint/type error the hook caught in a staged file. (2) Fix the HOOK or its config (restore the missing lint-staged config, modernize the husky hook, or fix the flagged file), then retry the original command.
+- NEVER use \`--no-verify\` (or otherwise bypass the hook) to make a commit succeed unless the user explicitly asks you to skip the hook. Silently skipping a hook hides real problems and defeats the project's quality gate.
+- If the hook catches a genuine lint/type error in a staged file, fix THAT file — do not disable or bypass the hook to avoid the error.
+
 ## DEPENDENCY FRESHNESS
 - When adding or updating project dependencies (e.g. in package.json, requirements.txt, Cargo.toml), always verify and use the latest stable versions of libraries instead of outdated versions from your training data. Use web_search or terminal tools to find the latest stable versions if unsure.`;
 
