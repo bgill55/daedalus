@@ -1,3 +1,11 @@
+## [3.25.6](https://github.com/bgill55/daedalus/compare/v3.25.5...v3.25.6) (2026-08-10)
+
+
+### Bug Fixes
+
+* **agent:** add self-correction discipline and verify-before-claiming-success rules ([#94](https://github.com/bgill55/daedalus/issues/94)) ([4d4a12c](https://github.com/bgill55/daedalus/commit/4d4a12c05b9e57d790160a1b420890a80abb9551))
+* **enhance:** strip raw tool-call XML from enhanced prompts ([#96](https://github.com/bgill55/daedalus/issues/96)) ([e9bed08](https://github.com/bgill55/daedalus/commit/e9bed08645909e14af93ac7f1c8b50b9158ef566))
+
 ## [3.25.5](https://github.com/bgill55/daedalus/compare/v3.25.4...v3.25.5) (2026-08-10)
 
 
