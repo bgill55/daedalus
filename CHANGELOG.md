@@ -1,3 +1,10 @@
+## [3.25.5](https://github.com/bgill55/daedalus/compare/v3.25.4...v3.25.5) (2026-08-10)
+
+
+### Bug Fixes
+
+* **audit:** do not call a package redundant based on related packages ([#93](https://github.com/bgill55/daedalus/issues/93)) ([385bb48](https://github.com/bgill55/daedalus/commit/385bb48e282b9d43769fa4c5247d694ba6dc2193))
+
 ## [3.25.4](https://github.com/bgill55/daedalus/compare/v3.25.3...v3.25.4) (2026-08-10)
 
 
