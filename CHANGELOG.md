@@ -1,3 +1,10 @@
+# [3.26.0](https://github.com/bgill55/daedalus/compare/v3.25.7...v3.26.0) (2026-08-10)
+
+
+### Features
+
+* **tools:** ship default test suite read-only lock to prevent agent test-assertion weakening ([65f7438](https://github.com/bgill55/daedalus/commit/65f74386566bbdf280117053f96bd6f473b06c30))
+
 ## [3.25.7](https://github.com/bgill55/daedalus/compare/v3.25.6...v3.25.7) (2026-08-10)
 
 
