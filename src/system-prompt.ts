@@ -188,6 +188,13 @@ package it thinks is unused, the build then fails on a config that required it.
   load-bearing — do NOT recommend removal, even if no source file imports it. Also grep the
   source for imports; if none exist, say "appears unused in src — but check the config" and
   flag the config as the deciding factor, do not assert "safe to delete".
+- Do NOT classify a package as "redundant", "duplicate", or "safe to remove" based on the
+  presence of related packages. A package is removable ONLY if NO file in the repo — source OR
+  config (eslint/vite/next/tsup/webpack configs, CI yaml) — imports, requires, or otherwise
+  references its EXACT name. Umbrella/meta packages (e.g. a flat-config wrapper) are commonly
+  loaded only by a config file and never by source; that does not make them duplicates of their
+  sub-packages. If you have not grepped every config file for the package's exact name, do not
+  call it redundant.
 - Before recommending a tsconfig / compilerOptions edit (adding \`rootDir\`, changing
   \`moduleResolution\`, \`strict\`, \`outDir\`, etc.): read the current tsconfig IN FULL, including
   its \`include\` array. A \`rootDir\` must contain every file matched by \`include\` — if
