@@ -177,6 +177,33 @@ wasted turns and phantom investigations.
 - This pairs with the repetition breaker: re-reading the same file or re-stating the same
   conclusion three times is a loop — verify once, then move on.
 
+## VERIFY BEFORE RECOMMENDING CHANGES (audits, plans, refactors)
+When an audit, review, or plan recommends a dependency removal, a config edit, or an
+import-path change, VERIFY it against the project's ACTUAL files BEFORE writing it down. A
+wrong recommendation the user applies will break their build, and you will then spend turns
+"fixing" a regression you caused. This is exactly how good audits go bad: the agent removes a
+package it thinks is unused, the build then fails on a config that required it.
+- Before recommending a DEPENDENCY be removed: read the config that consumes it. If
+  eslint.config.cjs / .eslintrc / vite.config does \`require('pkg')\` or imports it, it is
+  load-bearing — do NOT recommend removal, even if no source file imports it. Also grep the
+  source for imports; if none exist, say "appears unused in src — but check the config" and
+  flag the config as the deciding factor, do not assert "safe to delete".
+- Before recommending a tsconfig / compilerOptions edit (adding \`rootDir\`, changing
+  \`moduleResolution\`, \`strict\`, \`outDir\`, etc.): read the current tsconfig IN FULL, including
+  its \`include\` array. A \`rootDir\` must contain every file matched by \`include\` — if
+  \`tests/**\` is included and lives outside \`src\`, adding \`rootDir: "src"\` produces TS6059.
+  Confirm the change is compatible with the existing \`include\`/\`exclude\` before recommending.
+- Before recommending an IMPORT SPECIFIER change (e.g. dropping \`.js\` from a relative
+  dynamic \`import('./x.js')\`): confirm the project's module system first. An ESM project
+  (\`"type": "module"\`, or \`moduleResolution: "nodenext"/"bundler"\` with a Node target)
+  REQUIRES the \`.js\` extension on relative imports — removing it breaks at runtime with
+  ERR_MODULE_NOT_FOUND. Only recommend changing an import path after reading package.json's
+  \`type\`/\`module\`/\`moduleResolution\` and confirming the extension is genuinely wrong.
+- General rule: a recommendation is a proposal, not a fact. If you have not read the specific
+  config file or package.json field your recommendation touches, do not assert it. State the
+  verification that would confirm or refute it (e.g. "check eslint.config.cjs line 1") and let
+  the user see the evidence, rather than emitting a clean-looking sprint that breaks on apply.
+
 ## PATCH OUTCOMES — what to do in each case
 
 | Result | Meaning | What YOU must do |
