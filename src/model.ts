@@ -246,7 +246,7 @@ export function createModelFunctions(deps: ModelDeps) {
     while (true) {
       if (toolTurnsRemaining <= 0) {
         closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
-        console.log(`\n  ${pc.yellow('[WARN]')} ${pc.yellow(`Reached max tool turns (${MAX_TOOL_TURNS}). Stopping to checkpoint.`)}`);
+        console.log(`\n  ${pc.cyan('[INFO]')} ${pc.dim(`Reached max tool turns (${MAX_TOOL_TURNS}). Pausing to checkpoint.`)}`);
         const executedSummary = executedToolNames.size > 0 ? [...executedToolNames].join(', ') : 'none';
         console.log(`  ${pc.dim(`[SUMMARY] ${totalToolCalls} tool call(s) executed: ${executedSummary}`)}`);
         if (process.stdin.isTTY) {
@@ -396,7 +396,7 @@ export function createModelFunctions(deps: ModelDeps) {
         // is normal narration, and forcing a retry loops on a finished report.
         const narratedToolCalls = parseTextToolCalls(fullContent);
         if (narratedToolCalls.length >= 1) {
-          console.log(pc.yellow(`\n  [WARN] Model planned tools but omitted valid JSON. Retrying.`));
+          console.log(pc.cyan(`\n  [RETRY] Model planned tools but emitted no valid JSON. Re-issuing the request.`));
           totalCompletionTokens += turnUsageOut ?? 0;
           messages.push({ role: 'assistant', content: cleanContent });
           messages.push({
@@ -417,7 +417,7 @@ export function createModelFunctions(deps: ModelDeps) {
         const closingTodos = getSessionTodos(toolContext.sessionId);
         if (closingTodos.length > 0 && detectFalseCompletion(cleanContent, closingTodos)) {
           const remaining = closingTodos.filter((t) => t.status !== 'completed').length;
-          console.log(pc.red(`\n  [GUARD] Completion claim blocked — ${remaining} todo(s) still open.`));
+          console.log(pc.cyan(`\n  [CHECK] Verifying completion claim — ${remaining} todo(s) still open.`));
           messages.push({ role: 'assistant', content: cleanContent });
           messages.push({
             role: 'user',
@@ -432,7 +432,7 @@ export function createModelFunctions(deps: ModelDeps) {
         // reverted by the syntax guard and never actually landed on disk.
         const falselyClaimed = detectFalseCompletionOnDisk(cleanContent, toolContext);
         if (falselyClaimed) {
-          console.log(pc.red(`\n  [GUARD] Completion claim blocked — no successful patch to ${falselyClaimed} this session (only reverts).`));
+          console.log(pc.cyan(`\n  [CHECK] Verifying completion claim — no successful patch to ${falselyClaimed} this session (only reverts).`));
           messages.push({ role: 'assistant', content: cleanContent });
           messages.push({
             role: 'user',
@@ -466,11 +466,11 @@ export function createModelFunctions(deps: ModelDeps) {
       if (consecutiveCount >= 2) {
         if (consecutiveCount >= 3) {
           closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
-          console.log(`\n  ${pc.red('[STOP]')} Terminated repetitive loop after 4 consecutive identical tool calls.`);
+          console.log(`\n  ${pc.cyan('[DONE]')} Concluding after 4 consecutive identical tool calls (repetitive loop).`);
           return { content: lastContent, toolCalls: [] };
         }
 
-        console.log(`\n  ${pc.yellow('[WARN]')} Loop detected (repetitive tool calls). Injecting correction.`);
+        console.log(`\n  ${pc.cyan('[SELF-CORRECT]')} Same tool called repeatedly with identical arguments. Adjusting approach.`);
         messages.push({
           role: 'user',
           content: `[SYSTEM WARNING] You are stuck in a repetitive loop calling the same tools with the same arguments: "${toolCallArray.map(tc => tc.function.name).join(', ')}". Please STOP repeating yourself. If your previous tool calls did not give you the desired outcome, try a different approach (e.g., read a different file, search with a different query, run a build/test command, or summarize the blocker/findings to the user).`,
@@ -615,7 +615,7 @@ export function createModelFunctions(deps: ModelDeps) {
         for (const r of failedResults) {
           const firstLine = (r.error || '').split('\n')[0] || 'unknown error';
           const snippet = firstLine.length > 160 ? `${firstLine.slice(0, 160)}...` : firstLine;
-          console.log(pc.yellow(`\n  [AUTO] Tool '${r.name}' failed: ${snippet}`));
+          console.log(pc.cyan(`\n  [RETRY] ${r.name} didn't apply — ${snippet}`));
           const tailLines = (r.content || '')
             .replace(/\u001B\[\d+(;\d+)*m/g, '')
             .split('\n')
@@ -627,7 +627,7 @@ export function createModelFunctions(deps: ModelDeps) {
             console.log(pc.dim(shown.map(l => `    ${l}`).join('\n')));
           }
         }
-        console.log(pc.cyan('\n  Agent will attempt to fix it...'));
+        console.log(pc.cyan('\n  [SELF-CORRECT] Adjusting approach and retrying...'));
       } else {
         consecutiveToolFailures = 0;
         escalatedThisStreak = false;
@@ -655,9 +655,9 @@ export function createModelFunctions(deps: ModelDeps) {
       // Hard stop: a patch circuit breaker fired this turn. The agent exhausted its
       // patch-attempt budget and must not keep retrying or escalating models — force the
       // turn to close so it reports the blocker to the user instead of looping.
-      if (failedResults.some(r => `${r.error ?? ''}\n${r.content ?? ''}`.includes('[PATCH CIRCUIT BREAKER]'))) {
+      if (failedResults.some(r => `${r.error ?? ''}\n${r.content ?? ''}`.includes('[PAUSED]'))) {
         closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
-        return { content: `${lastContent}\n\n[SYSTEM] Patch circuit breaker tripped — too many reverted patches this session. Stopping to avoid a loop. Report the blocker to the user.`, toolCalls: [] };
+        return { content: `${lastContent}\n\n[PAUSED] Patch circuit breaker tripped — too many reverted patches this session. Pausing to avoid a loop. Report the blocker to the user.`, toolCalls: [] };
       }
 
       const routerConfig = typeof router.getConfig === 'function' ? router.getConfig() : undefined;
@@ -676,7 +676,7 @@ export function createModelFunctions(deps: ModelDeps) {
           escalatedThisStreak = true;
           escalationCount++;
           pinnedModel = nextModel.name;
-          console.log(pc.yellow(`\n  [ESCALATE] Repeated tool failures on ${currentName} — switching to stronger model ${nextModel.name} for the next attempt.`));
+          console.log(pc.cyan(`\n  [ROUTE] Stepping up to a more capable model ${nextModel.name} after repeated tool failures on ${currentName}.`));
           messages.push({
             role: 'user',
             content: '[SYSTEM NOTICE] A stronger model is now handling this task after repeated tool failures. Re-examine the recent errors and the exact current state of the files before retrying. Do not repeat the same failing calls.',
@@ -686,7 +686,7 @@ export function createModelFunctions(deps: ModelDeps) {
 
       if (consecutiveToolFailures >= 5 || worstRepeatedFailures >= 5) {
         closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
-        console.log(pc.red('\n  [STOP] Repeated tool failures. Stopping to avoid looping.'));
+        console.log(pc.cyan('\n  [DONE] Concluding after repeated tool failures — see summary above.'));
         messages.push({ role: 'assistant', content: lastContent });
         return { content: lastContent, toolCalls: [] };
       }

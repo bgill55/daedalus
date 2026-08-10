@@ -363,8 +363,8 @@ describe('Tool failure handling', () => {
     const result = await callModelWithTools('run foo');
     const output = consoleOutput();
 
-    expect(output).toContain("[AUTO] Tool 'terminal' failed: command not found: foo");
-    expect(output).toContain('Agent will attempt to fix it...');
+    expect(output).toContain("[RETRY] terminal didn't apply — command not found: foo");
+    expect(output).toContain('[SELF-CORRECT] Adjusting approach and retrying...');
     const toolMessage = messages.find(m => m.role === 'tool')!;
     expect(typeof toolMessage.content).toBe('string');
     expect(String(toolMessage.content)).toContain('[Tool Error] command not found: foo');
@@ -449,8 +449,8 @@ describe('Tool failure handling', () => {
     const result = await callModelWithTools('build the app');
     const output = consoleOutput();
 
-    expect(output).toContain('[ESCALATE]');
-    expect(output).toContain('switching to stronger model strong-model');
+    expect(output).toContain('[ROUTE]');
+    expect(output).toContain('Stepping up to a more capable model strong-model');
     const thirdCallModel = chatStreamMock.mock.calls[2]?.[0]?.model;
     expect(thirdCallModel).toBe('strong-model');
     expect(result.content).toBe('done.');
@@ -520,7 +520,7 @@ describe('Tool failure handling', () => {
     const output = consoleOutput();
 
     expect(chatStreamMock).toHaveBeenCalledTimes(5);
-    expect(output).toContain('[STOP] Repeated tool failures. Stopping to avoid looping.');
+    expect(output).toContain('[DONE] Concluding after repeated tool failures — see summary above.');
     const warning = messages.find(m => m.role === 'user' && typeof m.content === 'string' && m.content.includes('[SYSTEM WARNING]'));
     expect(warning).toBeDefined();
     expect(result.content).toBe('');
@@ -562,12 +562,12 @@ describe('Tool failure handling', () => {
     const output = consoleOutput();
 
     // Does NOT escalate to a stronger model for a syntax loop
-    expect(output).not.toContain('[ESCALATE]');
+    expect(output).not.toContain('[ROUTE]');
     // Injects the targeted syntax-loop guidance
     const warning = messages.find(m => m.role === 'tool' && typeof m.content === 'string' && m.content.includes('STOP rewriting the whole file'));
     expect(warning).toBeDefined();
     // Still halts rather than looping forever
-    expect(output).toContain('[STOP] Repeated tool failures. Stopping to avoid looping.');
+    expect(output).toContain('[DONE] Concluding after repeated tool failures — see summary above.');
     expect(result.toolCalls).toEqual([]);
     delete process.env.DAEDALUS_AUTO_APPROVE;
   });
@@ -603,12 +603,12 @@ describe('Tool failure handling', () => {
     const output = consoleOutput();
 
     // The circuit-breaker message must NOT trigger model escalation
-    expect(output).not.toContain('[ESCALATE]');
+    expect(output).not.toContain('[ROUTE]');
     // The targeted guidance (re-read + minimal patch) must be injected
     const warning = messages.find(m => m.role === 'tool' && typeof m.content === 'string' && m.content.includes('STOP rewriting the whole file'));
     expect(warning).toBeDefined();
     // Still halts rather than looping forever
-    expect(output).toContain('[STOP] Repeated tool failures. Stopping to avoid looping.');
+    expect(output).toContain('[DONE] Concluding after repeated tool failures — see summary above.');
     expect(result.toolCalls).toEqual([]);
     delete process.env.DAEDALUS_AUTO_APPROVE;
   });
@@ -647,8 +647,8 @@ describe('Tool failure handling', () => {
     const output = consoleOutput();
 
     expect(chatStreamMock).toHaveBeenCalledTimes(9);
-    expect(output).toContain('[STOP] Repeated tool failures. Stopping to avoid looping.');
-    expect(output).toContain("[AUTO] Tool 'patch' failed: stale read");
+    expect(output).toContain('[DONE] Concluding after repeated tool failures — see summary above.');
+    expect(output).toContain("[RETRY] patch didn't apply — stale read");
     expect(result.content).toBe('');
     expect(result.toolCalls).toEqual([]);
     delete process.env.DAEDALUS_AUTO_APPROVE;
@@ -693,7 +693,7 @@ describe('Tool failure handling', () => {
 
       expect(askLine).toHaveBeenCalledWith(expect.stringContaining('Continue working?'));
       expect(chatStreamMock).toHaveBeenCalledTimes(MAX_TOOL_TURNS + 1);
-      expect(output).toContain('Reached max tool turns (40). Stopping to checkpoint.');
+      expect(output).toContain('Reached max tool turns (40). Pausing to checkpoint.');
       expect(output).toContain('[SUMMARY] 40 tool call(s) executed: read_file');
       expect(output).toContain('[OK] Continuing with a fresh turn budget.');
       expect(result.content).toBe('done.');
