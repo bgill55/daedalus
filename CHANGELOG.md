@@ -1,3 +1,10 @@
+## [3.28.4](https://github.com/bgill55/daedalus/compare/v3.28.3...v3.28.4) (2026-08-11)
+
+
+### Bug Fixes
+
+* **tools:** honor live user approval for test-file writes ([#104](https://github.com/bgill55/daedalus/issues/104)) ([c38315a](https://github.com/bgill55/daedalus/commit/c38315a13031de7f9862e154cb49f1d1360627b8))
+
 ## [3.28.3](https://github.com/bgill55/daedalus/compare/v3.28.2...v3.28.3) (2026-08-11)
 
 
