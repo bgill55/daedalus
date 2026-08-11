@@ -222,6 +222,9 @@ REVIEW CHECKLIST (check ALL of these):
 18. CROSS-AGENT SELECTOR SYNC: For web UIs (HTML/CSS/JS), verify that CSS class names in index.html match class definitions in style.css, and element IDs match querySelectors in script.js. Mismatched selector names (e.g. .copy-button vs .copy-btn) render unstyled default HTML and are a CRITICAL failure!
 19. NO TODOS OR STUBS: Any \`// TODO\`, \`// FIXME\`, \`// Placeholder\`, or commented-out feature blocks in delivered code are an automatic NEEDS_FIX. Unfinished features must be implemented, not stubbed.
 20. DARK MODE ACTIVATION: For web UIs, if style.css uses \`body.dark-mode\` or any class-gated dark background, verify that script.js applies that class on page load. A CSS dark-mode class that JS never applies means the page renders white — flag as NEEDS_FIX immediately.
+21. TYPE LOOSENING AUDIT (DIFF IMMUNITY): Verify that existing typed signatures, interfaces, or generics were NOT quietly converted to \`any\`, \`unknown\`, or \`Record<string, any>\` to bypass type checking.
+22. ERROR SWALLOWING & FALLBACK AUDIT (DIFF IMMUNITY): Check for empty \`catch {}\` blocks, silenced exceptions, or dummy empty fallbacks introduced to force a green run. Errors must be logged or handled cleanly, never swallowed.
+23. TEST ASSERTION WEAKENING AUDIT (DIFF IMMUNITY): Diff test files separately if test edits occurred. Verify that existing assertions were NOT deleted, commented out, wrapped in try/catch to ignore failures, or loosened from exact equality (\`toEqual\`) to loose checks (\`contains\` or \`toBeDefined\`).
 
 OUTPUT FORMAT:
 STATUS: PASS | NEEDS_FIX | STOP

@@ -18,6 +18,8 @@ import { commandsList, executeCommand, CommandContext } from './commands.js';
 import { extractAndSave } from './extraction.js';
 import { resetTurnAborted } from './model.js';
 import { parseAgentTag } from './agents/roles.js';
+import { SigmaMemEngine } from './session/sigma-mem.js';
+import { synthesizeSkillFromTurn } from './skills/auto-synthesis.js';
 
 export interface ReplDeps {
   config: DaedalusConfig;
@@ -235,6 +237,18 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
 
           sessionManager.saveSessionState(messages, activeFiles, getSessionTodos(sessionId));
           await extractAndSave(router, sessionManager, messages);
+
+          // Mythic Engine: Background memory consolidation and skill synthesis
+          try {
+            const db = (sessionManager as any).db;
+            if (db) SigmaMemEngine.consolidateAndPruneMemories(db);
+            const rawContent = messages.filter(m => m.role === 'assistant').pop()?.content || '';
+            const summaryStr = typeof rawContent === 'string' ? rawContent : JSON.stringify(rawContent);
+            const synth = synthesizeSkillFromTurn(activePrompt, summaryStr, sessionManager.projectRoot);
+            if (synth.synthesized && synth.name) {
+              console.log(pc.cyan(`\n  [SKILL SYNTHESIZED] Draft playbook "${synth.name}" saved to .daedalus/skills/drafts/`));
+            }
+          } catch { /* background housekeeping silent */ }
         } catch {
           try {
             const filesContext = buildFileContext();
