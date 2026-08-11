@@ -240,13 +240,14 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
 
           // Mythic Engine: Background memory consolidation and skill synthesis
           try {
-            const db = (sessionManager as any).db;
-            if (db) SigmaMemEngine.consolidateAndPruneMemories(db);
+            if (sessionManager.sessionDb) {
+              SigmaMemEngine.consolidateAndPruneMemories(sessionManager.sessionDb);
+            }
             const rawContent = messages.filter(m => m.role === 'assistant').pop()?.content || '';
             const summaryStr = typeof rawContent === 'string' ? rawContent : JSON.stringify(rawContent);
-            const synth = synthesizeSkillFromTurn(activePrompt, summaryStr, sessionManager.projectRoot);
+            const synth = synthesizeSkillFromTurn(activePrompt, summaryStr);
             if (synth.synthesized && synth.name) {
-              console.log(pc.cyan(`\n  [SKILL SYNTHESIZED] Draft playbook "${synth.name}" saved to .daedalus/skills/drafts/`));
+              console.log(pc.cyan(`\n  [SKILL SYNTHESIZED] Draft playbook "${synth.name}" saved to ~/.daedalus/skills/.drafts/ — review with /skills`));
             }
           } catch { /* background housekeeping silent */ }
         } catch {

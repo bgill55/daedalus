@@ -23,6 +23,7 @@ import { SigmaMemEngine } from './session/sigma-mem.js';
 import { createRepl } from './repl.js';
 import { setFormattingConfig } from './formatting.js';
 import { getProjectRules, systemPrompt } from './system-prompt.js';
+import { getConstitutionSummary } from './config/constitution.js';
 import { getSkillsSection } from './skills/index.js';
 import { BoundedMap } from './utils/bounded-map.js';
 
@@ -185,6 +186,13 @@ function getSystemPromptWithMemory(userRequest?: string): string {
   const projectRules = getProjectRules(sessionManager.projectRoot);
   if (projectRules) {
     prompt += '\n' + projectRules;
+  }
+
+  // Codebase Constitution: programmatic, non-bypassable execution contracts that
+  // govern agent tool calls, patch verification, and multi-agent orchestration.
+  const constitution = getConstitutionSummary();
+  if (constitution) {
+    prompt += `\n\n## DAEDALUS CODEBASE CONSTITUTION\nThese principles are hard constraints on every action you take. The mechanisms that enforce them (test-suite lock, pre-flight dependency check, deterministic verification, git checkpoints, reviewer audit) are active — do not attempt to bypass them.\n${constitution}`;
   }
 
   // BETA: load-only skill playbooks (instructions only, trusted locations only)
