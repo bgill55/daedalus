@@ -284,6 +284,9 @@ export async function patchFile(args: { path: string; old_string: string; new_st
     const circuitBreaker = checkCircuitBreaker(targetPath, context);
     if (circuitBreaker) return formatError(circuitBreaker);
 
+    const testLock = checkTestFileLock(targetPath, context);
+    if (testLock) return formatError(`${testLock}\n\nPatch NOT written: ${args.path}.`);
+
     const readGuard = checkWriteWithoutRead(targetPath, context);
     if (readGuard) return formatError(readGuard);
 
@@ -431,10 +434,6 @@ export async function patchFile(args: { path: string; old_string: string; new_st
       ? (hasCRLF ? diffResult.editedContent.replace(/\n/g, '\r\n') : diffResult.editedContent)
       : finalNormalized;
 
-    const testLock = checkTestFileLock(targetPath, context);
-    if (testLock) {
-      return formatError(`${testLock}\n\nPatch NOT written: ${args.path}.`);
-    }
     const preflight = preflightDependencyCheck(targetPath, context.projectRoot, writeContent);
     if (preflight) {
       return formatError(`${preflight}\n\nPatch NOT written: ${args.path}. Resolve the dependency, then retry.`);
