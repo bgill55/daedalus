@@ -1,3 +1,10 @@
+## [3.28.1](https://github.com/bgill55/daedalus/compare/v3.28.0...v3.28.1) (2026-08-11)
+
+
+### Bug Fixes
+
+* **engine:** wire immunity engine — connect skill synthesis to draft store + inject constitution into system prompt ([#101](https://github.com/bgill55/daedalus/issues/101)) ([4f4c64a](https://github.com/bgill55/daedalus/commit/4f4c64a44da26cc70aadbf5bcd8dd4b35614d963))
+
 # [3.28.0](https://github.com/bgill55/daedalus/compare/v3.27.1...v3.28.0) (2026-08-11)
 
 
