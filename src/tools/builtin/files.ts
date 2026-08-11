@@ -13,6 +13,7 @@ import {
   syntaxCheck,
   preflightDependencyCheck,
   checkTestFileLock,
+  guardTestWrite,
   checkWriteWithoutRead,
   checkCircuitBreaker,
   checkGlobalPatchBreaker,
@@ -212,7 +213,7 @@ export async function writeFile(args: { path: string; content: string }, context
     const newNormalized = args.content.replace(/\r/g, '');
     const changedLines = prevNormalized ? computeChangedLines(prevNormalized, newNormalized) : [];
     const checkpointNoteStr = checkpointNote(targetPath, context.projectRoot);
-    const testLock = checkTestFileLock(targetPath, context);
+    const testLock = await guardTestWrite(targetPath, context);
     if (testLock) {
       return formatError(`${testLock}\n\nFile NOT written: ${args.path}.`);
     }
@@ -284,7 +285,7 @@ export async function patchFile(args: { path: string; old_string: string; new_st
     const circuitBreaker = checkCircuitBreaker(targetPath, context);
     if (circuitBreaker) return formatError(circuitBreaker);
 
-    const testLock = checkTestFileLock(targetPath, context);
+    const testLock = await guardTestWrite(targetPath, context);
     if (testLock) return formatError(`${testLock}\n\nPatch NOT written: ${args.path}.`);
 
     const readGuard = checkWriteWithoutRead(targetPath, context);
@@ -375,7 +376,7 @@ export async function patchFile(args: { path: string; old_string: string; new_st
     }
 
     if (autoApply === 'all') {
-      const testLock = checkTestFileLock(targetPath, context);
+      const testLock = await guardTestWrite(targetPath, context);
       if (testLock) {
         return formatError(`${testLock}\n\nPatch NOT written: ${args.path}.`);
       }

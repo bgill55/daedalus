@@ -361,6 +361,34 @@ export function checkTestFileLock(filePath: string, context: ToolContext): strin
   );
 }
 
+// Gate wrapper around checkTestFileLock that honors a LIVE user authorization.
+// The lexical allowTestEdits flag (set from the prompt) is not the only way to
+// permit a test write: if the lock fires and the user explicitly approves via
+// context.askLine, we set allowTestEdits for the rest of the session and allow
+// the write. This closes the gap where an agent surfaces the blocker, the user
+// says "yes", but the lock (which only saw the prompt text) still refuses.
+// Returns null when the write is allowed, or the lock message when blocked.
+export async function guardTestWrite(filePath: string, context: ToolContext): Promise<string | null> {
+  const block = checkTestFileLock(filePath, context);
+  if (!block) return null;
+  if (context.askLine && !context.allowTestEdits) {
+    let ans = '';
+    try {
+      ans = await context.askLine(
+        `[TEST SUITE LOCK] Writing to test file "${path.basename(filePath)}" modifies the test suite. ` +
+        `Allow it for this session? (y/N): `,
+      );
+    } catch {
+      ans = '';
+    }
+    if (ans && /^y(es)?$/i.test(ans.trim())) {
+      context.allowTestEdits = true;
+      return null;
+    }
+  }
+  return block;
+}
+
 /**
  * Pre-flight dependency resolution check.
  * Run BEFORE writing content to disk or invoking syntaxCheck, to avoid the failure mode
