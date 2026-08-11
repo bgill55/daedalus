@@ -1,3 +1,10 @@
+## [3.28.3](https://github.com/bgill55/daedalus/compare/v3.28.2...v3.28.3) (2026-08-11)
+
+
+### Bug Fixes
+
+* **tools:** forbid silent test-lock bypass — force report-or-explicit-turn ([#103](https://github.com/bgill55/daedalus/issues/103)) ([bb8f789](https://github.com/bgill55/daedalus/commit/bb8f789432b3ab8c6a284c89cfd91aeec0bc9644))
+
 ## [3.28.2](https://github.com/bgill55/daedalus/compare/v3.28.1...v3.28.2) (2026-08-11)
 
 
