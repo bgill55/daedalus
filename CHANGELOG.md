@@ -1,3 +1,10 @@
+# [3.28.0](https://github.com/bgill55/daedalus/compare/v3.27.1...v3.28.0) (2026-08-11)
+
+
+### Features
+
+* **engine:** ship Self-Healing & Immunity Engine (constitution, reviewer checklist, auto skill synthesis) ([f4c35e1](https://github.com/bgill55/daedalus/commit/f4c35e10f2bd915341a674747a3e2d2165434eb0))
+
 ## [3.27.1](https://github.com/bgill55/daedalus/compare/v3.27.0...v3.27.1) (2026-08-11)
 
 
