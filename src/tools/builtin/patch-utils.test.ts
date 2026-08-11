@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { extractErrorLines, normalizeErrorLine, syntaxCheck, preflightDependencyCheck, recordRevert, recordWriteSuccess, checkGlobalPatchBreaker, buildRemovedSymbolHint, isTestFile, checkTestFileLock } from './patch-utils.js';
+import { extractErrorLines, normalizeErrorLine, syntaxCheck, preflightDependencyCheck, recordRevert, recordWriteSuccess, checkGlobalPatchBreaker, buildRemovedSymbolHint, isTestFile, checkTestFileLock, guardTestWrite } from './patch-utils.js';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -384,6 +384,46 @@ describe('isTestFile and checkTestFileLock', () => {
     const terminalRetry = checkTestFileLock('tests/db.test.ts', mockCtx);
     expect(terminalRetry).toContain('already refused earlier this session');
     expect(terminalRetry).toContain('bypassing the lock');
+  });
+});
+
+describe('guardTestWrite (live user authorization)', () => {
+  it('allows the write when the test lock does not apply', async () => {
+    const mockCtx: any = {};
+    const res = await guardTestWrite('src/app.ts', mockCtx);
+    expect(res).toBeNull();
+  });
+
+  it('blocks (no askLine) when the user cannot be prompted', async () => {
+    const mockCtx: any = {};
+    const res = await guardTestWrite('src/app.test.ts', mockCtx);
+    expect(res).toContain('[TEST SUITE LOCK]');
+    expect(mockCtx.allowTestEdits).toBeUndefined();
+  });
+
+  it('blocks when the user declines the authorization prompt', async () => {
+    const askLine = async (_p: string) => 'no';
+    const mockCtx: any = { askLine };
+    const res = await guardTestWrite('src/app.test.ts', mockCtx);
+    expect(res).toContain('[TEST SUITE LOCK]');
+    expect(mockCtx.allowTestEdits).toBeUndefined();
+  });
+
+  it('allows and sets allowTestEdits when the user approves the prompt', async () => {
+    const askLine = async (_p: string) => 'yes';
+    const mockCtx: any = { askLine };
+    const res = await guardTestWrite('src/app.test.ts', mockCtx);
+    expect(res).toBeNull();
+    expect(mockCtx.allowTestEdits).toBe(true);
+  });
+
+  it('does not prompt again once allowTestEdits is already set', async () => {
+    let calls = 0;
+    const askLine = async (_p: string) => { calls++; return 'yes'; };
+    const mockCtx: any = { askLine, allowTestEdits: true };
+    const res = await guardTestWrite('src/app.test.ts', mockCtx);
+    expect(res).toBeNull();
+    expect(calls).toBe(0);
   });
 });
 
