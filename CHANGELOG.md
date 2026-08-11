@@ -1,3 +1,10 @@
+## [3.27.1](https://github.com/bgill55/daedalus/compare/v3.27.0...v3.27.1) (2026-08-11)
+
+
+### Bug Fixes
+
+* **tools:** apply test-suite lock early in patchFile for all autoApply modes ([#100](https://github.com/bgill55/daedalus/issues/100)) ([25436b4](https://github.com/bgill55/daedalus/commit/25436b4ad069c7a1629a2a4c5d9ec933a7fa8b26))
+
 # [3.27.0](https://github.com/bgill55/daedalus/compare/v3.26.0...v3.27.0) (2026-08-10)
 
 
