@@ -82,6 +82,18 @@ Hint: Call read_file on this file first to update your context before writing.
 - How to recover: call `read_file` on the file to refresh context, then re-issue the
   edit with the current content.
 
+## 4. Self-Healing & Immunity Engine
+
+Daedalus includes a programmatic **Self-Healing & Immunity Engine** that enforces non-negotiable security and correctness boundaries across all agent turns:
+
+1. **Codebase Constitution (`src/config/constitution.ts`)**: Defines root programmatic execution contracts that prompt injections cannot override.
+2. **Test Suite Read-Only Lock**: `*.test.ts`, `*.spec.ts`, test runner configs (`vitest.config.*`, `jest.config.*`), and CI workflows (`.github/workflows/*`) are locked as read-only by default during feature runs to prevent agents from modifying or deleting test assertions to force a green build.
+3. **Reviewer Diff Immunity Audit Checklist**: The `reviewer` subagent audits all git diffs against:
+   - **Type Loosening**: Blocking `any` / `unknown` type downgrades.
+   - **Error Swallowing**: Blocking empty `catch {}` blocks or dummy fallbacks.
+   - **Assertion Weakening**: Verifying test assertions were not deleted or loosened.
+4. **Self-Generated Skill Synthesis (`src/skills/auto-synthesis.ts`)**: Auto-extracts problem-solution recipes from successful complex bug fixes and saves draft playbooks in `.daedalus/skills/drafts/`.
+
 ## Related guardrails
 
 - **Patch syntax verification** — a proposed edit is validated in memory before it is
