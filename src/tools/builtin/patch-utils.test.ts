@@ -352,6 +352,39 @@ describe('isTestFile and checkTestFileLock', () => {
     const res = checkTestFileLock('src/app.test.ts', mockCtx);
     expect(res).toBeNull();
   });
+
+  it('hardens the lock message to forbid routing around via terminal/another tool', () => {
+    const mockCtx: any = {};
+    const res = checkTestFileLock('src/app.test.ts', mockCtx);
+    expect(res).toContain('[TEST SUITE LOCK]');
+    expect(res).toContain('Do NOT attempt the write via the terminal or another tool');
+  });
+
+  it('records the blocked path and returns a stronger "already refused" message on retry', () => {
+    const mockCtx: any = {};
+    const first = checkTestFileLock('src/app.test.ts', mockCtx);
+    expect(first).toContain('refused');
+    expect(first).not.toContain('already refused');
+
+    const second = checkTestFileLock('src/app.test.ts', mockCtx);
+    expect(second).toContain('already refused earlier this session');
+    expect(second).toContain('Do NOT re-attempt it via another tool or the terminal');
+    // The path is tracked so a retry via a different tool is recognized.
+    expect(mockCtx.blockedTestWrites.has('src/app.test.ts')).toBe(true);
+  });
+
+  it('treats a second tool attempt in the same session as a bypass (cross-tool detection)', () => {
+    // Simulate: write_file is blocked, then the agent retries via the terminal.
+    // Both calls share the same context, so blockedTestWrites carries over.
+    const mockCtx: any = {};
+    const fileToolResult = checkTestFileLock('tests/db.test.ts', mockCtx);
+    expect(fileToolResult).toContain('[TEST SUITE LOCK]');
+
+    // Terminal-style retry hits the same lock with the same context.
+    const terminalRetry = checkTestFileLock('tests/db.test.ts', mockCtx);
+    expect(terminalRetry).toContain('already refused earlier this session');
+    expect(terminalRetry).toContain('bypassing the lock');
+  });
 });
 
 

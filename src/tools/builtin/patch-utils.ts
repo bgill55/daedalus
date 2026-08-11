@@ -337,10 +337,27 @@ export function checkTestFileLock(filePath: string, context: ToolContext): strin
   if (!isTestFile(filePath)) return null;
   if (context.allowTestEdits) return null;
 
+  // Record the blocked attempt so a retry via a different tool (e.g. terminal
+  // `cat >`) is recognized as a repeated bypass attempt, not a fresh request.
+  if (!context.blockedTestWrites) context.blockedTestWrites = new Set<string>();
+  const alreadyBlocked = context.blockedTestWrites.has(filePath);
+  context.blockedTestWrites.add(filePath);
+
+  if (alreadyBlocked) {
+    return (
+      `[TEST SUITE LOCK] Write to test file "${path.basename(filePath)}" was already refused earlier this session. ` +
+      `Do NOT re-attempt it via another tool or the terminal — that is bypassing the lock. ` +
+      `Either (1) report this blocker to the user and stop, or (2) if updating tests is the explicit goal, ` +
+      `ask the user to re-run with test-update intent. Do not weaken, delete, or fake-pass any assertion to go green.`
+    );
+  }
+
   return (
-    `[TEST SUITE LOCK] Patch refused for test file "${path.basename(filePath)}". ` +
-    `Modifying test suite files is blocked by default during feature runs to prevent test-assertion weakening. ` +
-    `If you intended to update or write tests, include "update test" or "test" in your request.`
+    `[TEST SUITE LOCK] Write to test file "${path.basename(filePath)}" refused. ` +
+    `Modifying test suite files is blocked by default to prevent test-assertion weakening. ` +
+    `Do NOT attempt the write via the terminal or another tool to bypass this lock. ` +
+    `If you intended to update or write tests, include "update test" or "test" in your request; ` +
+    `otherwise report this blocker to the user and stop — never weaken or delete an assertion to make code pass.`
   );
 }
 

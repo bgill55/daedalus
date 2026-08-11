@@ -76,6 +76,11 @@ export interface ToolContext {
   terminalRepeatStreak?: Map<string, number>; // full normalized command -> consecutive identical-run count (no-progress loop guard)
   askLine?: (prompt: string) => Promise<string>;
   allowTestEdits?: boolean;
+  // Test-file paths the agent already tried (and was blocked) to write this
+  // session. Used to detect a blocked write being re-attempted via a different
+  // tool (e.g. write_file blocked -> terminal cat >) and force the agent to
+  // report the blocker instead of silently routing around the lock.
+  blockedTestWrites?: Set<string>;
 }
 
 export interface PatchEntry {
