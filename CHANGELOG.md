@@ -1,3 +1,10 @@
+## [3.28.5](https://github.com/bgill55/daedalus/compare/v3.28.4...v3.28.5) (2026-08-11)
+
+
+### Bug Fixes
+
+* **ui:** calm output tiers (PR [#105](https://github.com/bgill55/daedalus/issues/105)) ([3f57c82](https://github.com/bgill55/daedalus/commit/3f57c825ffbb36b886b4d44000ce934d183de8c6)), closes [hi#volume](https://github.com/hi/issues/volume)
+
 ## [3.28.4](https://github.com/bgill55/daedalus/compare/v3.28.3...v3.28.4) (2026-08-11)
 
 
