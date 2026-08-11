@@ -1,3 +1,10 @@
+## [3.28.2](https://github.com/bgill55/daedalus/compare/v3.28.1...v3.28.2) (2026-08-11)
+
+
+### Bug Fixes
+
+* **tools:** extend test-suite lock to the terminal tool ([#102](https://github.com/bgill55/daedalus/issues/102)) ([ede3475](https://github.com/bgill55/daedalus/commit/ede3475eeb03c932ef59ab7e6b40dbfe1fb773ed))
+
 ## [3.28.1](https://github.com/bgill55/daedalus/compare/v3.28.0...v3.28.1) (2026-08-11)
 
 
