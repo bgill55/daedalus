@@ -9,6 +9,7 @@ import { ToolContext, ToolResult } from '../../types.js';
 import { loadConfig } from '../../config/index.js';
 import { guardGitCommand } from '../git-guard.js';
 import { createGitCheckpoint } from '../git-checkpoint.js';
+import { isTestFile, checkTestFileLock } from './patch-utils.js';
 
 const SENSITIVE_ENV_KEYS = new Set([
   'AWS_SECRET_ACCESS_KEY', 'AWS_ACCESS_KEY_ID', 'AWS_SESSION_TOKEN',
@@ -67,6 +68,37 @@ function sanitizeEnv(): NodeJS.ProcessEnv {
     env[key] = value;
   }
   return env;
+}
+
+// Shell write operators that create or mutate a file. A terminal command that both
+// names a test-file path and uses one of these is an attempt to write a test suite
+// file via the shell — which would bypass the write_file/patchFile test-suite lock.
+// We mirror that lock here so the protection is uniform across tools.
+const TERMINAL_TEST_WRITE_OP_RE = /[>]\s*|>>\s*|<<\s*|\btee\b|\btouch\b|\bsed\s+-i\b/;
+
+function extractTestFilePath(command: string): string | null {
+  const norm = command.replace(/\\/g, '/');
+  // Tokenize on whitespace/quotes/pipes so both `cat > tests/x.test.ts` and
+  // glued forms like `cat>tests/x.test.ts` surface the path token.
+  const tokens = norm.match(/[^\s'"()|&;]+/g) ?? [];
+  for (const tok of tokens) {
+    const cleaned = tok.replace(/^[>]+/, '').replace(/^['"]|['"]$/g, '');
+    if (isTestFile(cleaned)) return cleaned;
+  }
+  return null;
+}
+
+// Blocks shell commands that write to a test-file path unless the run explicitly
+// signals test intent (context.allowTestEdits). Returns the same [TEST SUITE LOCK]
+// message as the write_file/patchFile gate so the agent gets one consistent signal.
+function checkTerminalTestWrite(command: string, context: ToolContext): string | null {
+  const testPath = extractTestFilePath(command);
+  if (!testPath) return null;
+  const hasWriteOp =
+    TERMINAL_TEST_WRITE_OP_RE.test(command) ||
+    /\b(?:cp|mv)\b[^;|&]*(?:test|spec)[^;|&]*/i.test(command);
+  if (!hasWriteOp) return null;
+  return checkTestFileLock(testPath, context);
 }
 
 interface ShellConfig {
@@ -205,6 +237,20 @@ export async function execute(args: { command: string; timeout?: number; workdir
         error: gitGuardError,
       });
     }
+  }
+
+  // Gate: shell writes to test-suite files are blocked by default (mirrors the
+  // write_file/patchFile test-suite lock) so an agent cannot weaken assertions
+  // by writing tests via `cat >`, `tee`, `touch`, `sed -i`, or `cp`/`mv`.
+  const testWriteError = checkTerminalTestWrite(command, context);
+  if (testWriteError) {
+    return Promise.resolve({
+      toolCallId: '',
+      name: 'terminal',
+      success: false,
+      content: '',
+      error: testWriteError,
+    });
   }
 
   // Gate: third-party install commands require user confirmation

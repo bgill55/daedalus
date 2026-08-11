@@ -446,3 +446,85 @@ describe('terminal execute', () => {
     expect(spawn).toHaveBeenCalledTimes(3);
   });
 });
+
+describe('terminal test-suite lock', () => {
+  it('blocks cat > into a test file (shell bypass of write_file lock)', async () => {
+    const mockProc = makeMockProcess();
+    (spawn as any).mockReturnValue(mockProc);
+
+    const result = await execute({ command: "cat > tests/sort.test.ts <<'EOF'" }, makeContext());
+
+    expect(spawn).not.toHaveBeenCalled();
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('[TEST SUITE LOCK]');
+    expect(result.error).toContain('sort.test.ts');
+  });
+
+  it('blocks tee/touch/sed -i writing a test file', async () => {
+    for (const cmd of [
+      'tee tests/db.test.ts',
+      'touch tests/x.spec.ts',
+      "sed -i 's/foo/bar/' tests/db.test.ts",
+    ]) {
+      (spawn as any).mockClear();
+      const mockProc = makeMockProcess();
+      (spawn as any).mockReturnValue(mockProc);
+      const result = await execute({ command: cmd }, makeContext());
+      expect(spawn).not.toHaveBeenCalled();
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('[TEST SUITE LOCK]');
+    }
+  });
+
+  it('blocks cp/mv into a test file path', async () => {
+    (spawn as any).mockClear();
+    const mockProc = makeMockProcess();
+    (spawn as any).mockReturnValue(mockProc);
+    const result = await execute({ command: 'cp src/foo.ts tests/foo.test.ts' }, makeContext());
+    expect(spawn).not.toHaveBeenCalled();
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('[TEST SUITE LOCK]');
+  });
+
+  it('allows running a specific test file (no write operator)', async () => {
+    const mockProc = makeMockProcess();
+    (spawn as any).mockReturnValue(mockProc);
+    const resultPromise = execute({ command: 'vitest run tests/db.test.ts' }, makeContext());
+    mockProc.emit('close', 0);
+    const result = await resultPromise;
+    expect(spawn).toHaveBeenCalled();
+    expect(result.success).toBe(true);
+  });
+
+  it('allows reading a test file (cat without redirect)', async () => {
+    const mockProc = makeMockProcess();
+    (spawn as any).mockReturnValue(mockProc);
+    const resultPromise = execute({ command: 'cat tests/db.test.ts' }, makeContext());
+    mockProc.emit('close', 0);
+    const result = await resultPromise;
+    expect(spawn).toHaveBeenCalled();
+    expect(result.success).toBe(true);
+  });
+
+  it('does not block npm/vitest commands that merely mention "test"', async () => {
+    const mockProc = makeMockProcess();
+    (spawn as any).mockReturnValue(mockProc);
+    const resultPromise = execute({ command: 'npm run test' }, makeContext());
+    mockProc.emit('close', 0);
+    const result = await resultPromise;
+    expect(spawn).toHaveBeenCalled();
+    expect(result.success).toBe(true);
+  });
+
+  it('allows the write when context.allowTestEdits is set', async () => {
+    (spawn as any).mockClear();
+    const mockProc = makeMockProcess();
+    (spawn as any).mockReturnValue(mockProc);
+    const ctx = { ...makeContext(), allowTestEdits: true };
+    const resultPromise = execute({ command: "cat > tests/sort.test.ts <<'EOF'" }, ctx);
+    mockProc.emit('close', 0);
+    const result = await resultPromise;
+    expect(spawn).toHaveBeenCalled();
+    expect(result.success).toBe(true);
+  });
+});
