@@ -172,7 +172,7 @@ export async function executeCommand(input: string, ctx: CommandContext, _depth 
   }
 
   if (trimmed.startsWith('/')) {
-    console.log(pc.red(`[WARN] Unknown command: ${commandName}. Type /help or ? to view all available commands.`));
+    console.log(pc.yellow(`[WARN] Unknown command: ${commandName}. Type /help or ? to view all available commands.`));
     return true;
   }
 
