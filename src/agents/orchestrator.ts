@@ -19,7 +19,7 @@ import { parseTextToolCalls } from '../formatting.js';
 import {
   filterValidTasks,
   validateTasks, cleanTaskText, cleanPlanOutput, truncateGoal,
-  extractFilePaths, buildDependencyGraph, groupIndependent,
+  extractFilePaths, buildDependencyGraph, groupIndependent, planNamesTestFiles,
   isUnnecessaryConfigTask, extractRequirements, getFrameworkGuidance,
 } from './orchestrator-validation.js';
 import {
@@ -1493,11 +1493,12 @@ export class Orchestrator {
     ];
 
     // Derive test-suite write permission from THIS task's goal, not the parent
-    // autopilot goal. A parent goal that merely mentions "tests" must not disarm
-    // the lock for every sub-agent (that is how an empty test file slipped
+    // autopilot goal. The planner must EXPLICITLY name a test file as a
+    // deliverable for this task (spec contract) — a goal that merely mentions
+    // "tests" must not disarm the lock (that is how an empty test file slipped
     // through on an autonomous run). Live user approval (testApprovalGranted)
     // still wins for the session.
-    const taskTestIntent = /\b(test|tests|vitest|jest|spec|specs|assert|assertion|unit\s*test|integration\s*test|update\s*test|fix\s*test|add\s*test)\b/i.test(goal);
+    const taskTestIntent = planNamesTestFiles(goal);
     this.subContext = {
       ...this.toolContext,
       allowTestEdits: this.toolContext.testApprovalGranted ? true : taskTestIntent,

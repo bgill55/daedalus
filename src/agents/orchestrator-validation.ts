@@ -92,13 +92,23 @@ export function truncateGoal(text: string): string {
 }
 
 export function extractFilePaths(text: string): string[] {
-  const re = /(?:^|\s)([a-z0-9_\-./\\]+\.[a-z0-9]+(?:\.[a-z0-9]+)*)/gi;
+  const re = /(?:^|\s)([a-z0-9_\-./\\]+(\.[a-z0-9]+){1,2})/gi;
   const matches = new Set<string>();
   let m;
   while ((m = re.exec(text)) !== null) {
     matches.add(m[1].trim());
   }
   return Array.from(matches);
+}
+
+// Spec-contract test intent: the planner must EXPLICITLY name a test file as a
+// deliverable for this task, not just mention the word "tests". A goal like
+// "implement the feature and add tests" must NOT disarm the test-suite lock;
+// only a goal that references a concrete test file (tests/foo.test.ts,
+// src/__tests__/bar.spec.js, *.test.tsx, etc.) does.
+const TEST_FILE_RE = /(^|[\s/\\])(__tests__|tests?|spec|test)[\\/]|(\.(test|spec))\.(ts|tsx|js|jsx|mjs|cjs)$/i;
+export function planNamesTestFiles(text: string): boolean {
+  return extractFilePaths(text).some((p) => TEST_FILE_RE.test(p));
 }
 
 export function buildDependencyGraph(tasks: DelegationTask[]): DelegationTask[] {
