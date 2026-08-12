@@ -1,3 +1,10 @@
+## [3.28.6](https://github.com/bgill55/daedalus/compare/v3.28.5...v3.28.6) (2026-08-12)
+
+
+### Bug Fixes
+
+* **autopilot:** harden commit gating, secret staging, and local rollback (PR [#107](https://github.com/bgill55/daedalus/issues/107)) ([310c322](https://github.com/bgill55/daedalus/commit/310c322c117fa5d3382a5dfb3ecc16774c7d8d24))
+
 ## [3.28.5](https://github.com/bgill55/daedalus/compare/v3.28.4...v3.28.5) (2026-08-11)
 
 
