@@ -1,3 +1,10 @@
+# [3.29.0](https://github.com/bgill55/daedalus/compare/v3.28.12...v3.29.0) (2026-08-12)
+
+
+### Features
+
+* **recipes:** ship portable YAML recipes (/recipe), MCP tool bundles (/mcp bundle), and tool permission policies ([8e0dc6b](https://github.com/bgill55/daedalus/commit/8e0dc6b5a8ce44aa9472b16eabc0b4c95d856a63))
+
 ## [3.28.12](https://github.com/bgill55/daedalus/compare/v3.28.11...v3.28.12) (2026-08-12)
 
 
