@@ -417,7 +417,7 @@ export function createTuiRepl(deps: ReplDeps): () => Promise<void> {
           const filesContext = buildFileContext();
           const todoCtx = buildTodoContext(sessionId);
           const userContent = `${todoCtx}${filesContext}User Prompt: ${trimmedInput}`;
-          logBox.log(pc.yellow('\n  [RETRY] Trying fallback mode...'));
+          logBox.log(pc.dim('\n  [RETRY] Trying fallback mode...'));
           screen.render();
 
           const fallbackResult = await callModelWithFallback(userContent);

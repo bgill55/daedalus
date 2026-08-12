@@ -417,7 +417,7 @@ export function createModelFunctions(deps: ModelDeps) {
         const closingTodos = getSessionTodos(toolContext.sessionId);
         if (closingTodos.length > 0 && detectFalseCompletion(cleanContent, closingTodos)) {
           const remaining = closingTodos.filter((t) => t.status !== 'completed').length;
-          console.log(pc.cyan(`\n  [CHECK] Verifying completion claim — ${remaining} todo(s) still open.`));
+          console.log(pc.dim(`\n  [CHECK] Verifying completion claim — ${remaining} todo(s) still open.`));
           messages.push({ role: 'assistant', content: cleanContent });
           messages.push({
             role: 'user',
@@ -432,7 +432,7 @@ export function createModelFunctions(deps: ModelDeps) {
         // reverted by the syntax guard and never actually landed on disk.
         const falselyClaimed = detectFalseCompletionOnDisk(cleanContent, toolContext);
         if (falselyClaimed) {
-          console.log(pc.cyan(`\n  [CHECK] Verifying completion claim — no successful patch to ${falselyClaimed} this session (only reverts).`));
+          console.log(pc.dim(`\n  [CHECK] Verifying completion claim — no successful patch to ${falselyClaimed} this session (only reverts).`));
           messages.push({ role: 'assistant', content: cleanContent });
           messages.push({
             role: 'user',

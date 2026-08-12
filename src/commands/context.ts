@@ -106,7 +106,7 @@ export const contextCommands: Command[] = [
               try {
                 const filesContext = ctx.buildFileContext();
                 const userContent = `${filesContext}User Prompt: ${message}`;
-                console.log(pc.yellow('\n  [RETRY] Trying fallback mode...'));
+                console.log(pc.dim('\n  [RETRY] Trying fallback mode...'));
                 await ctx.callModelWithFallback(userContent, base64);
                 ctx.sessionManager.saveSessionState(ctx.messages, ctx.activeFiles, getSessionTodos(ctx.toolContext.sessionId));
               } catch (fallbackErr) {
@@ -137,7 +137,7 @@ export const contextCommands: Command[] = [
           try {
             const filesContext = ctx.buildFileContext();
             const userContent = `${filesContext}User Prompt: ${message}`;
-            console.log(pc.yellow('\n  [RETRY] Trying fallback mode...'));
+            console.log(pc.dim('\n  [RETRY] Trying fallback mode...'));
             await ctx.callModelWithFallback(userContent, base64);
             ctx.sessionManager.saveSessionState(ctx.messages, ctx.activeFiles, getSessionTodos(ctx.toolContext.sessionId));
           } catch (fallbackErr) {

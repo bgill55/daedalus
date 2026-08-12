@@ -48,7 +48,7 @@ function safeGitAdd(cwd: string): void {
     const exclude = staged.filter((f) => SECRET_FILE_PATTERN.test(f) || isGitIgnored(cwd, f));
     if (exclude.length > 0) {
       execSync(`git reset -q -- ${exclude.map((f) => JSON.stringify(f)).join(' ')}`, { cwd, stdio: 'ignore' });
-      console.log(pc.yellow(`[CHECK] Excluded ${exclude.length} secret/ignored file(s) from commit (e.g. .env) — not staged.`));
+      console.log(pc.dim(`[CHECK] Excluded ${exclude.length} secret/ignored file(s) from commit (e.g. .env) — not staged.`));
     }
   } catch {
     // best-effort
@@ -81,6 +81,38 @@ async function runAutopilotVerify(cwd: string): Promise<{ ok: boolean; detail: s
   }
   return { ok: true, detail: '' };
 }
+
+// Structured, machine-readable record of an autonomous run. Printed as calm
+// [INFO] to the terminal and written to .daedalus/run-<ts>.json so grading is
+// a diff of manifests, not a manual log read. The terminal stays friendly;
+// the manifest stays precise.
+interface AutopilotManifest {
+  feature: string;
+  branch: string;
+  remote: string | null;
+  mode: 'git' | 'local-only' | 'non-git';
+  outcome: 'committed' | 'committed-local' | 'pr-opened' | 'stopped-verify' | 'stopped-error' | 'no-changes';
+  tasksPlanned: number;
+  tasksDone: number;
+  filesChanged: string[];
+  testResult: { ok: boolean; detail: string } | null;
+  finishedAt: string;
+}
+
+function writeAutopilotManifest(m: AutopilotManifest): void {
+  try {
+    const dir = path.join(process.cwd(), '.daedalus');
+    fs.mkdirSync(dir, { recursive: true });
+    const file = path.join(dir, `run-${Date.now()}.json`);
+    fs.writeFileSync(file, JSON.stringify(m, null, 2), 'utf8');
+    console.log(pc.dim(`[INFO] Run manifest written to ${file}`));
+  } catch {
+    // best-effort — manifest is a convenience, never block the session on it
+  }
+}
+
+export { writeAutopilotManifest };
+export type { AutopilotManifest };
 
 export const agentCommands: Command[] = [
   {
@@ -872,6 +904,23 @@ export const agentCommands: Command[] = [
         return;
       }
 
+      const manifest: AutopilotManifest = {
+        feature: idea,
+        branch: '',
+        remote: null,
+        mode: 'non-git',
+        outcome: 'stopped-error',
+        tasksPlanned: 0,
+        tasksDone: 0,
+        filesChanged: [],
+        testResult: null,
+        finishedAt: '',
+      };
+      const emitManifest = () => {
+        manifest.finishedAt = new Date().toISOString();
+        writeAutopilotManifest(manifest);
+      };
+      try {
       let isGitRepo = true;
       try {
         execSync('git rev-parse --is-inside-work-tree', { cwd: ctx.toolContext.projectRoot, stdio: 'ignore' });
@@ -904,6 +953,9 @@ export const agentCommands: Command[] = [
 
       const slug = idea.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
       const branchName = `daedalus-autopilot-${slug}`;
+      manifest.remote = repoInfo ? `${repoInfo.owner}/${repoInfo.repo}` : null;
+      manifest.mode = !isGitRepo ? 'non-git' : repoInfo ? 'git' : 'local-only';
+      manifest.branch = branchName;
 
       if (isGitRepo) {
         try {
@@ -956,6 +1008,7 @@ export const agentCommands: Command[] = [
       } catch (err: unknown) {
         const msg = err instanceof Error ? errMessage(err) : String(err);
         console.log(pc.red(`\n[ERROR] Run stopped: ${msg}`));
+        manifest.outcome = 'stopped-error';
         if (isGitRepo) {
           console.log(pc.dim('[CHECK] Verification did not pass — keeping the implemented changes on the branch for review.'));
           // In remote-backed repos, discard the failed branch to keep main clean.
@@ -984,6 +1037,8 @@ export const agentCommands: Command[] = [
         if (!verify.ok) {
           console.log(pc.red(`\n[ERROR] Verification did not pass — holding the changes on the branch instead of committing. ${verify.detail}`));
           console.log(pc.cyan(`[INFO] Branch '${branchName}' is kept with the implemented changes for inspection.`));
+          manifest.outcome = 'stopped-verify';
+          manifest.testResult = verify;
           return;
         }
         console.log(pc.green('[OK] Build & tests passed.'));
@@ -994,6 +1049,10 @@ export const agentCommands: Command[] = [
           const cleanTitle = idea.replace(/[^a-zA-Z0-9 ]/g, '').trim();
           execSync(`git commit -m "feat: ${cleanTitle}"`, { cwd: ctx.toolContext.projectRoot });
           console.log(pc.green('[OK] Changes committed.'));
+          try {
+            const diff = execSync(`git diff --name-only HEAD~1 HEAD`, { cwd: ctx.toolContext.projectRoot, encoding: 'utf8' });
+            manifest.filesChanged = diff.split('\n').map((s) => s.trim()).filter(Boolean);
+          } catch { /* best-effort */ }
         } catch (err: unknown) {
           const msg = err instanceof Error ? errMessage(err) : String(err);
           if (msg.includes('nothing to commit')) {
@@ -1056,6 +1115,10 @@ export const agentCommands: Command[] = [
       }
 
       console.log(pc.cyan(`\n[AUTOPILOT] Done! Run 'git checkout main' to return to main branch.`));
+      manifest.outcome = repoInfo ? 'pr-opened' : 'committed-local';
+      } finally {
+        emitManifest();
+      }
     }
   },
   {
