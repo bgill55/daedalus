@@ -20,6 +20,68 @@ import type { ToolCall, ChatMessage } from '../types.js';
 import { messageText } from '../types.js';
 import type { Command } from './types.js';
 
+// Secret / credential filename patterns that must never be committed by an
+// autonomous run, even if a sub-agent stages them.
+const SECRET_FILE_PATTERN = /(\.env(\..*)?|.*\.key|.*\.pem|.*\.pfx|credentials.*|secrets?.*|.*id_rsa.*)$/i;
+
+function isGitIgnored(cwd: string, file: string): boolean {
+  try {
+    execSync(`git check-ignore --quiet ${JSON.stringify(file)}`, { cwd, stdio: 'ignore' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Stage all changes but always unstage secret-looking or gitignored files so an
+// autonomous run can never commit a .env / credential / build artifact the repo
+// intended to keep untracked.
+function safeGitAdd(cwd: string): void {
+  try {
+    execSync('git add -A', { cwd, stdio: 'ignore' });
+  } catch {
+    return;
+  }
+  try {
+    const out = execSync('git diff --cached --name-only', { cwd, encoding: 'utf8' });
+    const staged = out.split('\n').map((s) => s.trim()).filter(Boolean);
+    const exclude = staged.filter((f) => SECRET_FILE_PATTERN.test(f) || isGitIgnored(cwd, f));
+    if (exclude.length > 0) {
+      execSync(`git reset -q -- ${exclude.map((f) => JSON.stringify(f)).join(' ')}`, { cwd, stdio: 'ignore' });
+      console.log(pc.yellow(`[CHECK] Excluded ${exclude.length} secret/ignored file(s) from commit (e.g. .env) — not staged.`));
+    }
+  } catch {
+    // best-effort
+  }
+}
+
+// Gate the autopilot commit on the target project's own build + test scripts.
+// Using the project's scripts (not a hand-rolled tsc invocation) keeps
+// tsconfig/module-resolution correct and catches broken or empty test files
+// that a sub-agent may have left behind. If the project declares no
+// build/test scripts (e.g. a bare repo), the gate is skipped — the
+// orchestrator already verified during the run.
+async function runAutopilotVerify(cwd: string): Promise<{ ok: boolean; detail: string }> {
+  const pkgPath = path.join(cwd, 'package.json');
+  let scripts: Record<string, string> = {};
+  try {
+    scripts = JSON.parse(fs.readFileSync(pkgPath, 'utf8')).scripts ?? {};
+  } catch {
+    // No package.json — nothing to verify against.
+    return { ok: true, detail: '' };
+  }
+  for (const script of ['build', 'test']) {
+    if (!scripts[script]) continue;
+    try {
+      execSync(`npm run ${script}`, { cwd, stdio: 'ignore' });
+    } catch (e) {
+      const msg = e instanceof Error ? errMessage(e) : String(e);
+      return { ok: false, detail: `npm run ${script} failed: ${msg.split('\n')[0]}` };
+    }
+  }
+  return { ok: true, detail: '' };
+}
+
 export const agentCommands: Command[] = [
   {
     name: '/spawn',
@@ -826,7 +888,7 @@ export const agentCommands: Command[] = [
           if (!fs.existsSync(gitIgnorePath)) {
             fs.writeFileSync(gitIgnorePath, "node_modules/\ndist/\n.daedalus/\n", 'utf8');
           }
-          execSync('git add .', { cwd });
+          safeGitAdd(cwd);
           execSync('git commit -m "initial clean setup"', { cwd });
           isGitRepo = true;
           console.log(pc.green('[OK] Git repository initialized with tracking branch support.'));
@@ -895,24 +957,40 @@ export const agentCommands: Command[] = [
         const msg = err instanceof Error ? errMessage(err) : String(err);
         console.log(pc.red(`\n[ERROR] Implementation failed: ${msg}`));
         if (isGitRepo) {
-          console.log(pc.yellow('[ROLLBACK] Rolling back to main branch...'));
-          try {
-            execSync('git reset --hard', { cwd: ctx.toolContext.projectRoot });
-            execSync('git checkout main', { cwd: ctx.toolContext.projectRoot });
-            execSync(`git branch -D ${branchName}`, { cwd: ctx.toolContext.projectRoot });
-            console.log(pc.green('[OK] Rolled back to main. Branch deleted.'));
-          } catch (rollbackErr: unknown) {
-            const rbMsg = rollbackErr instanceof Error ? rollbackErr.message : String(rollbackErr);
-            console.log(pc.red(`[ERROR] Rollback failed: ${rbMsg}. Manual cleanup may be needed.`));
+          console.log(pc.yellow('[ROLLBACK] Implementation did not pass verification.'));
+          // In remote-backed repos, discard the failed branch to keep main clean.
+          // In local-only mode (no remote), keep the branch so the user can
+          // inspect and fix the work instead of losing it.
+          if (repoInfo) {
+            try {
+              execSync('git reset --hard', { cwd: ctx.toolContext.projectRoot });
+              execSync('git checkout main', { cwd: ctx.toolContext.projectRoot });
+              execSync(`git branch -D ${branchName}`, { cwd: ctx.toolContext.projectRoot });
+              console.log(pc.green('[OK] Rolled back to main. Branch deleted.'));
+            } catch (rollbackErr: unknown) {
+              const rbMsg = rollbackErr instanceof Error ? rollbackErr.message : String(rollbackErr);
+              console.log(pc.red(`[ERROR] Rollback failed: ${rbMsg}. Manual cleanup may be needed.`));
+            }
+          } else {
+            console.log(pc.cyan(`[INFO] Local-only mode: keeping branch '${branchName}' with the implemented changes for inspection. Fix and commit manually.`));
           }
         }
         return;
       }
 
       if (isGitRepo) {
+        console.log(pc.cyan('\n[AUTOPILOT] Verifying build & tests before commit...'));
+        const verify = await runAutopilotVerify(ctx.toolContext.projectRoot);
+        if (!verify.ok) {
+          console.log(pc.red(`\n[ERROR] Verification failed — not committing. ${verify.detail}`));
+          console.log(pc.cyan(`[INFO] Branch '${branchName}' is kept with the implemented changes for inspection.`));
+          return;
+        }
+        console.log(pc.green('[OK] Build & tests passed.'));
+
         console.log(pc.cyan('\n[AUTOPILOT] Committing changes...'));
         try {
-          execSync('git add .', { cwd: ctx.toolContext.projectRoot });
+          safeGitAdd(ctx.toolContext.projectRoot);
           const cleanTitle = idea.replace(/[^a-zA-Z0-9 ]/g, '').trim();
           execSync(`git commit -m "feat: ${cleanTitle}"`, { cwd: ctx.toolContext.projectRoot });
           console.log(pc.green('[OK] Changes committed.'));
