@@ -53,7 +53,7 @@ export const contextCommands: Command[] = [
     execute: async (args, ctx) => {
       const fileArg = args.trim();
       if (!fileArg) {
-        console.log(pc.red('[WARN] Please specify a file path. Example: /remove src/App.tsx'));
+        console.log(pc.yellow('[WARN] Please specify a file path. Example: /remove src/App.tsx'));
       } else {
         const cleanPath = fileArg.replace(/^["']|["']$/g, '');
         const absPath = path.resolve(cleanPath);
@@ -151,7 +151,7 @@ export const contextCommands: Command[] = [
 
       const clipboard = getClipboardText();
       if (!clipboard) {
-        console.log(pc.red('[WARN] Clipboard is empty or inaccessible.'));
+        console.log(pc.yellow('[WARN] Clipboard is empty or inaccessible.'));
         return;
       }
       const fullMessage = extra ? `${clipboard}\n\n${extra}` : clipboard;
@@ -189,7 +189,7 @@ export const contextCommands: Command[] = [
         console.log(sysMsg.content);
         console.log(pc.bold('-----------------------------'));
       } else {
-        console.log(pc.red('[WARN] No active system prompt found in conversation.'));
+        console.log(pc.yellow('[WARN] No active system prompt found in conversation.'));
       }
     }
   },
@@ -224,7 +224,7 @@ export const contextCommands: Command[] = [
     execute: async (args, ctx) => {
       const eqIdx = args.indexOf('=');
       if (eqIdx < 0) {
-        console.log(pc.red('[WARN] Usage: /fact <key> = <value>'));
+        console.log(pc.yellow('[WARN] Usage: /fact <key> = <value>'));
       } else {
         const key = args.slice(0, eqIdx).trim();
         const value = args.slice(eqIdx + 1).trim();
@@ -239,7 +239,7 @@ export const contextCommands: Command[] = [
     execute: async (args, ctx) => {
       const eqIdx = args.indexOf('=');
       if (eqIdx < 0) {
-        console.log(pc.red('[WARN] Usage: /convention <key> = <value>'));
+        console.log(pc.yellow('[WARN] Usage: /convention <key> = <value>'));
       } else {
         const key = args.slice(0, eqIdx).trim();
         const value = args.slice(eqIdx + 1).trim();
@@ -350,7 +350,7 @@ export const contextCommands: Command[] = [
           return;
         }
       }
-      console.log(pc.red('[WARN] Usage: /profile view | /profile name = <name> | /profile bio = <bio>'));
+      console.log(pc.yellow('[WARN] Usage: /profile view | /profile name = <name> | /profile bio = <bio>'));
     }
   },
   {
@@ -401,7 +401,7 @@ export const contextCommands: Command[] = [
 
       if (subcommand === 'branch') {
         if (!subcommandArg) {
-          console.log(pc.red('[WARN] Usage: /session branch <name>'));
+          console.log(pc.yellow('[WARN] Usage: /session branch <name>'));
           return;
         }
         try {
@@ -416,7 +416,7 @@ export const contextCommands: Command[] = [
 
       if (subcommand === 'checkout') {
         if (!subcommandArg) {
-          console.log(pc.red('[WARN] Usage: /session checkout <name>'));
+          console.log(pc.yellow('[WARN] Usage: /session checkout <name>'));
           return;
         }
         try {
@@ -440,7 +440,7 @@ export const contextCommands: Command[] = [
 
       if (subcommand === 'merge') {
         if (!subcommandArg) {
-          console.log(pc.red('[WARN] Usage: /session merge <name>'));
+          console.log(pc.yellow('[WARN] Usage: /session merge <name>'));
           return;
         }
         try {
@@ -617,7 +617,7 @@ export const contextCommands: Command[] = [
             }
           }
         } catch (err) {
-          console.log(pc.red(`[WARN] Failed to undo patch on ${last.filePath}: ${(err instanceof Error ? err.message : String(err))}`));
+          console.log(pc.yellow(`[WARN] Failed to undo patch on ${last.filePath}: ${(err instanceof Error ? err.message : String(err))}`));
         }
       }
 

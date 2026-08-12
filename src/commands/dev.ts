@@ -55,7 +55,7 @@ export const devCommands: Command[] = [
           }
         }
       } catch (err) {
-        console.log(pc.red(`[WARN] Branch command error: ${errMessage(err)}`));
+        console.log(pc.yellow(`[WARN] Branch command error: ${errMessage(err)}`));
       }
     }
   },
@@ -130,7 +130,7 @@ export const devCommands: Command[] = [
         fs.writeFileSync(outPath, prDesc, 'utf8');
         console.log(pc.green(`\n[OK] PR description saved to ${pc.cyan('pr-desc.md')}`));
       } catch (err) {
-        console.log(pc.red(`[WARN] PR command error: ${errMessage(err)}`));
+        console.log(pc.yellow(`[WARN] PR command error: ${errMessage(err)}`));
       }
     }
   },
@@ -282,7 +282,7 @@ Once you have finished making changes, I will automatically re-run the command t
           console.log(pc.red(`Commit failed: ${commitResult.error}`));
         }
       } catch (err) {
-        console.log(pc.red(`[WARN] Commit error: ${errMessage(err)}`));
+        console.log(pc.yellow(`[WARN] Commit error: ${errMessage(err)}`));
       }
     }
   },
@@ -512,13 +512,13 @@ Once you have finished making changes, I will automatically re-run the command t
     execute: async (args, ctx) => {
       const parts = args.trim().split(/\s+/).filter(Boolean);
       if (parts.length === 0) {
-        console.log(pc.red('[WARN] Usage: /find <query> [limit]'));
+        console.log(pc.yellow('[WARN] Usage: /find <query> [limit]'));
         return;
       }
       const query = parts[0];
       const limit = parts[1] ? parseInt(parts[1], 10) : 30;
       if (isNaN(limit)) {
-        console.log(pc.red('[WARN] Invalid limit'));
+        console.log(pc.yellow('[WARN] Invalid limit'));
         return;
       }
 
@@ -556,7 +556,7 @@ Once you have finished making changes, I will automatically re-run the command t
     execute: async (args, ctx) => {
       const symbol = args.trim();
       if (!symbol) {
-        console.log(pc.red('[WARN] Usage: /refs <symbol>'));
+        console.log(pc.yellow('[WARN] Usage: /refs <symbol>'));
         return;
       }
 
@@ -602,7 +602,7 @@ Once you have finished making changes, I will automatically re-run the command t
     execute: async (args, ctx) => {
       const symbol = args.trim();
       if (!symbol) {
-        console.log(pc.red('[WARN] Usage: /def <symbol>'));
+        console.log(pc.yellow('[WARN] Usage: /def <symbol>'));
         return;
       }
 
@@ -640,7 +640,7 @@ Once you have finished making changes, I will automatically re-run the command t
     execute: async (args, ctx) => {
       const parts = args.trim().split(/\s+/).filter(Boolean);
       if (parts.length === 0) {
-        console.log(pc.red('[WARN] Usage: /callgraph <symbol> [depth]'));
+        console.log(pc.yellow('[WARN] Usage: /callgraph <symbol> [depth]'));
         return;
       }
       const symbol = parts[0];
@@ -695,7 +695,7 @@ Once you have finished making changes, I will automatically re-run the command t
     execute: async (args, ctx) => {
       const symbol = args.trim();
       if (!symbol) {
-        console.log(pc.red('[WARN] Usage: /impact <symbol>'));
+        console.log(pc.yellow('[WARN] Usage: /impact <symbol>'));
         return;
       }
 
@@ -955,7 +955,7 @@ Once you have finished making changes, I will automatically re-run the command t
         }
 
         if (!key || !value) {
-          console.log(pc.red('[WARN] Usage: /config set <key> = <value>'));
+          console.log(pc.yellow('[WARN] Usage: /config set <key> = <value>'));
           return;
         }
 
@@ -969,7 +969,7 @@ Once you have finished making changes, I will automatically re-run the command t
           if (key.startsWith('model.')) {
             const parts = key.split('.');
             if (parts.length < 3) {
-              console.log(pc.red('[WARN] Usage: /config set model.<name>.<property> = <value>'));
+              console.log(pc.yellow('[WARN] Usage: /config set model.<name>.<property> = <value>'));
               return;
             }
             const modelIdentifier = parts[1];
@@ -977,7 +977,7 @@ Once you have finished making changes, I will automatically re-run the command t
             const chain = ctx.config.router.chain;
             const modelEntry = chain.find((m: ModelEntry) => m.name === modelIdentifier || m.model === modelIdentifier);
             if (!modelEntry) {
-              console.log(pc.red(`[WARN] Model '${modelIdentifier}' not found in router chain.`));
+              console.log(pc.yellow(`[WARN] Model '${modelIdentifier}' not found in router chain.`));
               return;
             }
             (modelEntry as Record<string, unknown>)[property] = parsedVal;
@@ -1003,10 +1003,10 @@ Once you have finished making changes, I will automatically re-run the command t
           
           console.log(pc.green(`[OK] Set global config: ${key} = ${value}`));
         } catch (err) {
-          console.log(pc.red(`[WARN] Invalid configuration value: ${errMessage(err)}`));
+          console.log(pc.yellow(`[WARN] Invalid configuration value: ${errMessage(err)}`));
         }
       } else {
-        console.log(pc.red('[WARN] Usage: /config | /config set <key> = <value>'));
+        console.log(pc.yellow('[WARN] Usage: /config | /config set <key> = <value>'));
       }
     }
   },

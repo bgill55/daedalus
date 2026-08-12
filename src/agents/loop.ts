@@ -132,7 +132,7 @@ export async function sendDiscordEmbed(webhookUrl: string, embed: DiscordEmbed):
 export async function handleSpecCommand(args: string, ctx: CommandContext) {
   const idea = args.trim();
   if (!idea) {
-    console.log(pc.red('[WARN] Please specify an idea. Example: /spec "Add OAuth Login"'));
+    console.log(pc.yellow('[WARN] Please specify an idea. Example: /spec "Add OAuth Login"'));
     return;
   }
 
@@ -147,7 +147,7 @@ export async function handleSpecCommand(args: string, ctx: CommandContext) {
   }
 
   if (!repoInfo || !token) {
-    console.log(pc.red('[WARN] GitHub integration not configured. Ensure you are in a git repository with GITHUB_TOKEN/GH_TOKEN or gh CLI authenticated.'));
+    console.log(pc.yellow('[WARN] GitHub integration not configured. Ensure you are in a git repository with GITHUB_TOKEN/GH_TOKEN or gh CLI authenticated.'));
     return;
   }
 

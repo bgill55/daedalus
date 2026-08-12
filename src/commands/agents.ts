@@ -119,13 +119,13 @@ export const agentCommands: Command[] = [
 
       const validRoles = ['spec', 'coder', 'reviewer', 'debugger', 'researcher', 'planner'];
       if (!role || !task) {
-        console.log(pc.red('[WARN] Usage: /spawn [--bg] <role> <task>  OR  /delegate [--bg] <task> to <role>'));
+        console.log(pc.yellow('[WARN] Usage: /spawn [--bg] <role> <task>  OR  /delegate [--bg] <task> to <role>'));
         console.log(pc.gray(`  Roles: ${validRoles.join(', ')}`));
         return;
       }
 
       if (!validRoles.includes(role)) {
-        console.log(pc.red(`[WARN] Unknown role: ${role}. Valid: ${validRoles.join(', ')}`));
+        console.log(pc.yellow(`[WARN] Unknown role: ${role}. Valid: ${validRoles.join(', ')}`));
         return;
       }
 
@@ -205,7 +205,7 @@ export const agentCommands: Command[] = [
       const trimmed = args.trim();
 
       if (!trimmed) {
-        console.log(pc.red('[WARN] Usage: /task <id>  OR  /task kill <id>'));
+        console.log(pc.yellow('[WARN] Usage: /task <id>  OR  /task kill <id>'));
         return;
       }
 
@@ -213,27 +213,27 @@ export const agentCommands: Command[] = [
         const idStr = trimmed.substring(5).trim();
         const id = parseInt(idStr, 10);
         if (isNaN(id)) {
-          console.log(pc.red(`[WARN] Invalid task ID: ${idStr}`));
+          console.log(pc.yellow(`[WARN] Invalid task ID: ${idStr}`));
           return;
         }
         const killed = killBackgroundAgent(id);
         if (killed) {
           console.log(pc.green(`[OK] Task #${id} cancelled.`));
         } else {
-          console.log(pc.red(`[WARN] Task #${id} is not running or not found.`));
+          console.log(pc.yellow(`[WARN] Task #${id} is not running or not found.`));
         }
         return;
       }
 
       const id = parseInt(trimmed, 10);
       if (isNaN(id)) {
-        console.log(pc.red('[WARN] Usage: /task <id>  OR  /task kill <id>'));
+        console.log(pc.yellow('[WARN] Usage: /task <id>  OR  /task kill <id>'));
         return;
       }
 
       const job = backgroundJobs.get(id);
       if (!job) {
-        console.log(pc.red(`[WARN] Task #${id} not found.`));
+        console.log(pc.yellow(`[WARN] Task #${id} not found.`));
         return;
       }
 
@@ -305,7 +305,7 @@ export const agentCommands: Command[] = [
 
       const goal = args.trim();
       if (!goal) {
-        console.log(pc.red('[WARN] Usage: /orchestrate <goal>'));
+        console.log(pc.yellow('[WARN] Usage: /orchestrate <goal>'));
         return;
       }
       console.log(pc.cyan(`\n[ORCHESTRATE] Starting orchestration for: ${goal}`));
@@ -868,7 +868,7 @@ export const agentCommands: Command[] = [
     execute: async (args, ctx) => {
       const idea = args.trim();
       if (!idea) {
-        console.log(pc.red('[WARN] Usage: /autopilot <feature description>'));
+        console.log(pc.yellow('[WARN] Usage: /autopilot <feature description>'));
         return;
       }
 
@@ -957,7 +957,7 @@ export const agentCommands: Command[] = [
         const msg = err instanceof Error ? errMessage(err) : String(err);
         console.log(pc.red(`\n[ERROR] Implementation failed: ${msg}`));
         if (isGitRepo) {
-          console.log(pc.yellow('[ROLLBACK] Implementation did not pass verification.'));
+          console.log(pc.dim('[ROLLBACK] Implementation did not pass verification.'));
           // In remote-backed repos, discard the failed branch to keep main clean.
           // In local-only mode (no remote), keep the branch so the user can
           // inspect and fix the work instead of losing it.
@@ -1067,7 +1067,7 @@ export const agentCommands: Command[] = [
     execute: async (args, ctx) => {
       const input = args.trim();
       if (!input) {
-        console.log(pc.red('[WARN] Usage: /hunt <failing-test-filepath> or <bug description>'));
+        console.log(pc.yellow('[WARN] Usage: /hunt <failing-test-filepath> or <bug description>'));
         return;
       }
 
@@ -1135,7 +1135,7 @@ export const agentCommands: Command[] = [
       } catch (err: unknown) {
         const msg = err instanceof Error ? errMessage(err) : String(err);
         console.log(pc.red(`\n[ERROR] Bug hunt failed: ${msg}`));
-        console.log(pc.yellow('[ROLLBACK] Rolling back to main branch...'));
+        console.log(pc.dim('[ROLLBACK] Rolling back to main branch...'));
         try {
           execSync('git reset --hard', { cwd: ctx.toolContext.projectRoot });
           execSync('git checkout main', { cwd: ctx.toolContext.projectRoot });
@@ -1244,7 +1244,7 @@ export const agentCommands: Command[] = [
     execute: async (args, ctx) => {
       const target = args.trim();
       if (!target) {
-        console.log(pc.red('[WARN] Usage: /preview <filepath or URL>'));
+        console.log(pc.yellow('[WARN] Usage: /preview <filepath or URL>'));
         return;
       }
 
