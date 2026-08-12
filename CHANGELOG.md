@@ -1,3 +1,10 @@
+## [3.28.10](https://github.com/bgill55/daedalus/compare/v3.28.9...v3.28.10) (2026-08-12)
+
+
+### Bug Fixes
+
+* **agents:** artifact completeness gate for sub-agent tasks (PR [#111](https://github.com/bgill55/daedalus/issues/111)) ([6a4ccd3](https://github.com/bgill55/daedalus/commit/6a4ccd3cf1ff24996af8cc09fd3f44a1af8183b6))
+
 ## [3.28.9](https://github.com/bgill55/daedalus/compare/v3.28.8...v3.28.9) (2026-08-12)
 
 
