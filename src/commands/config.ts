@@ -40,7 +40,7 @@ Examples:
 
     let presetName = sub === 'apply' ? parts[1] : sub;
     if (!presetName) {
-      console.log(pc.red('\n[WARN] Please specify a preset name. Example: /preset apply hybrid'));
+      console.log(pc.yellow('\n[WARN] Please specify a preset name. Example: /preset apply hybrid'));
       return;
     }
 
@@ -104,7 +104,7 @@ export const modelManagerCommand: Command = {
     if (sub === 'remove' || sub === 'rm' || sub === 'delete') {
       const targetName = parts[1]?.toLowerCase();
       if (!targetName) {
-        console.log(pc.red('\n[WARN] Please specify model name to remove. Example: /model remove lmstudio-gemma'));
+        console.log(pc.yellow('\n[WARN] Please specify model name to remove. Example: /model remove lmstudio-gemma'));
         return;
       }
       const initialCount = chain.length;
@@ -124,7 +124,7 @@ export const modelManagerCommand: Command = {
     if (sub === 'enable' || sub === 'disable') {
       const targetName = parts[1]?.toLowerCase();
       if (!targetName) {
-        console.log(pc.red(`\n[WARN] Please specify model name to ${sub}.`));
+        console.log(pc.yellow(`\n[WARN] Please specify model name to ${sub}.`));
         return;
       }
       const entry = chain.find(m => m.name.toLowerCase() === targetName);
@@ -145,7 +145,7 @@ export const modelManagerCommand: Command = {
       const model = parts[3];
 
       if (!name || !endpoint || !model) {
-        console.log(pc.red('\n[WARN] Missing arguments. Usage: /model add <name> <endpoint_url> <model_id>'));
+        console.log(pc.yellow('\n[WARN] Missing arguments. Usage: /model add <name> <endpoint_url> <model_id>'));
         console.log(pc.gray('Example: /model add openai https://api.openai.com/v1 gpt-4o'));
         return;
       }
@@ -228,7 +228,7 @@ export const modelManagerCommand: Command = {
     const isExplicitSelect = sub === 'use' || sub === 'set' || sub === 'select' || sub === 'pick';
     const targetQuery = isExplicitSelect ? parts.slice(1).join(' ').trim() : trimmed;
     if (!targetQuery) {
-      console.log(pc.red('\n[WARN] Please specify a model name, ID, or number. Example: /model freellmapi-gpt-oss-120b or /model 6'));
+      console.log(pc.yellow('\n[WARN] Please specify a model name, ID, or number. Example: /model freellmapi-gpt-oss-120b or /model 6'));
       return;
     }
 

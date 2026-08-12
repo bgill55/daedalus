@@ -32,7 +32,7 @@ const helpCommand: Command = {
       );
 
       if (!cmd) {
-        console.log(pc.red(`\n  [WARN] Unknown command: "${query}". Type /help to see all commands.`));
+        console.log(pc.yellow(`\n  [WARN] Unknown command: "${query}". Type /help to see all commands.`));
         return;
       }
 

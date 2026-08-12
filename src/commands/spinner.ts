@@ -62,7 +62,7 @@ export const spinnerCommands: Command[] = [
       }
 
       if (!isSpinnerStyle(arg)) {
-        console.log(pc.red(`\n  [WARN] Unknown spinner style: "${arg}".`));
+        console.log(pc.yellow(`\n  [WARN] Unknown spinner style: "${arg}".`));
         console.log(pc.gray('  Valid styles: ') + SPINNER_STYLES.map((s) => pc.cyan(s)).join(', '));
         console.log(pc.gray('  Usage: /spinner [list | braille | tracker | aurora]'));
         console.log();
@@ -87,7 +87,7 @@ export const spinnerCommands: Command[] = [
         console.log(pc.gray('  Persisted to config.json — takes effect on the next "thinking" turn.\n'));
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        console.log(pc.red(`\n  [WARN] Could not set spinner style: ${msg}\n`));
+        console.log(pc.yellow(`\n  [WARN] Could not set spinner style: ${msg}\n`));
       }
     },
   },
