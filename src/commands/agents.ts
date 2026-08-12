@@ -18,6 +18,7 @@ import { errMessage } from '../utils/errors.js';
 import { discoverLocalServers, saveConfig } from '../config/index.js';
 import type { ToolCall, ChatMessage } from '../types.js';
 import { messageText } from '../types.js';
+import { safeGitResetHard, safeGitClean, safeBranchDelete, safeBranchSwitch, allowDestroyFromArgs } from '../git/safe-git.js';
 import type { Command } from './types.js';
 
 // Secret / credential filename patterns that must never be committed by an
@@ -895,8 +896,8 @@ export const agentCommands: Command[] = [
   {
     name: '/autopilot',
     description: 'Autonomously implement a feature: branch, code, test, commit, and PR',
-    usage: '/autopilot <feature description>',
-    helpText: 'End-to-end autonomous feature development. Creates a branch, plans and implements the feature, runs verification, commits, pushes, and opens a pull request.\n\nFlow:\n  1. Interactive Q&A to refine the feature spec\n  2. Creates a git branch (daedalus-autopilot-<slug>)\n  3. Runs the multi-agent orchestrator to implement it\n  4. Verifies with build/lint/tests\n  5. Commits and pushes to GitHub\n  6. Opens a Pull Request against main\n\nRequires a GitHub repository with a configured remote origin.',
+    usage: '/autopilot <feature description> [--allow-destroy]',
+    helpText: 'End-to-end autonomous feature development. Creates a branch, plans and implements the feature, runs verification, commits, pushes, and opens a pull request.\\n\\nFlow:\\n  1. Interactive Q&A to refine the feature spec\\n  2. Creates a git branch (daedalus-autopilot-<slug>)\\n  3. Runs the multi-agent orchestrator to implement it\\n  4. Verifies with build/lint/tests\\n  5. Commits and pushes to GitHub\\n  6. Opens a Pull Request against main\\n\\nRequires a GitHub repository with a configured remote origin.\\n\\nSafety: in local-only mode (no remote), the working tree and branch are NEVER destroyed on failure — changes are kept for inspection. Pass --allow-destroy to override this and discard the branch on failure (only for throwaway repos).',
     execute: async (args, ctx) => {
       const idea = args.trim();
       if (!idea) {
@@ -959,8 +960,11 @@ export const agentCommands: Command[] = [
 
       if (isGitRepo) {
         try {
-          execSync(`git checkout -B ${branchName}`, { cwd: ctx.toolContext.projectRoot });
-          console.log(pc.green(`[OK] Created branch: ${branchName}`));
+          // Re-entering a run must not discard uncommitted work already on the
+          // branch. safeBranchSwitch switches without -B unless --allow-destroy.
+          const allowDestroy = allowDestroyFromArgs(idea) || !!repoInfo;
+          safeBranchSwitch(branchName, { cwd: ctx.toolContext.projectRoot, allowDestroy, branch: branchName });
+          console.log(pc.green(`[OK] Switched to branch: ${branchName}`));
         } catch (err: unknown) {
           const msg = err instanceof Error ? errMessage(err) : String(err);
           console.log(pc.red(`[ERROR] Failed to create branch: ${msg}`));
@@ -1011,14 +1015,15 @@ export const agentCommands: Command[] = [
         manifest.outcome = 'stopped-error';
         if (isGitRepo) {
           console.log(pc.dim('[CHECK] Verification did not pass — keeping the implemented changes on the branch for review.'));
-          // In remote-backed repos, discard the failed branch to keep main clean.
-          // In local-only mode (no remote), keep the branch so the user can
-          // inspect and fix the work instead of losing it.
-          if (repoInfo) {
+          // Never destroy the working tree or branch in local-only mode. Only a
+          // remote-backed repo (throwaway branch) or an explicit --allow-destroy
+          // opt-in may discard. Otherwise we keep the branch for inspection.
+          const allowDestroy = allowDestroyFromArgs(idea) || !!repoInfo;
+          if (allowDestroy) {
             try {
-              execSync('git reset --hard', { cwd: ctx.toolContext.projectRoot });
-              execSync('git checkout main', { cwd: ctx.toolContext.projectRoot });
-              execSync(`git branch -D ${branchName}`, { cwd: ctx.toolContext.projectRoot });
+              safeGitResetHard({ cwd: ctx.toolContext.projectRoot, allowDestroy });
+              execSync('git checkout main', { cwd: ctx.toolContext.projectRoot, stdio: 'ignore' });
+              safeBranchDelete(branchName, { cwd: ctx.toolContext.projectRoot, allowDestroy });
               console.log(pc.green('[OK] Branch cleaned up; main is untouched.'));
             } catch (rollbackErr: unknown) {
               const rbMsg = rollbackErr instanceof Error ? rollbackErr.message : String(rollbackErr);
@@ -1168,8 +1173,9 @@ export const agentCommands: Command[] = [
 
       // Step 2: Create branch
       try {
-        execSync(`git checkout -B ${branchName}`, { cwd: ctx.toolContext.projectRoot });
-        console.log(pc.green(`[OK] Created branch: ${branchName}`));
+        const allowDestroy = allowDestroyFromArgs(input) || !!repoInfo;
+        safeBranchSwitch(branchName, { cwd: ctx.toolContext.projectRoot, allowDestroy, branch: branchName });
+        console.log(pc.green(`[OK] Switched to branch: ${branchName}`));
       } catch (err: unknown) {
         const msg = err instanceof Error ? errMessage(err) : String(err);
         console.log(pc.red(`[ERROR] Failed to create branch: ${msg}`));
@@ -1199,14 +1205,19 @@ export const agentCommands: Command[] = [
         const msg = err instanceof Error ? errMessage(err) : String(err);
         console.log(pc.red(`\n[ERROR] Bug hunt stopped: ${msg}`));
         console.log(pc.dim('[CHECK] Fix did not verify — discarding the attempt to keep main clean.'));
-        try {
-          execSync('git reset --hard', { cwd: ctx.toolContext.projectRoot });
-          execSync('git checkout main', { cwd: ctx.toolContext.projectRoot });
-          execSync(`git branch -D ${branchName}`, { cwd: ctx.toolContext.projectRoot });
-          console.log(pc.green('[OK] Branch cleaned up; main is untouched.'));
-        } catch (rollbackErr: unknown) {
-          const rbMsg = rollbackErr instanceof Error ? rollbackErr.message : String(rollbackErr);
-          console.log(pc.red(`[ERROR] Cleanup failed: ${rbMsg}. Manual cleanup may be needed.`));
+        const allowDestroy = allowDestroyFromArgs(input) || !!repoInfo;
+        if (allowDestroy) {
+          try {
+            safeGitResetHard({ cwd: ctx.toolContext.projectRoot, allowDestroy });
+            execSync('git checkout main', { cwd: ctx.toolContext.projectRoot, stdio: 'ignore' });
+            safeBranchDelete(branchName, { cwd: ctx.toolContext.projectRoot, allowDestroy });
+            console.log(pc.green('[OK] Branch cleaned up; main is untouched.'));
+          } catch (rollbackErr: unknown) {
+            const rbMsg = rollbackErr instanceof Error ? rollbackErr.message : String(rollbackErr);
+            console.log(pc.red(`[ERROR] Cleanup failed: ${rbMsg}. Manual cleanup may be needed.`));
+          }
+        } else {
+          console.log(pc.cyan(`[INFO] Local-only mode: keeping branch '${branchName}' with the attempted fix for inspection. Fix and commit manually.`));
         }
         return;
       }

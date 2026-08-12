@@ -1,0 +1,74 @@
+import { execSync } from 'node:child_process';
+import fs from 'node:fs';
+import pc from 'picocolors';
+
+// The never-destroy-working-tree invariant.
+//
+// Autonomous runs (e.g. /autopilot in local-only mode) must NEVER silently
+// wipe the user's working tree or delete their branch. Destructive ops are
+// real and sometimes necessary (discarding a throwaway branch in a remote-
+// backed repo), but they are gated behind an explicit `allowDestroy` flag.
+//
+// Default (allowDestroy = false): refuse to reset --hard / clean -fd / branch
+// -D. Log a calm [CHECK] and keep the work so the user can inspect it.
+//
+// allowDestroy = true is only set when the user explicitly opts in (--allow-
+// destroy) or when the run targets a remote-backed throwaway branch where
+// deletion is safe and expected.
+
+export interface SafeGitOptions {
+  cwd: string;
+  allowDestroy?: boolean;
+  // When provided, names the branch that would be discarded — used in messages.
+  branch?: string;
+}
+
+function refuse(label: string, opts: SafeGitOptions): void {
+  const where = opts.branch ? ` branch '${opts.branch}'` : ' working tree';
+  console.log(pc.dim(`[CHECK] Refusing ${label}${where} — keeping it for inspection (pass --allow-destroy to override).`));
+}
+
+export function safeGitResetHard(opts: SafeGitOptions): boolean {
+  if (!opts.allowDestroy) {
+    refuse('git reset --hard', opts);
+    return false;
+  }
+  execSync('git reset --hard', { cwd: opts.cwd, stdio: 'ignore' });
+  return true;
+}
+
+export function safeGitClean(opts: SafeGitOptions): boolean {
+  if (!opts.allowDestroy) {
+    refuse('git clean -fd', opts);
+    return false;
+  }
+  execSync('git clean -fd', { cwd: opts.cwd, stdio: 'ignore' });
+  return true;
+}
+
+export function safeBranchDelete(branch: string, opts: SafeGitOptions): boolean {
+  if (!opts.allowDestroy) {
+    refuse(`git branch -D ${branch}`, opts);
+    return false;
+  }
+  execSync(`git branch -D ${branch}`, { cwd: opts.cwd, stdio: 'ignore' });
+  return true;
+}
+
+// Non-destructive replacement for `git checkout -B <branch>` when re-entering a
+// run: create/switch to the branch WITHOUT discarding uncommitted work on it.
+// Only force-resets the branch (checkout -B) when allowDestroy is explicitly set.
+export function safeBranchSwitch(branch: string, opts: SafeGitOptions): void {
+  const exists = fs.existsSync(`${opts.cwd}/.git/refs/heads/${branch}`) ||
+    (() => { try { return execSync('git rev-parse --verify ' + branch, { cwd: opts.cwd, stdio: 'ignore' }).toString().trim().length > 0; } catch { return false; } })();
+  if (exists && !opts.allowDestroy) {
+    // Switch without destroying local edits on the branch.
+    execSync(`git checkout ${branch}`, { cwd: opts.cwd, stdio: 'ignore' });
+  } else {
+    execSync(`git checkout -B ${branch}`, { cwd: opts.cwd, stdio: 'ignore' });
+  }
+}
+
+export function allowDestroyFromArgs(args: string): boolean {
+  return /\s--allow-destroy\b/.test(args) || /\s--allow-destroy\b/.test(' ' + args);
+}
