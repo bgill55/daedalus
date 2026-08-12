@@ -76,6 +76,11 @@ export interface ToolContext {
   terminalRepeatStreak?: Map<string, number>; // full normalized command -> consecutive identical-run count (no-progress loop guard)
   askLine?: (prompt: string) => Promise<string>;
   allowTestEdits?: boolean;
+  // Set true when the user live-approved a test write via askLine. Once true,
+  // the test-suite lock stays open for the rest of the session even if a later
+  // sub-task goal doesn't signal test intent — distinguishes a deliberate
+  // approval from the goal-text regex match.
+  testApprovalGranted?: boolean;
   // Test-file paths the agent already tried (and was blocked) to write this
   // session. Used to detect a blocked write being re-attempted via a different
   // tool (e.g. write_file blocked -> terminal cat >) and force the agent to

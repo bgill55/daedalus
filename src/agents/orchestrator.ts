@@ -42,6 +42,10 @@ export class Orchestrator {
   private router: LocalRouter;
   private messages: ChatMessage[];
   private toolContext: ToolContext;
+  // Per-task tool context for the currently running sub-agent. allowTestEdits
+  // is derived from the task goal (see runAgent) so a parent goal that merely
+  // mentions "tests" does not disarm the test-suite lock for every sub-agent.
+  private subContext?: ToolContext;
   private sessionManager?: SessionManager;
   private modelOverride?: string;
   public results: AgentResult[] = [];
@@ -1488,6 +1492,17 @@ export class Orchestrator {
       { role: 'user', content: `${context}\n\nTask: ${goal}` },
     ];
 
+    // Derive test-suite write permission from THIS task's goal, not the parent
+    // autopilot goal. A parent goal that merely mentions "tests" must not disarm
+    // the lock for every sub-agent (that is how an empty test file slipped
+    // through on an autonomous run). Live user approval (testApprovalGranted)
+    // still wins for the session.
+    const taskTestIntent = /\b(test|tests|vitest|jest|spec|specs|assert|assertion|unit\s*test|integration\s*test|update\s*test|fix\s*test|add\s*test)\b/i.test(goal);
+    this.subContext = {
+      ...this.toolContext,
+      allowTestEdits: this.toolContext.testApprovalGranted ? true : taskTestIntent,
+    };
+
     let turns = 0;
     const maxTurns = role.maxTurns ?? 10;
     const patchFailures = new Map<string, number>();
@@ -1543,7 +1558,7 @@ export class Orchestrator {
             type: 'function' as const,
             function: { name: tc.function.name, arguments: tc.function.arguments },
           })),
-          this.toolContext
+          this.subContext
         );
         // Track patch failures per file to break retry spirals
         let hadPatchFailure = false;
@@ -1620,7 +1635,7 @@ export class Orchestrator {
   }
 
   private async executeOpenAIToolCalls(toolCalls: ToolCall[]): Promise<ToolResult[]> {
-    return executeToolCalls(toolCalls, this.toolContext);
+    return executeToolCalls(toolCalls, this.subContext ?? this.toolContext);
   }
 
   private synthesize(goal: string): string {

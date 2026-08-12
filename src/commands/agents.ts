@@ -955,9 +955,9 @@ export const agentCommands: Command[] = [
         }
       } catch (err: unknown) {
         const msg = err instanceof Error ? errMessage(err) : String(err);
-        console.log(pc.red(`\n[ERROR] Implementation failed: ${msg}`));
+        console.log(pc.red(`\n[ERROR] Run stopped: ${msg}`));
         if (isGitRepo) {
-          console.log(pc.dim('[ROLLBACK] Implementation did not pass verification.'));
+          console.log(pc.dim('[CHECK] Verification did not pass — keeping the implemented changes on the branch for review.'));
           // In remote-backed repos, discard the failed branch to keep main clean.
           // In local-only mode (no remote), keep the branch so the user can
           // inspect and fix the work instead of losing it.
@@ -966,10 +966,10 @@ export const agentCommands: Command[] = [
               execSync('git reset --hard', { cwd: ctx.toolContext.projectRoot });
               execSync('git checkout main', { cwd: ctx.toolContext.projectRoot });
               execSync(`git branch -D ${branchName}`, { cwd: ctx.toolContext.projectRoot });
-              console.log(pc.green('[OK] Rolled back to main. Branch deleted.'));
+              console.log(pc.green('[OK] Branch cleaned up; main is untouched.'));
             } catch (rollbackErr: unknown) {
               const rbMsg = rollbackErr instanceof Error ? rollbackErr.message : String(rollbackErr);
-              console.log(pc.red(`[ERROR] Rollback failed: ${rbMsg}. Manual cleanup may be needed.`));
+              console.log(pc.red(`[ERROR] Cleanup failed: ${rbMsg}. Manual cleanup may be needed.`));
             }
           } else {
             console.log(pc.cyan(`[INFO] Local-only mode: keeping branch '${branchName}' with the implemented changes for inspection. Fix and commit manually.`));
@@ -982,7 +982,7 @@ export const agentCommands: Command[] = [
         console.log(pc.cyan('\n[AUTOPILOT] Verifying build & tests before commit...'));
         const verify = await runAutopilotVerify(ctx.toolContext.projectRoot);
         if (!verify.ok) {
-          console.log(pc.red(`\n[ERROR] Verification failed — not committing. ${verify.detail}`));
+          console.log(pc.red(`\n[ERROR] Verification did not pass — holding the changes on the branch instead of committing. ${verify.detail}`));
           console.log(pc.cyan(`[INFO] Branch '${branchName}' is kept with the implemented changes for inspection.`));
           return;
         }
@@ -1134,16 +1134,16 @@ export const agentCommands: Command[] = [
         }
       } catch (err: unknown) {
         const msg = err instanceof Error ? errMessage(err) : String(err);
-        console.log(pc.red(`\n[ERROR] Bug hunt failed: ${msg}`));
-        console.log(pc.dim('[ROLLBACK] Rolling back to main branch...'));
+        console.log(pc.red(`\n[ERROR] Bug hunt stopped: ${msg}`));
+        console.log(pc.dim('[CHECK] Fix did not verify — discarding the attempt to keep main clean.'));
         try {
           execSync('git reset --hard', { cwd: ctx.toolContext.projectRoot });
           execSync('git checkout main', { cwd: ctx.toolContext.projectRoot });
           execSync(`git branch -D ${branchName}`, { cwd: ctx.toolContext.projectRoot });
-          console.log(pc.green('[OK] Rolled back to main. Branch deleted.'));
+          console.log(pc.green('[OK] Branch cleaned up; main is untouched.'));
         } catch (rollbackErr: unknown) {
           const rbMsg = rollbackErr instanceof Error ? rollbackErr.message : String(rollbackErr);
-          console.log(pc.red(`[ERROR] Rollback failed: ${rbMsg}. Manual cleanup may be needed.`));
+          console.log(pc.red(`[ERROR] Cleanup failed: ${rbMsg}. Manual cleanup may be needed.`));
         }
         return;
       }

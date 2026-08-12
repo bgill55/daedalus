@@ -421,7 +421,7 @@ export async function rollbackTaskPatches(toolContext: ToolContext, historyStart
   const history = toolContext.patchHistory;
   if (!history || history.length <= historyStartIndex) return;
 
-  console.log(pc.yellow(`\n[ROLLBACK] Task failed verification. Rolling back changes to preserve workspace health...`));
+  console.log(pc.dim(`\n[CHECK] Task did not verify. Reverting this task's changes to keep the workspace clean...`));
 
   for (let i = history.length - 1; i >= historyStartIndex; i--) {
     const patch = history[i];
