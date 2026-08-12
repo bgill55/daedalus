@@ -1,3 +1,10 @@
+## [3.28.12](https://github.com/bgill55/daedalus/compare/v3.28.11...v3.28.12) (2026-08-12)
+
+
+### Bug Fixes
+
+* **agents:** spec-contract-driven test intent ([#5](https://github.com/bgill55/daedalus/issues/5) of long-run plan) (PR [#113](https://github.com/bgill55/daedalus/issues/113)) ([41de74e](https://github.com/bgill55/daedalus/commit/41de74e151883d6410fa34d098b71d958a585070))
+
 ## [3.28.11](https://github.com/bgill55/daedalus/compare/v3.28.10...v3.28.11) (2026-08-12)
 
 
