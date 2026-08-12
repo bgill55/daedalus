@@ -383,6 +383,7 @@ export async function guardTestWrite(filePath: string, context: ToolContext): Pr
     }
     if (ans && /^y(es)?$/i.test(ans.trim())) {
       context.allowTestEdits = true;
+      context.testApprovalGranted = true;
       return null;
     }
   }
