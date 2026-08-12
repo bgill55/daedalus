@@ -1,3 +1,10 @@
+## [3.28.9](https://github.com/bgill55/daedalus/compare/v3.28.8...v3.28.9) (2026-08-12)
+
+
+### Bug Fixes
+
+* **ui:** single calm render layer + structured run manifest (PR [#110](https://github.com/bgill55/daedalus/issues/110)) ([a5e4526](https://github.com/bgill55/daedalus/commit/a5e4526c1297cd8c60d777edfaca974546eff4f3))
+
 ## [3.28.8](https://github.com/bgill55/daedalus/compare/v3.28.7...v3.28.8) (2026-08-12)
 
 
