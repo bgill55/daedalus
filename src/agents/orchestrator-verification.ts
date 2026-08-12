@@ -97,10 +97,35 @@ export function verifyArtifactsThoroughly(
   historyStartIndex: number = 0,
 ): boolean {
   if (!requiresRealArtifacts(role, goal)) return true;
+
+  const root = toolContext.projectRoot || process.cwd();
+  const promised = extractPromisedPaths(goal);
+
+  // When the goal names a concrete file, the artifact must exist on disk as a
+  // REAL (non-empty, non-stub) file. A write attempt that left a 0-byte or
+  // placeholder file must not count as success — this is the gap that let an
+  // empty tests/ui/debounce.test.ts pass the gate.
+  if (promised.length > 0) {
+    const anyReal = promised.some((p) => isRealFile(path.resolve(root, p)));
+    if (!anyReal) return false;
+  }
+
   if (hasRealWrites(toolContext, result)) return true;
   const history = toolContext.patchHistory || [];
   if (history.length > historyStartIndex) return true;
   return false;
+}
+
+// Extract file paths mentioned in a task goal (e.g. "create src/ui/loading.ts").
+// Used by verifyArtifactsThoroughly to confirm the promised artifact actually
+// landed on disk as a real (non-stub) file.
+const PATH_RE = /(?:[A-Za-z]:)?[\\/]?[\w.\-]+\/[\w.\-/\\[\]() ]+\.\w+/g;
+export function extractPromisedPaths(goal: string): string[] {
+  const matches = goal.match(PATH_RE) || [];
+  return matches
+    .map((m) => m.trim().replace(/\]$/, ''))
+    .filter((m) => m.includes('/') || m.includes('\\'))
+    .filter((m, i, arr) => arr.indexOf(m) === i);
 }
 
 export function isRealFile(filePath: string): boolean {
