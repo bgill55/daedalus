@@ -1,3 +1,10 @@
+## [3.28.7](https://github.com/bgill55/daedalus/compare/v3.28.6...v3.28.7) (2026-08-12)
+
+
+### Bug Fixes
+
+* **ui:** calm output tokens across all command modes (PR [#108](https://github.com/bgill55/daedalus/issues/108)) ([a62c67e](https://github.com/bgill55/daedalus/commit/a62c67e2347c1553ea55ed698de2b9bee753c578))
+
 ## [3.28.6](https://github.com/bgill55/daedalus/compare/v3.28.5...v3.28.6) (2026-08-12)
 
 
