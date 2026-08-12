@@ -1,3 +1,10 @@
+## [3.28.11](https://github.com/bgill55/daedalus/compare/v3.28.10...v3.28.11) (2026-08-12)
+
+
+### Bug Fixes
+
+* **git:** never-destroy-working-tree invariant for autonomous runs (PR [#112](https://github.com/bgill55/daedalus/issues/112)) ([45007ed](https://github.com/bgill55/daedalus/commit/45007ed5fd5fd6af01cdc726662d1758ae21893e))
+
 ## [3.28.10](https://github.com/bgill55/daedalus/compare/v3.28.9...v3.28.10) (2026-08-12)
 
 
