@@ -116,6 +116,10 @@ export const ConfigSchema = z.object({
       enabled: z.boolean().default(false),
     })).default({}),
     shell: z.string().optional(),
+    permissions: z.object({
+      terminal: z.enum(['auto', 'ask']).default('auto'),
+      files: z.enum(['auto', 'ask']).default('auto'),
+    }).default({ terminal: 'auto', files: 'auto' }),
     sandbox: z.enum(['none', 'docker', 'wsl']).default('none'),
     sandboxImage: z.string().default('node:20'),
     wslDistribution: z.string().optional(),
@@ -244,6 +248,7 @@ export const DEFAULT_CONFIG: DaedalusConfig = {
       'get_definition', 'get_references'
     ],
     mcpServers: {},
+    permissions: { terminal: 'auto', files: 'auto' },
     sandbox: 'none',
     sandboxImage: 'node:20',
   },

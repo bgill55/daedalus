@@ -423,6 +423,48 @@ export const agentCommands: Command[] = [
       const { mcpRegistry } = await import('../tools/mcp/registry.js');
 
       switch (sub) {
+        case 'bundle':
+        case 'b': {
+          const { listMcpBundles, getMcpBundle } = await import('../tools/mcp/bundles.js');
+          const bundleSub = parts[1]?.toLowerCase();
+          const bundleTarget = parts[2];
+
+          if (bundleSub === 'list' || !bundleSub) {
+            console.log(pc.cyan('\n=== One-Click MCP Tool Bundles ===\n'));
+            for (const b of listMcpBundles()) {
+              console.log(`  ${pc.bold(b.name.padEnd(16))} ${pc.dim(b.description)}`);
+              for (const s of b.servers) {
+                console.log(`    ${pc.dim('•')} ${pc.cyan(s.name)}: ${s.description}`);
+              }
+              console.log();
+            }
+            console.log(pc.dim('  Install a bundle: /mcp bundle install <name>\n'));
+            return;
+          }
+
+          if (bundleSub === 'install') {
+            if (!bundleTarget) {
+              console.log(pc.yellow('  Usage: /mcp bundle install <name>'));
+              return;
+            }
+            const bundle = getMcpBundle(bundleTarget);
+            if (!bundle) {
+              console.log(pc.red(`  Bundle "${bundleTarget}" not found. Run /mcp bundle list to see presets.`));
+              return;
+            }
+            console.log(pc.cyan(`\n  [MCP BUNDLE] Installing preset bundle: ${pc.bold(bundle.name)}...`));
+            for (const s of bundle.servers) {
+              addServerToConfig({ name: s.name, transport: 'stdio', command: s.command, args: s.args, enabled: true });
+              console.log(pc.green(`  [OK] Installed MCP server "${s.name}"`));
+            }
+            console.log(pc.dim('\n  Run /mcp reconnect to activate new servers.\n'));
+            return;
+          }
+
+          console.log(pc.yellow('  Usage: /mcp bundle [list | install <name>]'));
+          return;
+        }
+
         case 'search':
         case 's': {
           if (!rest) {

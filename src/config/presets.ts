@@ -136,6 +136,7 @@ export const PRESETS: Record<string, ConfigPreset> = {
           'index_codebase', 'find_symbol', 'get_definition', 'get_references',
         ],
         mcpServers: {},
+        permissions: { terminal: 'auto', files: 'auto' },
         sandbox: 'none',
         sandboxImage: 'node:20',
       },

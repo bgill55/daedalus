@@ -214,6 +214,7 @@ AI assistance without:
 | `/enhance` / `prompt` / `refine` | Auto-expand a casual user request into a structured, high-performing engineering prompt |
 | `/cheatsheet` / `cheat` / `guide` | Display the Daedalus local-first onboarding cheat sheet |
 | `/faq` / `questions` / `faqs` | Display the Daedalus local-first FAQ (setup, architecture, troubleshooting) |
+| `/recipe` | Manage and run portable YAML recipes (/recipe [list \| run <name> \| create <name>]) |
 
 <!-- END_COMMANDS_TABLE -->
 

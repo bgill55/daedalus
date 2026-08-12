@@ -40,6 +40,7 @@ This guide describes all configuration options available in Daedalus. You can vi
 *   **`tools.builtin`**: List of built-in tool identifiers available to agents (read_file, write_file, patch, terminal, web_search, etc.).
 *   **`tools.mcpServers`**: Map of MCP server configurations. Each entry defines transport (stdio/http), command, args, URL, headers, and enabled flag.
 *   **`tools.shell`**: Preferred shell executable for terminal commands (e.g. "powershell", "bash", "/bin/zsh"). Falls back to SHELL env or OS default.
+*   **`tools.permissions`**: (Description needed)
 *   **`tools.sandbox`**: Execution sandbox mode: "none" (host direct), "docker", or "wsl" (Windows). Default: "none".
 *   **`tools.sandboxImage`**: Docker image used when sandbox is set to "docker". Default: "node:20".
 *   **`tools.wslDistribution`**: WSL distribution name used when sandbox is set to "wsl" (e.g. "Ubuntu", "Debian").
