@@ -1,3 +1,10 @@
+## [3.28.8](https://github.com/bgill55/daedalus/compare/v3.28.7...v3.28.8) (2026-08-12)
+
+
+### Bug Fixes
+
+* **agents:** per-task test lock for sub-agents + constructive output (PR [#109](https://github.com/bgill55/daedalus/issues/109)) ([951ebde](https://github.com/bgill55/daedalus/commit/951ebde44f852ae3499fec08a4aba29a99fe2bdd))
+
 ## [3.28.7](https://github.com/bgill55/daedalus/compare/v3.28.6...v3.28.7) (2026-08-12)
 
 
