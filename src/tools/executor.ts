@@ -3,6 +3,8 @@
 import { ToolContext, ToolResult, ToolCall } from '../types.js';
 import { TOOL_IMPLEMENTATIONS, BUILTIN_TOOLS, POWER_TOOLS } from './definitions.js';
 import { executeMCPTool } from './mcp/tool-executor.js';
+import { checkToolPermission } from './permissions.js';
+import { loadConfig } from '../config/index.js';
 
 type ModuleNamespace = Record<string, unknown>;
 
@@ -171,6 +173,30 @@ export async function executeToolCalls(
   let mutatingFailed = false;
   for (const tc of toolCalls) {
     const name = tc.function.name;
+
+    // Honor the user's tool-permission policy (config.permissions). When a policy
+    // is 'ask', sensitive tools (terminal, write_file, patch) require explicit
+    // confirmation — without an interactive grant in this path we block it rather
+    // than silently executing. This is what makes the config field enforceable
+    // instead of dead: checkToolPermission is the single gate.
+    if (name === 'terminal' || name === 'write_file' || name === 'patch') {
+      const policy = loadConfig().tools.permissions;
+      const verdict = checkToolPermission(name, policy, context);
+      if (!verdict.allowed) {
+        results.push({
+          toolCallId: tc.id,
+          name,
+          success: false,
+          content: '',
+          error: verdict.reason || `[DENIED] ${name} blocked by tool permission policy.`,
+        });
+        // Treat a policy block like a file-mutation failure so dependent tools
+        // in the same batch are skipped rather than operating on a denied state.
+        if (name === 'patch' || name === 'write_file') mutatingFailed = true;
+        continue;
+      }
+    }
+
     // If a file-mutating tool already failed in this batch, skip subsequent
     // file-mutating or build/test (terminal) calls — running them would operate
     // on a broken/incomplete state and waste the global failure budget.

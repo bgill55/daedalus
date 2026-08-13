@@ -1,7 +1,10 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { executeToolCall, executeToolCalls } from './executor.js';
 import { TOOL_IMPLEMENTATIONS } from './definitions.js';
 import type { ToolContext, ToolCall } from '../types.js';
+import { DEFAULT_CONFIG } from '../config/index.js';
+import fs from 'fs';
+import path from 'path';
 
 const mockContext: ToolContext = {
   sessionId: 'test-session',
@@ -153,4 +156,51 @@ describe('Tool executor', () => {
     expect(results).toHaveLength(2);
     expect(results[1].error ?? '').not.toContain('[SKIPPED]');
   }, 30_000);
+
+  describe('tool-permission policy enforcement', () => {
+    const HOME = process.env.USERPROFILE || process.env.HOME || '';
+    const configDir = path.join(HOME, '.daedalus');
+    const configPath = path.join(configDir, 'config.json');
+    let backup: string | null = null;
+
+    beforeEach(() => {
+      if (fs.existsSync(configPath)) backup = fs.readFileSync(configPath, 'utf8');
+    });
+    afterEach(() => {
+      // Restore the real config so we never leave the user's policy changed.
+      if (backup !== null) fs.writeFileSync(configPath, backup, 'utf8');
+      else if (fs.existsSync(configPath)) fs.rmSync(configPath, { force: true });
+    });
+
+    // Write a FULL valid config (loadConfig falls back to defaults if the schema
+    // parse fails) with only tools.permissions overridden.
+    const writePolicy = (policy: { terminal: 'auto' | 'ask'; files: 'auto' | 'ask' }) => {
+      const full = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+      full.tools = full.tools || {};
+      full.tools.permissions = policy;
+      fs.mkdirSync(configDir, { recursive: true });
+      fs.writeFileSync(configPath, JSON.stringify(full));
+    };
+
+    it('blocks terminal when config.tools.permissions.terminal is "ask"', async () => {
+      writePolicy({ terminal: 'ask', files: 'auto' });
+      const calls: ToolCall[] = [
+        { id: 't', type: 'function', function: { name: 'terminal', arguments: '{"command":"rm -rf /"}' } },
+      ];
+      const results = await executeToolCalls(calls, mockContext);
+      expect(results).toHaveLength(1);
+      expect(results[0].success).toBe(false);
+      expect(results[0].error ?? '').toContain('[PERMISSION DENIED]');
+    }, 30_000);
+
+    it('allows terminal when config.tools.permissions.terminal is "auto"', async () => {
+      writePolicy({ terminal: 'auto', files: 'auto' });
+      const calls: ToolCall[] = [
+        { id: 't', type: 'function', function: { name: 'terminal', arguments: '{"command":"echo ok"}' } },
+      ];
+      const results = await executeToolCalls(calls, mockContext);
+      expect(results).toHaveLength(1);
+      expect(results[0].error ?? '').not.toContain('[PERMISSION DENIED]');
+    }, 30_000);
+  });
 });
