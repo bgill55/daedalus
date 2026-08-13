@@ -1,3 +1,10 @@
+## [3.29.1](https://github.com/bgill55/daedalus/compare/v3.29.0...v3.29.1) (2026-08-13)
+
+
+### Bug Fixes
+
+* **tools:** enforce config tool-permission policy in executeToolCalls (PR [#114](https://github.com/bgill55/daedalus/issues/114)) ([d83ca6b](https://github.com/bgill55/daedalus/commit/d83ca6b7fefad68eef27444c96fb1ee8edb26389))
+
 # [3.29.0](https://github.com/bgill55/daedalus/compare/v3.28.12...v3.29.0) (2026-08-12)
 
 
