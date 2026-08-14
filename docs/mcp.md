@@ -51,6 +51,7 @@ Daedalus includes a built-in MCP server manager that lets you discover, install,
 | Command | Description |
 |---------|-------------|
 | `/mcp explore` | Browse curated featured community MCP servers |
+| `/mcp bundle [list \| install <name>]` | Browse and install one-click preset MCP tool bundles (`web-dev`, `cloud`, `data-science`) |
 | `/mcp search <query>` | Search the official registry for MCP servers |
 | `/mcp install <name>` | Install a server (adds it to your Daedalus config) |
 | `/mcp list` | Show installed servers with connection status |
@@ -58,6 +59,23 @@ Daedalus includes a built-in MCP server manager that lets you discover, install,
 | `/mcp info <name>` | Show server details, endpoints, and required env vars |
 | `/mcp enable <name>` | Enable a disabled server |
 | `/mcp disable <name>` | Disable a server without removing it |
+
+---
+
+## 📦 One-Click MCP Tool Bundles (`/mcp bundle`)
+
+Instead of installing servers individually, Daedalus provides **Preset MCP Tool Bundles** that install complete toolkits in one command:
+
+- **`web-dev`**: GitHub repository management + PostgreSQL schema inspection & SQL queries.
+- **`cloud`**: Google Cloud Platform resource management + Stripe Payments API.
+- **`data-science`**: BigQuery data warehouse + MemPalace knowledge graph.
+
+### Commands:
+
+```text
+/mcp bundle list             # List available preset bundles
+/mcp bundle install web-dev   # Install GitHub + PostgreSQL MCP servers in one click
+```
 
 ### Example workflow
 

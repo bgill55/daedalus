@@ -16,6 +16,7 @@
   - [Autonomous CI/CD PR Reviewer](ci-pr-reviewer.md)
   - [Execution Sandboxing](sandboxing.md)
   - [Guardrails & Resilience](guardrails-and-resilience.md)
+  - [Portable Recipes (/recipe)](recipes.md)
   - [Discord Bot & Webhooks](discord-bot.md)
   - [Auto-Prompt Expansion (/enhance)](prompt-enhancer.md)
   - [MCP Integration](mcp.md)
