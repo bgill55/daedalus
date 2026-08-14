@@ -1,3 +1,10 @@
+# [3.30.0](https://github.com/bgill55/daedalus/compare/v3.29.1...v3.30.0) (2026-08-14)
+
+
+### Features
+
+* **recipes:** add built-in default recipes (security-audit, refactor-clean, spec-first-feature, bug-fix-triage) and expand MCP bundles (full-stack, dev-ops) ([9d6e861](https://github.com/bgill55/daedalus/commit/9d6e861147f9c881d9647998a6dad99c6a7b119b))
+
 ## [3.29.1](https://github.com/bgill55/daedalus/compare/v3.29.0...v3.29.1) (2026-08-13)
 
 
