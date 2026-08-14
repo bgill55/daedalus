@@ -85,6 +85,48 @@ export function loadRecipeFromFile(filePath: string): DaedalusRecipe | null {
   }
 }
 
+export const BUILTIN_DEFAULT_RECIPES: readonly Omit<DaedalusRecipe, 'filePath'>[] = [
+  {
+    name: 'security-audit',
+    description: 'Audit codebase for type loosening, error swallowing, and missing sanitization',
+    role: 'reviewer',
+    skills: ['security-audit', 'typescript-best-practices'],
+    prompt: `Inspect the codebase and audit all recent changes for:
+1. Type loosening (converting interfaces to 'any' or 'unknown').
+2. Error swallowing or empty catch {} blocks.
+3. Hardcoded secrets, raw innerHTML, or missing input sanitization.
+Provide a structured report with findings and recommended fixes.`,
+  },
+  {
+    name: 'refactor-clean',
+    description: 'Refactor code to remove redundant inline comments and dead variables while preserving tests',
+    role: 'coder',
+    prompt: `Inspect the active files and refactor to:
+1. Remove redundant inline comments that merely restate standard code flow.
+2. Remove unused imports and dead variables.
+3. Preserve existing behavior and type signatures exactly.
+Run tests to verify no regressions were introduced.`,
+  },
+  {
+    name: 'spec-first-feature',
+    description: 'Gather requirements and generate a SpecFirst contract with acceptance criteria',
+    role: 'planner',
+    prompt: `Analyze the user prompt and generate a SpecFirst contract (.daedalus/spec.json and spec.md):
+1. Define goal, scope, and technical constraints.
+2. Outline step-by-step implementation tasks.
+3. Define explicit verification criteria for each task.`,
+  },
+  {
+    name: 'bug-fix-triage',
+    description: 'Diagnose error logs, isolate breaking symbol, and produce a minimal verified patch',
+    role: 'debugger',
+    prompt: `Diagnose the failure:
+1. Read recent error logs and stack traces.
+2. Isolate the exact breaking symbol or line.
+3. Produce a minimal, verified patch and run vitest/tsc to verify the fix.`,
+  },
+] as const;
+
 export function listRecipes(projectRoot: string, configDir: string): DaedalusRecipe[] {
   const recipes: DaedalusRecipe[] = [];
   const searchDirs = [
@@ -105,6 +147,16 @@ export function listRecipes(projectRoot: string, configDir: string): DaedalusRec
         }
       }
     } catch { /* ignore dir errors */ }
+  }
+
+  // Include built-in defaults if not overridden on disk
+  for (const def of BUILTIN_DEFAULT_RECIPES) {
+    if (!recipes.some(r => r.name.toLowerCase() === def.name.toLowerCase())) {
+      recipes.push({
+        ...def,
+        filePath: '(built-in default)',
+      });
+    }
   }
 
   return recipes;

@@ -64,6 +64,54 @@ export const MCP_BUNDLES: readonly McpBundle[] = [
       },
     ],
   },
+  {
+    name: 'full-stack',
+    description: 'Full-stack application toolkit: GitHub + PostgreSQL + Playwright E2E testing',
+    servers: [
+      {
+        name: 'github',
+        command: 'npx',
+        args: ['-y', '@modelcontextprotocol/server-github'],
+        description: 'GitHub repo & issue management',
+      },
+      {
+        name: 'postgres',
+        command: 'npx',
+        args: ['-y', '@modelcontextprotocol/server-postgres'],
+        description: 'PostgreSQL database queries',
+      },
+      {
+        name: 'playwright',
+        command: 'npx',
+        args: ['-y', '@modelcontextprotocol/server-playwright'],
+        description: 'Browser automation and E2E visual testing',
+      },
+    ],
+  },
+  {
+    name: 'dev-ops',
+    description: 'DevOps & container orchestration: Docker + Kubernetes + Google Cloud',
+    servers: [
+      {
+        name: 'docker',
+        command: 'npx',
+        args: ['-y', '@modelcontextprotocol/server-docker'],
+        description: 'Docker container and image management',
+      },
+      {
+        name: 'kubernetes',
+        command: 'npx',
+        args: ['-y', '@modelcontextprotocol/server-kubernetes'],
+        description: 'Kubernetes cluster operations',
+      },
+      {
+        name: 'gcp',
+        command: 'npx',
+        args: ['-y', '@modelcontextprotocol/server-gcp'],
+        description: 'Google Cloud Platform management',
+      },
+    ],
+  },
 ] as const;
 
 export function listMcpBundles(): readonly McpBundle[] {

@@ -59,9 +59,11 @@ prompt: Run full audit
     fs.writeFileSync(path.join(globalRecipes, 'g1.yaml'), 'name: g1\ndescription: d2\nprompt: prompt2', 'utf8');
 
     const all = listRecipes(tmpDir, path.join(tmpDir, 'global-config'));
-    expect(all).toHaveLength(2);
+    expect(all.length).toBeGreaterThanOrEqual(6);
     const names = all.map(r => r.name);
     expect(names).toContain('p1');
     expect(names).toContain('g1');
+    expect(names).toContain('security-audit');
+    expect(names).toContain('refactor-clean');
   });
 });

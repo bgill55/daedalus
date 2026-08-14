@@ -16,12 +16,17 @@ A **Recipe** is a structured `.yaml` or `.json` file that defines:
 
 ---
 
-## 📁 Recipe File Locations
+## 📁 Recipe File Locations & Built-in Defaults
 
-Daedalus automatically scans two locations for recipe files:
+Daedalus automatically resolves recipes in the following order:
 
 1. **Project-Local Recipes**: `.daedalus/recipes/<name>.yaml` *(Checked into git for team sharing)*
 2. **Global User Recipes**: `~/.daedalus/recipes/<name>.yaml` *(Available across all your projects)*
+3. **Built-in Default Recipes**: Out-of-the-box system playbooks ready to run out of the box:
+   - **`security-audit`**: Run security & diff immunity audit on code for type-loosening, error swallowing, and missing sanitization.
+   - **`refactor-clean`**: Clean up redundant comments, unused imports, and dead variables while preserving tests.
+   - **`spec-first-feature`**: Gather requirements and generate a SpecFirst contract (`.daedalus/spec.json` & `spec.md`).
+   - **`bug-fix-triage`**: Diagnose error logs, isolate breaking symbols, and produce a minimal verified patch.
 
 ---
 

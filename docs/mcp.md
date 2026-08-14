@@ -69,6 +69,8 @@ Instead of installing servers individually, Daedalus provides **Preset MCP Tool 
 - **`web-dev`**: GitHub repository management + PostgreSQL schema inspection & SQL queries.
 - **`cloud`**: Google Cloud Platform resource management + Stripe Payments API.
 - **`data-science`**: BigQuery data warehouse + MemPalace knowledge graph.
+- **`full-stack`**: GitHub + PostgreSQL + Playwright E2E visual testing.
+- **`dev-ops`**: Docker containers + Kubernetes clusters + Google Cloud.
 
 ### Commands:
 
