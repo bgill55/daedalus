@@ -223,14 +223,17 @@ export function createModelFunctions(deps: ModelDeps) {
     let toolTurnsRemaining = MAX_TOOL_TURNS;
     let consecutiveToolFailures = 0;
     const failureCounts = new Map<string, number>();
-    // Detects a write-tool failure that is a syntax/revert loop OR a circuit-breaker
-    // trip. A circuit breaker on a patch/write_file (streak >= 2) is, by definition, a
-    // repeated failed-edit loop — almost always invalid syntax the tool reverted.
-    // These must NOT escalate to a stronger model (that does not fix a syntax-emitting
-    // model); they need a strategy change (read_file + minimal targeted patch).
+    // Detects a WRITE-TOOL failure that is a syntax/revert loop. A circuit breaker on a
+    // patch/write_file (streak >= 2) is, by definition, a repeated failed-edit loop — almost
+    // always invalid syntax the tool reverted. These must NOT escalate to a stronger model
+    // (that does not fix a syntax-emitting model); they need a strategy change (read_file +
+    // minimal targeted patch). NOTE: scoped to write tools ONLY — a terminal circuit breaker
+    // (e.g. "npm run failed 2 consecutive times") is a build/test failure, not a syntax loop,
+    // and must NOT be classified as one or the agent will re-issue `npm test` against the
+    // breaker instead of reading the compiler error and fixing the code.
     const isWriteToolSyntaxLoop = (name: string, errText: string): boolean =>
       ['patch', 'write_file'].includes(name) &&
-      /syntax error|revert|invalid (ts|typescript)|unexpected token|expected ['"]|circuit breaker|consecutive times|patch failed \d+ consecutive/i.test(errText);
+      /syntax error|revert|invalid (ts|typescript)|unexpected token|expected\b|patch failed \d+ consecutive/i.test(errText);
     const executedToolNames = new Set<string>();
     // Layer B: idle re-read breaker. A turn that reads the same file many times with no
     // intervening write is usually "the fix was already present" spinning on re-reads.
