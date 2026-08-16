@@ -3,6 +3,7 @@ import { BUILTIN_TOOLS, POWER_TOOLS } from './tools/definitions.js';
 import { executeToolCalls } from './tools/executor.js';
 import { getSessionTodos } from './tools/builtin/todo.js';
 import { detectFalseCompletion, falseCompletionWarning, detectFalseCompletionOnDisk } from './agents/completion-guard.js';
+import { ReadStallDetector, isGreenBuildTestClaim } from './agents/loop-guards.js';
 import { mcpRegistry } from './tools/mcp/registry.js';
 import { DaedalusSpinner } from './tools/daedalus-spinner.js';
 import { calculateSessionTokens, pruneMessages } from './session/tokens.js';
@@ -231,6 +232,15 @@ export function createModelFunctions(deps: ModelDeps) {
       ['patch', 'write_file'].includes(name) &&
       /syntax error|revert|invalid (ts|typescript)|unexpected token|expected ['"]|circuit breaker|consecutive times|patch failed \d+ consecutive/i.test(errText);
     const executedToolNames = new Set<string>();
+    // Layer B: idle re-read breaker. A turn that reads the same file many times with no
+    // intervening write is usually "the fix was already present" spinning on re-reads.
+    // Short-circuit it before it burns minutes of wall-clock + model budget.
+    const readStall = new ReadStallDetector(15);
+    // Layer C: verification-claim guard. Set true if a build/test/lint verify command
+    // trips the terminal circuit breaker this turn; cleared by a real successful run.
+    let verifyBreakerTrippedThisTurn = false;
+    let verifyBreakerTrippedLastTurn = toolContext.verifyBreakerTrippedLastTurn ?? false;
+    const CIRCUIT_BREAKER_RE = /\[CIRCUIT BREAKER\][^\n]*unchanged with no progress/i;
     const signatureHistory: string[] = [];
     let pinnedModel: string | undefined;
     let escalationCount = 0;
@@ -441,6 +451,31 @@ export function createModelFunctions(deps: ModelDeps) {
           continue;
         }
 
+        // Layer B: idle re-read breaker. If the turn spent its budget re-reading the same
+        // file (the "fix was already present" spin) with no edit, force it to report the
+        // blocker honestly instead of looping. Close the turn with a concise note.
+        if (readStall.readCount >= 15) {
+          closeAssistantBlock(cleanContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
+          console.log(pc.dim(`\n  [DONE] Idle re-read stall: same file read ${readStall.readCount} times with no edit. Closing turn.`));
+          toolContext.verifyBreakerTrippedLastTurn = verifyBreakerTrippedThisTurn || verifyBreakerTrippedLastTurn;
+          return { content: `${cleanContent}\n\n[SELF-CORRECT] I re-read the same file ${readStall.readCount} times without making changes — the change is likely already present on disk. Report the actual on-disk state to the user rather than continuing to read.`, toolCalls: [] };
+        }
+
+        // Layer C: verification-claim guard. Block a green build/test claim when the verify
+        // command tripped the circuit breaker this turn (or last turn) and no fresh
+        // successful run cleared it — forces a real re-run or an honest blocker report.
+        if (isGreenBuildTestClaim(cleanContent) && (verifyBreakerTrippedThisTurn || verifyBreakerTrippedLastTurn)) {
+          console.log(pc.dim(`\n  [CHECK] Verifying completion claim — build/test command tripped the circuit breaker; no fresh successful run observed.`));
+          toolContext.verifyBreakerTrippedLastTurn = true;
+          messages.push({ role: 'assistant', content: cleanContent });
+          messages.push({
+            role: 'user',
+            content: `[SYSTEM WARNING] You reported the build/tests pass, but the verify command tripped the circuit breaker this session (no progress) and no fresh successful run was observed. Do NOT claim green without re-running the command and seeing a real pass. Either (1) run \`npm run build && npm run test\` again and confirm real output, or (2) report the blocker honestly (e.g. the command hung / was blocked).`,
+          } as ChatMessage);
+          continue;
+        }
+        toolContext.verifyBreakerTrippedLastTurn = verifyBreakerTrippedThisTurn || verifyBreakerTrippedLastTurn;
+
         messages.push({ role: 'assistant', content: cleanContent });
         return { content: cleanContent, toolCalls: [] };
       }
@@ -562,6 +597,25 @@ export function createModelFunctions(deps: ModelDeps) {
         } as ChatMessage);
 
         printToolResult(result.name, result.success, result.error);
+        // Layer B: feed the read-stall detector. A read_file with no error is a "read";
+        // a successful patch/write_file is a "write" (breaks the stall assumption).
+        if (result.success && result.name === 'read_file') {
+          let readPath: string | undefined;
+          try { readPath = JSON.parse(approvedCalls[ri]?.function?.arguments ?? '{}').path as string | undefined; } catch { /* ignore */ }
+          if (!readStall.registerRead(readPath)) { /* not stalled yet */ }
+        }
+        if (result.success && (result.name === 'patch' || result.name === 'write_file')) {
+          readStall.registerWrite();
+        }
+        // Layer C: detect a terminal circuit-breaker on a build/test/lint verify command.
+        if (result.name === 'terminal' && CIRCUIT_BREAKER_RE.test(`${result.error ?? ''}\n${result.content ?? ''}`)) {
+          verifyBreakerTrippedThisTurn = true;
+        }
+        // A real successful build/test/lint run this turn clears the breaker flag — proof.
+        if (result.name === 'terminal' && result.success && /\b(npm run (build|test|lint)|pnpm (run )?(build|test|lint)|yarn (build|test|lint)|tsc(\s+--noEmit)?|vitest|jest)\b/i.test(`${result.content ?? ''}`) && /(pass|passed|clean|green|✅|0 errors|succeed)/i.test(`${result.content ?? ''}`)) {
+          verifyBreakerTrippedThisTurn = false;
+          verifyBreakerTrippedLastTurn = false;
+        }
         if (result.success && result.name === 'todo') {
           const todos = getSessionTodos(toolContext.sessionId);
           const done = todos.filter(t => t.status === 'completed').length;
