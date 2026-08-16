@@ -1,3 +1,11 @@
+## [3.30.1](https://github.com/bgill55/daedalus/compare/v3.30.0...v3.30.1) (2026-08-16)
+
+
+### Bug Fixes
+
+* **loop:** add idle re-read breaker and block green build/test claims after circuit breaker ([#117](https://github.com/bgill55/daedalus/issues/117)) ([b3a63ef](https://github.com/bgill55/daedalus/commit/b3a63efa161e09c75204f1bc68ec6f673b657bbb))
+* **skills:** skip auto-synthesis for trivial ack/transition turns and no-work summaries ([#116](https://github.com/bgill55/daedalus/issues/116)) ([69a7739](https://github.com/bgill55/daedalus/commit/69a77396f4dbc3ad9dc54fd9efcbebce1ab361e5))
+
 # [3.30.0](https://github.com/bgill55/daedalus/compare/v3.29.1...v3.30.0) (2026-08-14)
 
 
