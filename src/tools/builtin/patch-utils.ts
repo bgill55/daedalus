@@ -428,8 +428,10 @@ export function preflightDependencyCheck(
   while ((m = importRe.exec(content)) !== null) {
     const spec = m[1];
     if (spec.startsWith('.') || spec.startsWith('/')) continue;
+    // strip node: protocol (e.g. 'node:path' -> 'path') so built-ins resolve via @types/node
+    const bare = spec.replace(/^node:/, '');
     // strip subpath (e.g. 'helmet/dist' -> 'helmet')
-    const pkg = spec.split('/').reduce((acc, part) => {
+    const pkg = bare.split('/').reduce((acc, part) => {
       if (part.startsWith('@')) return part; // scoped: keep @scope
       if (acc.startsWith('@')) return `${acc}/${part}`; // @scope/name
       return part;

@@ -264,6 +264,27 @@ describe('preflightDependencyCheck (pre-write prevention gate)', () => {
     expect(res).toBeNull();
   });
 
+  it('treats node: protocol built-ins (node:path, node:fs) as resolved, not missing types', () => {
+    // Regression: node:path was being extracted as the package "node:path" and flagged as
+    // "missing type declarations", which blocked every patch to a server file that imports
+    // Node built-ins and sent the agent into a config-thrash death loop.
+    const dir = makeProject(true);
+    const file = path.join(dir, 'server.ts');
+    const content = "import path from 'node:path';\nimport fs from 'node:fs';\nexport const x = path.join('a','b');\n";
+    const res = preflightDependencyCheck(file, dir, content);
+    fs.rmSync(dir, { recursive: true, force: true });
+    expect(res).toBeNull();
+  });
+
+  it('falls back to bare built-in name when node: prefix is absent', () => {
+    const dir = makeProject(true);
+    const file = path.join(dir, 'server.ts');
+    const content = "import path from 'path';\nexport const x = path.join('a','b');\n";
+    const res = preflightDependencyCheck(file, dir, content);
+    fs.rmSync(dir, { recursive: true, force: true });
+    expect(res).toBeNull();
+  });
+
   it('flags a package with no bundled types and no @types companion BEFORE write', () => {
     // Simulates the helmet incident: package installed, but @types/helmet missing.
     const dir = makeProject(false); // goodpkg has no types and no @types/goodpkg
