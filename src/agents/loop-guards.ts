@@ -16,33 +16,52 @@ const DEFAULT_STALL_THRESHOLD = 15;
 export class ReadStallDetector {
   private counts = new Map<string, number>();
   private anyWrite = false;
+  // Tracks a TIGHT re-read loop: the same file read repeatedly with no other tool in
+  // between. Alternating reads (a.ts -> b.ts -> a.ts) or reads interleaved with real work
+  // do NOT count as a stall — only an unbroken same-file read streak does.
+  private lastReadFile: string | undefined;
+  private consecutiveSameFile = 0;
 
   constructor(private threshold = DEFAULT_STALL_THRESHOLD) {}
 
   /**
    * Record a read tool result. Returns true once the SAME file has been read
-   * `threshold` times and the turn has not written any file in between (which would
-   * reset the stall — repeated reads while actively iterating on a patch are fine).
-   * `filePath` should be the normalized path from the read_file result's resolved path.
+   * `threshold` times CONSECUTIVELY (no other tool between reads) and the turn has not
+   * written any file (a write breaks the stall assumption). This isolates the real
+   * "fix was already present — re-reading the same file forever" pathology from normal
+   * multi-file review or budget-exhaustion loops that alternate files.
    */
   registerRead(filePath: string | undefined): boolean {
     if (this.anyWrite) return false;
     if (!filePath) return false;
-    const next = (this.counts.get(filePath) ?? 0) + 1;
-    this.counts.set(filePath, next);
-    return next >= this.threshold;
+    if (filePath === this.lastReadFile) {
+      this.consecutiveSameFile += 1;
+    } else {
+      this.lastReadFile = filePath;
+      this.consecutiveSameFile = 1;
+    }
+    const prev = this.counts.get(filePath) ?? 0;
+    this.counts.set(filePath, prev + 1);
+    return this.consecutiveSameFile >= this.threshold;
   }
 
   /** A successful file write breaks the stall assumption for the rest of the turn. */
   registerWrite(): void {
     this.anyWrite = true;
     this.counts.clear();
+    this.consecutiveSameFile = 0;
+    this.lastReadFile = undefined;
   }
 
   get readCount(): number {
     let max = 0;
     for (const v of this.counts.values()) max = Math.max(max, v);
     return max;
+  }
+
+  /** True once the same file has been read `threshold` times consecutively with no write. */
+  get stalled(): boolean {
+    return !this.anyWrite && this.consecutiveSameFile >= this.threshold;
   }
 }
 

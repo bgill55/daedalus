@@ -2,7 +2,7 @@ import pc from 'picocolors';
 import { BUILTIN_TOOLS, POWER_TOOLS } from './tools/definitions.js';
 import { executeToolCalls } from './tools/executor.js';
 import { getSessionTodos } from './tools/builtin/todo.js';
-import { detectFalseCompletion, falseCompletionWarning, detectFalseCompletionOnDisk } from './agents/completion-guard.js';
+import { detectFalseCompletion, falseCompletionWarning, detectFalseCompletionOnDisk, isScopeOverstatedSummary, scopeOverstatementWarning } from './agents/completion-guard.js';
 import { ReadStallDetector, isGreenBuildTestClaim } from './agents/loop-guards.js';
 import { mcpRegistry } from './tools/mcp/registry.js';
 import { DaedalusSpinner } from './tools/daedalus-spinner.js';
@@ -451,12 +451,28 @@ export function createModelFunctions(deps: ModelDeps) {
           continue;
         }
 
+        // Hard guard (scope): do not let a closing summary present a deliverable checklist
+        // ("Task 1 ... Task 3 ...") as complete while the todo list still has open items. That
+        // is a scope over-statement (e.g. relabeling a partial feature as fully shipped). Force
+        // the summary to be scoped to what actually landed or honestly mark the partial items.
+        const scopeTodos = getSessionTodos(toolContext.sessionId);
+        if (scopeTodos.length > 0 && isScopeOverstatedSummary(cleanContent, scopeTodos)) {
+          const remaining = scopeTodos.filter((t) => t.status !== 'completed').length;
+          console.log(pc.dim(`\n  [CHECK] Verifying completion claim — summary enumerates tasks as done but ${remaining} todo(s) still open.`));
+          messages.push({ role: 'assistant', content: cleanContent });
+          messages.push({
+            role: 'user',
+            content: scopeOverstatementWarning(remaining),
+          } as ChatMessage);
+          continue;
+        }
+
         // Layer B: idle re-read breaker. If the turn spent its budget re-reading the same
         // file (the "fix was already present" spin) with no edit, force it to report the
         // blocker honestly instead of looping. Close the turn with a concise note.
-        if (readStall.readCount >= 15) {
+        if (readStall.stalled) {
           closeAssistantBlock(cleanContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
-          console.log(pc.dim(`\n  [DONE] Idle re-read stall: same file read ${readStall.readCount} times with no edit. Closing turn.`));
+          console.log(pc.dim(`\n  [DONE] Idle re-read stall: same file read ${readStall.readCount} times consecutively with no edit. Closing turn.`));
           toolContext.verifyBreakerTrippedLastTurn = verifyBreakerTrippedThisTurn || verifyBreakerTrippedLastTurn;
           return { content: `${cleanContent}\n\n[SELF-CORRECT] I re-read the same file ${readStall.readCount} times without making changes — the change is likely already present on disk. Report the actual on-disk state to the user rather than continuing to read.`, toolCalls: [] };
         }
