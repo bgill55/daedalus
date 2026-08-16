@@ -470,9 +470,9 @@ export function createModelFunctions(deps: ModelDeps) {
         // Layer B: idle re-read breaker. If the turn spent its budget re-reading the same
         // file (the "fix was already present" spin) with no edit, force it to report the
         // blocker honestly instead of looping. Close the turn with a concise note.
-        if (readStall.readCount >= 15) {
+        if (readStall.stalled) {
           closeAssistantBlock(cleanContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
-          console.log(pc.dim(`\n  [DONE] Idle re-read stall: same file read ${readStall.readCount} times with no edit. Closing turn.`));
+          console.log(pc.dim(`\n  [DONE] Idle re-read stall: same file read ${readStall.readCount} times consecutively with no edit. Closing turn.`));
           toolContext.verifyBreakerTrippedLastTurn = verifyBreakerTrippedThisTurn || verifyBreakerTrippedLastTurn;
           return { content: `${cleanContent}\n\n[SELF-CORRECT] I re-read the same file ${readStall.readCount} times without making changes — the change is likely already present on disk. Report the actual on-disk state to the user rather than continuing to read.`, toolCalls: [] };
         }
