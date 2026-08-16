@@ -23,12 +23,31 @@ export function slugify(text: string): string {
  * The draft store deliberately ignores project-local paths and the shipped
  * skills dir, so this can only ever propose — never auto-activate — a skill.
  */
+// Turns that are mere acknowledgements / transitions carry no reusable recipe and
+// only pollute the .drafts store ("yes", "ok lets move on to #4", "awesome"). We skip
+// them rather than synthesizing a skill from trivial conversation.
+const TRIVIAL_PROMPT_RE =
+  /^(\s*(yes|yeah|yep|yup|ok|okay|sure|cool|nice|sweet|awesome|great|thanks|thank you|fine|go ahead|proceed|continue|lets? (go|move (on|forward)|do (that|it))|let's (go|move (on|forward)|do (that|it))|move on to (#\w+|\w+)|next)\b)/i;
+
+export function isTrivialPrompt(prompt: string): boolean {
+  return TRIVIAL_PROMPT_RE.test(prompt.trim());
+}
+
+// A turn summary that shows no actual work performed (no edit/run confirmation, no
+// file change) is not a reusable playbook. We require at least one "did work" signal
+// before proposing a skill, so read-only summaries and "nothing to do" turns don't synth.
+const NO_WORK_SUMMARY_RE =
+  /\b(no (changes|patches|edits|fix(es)?) (were )?made|already (fixed|resolved|done|present)|nothing (to do|left|changed)|no further (changes|action)|change[s]? (already )?(present|in place|existing))\b/i;
+
 export function synthesizeSkillFromTurn(
   userPrompt: string,
   turnSummary: string
 ): SynthesisResult {
   if (!userPrompt || userPrompt.length < 10) return { synthesized: false };
   if (!turnSummary || turnSummary.length < 30) return { synthesized: false };
+
+  if (isTrivialPrompt(userPrompt)) return { synthesized: false };
+  if (NO_WORK_SUMMARY_RE.test(turnSummary)) return { synthesized: false };
 
   const slug = slugify(userPrompt);
   if (!slug || slug.length < 3) return { synthesized: false };

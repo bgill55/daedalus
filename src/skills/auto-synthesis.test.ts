@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { synthesizeSkillFromTurn, slugify } from './auto-synthesis.js';
+import { synthesizeSkillFromTurn, slugify, isTrivialPrompt } from './auto-synthesis.js';
 import { setSkillsBaseDir, listSkillDrafts } from './draft.js';
 import fs from 'fs';
 import os from 'os';
@@ -51,5 +51,39 @@ describe('Auto Skill Synthesis', () => {
     const second = synthesizeSkillFromTurn(prompt, summary);
     expect(second.synthesized).toBe(false);
     expect(listSkillDrafts().length).toBe(1);
+  });
+
+  describe('isTrivialPrompt', () => {
+    it('flags bare acknowledgements as trivial', () => {
+      expect(isTrivialPrompt('yes')).toBe(true);
+      expect(isTrivialPrompt('ok')).toBe(true);
+      expect(isTrivialPrompt('awesome')).toBe(true);
+      expect(isTrivialPrompt('  Yes ')).toBe(true);
+    });
+
+    it('flags transition/continuation prompts as trivial', () => {
+      expect(isTrivialPrompt('lets move on to #4')).toBe(true);
+      expect(isTrivialPrompt('move on to issue 5')).toBe(true);
+      expect(isTrivialPrompt('lets do that start with 1 and 2')).toBe(true);
+      expect(isTrivialPrompt('ok awesome, lets look at the project as a whole')).toBe(true);
+    });
+
+    it('does NOT flag substantive task prompts as trivial', () => {
+      expect(isTrivialPrompt('Fix typescript module resolution error in Express router')).toBe(false);
+      expect(isTrivialPrompt('Add input validation for the preview panel')).toBe(false);
+      expect(isTrivialPrompt('Implement a refine workflow with a save-to-existing dropdown')).toBe(false);
+    });
+  });
+
+  it('skips synthesis for trivial acknowledgement turns', () => {
+    const res = synthesizeSkillFromTurn('yes', 'The fix is already in place on disk.');
+    expect(res.synthesized).toBe(false);
+  });
+
+  it('skips synthesis when the summary reports no work was performed', () => {
+    const prompt = 'Check whether the dead exports were already removed from src/types.ts';
+    const summary = 'Both issues are already resolved in the current codebase. No further changes are required.';
+    const res = synthesizeSkillFromTurn(prompt, summary);
+    expect(res.synthesized).toBe(false);
   });
 });
