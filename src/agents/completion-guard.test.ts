@@ -5,6 +5,7 @@ import {
   detectFalseCompletion,
   falseCompletionWarning,
   detectFalseCompletionOnDisk,
+  isScopeOverstatedSummary,
 } from './completion-guard.js';
 import type { SqliteTodo } from '../session/sqlite.js';
 
@@ -102,5 +103,46 @@ describe('detectFalseCompletionOnDisk', () => {
   it('still fires when a claim sentence asserts a fix to a reverted-only file', () => {
     const c = ctx({ history: [], streak: ['/repo/src/server.ts'] });
     expect(detectFalseCompletionOnDisk('All issues resolved, createApp no longer starts the server (src/server.ts)', c)).toBe('src/server.ts');
+  });
+});
+
+describe('isScopeOverstatedSummary', () => {
+  function todo(status: string): any {
+    return { id: Math.random().toString(36), content: 'x', status };
+  }
+
+  it('flags a deliverable checklist summary while todos remain open', () => {
+    const todos = [todo('completed'), todo('pending'), todo('pending')];
+    const summary =
+      'Task 1 - Preview Validation: Done. Task 2 - safeParseJson Tests: Done. ' +
+      'Task 3 - Refine Workflow: Done. All changes shipped.';
+    expect(isScopeOverstatedSummary(summary, todos)).toBe(true);
+  });
+
+  it('does NOT flag when all todos are completed', () => {
+    const todos = [todo('completed'), todo('completed'), todo('completed')];
+    const summary =
+      'Task 1 - Preview Validation: Done. Task 2 - safeParseJson Tests: Done. Task 3 - Refine Workflow: Done.';
+    expect(isScopeOverstatedSummary(summary, todos)).toBe(false);
+  });
+
+  it('does NOT flag a summary without a task enumeration', () => {
+    const todos = [todo('completed'), todo('pending')];
+    const summary = 'All the changes are complete and the build is green.';
+    expect(isScopeOverstatedSummary(summary, todos)).toBe(false);
+  });
+
+  it('does NOT flag an enumeration that is not claimed done', () => {
+    const todos = [todo('completed'), todo('pending')];
+    const summary =
+      'Task 1 - Preview Validation: in progress. Task 2 - safeParseJson Tests: planned. ' +
+      'Here is where things stand.';
+    expect(isScopeOverstatedSummary(summary, todos)).toBe(false);
+  });
+
+  it('flags an Issue #N enumeration claimed complete with open todos', () => {
+    const todos = [todo('completed'), todo('pending')];
+    const summary = 'Issue #1: completed. Issue #2: completed. Everything is resolved.';
+    expect(isScopeOverstatedSummary(summary, todos)).toBe(true);
   });
 });

@@ -2,7 +2,7 @@ import pc from 'picocolors';
 import { BUILTIN_TOOLS, POWER_TOOLS } from './tools/definitions.js';
 import { executeToolCalls } from './tools/executor.js';
 import { getSessionTodos } from './tools/builtin/todo.js';
-import { detectFalseCompletion, falseCompletionWarning, detectFalseCompletionOnDisk } from './agents/completion-guard.js';
+import { detectFalseCompletion, falseCompletionWarning, detectFalseCompletionOnDisk, isScopeOverstatedSummary, scopeOverstatementWarning } from './agents/completion-guard.js';
 import { ReadStallDetector, isGreenBuildTestClaim } from './agents/loop-guards.js';
 import { mcpRegistry } from './tools/mcp/registry.js';
 import { DaedalusSpinner } from './tools/daedalus-spinner.js';
@@ -447,6 +447,22 @@ export function createModelFunctions(deps: ModelDeps) {
           messages.push({
             role: 'user',
             content: `[SYSTEM WARNING] You claimed a fix/completion involving ${falselyClaimed}, but this session has NO successful patch to that file — only patches the syntax guard reverted. Reconcile with disk reality: either (1) actually apply and verify the change (run build/test and confirm it on disk), or (2) report the blocker honestly instead of claiming it is done. Do NOT report completion for changes that were not written.`,
+          } as ChatMessage);
+          continue;
+        }
+
+        // Hard guard (scope): do not let a closing summary present a deliverable checklist
+        // ("Task 1 ... Task 3 ...") as complete while the todo list still has open items. That
+        // is a scope over-statement (e.g. relabeling a partial feature as fully shipped). Force
+        // the summary to be scoped to what actually landed or honestly mark the partial items.
+        const scopeTodos = getSessionTodos(toolContext.sessionId);
+        if (scopeTodos.length > 0 && isScopeOverstatedSummary(cleanContent, scopeTodos)) {
+          const remaining = scopeTodos.filter((t) => t.status !== 'completed').length;
+          console.log(pc.dim(`\n  [CHECK] Verifying completion claim — summary enumerates tasks as done but ${remaining} todo(s) still open.`));
+          messages.push({ role: 'assistant', content: cleanContent });
+          messages.push({
+            role: 'user',
+            content: scopeOverstatementWarning(remaining),
           } as ChatMessage);
           continue;
         }

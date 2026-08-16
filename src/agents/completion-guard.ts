@@ -117,3 +117,34 @@ export function detectFalseCompletionOnDisk(text: string, context: ToolContext |
   }
   return null;
 }
+
+// Scope-overstatement guard for closing summaries. A turn that wraps up with a
+// deliverable checklist ("Task 1 - ... Done", "Task 3 - Refine Workflow: ...") while its
+// tracked todo list still has open items is over-reporting — it enumerates sub-deliverables
+// as if complete but the run's own task tracker disagrees. This catches the case where the
+// agent relabels a partially-shipped feature (e.g. "Refine workflow" reduced to "editable
+// textarea") as fully delivered in the summary. We only fire on a closing summary (the turn
+// is ending) that contains a "Task N:" deliverable enumeration AND a completion-ish verb.
+const SUMMARY_TASK_ENUM_RE =
+  /(task\s*\d+|step\s*\d+|issue\s*#?\d+|#\d+)\s*[:—-]|✅\s*(task|step|issue)|all \d+ (tasks|sprints|issues)/i;
+const SUMMARY_DONE_VERB_RE =
+  /\b(complete|completed|done|delivered|finished|shipped|resolved|implemented|all (tasks|sprints|issues) (are )?(complete|done))\b/i;
+
+export function isScopeOverstatedSummary(text: string, todos: SqliteTodo[]): boolean {
+  if (!text || !SUMMARY_TASK_ENUM_RE.test(text)) return false;
+  // If every todo is closed, the enumeration is accurate — no over-statement.
+  if (todos.length === 0 || countIncompleteTodos(todos) === 0) return false;
+  // Only flag when the summary asserts completion of the enumerated tasks.
+  return SUMMARY_DONE_VERB_RE.test(text);
+}
+
+export function scopeOverstatementWarning(remaining: number): string {
+  return (
+    `[SYSTEM WARNING] Your closing summary enumerates sub-tasks/steps as delivered, but ${remaining} ` +
+    `tracked todo item(s) are still open. Do NOT present the deliverable checklist as complete. ` +
+    `Either (1) finish the remaining items and update the todo list before summarizing, or (2) clearly ` +
+    `label which enumerated items are partially done vs fully done (e.g. "Task 3 - Refine Workflow: ` +
+    `PARTIAL — editable textarea shipped; Save-to-Existing dropdown not implemented"). Keep the summary ` +
+    `scoped to what actually shipped.`
+  );
+}
