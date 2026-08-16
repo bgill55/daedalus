@@ -1,3 +1,10 @@
+## [3.30.2](https://github.com/bgill55/daedalus/compare/v3.30.1...v3.30.2) (2026-08-16)
+
+
+### Bug Fixes
+
+* **loop:** stop misclassifying node: built-ins and terminal build failures as edit errors ([#121](https://github.com/bgill55/daedalus/issues/121)) ([8b84b20](https://github.com/bgill55/daedalus/commit/8b84b20e6130568ae80c0d4f2dfb74dd6070af11))
+
 ## [3.30.1](https://github.com/bgill55/daedalus/compare/v3.30.0...v3.30.1) (2026-08-16)
 
 
