@@ -196,6 +196,17 @@ function normalizeCommandFull(command: string): string {
   return command.trim().replace(/\s+/g, ' ');
 }
 
+// Verification commands (build / test / lint / type-check) are legitimately
+// re-run after an edit to confirm a fix. The circuit breakers must NOT suppress
+// them: a failing `npm run build` is the signal the agent acts on, not a loop.
+// Exempting them stops the breaker from blocking the verify-after-fix iteration
+// (which otherwise wastes model upgrades) while still catching genuine runaway
+// respawn loops like `npm run dev & sleep 3`.
+const VERIFICATION_COMMAND_RE = /^\s*(npm run (build|test|lint|check|typecheck|type-check)|npx (tsc|vitest|eslint|tsx)|(node_modules\/\.bin\/)?(tsc|vitest|eslint|tsx|jest)\b|tsc|vitest|jest|eslint)\b/i;
+function isVerificationCommand(command: string): boolean {
+  return VERIFICATION_COMMAND_RE.test(command);
+}
+
 function getTerminalStreakMap(context: ToolContext): Map<string, number> {
   if (!context.terminalFailureStreak) {
     context.terminalFailureStreak = new Map<string, number>();
@@ -227,16 +238,20 @@ export async function execute(args: { command: string; timeout?: number; workdir
   // Terminal failure circuit breaker: if the same normalized command prefix has
   // failed 2+ consecutive times, stop retrying and let the agent inspect/adapt
   // instead of burning the global 5-failure budget on an identical failing command.
+  // Verification commands (build/test/lint) are exempt: they are meant to be
+  // re-run after a fix, and a failing one is the signal the agent acts on.
   const prefix = normalizeCommandPrefix(command);
-  const streakMap = getTerminalStreakMap(context);
-  if ((streakMap.get(prefix) ?? 0) >= 2) {
-    return Promise.resolve({
-      toolCallId: '',
-      name: 'terminal',
-      success: false,
-      content: '',
-      error: `[CIRCUIT BREAKER] command '${prefix}' failed 2 consecutive times. Inspect the terminal error output, fix the arguments, or switch approach instead of retrying the same command.`,
-    });
+  if (!isVerificationCommand(command)) {
+    const streakMap = getTerminalStreakMap(context);
+    if ((streakMap.get(prefix) ?? 0) >= 2) {
+      return Promise.resolve({
+        toolCallId: '',
+        name: 'terminal',
+        success: false,
+        content: '',
+        error: `[CIRCUIT BREAKER] command '${prefix}' failed 2 consecutive times. Inspect the terminal error output, fix the arguments, or switch approach instead of retrying the same command.`,
+      });
+    }
   }
 
   // Terminal repeat circuit breaker: detect a no-progress loop where the SAME
@@ -244,17 +259,21 @@ export async function execute(args: { command: string; timeout?: number; workdir
   // model keeps re-spawning e.g. `npm run dev & sleep 3`). The command exits 0
   // so the failure breaker never trips; here we count consecutive IDENTICAL
   // commands and trip after 3. Legitimate iteration (edit -> test -> edit)
-  // changes the command between runs, so it never false-trips.
+  // changes the command between runs, so it never false-trips. Verification
+  // commands (build/test/lint) are exempt — re-running them after a fix is the
+  // intended verify loop, not a runaway.
   const full = normalizeCommandFull(command);
   const repeatMap = getTerminalRepeatMap(context);
-  if ((repeatMap.get(full) ?? 0) >= 2) {
-    return Promise.resolve({
-      toolCallId: '',
-      name: 'terminal',
-      success: false,
-      content: '',
-      error: `[CIRCUIT BREAKER] command '${full}' has run 3 consecutive times unchanged with no progress. Stop re-issuing it and reassess the approach (check the prior output instead of repeating).`,
-    });
+  if (!isVerificationCommand(command)) {
+    if ((repeatMap.get(full) ?? 0) >= 2) {
+      return Promise.resolve({
+        toolCallId: '',
+        name: 'terminal',
+        success: false,
+        content: '',
+        error: `[CIRCUIT BREAKER] command '${full}' has run 3 consecutive times unchanged with no progress. Stop re-issuing it and reassess the approach (check the prior output instead of repeating).`,
+      });
+    }
   }
   // Count this command; reset every other command so only consecutive identical
   // runs accumulate.

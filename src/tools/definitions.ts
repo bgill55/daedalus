@@ -2,8 +2,27 @@
 // These match the tool implementations in tools/builtin/
 
 import type { ToolDefinition } from '../types.js';
+import { getResolvedShellType } from './builtin/terminal.js';
 
 export type { ToolDefinition };
+
+// Surface the ACTUAL shell the terminal tool executes in, directly on the tool
+// description. The orchestrator also injects a [SHELL] context note, but REPL /
+// single-agent turns don't receive that context — so the model emits PowerShell/
+// cmd syntax (del, Remove-Item, $null) into the bash shell on Windows hosts,
+// which the shell rejects. Stating the resolved shell on the tool itself makes
+// the fact available to EVERY agent regardless of which code path builds the
+// system prompt.
+function shellSyntaxHint(): string {
+  const shell = getResolvedShellType();
+  if (shell === 'bash') {
+    return 'bash (git-bash/MSYS) on this Windows host — NOT PowerShell/cmd. Use "$", avoid "$null"/Select-String/"{}" blocks.';
+  }
+  if (shell === 'powershell') {
+    return 'PowerShell — "$", "$null", Select-String are valid; avoid bash-only "2>/dev/null".';
+  }
+  return 'cmd.exe — use "dir", "2>nul", "if exist"; not bash, not PowerShell.';
+}
 
 export const BUILTIN_TOOLS: ToolDefinition[] = [
   {
@@ -98,11 +117,11 @@ export const BUILTIN_TOOLS: ToolDefinition[] = [
     type: 'function',
     function: {
       name: 'terminal',
-      description: 'Execute a shell command. Use for builds, tests, git, package managers, questionable life choices.',
+      description: 'Execute a shell command. Use for builds, tests, git, package managers, questionable life choices. Syntax MUST match the [SHELL] note: ' + shellSyntaxHint(),
       parameters: {
         type: 'object',
         properties: {
-          command: { type: 'string', description: 'Command to execute. Syntax MUST match the [SHELL] note in context (bash on this Windows host via git-bash/MSYS — NOT PowerShell/cmd; use "$", avoid "$null"/Select-String/"{}" blocks).' },
+          command: { type: 'string', description: 'Command to execute. Syntax: ' + shellSyntaxHint() },
           timeout: { type: 'integer', description: 'Max seconds to wait', minimum: 1, maximum: 600, default: 180 },
           workdir: { type: 'string', description: 'Working directory (absolute path)' },
         },
