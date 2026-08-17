@@ -381,6 +381,28 @@ describe('terminal execute', () => {
     expect(r3.error).toContain("command 'cd'");
   });
 
+  it('does NOT trip the failure breaker on repeated failing verification commands (build/test/lint)', async () => {
+    // Regression: a failing `npm run build` re-run after a fix is the agent's
+    // verify loop, not a runaway. The breaker must not block it (this previously
+    // wasted model upgrades on a trivial one-line fix).
+    const ctx = makeContext();
+    ctx.terminalFailureStreak = new Map<string, number>();
+    const runFailing = async (cmd: string) => {
+      const mockProc = makeMockProcess();
+      (spawn as any).mockReturnValue(mockProc);
+      const p = execute({ command: cmd }, ctx);
+      mockProc.emit('close', 1);
+      return p;
+    };
+
+    for (let i = 0; i < 4; i++) {
+      (spawn as any).mockClear();
+      const r = await runFailing('npm run build');
+      expect(spawn).toHaveBeenCalledTimes(1); // never skipped by the breaker
+      expect(r.success).toBe(false);
+    }
+  });
+
   it('resets the streak on a successful command', async () => {
     const ctx = makeContext();
     ctx.terminalFailureStreak = new Map<string, number>([['cd', 1]]);
