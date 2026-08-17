@@ -13,7 +13,36 @@ Rules for the generated prompt:
 3. Require the agent to deliver a fully populated report formatted in Markdown with headers, filled-in comparison tables, and bullet points.
 4. NEVER output empty Markdown templates, empty table rows (e.g. "| Aspect | | |"), or bracketed placeholders (e.g. "[dependency]", "[what it does]"). Instead, write clear instructions ordering the agent to analyze the code and populate those sections with actual findings.
 5. Return ONLY the final enhanced prompt text without meta-commentary, introductory remarks, or surrounding quote marks.
-6. If the user's request already contains tool-call markup (e.g. \`<tool_call>\`, \`<function=...>\`), code fences, or XML-like tags, DO NOT copy that structured markup into the output. Rephrase the request as a clean natural-language instruction that a coding agent can act on directly. The enhanced prompt must be plain prose/Markdown an agent can execute — never raw tool-call XML.`;
+6. If the user's request already contains tool-call markup (e.g. \`<tool_call>\`, \`<function=...>\`), code fences, or XML-like tags, DO NOT copy that structured markup into the output. Rephrase the request as a clean natural-language instruction that a coding agent can act on directly. The enhanced prompt must be plain prose/Markdown an agent can execute — never raw tool-call XML.
+7. PRESERVE THE USER'S INTENT MODE. If the user's request is a proposal, ideation, brainstorm, design, or discussion ask (e.g. "come up with ideas", "propose", "what are some options", "brainstorm", "think about how to", "suggest approaches", "architecture review"), the enhanced prompt MUST remain a proposal/analysis ask. Do NOT reframe it as an implement/build command, and do NOT inject execution-scope deliverables such as "implement the following", "deliver a comprehensive Markdown report with sprint breakdowns and file modifications", "manageable sprints", or "populate all sections with actual implementation plans". If the user wants implementation, they will say so — your job is to make the proposal sharper and more specific, not to expand a question into a build order. Conversely, if the request IS a direct implementation task, keep Rule 1-3 as written.`;
+
+// Intent-mode markers. If the RAW request contains a proposal/brainstorm marker, the
+// enhanced prompt must stay a proposal and must not be expanded into an implementation
+// mandate. Used by stripModeViolation to defend against an enhancer that ignores Rule 7.
+const PROPOSAL_INTENT_RE =
+  /\b(ideas?|propose|proposal|brainstorm|suggest (approaches|ideas|options)|think (outside|about|of)|what (are|would|could)|options|approaches|design (a )?(review|doc)|architecture review|outside the box|how (might|could|should) we)\b/i;
+// Phrases that signal the enhancer illegally escalated a proposal into a build mandate.
+// Global flag: a single enhanced prompt can contain several mandate phrases that must all
+// be stripped (e.g. "implement the following" AND "manageable sprints" AND "specific file modifications").
+const IMPLEMENT_MANDATE_RE =
+  /\b(implement (the )?(following|these|in )|manageable sprints?|sprint breakdown|deliver a comprehensive (markdown )?report|file modifications required|specific file modifications|detailed comparison tables showing current (state|vs)|populate all sections with actual (implementation|analysis)|implementation readiness statement|proceed with implementing)\b/gi;
+
+/**
+ * Backstop for Rule 7: if the raw request is a proposal/ideation ask but the enhancer
+ * still expanded it into an implement/build mandate (added sprint breakdowns, "implement
+ * the following", "file modifications", etc.), strip those execution-scope phrases so the
+ * enhanced prompt stays a proposal the user can vet before any build happens. This prevents
+ * the /prompt enhancer from silently turning "propose 3-5 ideas" into "implement these in
+ * sprints and deliver a full report" — which the execution turn then obeys as a build order.
+ */
+function stripModeViolation(rawPrompt: string, enhanced: string): string {
+  if (!PROPOSAL_INTENT_RE.test(rawPrompt)) return enhanced;
+  if (!IMPLEMENT_MANDATE_RE.test(enhanced)) return enhanced;
+  return enhanced
+    .replace(IMPLEMENT_MANDATE_RE, (m) => '') // remove the illegal mandate phrases
+    .replace(/\n{3,}/g, '\n\n') // collapse the gaps left behind
+    .trim();
+}
 
 export async function enhancePrompt(rawPrompt: string, ctx: CommandContext): Promise<string> {
   const fullPrompt = `${ENHANCE_SYSTEM_PROMPT}\n\nUser request to enhance: "${rawPrompt}"`;
@@ -34,7 +63,8 @@ export async function enhancePrompt(rawPrompt: string, ctx: CommandContext): Pro
         // structured input instead of producing natural-language. Strip any such
         // markup so the displayed/enhanced prompt is always plain prose an agent
         // can execute (see bug where /enhance returned <tool_call><function=read_file>).
-        return stripToolCallMarkup(res.trim());
+        const stripped = stripToolCallMarkup(res.trim());
+        return stripModeViolation(rawPrompt, stripped);
       }
     }
   } catch (_err) {
