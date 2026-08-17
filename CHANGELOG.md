@@ -1,3 +1,10 @@
+## [3.30.5](https://github.com/bgill55/daedalus/compare/v3.30.4...v3.30.5) (2026-08-17)
+
+
+### Bug Fixes
+
+* **enhance:** bound open-ended 'improvements/ideas' lists to stop boilerplate rambles (Rule 9) ([#124](https://github.com/bgill55/daedalus/issues/124)) ([00e4e3e](https://github.com/bgill55/daedalus/commit/00e4e3ee976d89a7ed78db2f5f7387fdb4a2ec61)), closes [#121](https://github.com/bgill55/daedalus/issues/121) [#122](https://github.com/bgill55/daedalus/issues/122) [#123](https://github.com/bgill55/daedalus/issues/123)
+
 ## [3.30.4](https://github.com/bgill55/daedalus/compare/v3.30.3...v3.30.4) (2026-08-17)
 
 
