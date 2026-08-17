@@ -15,7 +15,9 @@ Rules for the generated prompt:
 5. Return ONLY the final enhanced prompt text without meta-commentary, introductory remarks, or surrounding quote marks.
 6. If the user's request already contains tool-call markup (e.g. \`<tool_call>\`, \`<function=...>\`), code fences, or XML-like tags, DO NOT copy that structured markup into the output. Rephrase the request as a clean natural-language instruction that a coding agent can act on directly. The enhanced prompt must be plain prose/Markdown an agent can execute — never raw tool-call XML.
 7. PRESERVE THE USER'S INTENT MODE. If the user's request is a proposal, ideation, brainstorm, design, or discussion ask (e.g. "come up with ideas", "propose", "what are some options", "brainstorm", "think about how to", "suggest approaches", "architecture review"), the enhanced prompt MUST remain a proposal/analysis ask. Do NOT reframe it as an implement/build command, and do NOT inject execution-scope deliverables such as "implement the following", "deliver a comprehensive Markdown report with sprint breakdowns and file modifications", "manageable sprints", or "populate all sections with actual implementation plans". If the user wants implementation, they will say so — your job is to make the proposal sharper and more specific, not to expand a question into a build order. Conversely, if the request IS a direct implementation task, keep Rule 1-3 as written.
-8. DO NOT NAME SPECIFIC TOOL FUNCTIONS. The execution agent selects its own tools from whatever is available in its environment — you cannot know the exact tool names, and naming non-existent ones (e.g. "using find_symbol and get_definition to locate files") makes the agent attempt calls that fail. Instead, describe the ACTION in plain language ("inspect the relevant source files", "search the codebase for usages of X"). Never write "using <tool_name> to ..." or "via <tool_name>" clauses.`;
+8. DO NOT NAME SPECIFIC TOOL FUNCTIONS. The execution agent selects its own tools from whatever is available in its environment — you cannot know the exact tool names, and naming non-existent ones (e.g. "using find_symbol and get_definition to locate files") makes the agent attempt calls that fail. Instead, describe the ACTION in plain language ("inspect the relevant source files", "search the codebase for usages of X"). Never write "using <tool_name> to ..." or "via <tool_name>" clauses.
+9. BOUNDED, DISTINCT OUTPUT — DEPTH OVER BREADTH. When the request asks for "improvements", "ideas", "options", or "areas for <X>", instruct the agent to produce AT MOST 8-10 highest-impact, DISTINCT items. Never generate templated or boilerplate variations of the same idea (e.g. fifty "Add Prompt Template Variables ..." bullets that only swap words). Each item must be a concrete, independently valuable change with its own rationale. "Fully populated" (Rule 3-4) means every table ROW holds real findings — it does NOT mean padding an open-ended list with repetitive permutations. If the codebase yields fewer than 8 genuine items, stop; do not invent filler.`;
+
 
 // Intent-mode markers. If the RAW request contains a proposal/brainstorm marker, the
 // enhanced prompt must stay a proposal and must not be expanded into an implementation
@@ -48,6 +50,30 @@ function stripInventedToolRefs(enhanced: string): string {
     .replace(/\s{2,}/g, ' ') // collapse double spaces left behind
     .replace(/\n{3,}/g, '\n\n')
     .trim();
+}
+
+// Matches a Markdown bullet line (supports "-", "*", "•", numbered "1.").
+const BULLET_RE = /^\s*(?:[-*•]|\d+\.)\s+/;
+
+/**
+ * Backstop for Rule 9: if the enhanced prompt's bullet list degenerates into templated
+ * boilerplate (the same prefix repeating many times — e.g. fifty "Add Prompt Template
+ * Variables ..." bullets that only swap words), keep the first MAX_DISTINCT_BULLETS items
+ * and append a cap note. This stops the execution turn from producing a 4.5k-token
+ * copy-paste ramble when the user asked for "areas of improvement". We cap by total bullet
+ * count (not by de-duping semantics) — a list with >MAX items is almost always padding, and
+ * the note instructs the agent to keep only the highest-impact, distinct items.
+ */
+const MAX_DISTINCT_BULLETS = 12;
+function capRepetition(enhanced: string): string {
+  const lines = enhanced.split('\n');
+  const bulletIdx: number[] = [];
+  lines.forEach((ln, i) => { if (BULLET_RE.test(ln)) bulletIdx.push(i); });
+  if (bulletIdx.length <= MAX_DISTINCT_BULLETS) return enhanced;
+  const keepThrough = bulletIdx[MAX_DISTINCT_BULLETS - 1]; // last bullet we keep
+  const truncated = lines.slice(0, keepThrough + 1);
+  truncated.push('', `> Note: list capped at the ${MAX_DISTINCT_BULLETS} highest-impact, distinct items — do not pad with templated variations of the same idea.`);
+  return truncated.join('\n').trim();
 }
 
 /**
@@ -87,7 +113,7 @@ export async function enhancePrompt(rawPrompt: string, ctx: CommandContext): Pro
         // markup so the displayed/enhanced prompt is always plain prose an agent
         // can execute (see bug where /enhance returned <tool_call><function=read_file>).
         const stripped = stripToolCallMarkup(res.trim());
-        return stripInventedToolRefs(stripModeViolation(rawPrompt, stripped));
+        return capRepetition(stripInventedToolRefs(stripModeViolation(rawPrompt, stripped)));
       }
     }
   } catch (_err) {
