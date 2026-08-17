@@ -39,6 +39,37 @@ describe('enhanceCommand', () => {
     expect(mockCallModel).toHaveBeenCalledTimes(1);
   });
 
+  it('preserves proposal intent: does not expand "ideas" ask into an implement mandate', async () => {
+    // Regression: /prompt enhancer turned "come up with 3-5 ideas" into "implement these
+    // in manageable sprints and deliver a comprehensive report" — which the execution turn
+    // then obeyed as a build order, spiraling into a config-thrash death loop.
+    const mockCallModel = vi.fn().mockResolvedValue(
+      'Act as Daedalus and IMPLEMENT the following UI/UX enhancements in manageable sprints. ' +
+      'Deliver a comprehensive Markdown report with sprint breakdowns and specific file modifications. ' +
+      'Populate all sections with actual implementation plans. Proceed with implementing Sprint 1.1.'
+    );
+    const mockCtx = { callModelWithFallback: mockCallModel } as any;
+
+    const result = await enhancePrompt('come up with 3-5 ideas to make this project outstanding', mockCtx);
+    // The implement mandate must be stripped; the output stays a proposal/analysis ask.
+    expect(result).not.toMatch(/implement the following/i);
+    expect(result).not.toMatch(/manageable sprints?/i);
+    expect(result).not.toMatch(/specific file modifications/i);
+    expect(result).not.toMatch(/proceed with implementing/i);
+    expect(result).not.toMatch(/deliver a comprehensive (markdown )?report/i);
+  });
+
+  it('does NOT strip implement-scope language when the raw request is a real build task', async () => {
+    // A genuine implementation ask should keep its execution scope — the guard only fires
+    // for proposal/ideation raw requests.
+    const mockCallModel = vi.fn().mockResolvedValue(
+      'Implement the following: add a /api/health route and run npm run build to verify.'
+    );
+    const mockCtx = { callModelWithFallback: mockCallModel } as any;
+
+    const result = await enhancePrompt('add a health check route and verify the build', mockCtx);
+    expect(result).toMatch(/implement the following/i);
+  });
 
   it('enhanceCommand asks for prompt if empty and handles user response', async () => {
     const askLineMock = vi.fn()
