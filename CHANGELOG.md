@@ -1,3 +1,10 @@
+## [3.30.4](https://github.com/bgill55/daedalus/compare/v3.30.3...v3.30.4) (2026-08-17)
+
+
+### Bug Fixes
+
+* **enhance:** stop the /prompt enhancer from naming non-existent tools (Rule 8) ([#123](https://github.com/bgill55/daedalus/issues/123)) ([f6a96a3](https://github.com/bgill55/daedalus/commit/f6a96a3f872c83e369286b6c4dc12a33292d53e3))
+
 ## [3.30.3](https://github.com/bgill55/daedalus/compare/v3.30.2...v3.30.3) (2026-08-17)
 
 
