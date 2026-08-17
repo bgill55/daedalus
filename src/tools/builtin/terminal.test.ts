@@ -528,3 +528,29 @@ describe('terminal test-suite lock', () => {
     expect(result.success).toBe(true);
   });
 });
+
+describe('getResolvedShellType', () => {
+  const origShell = process.env.SHELL;
+  const origDaedalusShell = process.env.DAEDALUS_SHELL;
+  afterEach(() => {
+    if (origShell === undefined) delete process.env.SHELL;
+    else process.env.SHELL = origShell;
+    if (origDaedalusShell === undefined) delete process.env.DAEDALUS_SHELL;
+    else process.env.DAEDALUS_SHELL = origDaedalusShell;
+  });
+
+  it('returns bash when SHELL points to a bash path (Windows git-bash host)', async () => {
+    process.env.SHELL = '/usr/bin/bash';
+    process.env.DAEDALUS_SHELL = undefined as unknown as string;
+    // @ts-expect-error access internal cache for clean test
+    const mod = await import('./terminal.js');
+    expect(mod.getResolvedShellType()).toBe('bash');
+  });
+
+  it('returns powershell when DAEDALUS_SHELL names powershell', async () => {
+    process.env.DAEDALUS_SHELL = 'C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe';
+    // @ts-expect-error access internal cache for clean test
+    const mod = await import('./terminal.js');
+    expect(mod.getResolvedShellType()).toBe('powershell');
+  });
+});

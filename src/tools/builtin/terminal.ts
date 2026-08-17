@@ -137,6 +137,49 @@ export function resetCachedShell(): void {
   state.cachedShell = null;
 }
 
+/**
+ * Resolve the shell the terminal tool actually executes commands in (bash on this
+ * Windows host via git-bash/MSYS, or cmd/powershell if configured). This MUST be surfaced
+ * to the model: the static tool description says "bash syntax", but on Windows the model
+ * often overrides that and emits PowerShell/cmd syntax ($null, Select-String, { } blocks)
+ * which the bash shell rejects — causing a retry → circuit-breaker → model-upgrade spiral.
+ * Returning the real type lets the agent context state the exact syntax to use.
+ */
+export function getResolvedShellType(): 'bash' | 'cmd' | 'powershell' {
+  if (state.cachedShell) return state.cachedShell.type;
+  // Mirror the detection in execute()'s detectShell(): resolve the shell from env/config
+  // or, on win32, prefer git-bash/MSYS if present, else cmd.
+  try {
+    const envShell = process.env.DAEDALUS_SHELL || process.env.SHELL;
+    if (envShell) {
+      if (/powershell|pwsh/i.test(envShell)) return 'powershell';
+      if (/cmd/i.test(envShell)) return 'cmd';
+      return 'bash';
+    }
+    let configShell: string | undefined;
+    try {
+      const config = loadConfig();
+      configShell = config.tools?.shell;
+    } catch { /* ignore */ }
+    if (configShell) {
+      if (/powershell|pwsh/i.test(configShell)) return 'powershell';
+      if (/cmd/i.test(configShell)) return 'cmd';
+      return 'bash';
+    }
+    if (process.platform === 'win32') {
+      try {
+        execSync('where bash.exe', { stdio: 'ignore' });
+        return 'bash';
+      } catch {
+        return 'cmd';
+      }
+    }
+    return 'bash';
+  } catch {
+    return 'bash';
+  }
+}
+
 function normalizeCommandPrefix(command: string): string {
   const tokens = command.trim().split(/\s+/).filter(Boolean);
   if (tokens.length === 0) return '(empty)';
