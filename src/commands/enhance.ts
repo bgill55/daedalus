@@ -14,7 +14,8 @@ Rules for the generated prompt:
 4. NEVER output empty Markdown templates, empty table rows (e.g. "| Aspect | | |"), or bracketed placeholders (e.g. "[dependency]", "[what it does]"). Instead, write clear instructions ordering the agent to analyze the code and populate those sections with actual findings.
 5. Return ONLY the final enhanced prompt text without meta-commentary, introductory remarks, or surrounding quote marks.
 6. If the user's request already contains tool-call markup (e.g. \`<tool_call>\`, \`<function=...>\`), code fences, or XML-like tags, DO NOT copy that structured markup into the output. Rephrase the request as a clean natural-language instruction that a coding agent can act on directly. The enhanced prompt must be plain prose/Markdown an agent can execute — never raw tool-call XML.
-7. PRESERVE THE USER'S INTENT MODE. If the user's request is a proposal, ideation, brainstorm, design, or discussion ask (e.g. "come up with ideas", "propose", "what are some options", "brainstorm", "think about how to", "suggest approaches", "architecture review"), the enhanced prompt MUST remain a proposal/analysis ask. Do NOT reframe it as an implement/build command, and do NOT inject execution-scope deliverables such as "implement the following", "deliver a comprehensive Markdown report with sprint breakdowns and file modifications", "manageable sprints", or "populate all sections with actual implementation plans". If the user wants implementation, they will say so — your job is to make the proposal sharper and more specific, not to expand a question into a build order. Conversely, if the request IS a direct implementation task, keep Rule 1-3 as written.`;
+7. PRESERVE THE USER'S INTENT MODE. If the user's request is a proposal, ideation, brainstorm, design, or discussion ask (e.g. "come up with ideas", "propose", "what are some options", "brainstorm", "think about how to", "suggest approaches", "architecture review"), the enhanced prompt MUST remain a proposal/analysis ask. Do NOT reframe it as an implement/build command, and do NOT inject execution-scope deliverables such as "implement the following", "deliver a comprehensive Markdown report with sprint breakdowns and file modifications", "manageable sprints", or "populate all sections with actual implementation plans". If the user wants implementation, they will say so — your job is to make the proposal sharper and more specific, not to expand a question into a build order. Conversely, if the request IS a direct implementation task, keep Rule 1-3 as written.
+8. DO NOT NAME SPECIFIC TOOL FUNCTIONS. The execution agent selects its own tools from whatever is available in its environment — you cannot know the exact tool names, and naming non-existent ones (e.g. "using find_symbol and get_definition to locate files") makes the agent attempt calls that fail. Instead, describe the ACTION in plain language ("inspect the relevant source files", "search the codebase for usages of X"). Never write "using <tool_name> to ..." or "via <tool_name>" clauses.`;
 
 // Intent-mode markers. If the RAW request contains a proposal/brainstorm marker, the
 // enhanced prompt must stay a proposal and must not be expanded into an implementation
@@ -26,6 +27,28 @@ const PROPOSAL_INTENT_RE =
 // be stripped (e.g. "implement the following" AND "manageable sprints" AND "specific file modifications").
 const IMPLEMENT_MANDATE_RE =
   /\b(implement (the )?(following|these|in )|manageable sprints?|sprint breakdown|deliver a comprehensive (markdown )?report|file modifications required|specific file modifications|detailed comparison tables showing current (state|vs)|populate all sections with actual (implementation|analysis)|implementation readiness statement|proceed with implementing)\b/gi;
+// Invented-tool references: the enhancer must not name specific tool functions it cannot
+// know exist (Rule 8). It emits clauses like "using find_symbol and get_definition to
+// locate relevant files" — which make the execution agent attempt non-existent tools.
+// Strip the "using X (and Y) to <action>" / "via X" instruction clauses. Build-agnostic:
+// we don't maintain a tool allowlist (it varies by build/MCP); we just remove the
+// imperative tool-name phrasing and let the agent pick its own tools.
+const INVENTED_TOOL_RE =
+  /\b(?:using\s+[\w_]+(?:\s+and\s+[\w_]+)*|via\s+[\w_]+)\b/gi;
+
+/**
+ * Backstop for Rule 8: removes "using <tool> to <action>" / "via <tool>" clauses the
+ * enhancer may still emit, so the execution turn is instructed by ACTION ("inspect the
+ * relevant source files") rather than by a possibly-fictional tool name it will fail to call.
+ */
+function stripInventedToolRefs(enhanced: string): string {
+  if (!INVENTED_TOOL_RE.test(enhanced)) return enhanced;
+  return enhanced
+    .replace(INVENTED_TOOL_RE, '') // drop the invented-tool instruction clauses
+    .replace(/\s{2,}/g, ' ') // collapse double spaces left behind
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
 
 /**
  * Backstop for Rule 7: if the raw request is a proposal/ideation ask but the enhancer
@@ -64,7 +87,7 @@ export async function enhancePrompt(rawPrompt: string, ctx: CommandContext): Pro
         // markup so the displayed/enhanced prompt is always plain prose an agent
         // can execute (see bug where /enhance returned <tool_call><function=read_file>).
         const stripped = stripToolCallMarkup(res.trim());
-        return stripModeViolation(rawPrompt, stripped);
+        return stripInventedToolRefs(stripModeViolation(rawPrompt, stripped));
       }
     }
   } catch (_err) {
