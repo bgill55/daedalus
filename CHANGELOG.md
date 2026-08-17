@@ -1,3 +1,10 @@
+## [3.30.6](https://github.com/bgill55/daedalus/compare/v3.30.5...v3.30.6) (2026-08-17)
+
+
+### Bug Fixes
+
+* **agents:** stop stale SpecFirst contracts and the /prompt enhancer from fabricating findings ([#125](https://github.com/bgill55/daedalus/issues/125)) ([37681ba](https://github.com/bgill55/daedalus/commit/37681ba69b5211814dcb3a269b4eb2da88749866))
+
 ## [3.30.5](https://github.com/bgill55/daedalus/compare/v3.30.4...v3.30.5) (2026-08-17)
 
 
