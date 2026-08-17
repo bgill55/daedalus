@@ -5,6 +5,7 @@ import path from 'path';
 import readline from 'readline';
 import { LocalRouter } from '../router/index.js';
 import { BUILTIN_TOOLS } from '../tools/definitions.js';
+import { getResolvedShellType } from '../tools/builtin/terminal.js';
 import { mcpRegistry } from '../tools/mcp/registry.js';
 import { executeToolCalls } from '../tools/executor.js';
 import { getAgentRole, filterToolsForRole, AgentRole } from './roles.js';
@@ -1092,6 +1093,20 @@ export class Orchestrator {
       // PLAN, not current code state. Injecting it as authoritative makes the agent report
       // the spec's intended design as real "findings" (see hallucinated helmet/TODO claims).
       enrichedContext += `\n${formatSpecForPromptSafe(specContract, projectRoot)}\n`;
+    }
+
+    // Surface the ACTUAL shell the terminal tool runs in. The static terminal tool
+    // description says "bash syntax", but on Windows the model frequently overrides that
+    // and emits PowerShell/cmd syntax ($null, Select-String, { } blocks) which the bash
+    // (git-bash/MSYS) shell rejects — a retry → circuit-breaker → model-upgrade spiral.
+    // Stating the resolved shell explicitly stops the model from guessing wrong.
+    const shellType = getResolvedShellType();
+    if (shellType === 'bash') {
+      enrichedContext += '\n[SHELL] Terminal commands run in BASH (git-bash/MSYS) on this Windows host. Use bash syntax ONLY — NOT PowerShell/cmd. Specifically: use "$" for variables (never "$null"), avoid "Select-String"/"Where-Object", and never use PowerShell "{ ... }" script blocks. Example: ls -la dir || echo "missing".\n';
+    } else if (shellType === 'powershell') {
+      enrichedContext += '\n[SHELL] Terminal commands run in POWERSHELL. Use PowerShell syntax ($, $null, Select-String are valid). Avoid bash-only constructs like "2>/dev/null" (use "2>$null").\n';
+    } else {
+      enrichedContext += '\n[SHELL] Terminal commands run in CMD (Windows command prompt). Use cmd.exe syntax (not bash, not PowerShell). Use "dir", "2>nul", "if exist".\n';
     }
 
     // Build systemExtra with project context — system prompt is more authoritative than user message

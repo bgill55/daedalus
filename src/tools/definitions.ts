@@ -102,7 +102,7 @@ export const BUILTIN_TOOLS: ToolDefinition[] = [
       parameters: {
         type: 'object',
         properties: {
-          command: { type: 'string', description: 'Command to execute (bash syntax)' },
+          command: { type: 'string', description: 'Command to execute. Syntax MUST match the [SHELL] note in context (bash on this Windows host via git-bash/MSYS — NOT PowerShell/cmd; use "$", avoid "$null"/Select-String/"{}" blocks).' },
           timeout: { type: 'integer', description: 'Max seconds to wait', minimum: 1, maximum: 600, default: 180 },
           workdir: { type: 'string', description: 'Working directory (absolute path)' },
         },
