@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { enhancePrompt, enhanceCommand } from './enhance.js';
+import { enhancePrompt, enhanceCommand, ENHANCE_SYSTEM_PROMPT } from './enhance.js';
 
 describe('enhanceCommand', () => {
   it('has name, aliases, description, and usage', () => {
@@ -144,5 +144,15 @@ describe('enhanceCommand', () => {
     // the grade-and-fix-daedalus skill and hijack the turn (see a4c26bc regression).
     expect(sysPromptSpy).toHaveBeenCalledTimes(1);
     expect(sysPromptSpy).toHaveBeenCalledWith('review server.ts');
+  });
+
+  it('ENHANCE_SYSTEM_PROMPT forbids asserting unverified findings (Rule 10)', () => {
+    // Regression: the enhancer fabricated findings (helmet import, 12 TODOs, TS2304) with no
+    // file context, and the execution agent then "fixed" the hallucinations. Rule 10 requires
+    // the enhancer to structure the report and let the agent discover findings from real
+    // inspection — never pre-fill them.
+    expect(ENHANCE_SYSTEM_PROMPT).toContain('DO NOT ASSERT UNVERIFIED FINDINGS');
+    expect(ENHANCE_SYSTEM_PROMPT).toContain('you only received the user');
+    expect(ENHANCE_SYSTEM_PROMPT).toContain('must be discovered by the agent');
   });
 });

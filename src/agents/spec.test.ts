@@ -6,6 +6,8 @@ import {
   saveSpecContract,
   loadSpecContract,
   formatSpecForPrompt,
+  formatSpecForPromptSafe,
+  specFileExistenceRatio,
   getSpecJsonPath,
   getSpecMdPath,
   type SpecContract,
@@ -76,5 +78,41 @@ describe('SpecFirst Architecture', () => {
     expect(formatted).toContain('=== SPECFIRST FEATURE CONTRACT: User Profile Setting ===');
     expect(formatted).toContain('UserProfileSettings');
     expect(formatted).toContain('toggleTheme');
+  });
+
+  describe('spec staleness guard', () => {
+    it('reports 0 existence ratio when referenced files do not exist', () => {
+      const ratio = specFileExistenceRatio(mockSpec, tmpDir);
+      expect(ratio).toBe(0);
+    });
+
+    it('reports 1 existence ratio when referenced files exist', () => {
+      fs.mkdirSync(path.join(tmpDir, 'src/types'), { recursive: true });
+      fs.mkdirSync(path.join(tmpDir, 'src/utils'), { recursive: true });
+      fs.writeFileSync(path.join(tmpDir, 'src/types/user.ts'), 'export interface UserProfileSettings {}');
+      fs.writeFileSync(path.join(tmpDir, 'src/utils/theme.ts'), 'export const toggleTheme = () => {}');
+      const ratio = specFileExistenceRatio(mockSpec, tmpDir);
+      expect(ratio).toBe(1);
+    });
+
+    it('labels a stale spec as ASPIRATIONAL and warns not to treat as current state', () => {
+      // Regression: an abandoned SpecFirst contract whose referenced files were never
+      // created was injected as authoritative context, causing the agent to hallucinate
+      // "findings" (missing helmet import, 12 TODOs) that matched the spec's intent.
+      const out = formatSpecForPromptSafe(mockSpec, tmpDir);
+      expect(out).toContain('ASPIRATIONAL / NOT YET IMPLEMENTED');
+      expect(out).toContain('Do NOT treat this as the current code state');
+      expect(out).toContain('Discover the actual project state');
+    });
+
+    it('does NOT label a spec whose files exist as aspirational', () => {
+      fs.mkdirSync(path.join(tmpDir, 'src/types'), { recursive: true });
+      fs.mkdirSync(path.join(tmpDir, 'src/utils'), { recursive: true });
+      fs.writeFileSync(path.join(tmpDir, 'src/types/user.ts'), 'export interface UserProfileSettings {}');
+      fs.writeFileSync(path.join(tmpDir, 'src/utils/theme.ts'), 'export const toggleTheme = () => {}');
+      const out = formatSpecForPromptSafe(mockSpec, tmpDir);
+      expect(out).not.toContain('ASPIRATIONAL');
+      expect(out).toContain('=== SPECFIRST FEATURE CONTRACT: User Profile Setting ===');
+    });
   });
 });

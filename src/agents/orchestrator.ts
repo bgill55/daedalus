@@ -29,7 +29,7 @@ import {
   isBuildErrorRelated, generateBuildErrorHint, runBuildVerification,
   attemptRepair, rollbackTaskPatches, verifySpecAssertions, isRealFile,
 } from './orchestrator-verification.js';
-import { generateSpecContract, loadSpecContract, formatSpecForPrompt } from './spec.js';
+import { generateSpecContract, loadSpecContract, formatSpecForPrompt, formatSpecForPromptSafe } from './spec.js';
 import { SigmaMemEngine } from '../session/sigma-mem.js';
 import { getSigmaMemories } from '../session/sqlite.js';
 import type Database from 'better-sqlite3';
@@ -1088,7 +1088,10 @@ export class Orchestrator {
     const projectRoot = this.toolContext.projectRoot || this.sessionManager?.projectRoot || process.cwd();
     const specContract = loadSpecContract(projectRoot);
     if (specContract) {
-      enrichedContext += `\n${formatSpecForPrompt(specContract)}\n`;
+      // Use the staleness-aware formatter: a spec whose referenced files don't exist is a
+      // PLAN, not current code state. Injecting it as authoritative makes the agent report
+      // the spec's intended design as real "findings" (see hallucinated helmet/TODO claims).
+      enrichedContext += `\n${formatSpecForPromptSafe(specContract, projectRoot)}\n`;
     }
 
     // Build systemExtra with project context — system prompt is more authoritative than user message
