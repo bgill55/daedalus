@@ -1,3 +1,10 @@
+## [3.30.3](https://github.com/bgill55/daedalus/compare/v3.30.2...v3.30.3) (2026-08-17)
+
+
+### Bug Fixes
+
+* **enhance:** preserve user intent mode — don't expand a proposal ask into an implement mandate ([#122](https://github.com/bgill55/daedalus/issues/122)) ([e15f8d7](https://github.com/bgill55/daedalus/commit/e15f8d76027890ddea2be0d5d7cbe1008520d379))
+
 ## [3.30.2](https://github.com/bgill55/daedalus/compare/v3.30.1...v3.30.2) (2026-08-16)
 
 
