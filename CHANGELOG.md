@@ -1,3 +1,10 @@
+## [3.30.8](https://github.com/bgill55/daedalus/compare/v3.30.7...v3.30.8) (2026-08-17)
+
+
+### Bug Fixes
+
+* **terminal:** exempt verification commands from circuit breakers + surface shell on tool desc ([#128](https://github.com/bgill55/daedalus/issues/128)) ([f6a5654](https://github.com/bgill55/daedalus/commit/f6a5654c559c8d08a351770bd540e8d39e5b5533)), closes [#121](https://github.com/bgill55/daedalus/issues/121) [#126](https://github.com/bgill55/daedalus/issues/126)
+
 ## [3.30.7](https://github.com/bgill55/daedalus/compare/v3.30.6...v3.30.7) (2026-08-17)
 
 
