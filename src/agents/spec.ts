@@ -149,6 +149,49 @@ export function formatSpecForPrompt(spec: SpecContract): string {
   return lines.join('\n');
 }
 
+/**
+ * Returns the fraction (0..1) of the spec's referenced filePaths that actually exist on
+ * disk. A SpecFirst contract describes the files a feature SHOULD create; if most of them
+ * are missing, the spec is a PLAN that was never implemented (or was abandoned) — not the
+ * current code state. Injecting such a spec as authoritative context makes the agent report
+ * the spec's intended design as the codebase's reality (e.g. hallucinating a missing
+ * `helmet` import or "12 TODO comments" that don't exist).
+ */
+export function specFileExistenceRatio(spec: SpecContract, projectRoot: string): number {
+  const paths = [
+    ...spec.interfaces.map((i) => i.filePath),
+    ...spec.functions.map((f) => f.filePath),
+    ...spec.testCases.map((t) => t.targetFile),
+  ].filter((p): p is string => typeof p === 'string' && p.length > 0);
+  if (paths.length === 0) return 1; // no file claims → nothing to contradict
+  const existing = paths.filter((p) => {
+    try { return fs.existsSync(path.resolve(projectRoot, p)); } catch { return false; }
+  });
+  return existing.length / paths.length;
+}
+
+/**
+ * Format a spec for injection into agent context, but guard against a STALE/aspirational
+ * spec being treated as current code state. If few of the spec's referenced files exist,
+ * prepend a clear warning that this is a PLAN, not the implemented codebase, so the agent
+ * does not fabricate "findings" (missing deps, TODOs, error-handling gaps) that match the
+ * spec's intent rather than the real files.
+ */
+export function formatSpecForPromptSafe(spec: SpecContract, projectRoot: string): string {
+  const ratio = specFileExistenceRatio(spec, projectRoot);
+  const body = formatSpecForPrompt(spec);
+  if (ratio >= 0.5) return body; // majority of referenced files exist → spec reflects reality
+  return [
+    '=== SPECFIRST FEATURE CONTRACT (ASPIRATIONAL / NOT YET IMPLEMENTED) ===',
+    `WARNING: This spec describes a planned feature. Only ${Math.round(ratio * 100)}% of its referenced`,
+    'files exist in the current project. Do NOT treat this as the current code state, and do NOT report',
+    'its intended design (e.g. dependencies, files, or gaps) as existing problems in the codebase.',
+    'Discover the actual project state by inspecting real files before making any claims.',
+    '================================================',
+    body,
+  ].join('\n');
+}
+
 export async function generateSpecContract(
   goal: string,
   router: LocalRouter,
