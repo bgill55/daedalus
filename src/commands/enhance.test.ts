@@ -71,6 +71,27 @@ describe('enhanceCommand', () => {
     expect(result).toMatch(/implement the following/i);
   });
 
+  it('strips invented tool-name references (e.g. "using find_symbol and get_definition to ...")', async () => {
+    // Regression: the enhancer emitted "using find_symbol and get_definition to locate
+    // relevant source files" — tool names that don't exist in this Daedalus build. The
+    // execution agent would attempt calls that fail. Rule 8 + stripInventedToolRefs
+    // remove the "using X and Y to Z" / "via X" clauses so the agent is instructed by
+    // ACTION, not by a fictional tool name.
+    const mockCallModel = vi.fn().mockResolvedValue(
+      'Analyze PromptVault by using find_symbol and get_definition to locate relevant source files. ' +
+      'Cross-reference via grep_tool and summarize the findings in a report.'
+    );
+    const mockCtx = { callModelWithFallback: mockCallModel } as any;
+
+    const result = await enhancePrompt('suggest UI/UX improvements for PromptVault', mockCtx);
+    expect(result).not.toMatch(/find_symbol/);
+    expect(result).not.toMatch(/get_definition/);
+    expect(result).not.toMatch(/grep_tool/);
+    expect(result).not.toMatch(/using\s+[\w_]+/i);
+    // Action-based phrasing survives.
+    expect(result).toMatch(/locate relevant source files/i);
+  });
+
   it('enhanceCommand asks for prompt if empty and handles user response', async () => {
     const askLineMock = vi.fn()
       .mockResolvedValueOnce('review server.ts') // raw prompt input
