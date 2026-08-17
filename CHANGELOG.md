@@ -1,3 +1,11 @@
+## [3.30.7](https://github.com/bgill55/daedalus/compare/v3.30.6...v3.30.7) (2026-08-17)
+
+
+### Bug Fixes
+
+* **ci:** remove unused [@ts-expect-error](https://github.com/ts-expect-error) directives in terminal.test.ts ([#127](https://github.com/bgill55/daedalus/issues/127)) ([df7ec81](https://github.com/bgill55/daedalus/commit/df7ec814d01feb4f240feb0f678d8993bd9f6cdd)), closes [#126](https://github.com/bgill55/daedalus/issues/126)
+* **terminal:** surface the actual shell to the model to stop PowerShell-in-bash retry spirals ([#126](https://github.com/bgill55/daedalus/issues/126)) ([39065d3](https://github.com/bgill55/daedalus/commit/39065d3e5a55e5c14dc0be008df172009452c716))
+
 ## [3.30.6](https://github.com/bgill55/daedalus/compare/v3.30.5...v3.30.6) (2026-08-17)
 
 
