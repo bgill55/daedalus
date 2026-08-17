@@ -92,6 +92,24 @@ describe('enhanceCommand', () => {
     expect(result).toMatch(/locate relevant source files/i);
   });
 
+  it('caps a boilerplate bullet ramble at the top 12 distinct items (Rule 9)', async () => {
+    // Regression: a "areas of improvement" ask produced ~150 near-duplicate "Add Prompt
+    // Template Variables ..." bullets (4.5k-token copy-paste ramble). Rule 9 + capRepetition
+    // keep the first 12 bullets and append a cap note instead of letting the list explode.
+    const ramble = Array.from({ length: 60 }, (_, i) =>
+      `- Add Prompt Template Variables ${i + 1}: description for variation ${i + 1}.`
+    ).join('\n');
+    const mockCallModel = vi.fn().mockResolvedValue(ramble);
+    const mockCtx = { callModelWithFallback: mockCallModel } as any;
+
+    const result = await enhancePrompt('identify areas for improvement in PromptVault', mockCtx);
+    const bulletCount = (result.match(/^\s*(?:[-*•]|\d+\.)\s+/gm) || []).length;
+    expect(bulletCount).toBeLessThanOrEqual(12);
+    expect(result).toMatch(/list capped at the 12 highest-impact, distinct items/);
+    // The cap note must be present and the ramble truncated.
+    expect(result).not.toMatch(/Add Prompt Template Variables 60:/);
+  });
+
   it('enhanceCommand asks for prompt if empty and handles user response', async () => {
     const askLineMock = vi.fn()
       .mockResolvedValueOnce('review server.ts') // raw prompt input
