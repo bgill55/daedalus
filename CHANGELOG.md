@@ -1,3 +1,10 @@
+## [3.30.10](https://github.com/bgill55/daedalus/compare/v3.30.9...v3.30.10) (2026-08-18)
+
+
+### Bug Fixes
+
+* **ci:** export getResolvedShellType in terminal mock ([#130](https://github.com/bgill55/daedalus/issues/130)) ([c1f7983](https://github.com/bgill55/daedalus/commit/c1f79839f4c58bf09df9e3a2968c8ca87d6b8ff7)), closes [#128](https://github.com/bgill55/daedalus/issues/128) [#129](https://github.com/bgill55/daedalus/issues/129)
+
 ## [3.30.9](https://github.com/bgill55/daedalus/compare/v3.30.8...v3.30.9) (2026-08-18)
 
 
