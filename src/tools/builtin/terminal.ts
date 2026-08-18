@@ -207,6 +207,22 @@ function isVerificationCommand(command: string): boolean {
   return VERIFICATION_COMMAND_RE.test(command);
 }
 
+// Detect a PowerShell/cmd command run inside the bash (git-bash/MSYS) shell.
+// The model sometimes emits `del`, `Remove-Item`, `Get-Process`, `taskkill`,
+// `wmic`, `pkill` (cmd/PowerShell) or bash-rejected PowerShell syntax ($null,
+// "{ }" script blocks) into a bash shell, which rejects them. Detecting this on
+// the FAILURE output lets us nudge the model to the correct shell instead of
+// letting it loop through more wrong-shell commands.
+const WRONG_SHELL_RE = /(command not found|not recognized as an internal or external|is not recognized|The term '[^']+' is not recognized|Cannot find path|Invalid argument\/option|syntax error near unexpected token)/i;
+const WRONG_SHELL_CMD_RE = /\b(del|Remove-Item|Get-Process|Stop-Process|Where-Object|taskkill|wmic|pkill|Select-String|Write-Output)\b/i;
+function isWrongShellFailure(stderr: string, command: string): boolean {
+  const shell = getResolvedShellType();
+  if (shell !== 'bash') return false; // only relevant when the real shell is bash
+  const ranPowerShellCmd = WRONG_SHELL_CMD_RE.test(command);
+  const bashRejected = WRONG_SHELL_RE.test(stderr);
+  return ranPowerShellCmd && bashRejected;
+}
+
 function getTerminalStreakMap(context: ToolContext): Map<string, number> {
   if (!context.terminalFailureStreak) {
     context.terminalFailureStreak = new Map<string, number>();
@@ -235,6 +251,23 @@ export async function execute(args: { command: string; timeout?: number; workdir
   const workdir = args.workdir ?? context.projectRoot;
   const command = args.command;
 
+  // Diversifying retry-loop breaker: the existing breakers only catch IDENTICAL or
+  // same-prefix repeated commands. A model stuck on a failing goal (e.g. deleting a
+  // locked DB file) will vary the command each time (rm, taskkill, wmic, pkill,
+  // Get-Process, del...) — different commands, same failure — which those breakers
+  // miss. After K consecutive terminal failures with no success in between, force a
+  // reassess/stop. A passing run (incl. a legitimate build/test re-run) resets the
+  // counter, so normal verify loops are unaffected.
+  const consecutiveFails = context.terminalConsecutiveFails ?? 0;
+  if (consecutiveFails >= 5) {
+    return Promise.resolve({
+      toolCallId: '',
+      name: 'terminal',
+      success: false,
+      content: '',
+      error: `[CIRCUIT BREAKER] Terminal has failed ${consecutiveFails} consecutive commands. You are likely in a retry loop varying the command at the same failing goal (e.g. a locked file, wrong shell syntax, or missing dependency). STOP varying the command — diagnose the root cause or ask the user. Do not keep re-issuing different commands.`,
+    });
+  }
   // Terminal failure circuit breaker: if the same normalized command prefix has
   // failed 2+ consecutive times, stop retrying and let the agent inspect/adapt
   // instead of burning the global 5-failure budget on an identical failing command.
@@ -522,6 +555,7 @@ export async function execute(args: { command: string; timeout?: number; workdir
           }, 5000);
         }
         recordTerminalOutcome(context, prefix, false);
+        context.terminalConsecutiveFails = (context.terminalConsecutiveFails ?? 0) + 1;
         resolve({
           toolCallId: '',
           name: 'terminal',
@@ -549,6 +583,7 @@ export async function execute(args: { command: string; timeout?: number; workdir
           console.log(pc.red(`[FAIL] ${label} error: ${err.message}`));
         }
         recordTerminalOutcome(context, prefix, false);
+        context.terminalConsecutiveFails = (context.terminalConsecutiveFails ?? 0) + 1;
         resolve({
           toolCallId: '',
           name: 'terminal',
@@ -582,11 +617,20 @@ export async function execute(args: { command: string; timeout?: number; workdir
         } else if (code !== 0 && command.includes('zip') && (fullOutput.includes('is not recognized') || fullOutput.includes('command not found') || code === 127)) {
           diagHint = ` — DIAGNOSTIC HINT: Linux 'zip' command is unavailable on Windows cmd/powershell. Use PowerShell 'Compress-Archive -Path .\\* -DestinationPath archive.zip -Force' instead.`;
         }
-        recordTerminalOutcome(context, prefix, code === 0);
+        const succeeded = code === 0;
+        recordTerminalOutcome(context, prefix, succeeded);
+        // Diversifying retry-loop guard: count consecutive failures across all commands.
+        // A success (incl. a legitimate build/test re-run) resets it.
+        context.terminalConsecutiveFails = succeeded ? 0 : (context.terminalConsecutiveFails ?? 0) + 1;
+        // Wrong-shell nudge: a PowerShell/cmd command rejected by the bash shell. Point
+        // the model at the correct syntax instead of letting it loop more wrong-shell cmds.
+        if (!succeeded && isWrongShellFailure(errorOutput, command)) {
+          diagHint += ` — WRONG SHELL: this terminal runs BASH (git-bash/MSYS), not PowerShell/cmd. Use 'rm -f <file>' not 'del'/'Remove-Item'; use 'kill <pid>' not 'taskkill'/'Get-Process'; never use '$null' or '{ }' script blocks.`;
+        }
         resolve({
           toolCallId: '',
           name: 'terminal',
-          success: code === 0,
+          success: succeeded,
           content: fullOutput || '(no output)',
           error: code !== 0 ? `Exit code: ${code}${diagHint}` : undefined,
         });
