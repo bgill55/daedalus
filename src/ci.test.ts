@@ -9,6 +9,9 @@ vi.mock('./tools/builtin/terminal.js', () => ({
     if (command.includes('git diff')) return { success: true, content: '', error: '' };
     return { success: true, content: '', error: '' };
   }),
+  // definitions.ts calls getResolvedShellType() at module load for the terminal
+  // tool description hint; provide a safe default so the mock doesn't break it.
+  getResolvedShellType: vi.fn(() => 'bash'),
 }));
 
 // Mock the router so the AI semantic analysis doesn't make real API calls
