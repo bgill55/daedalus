@@ -1,3 +1,10 @@
+## [3.30.11](https://github.com/bgill55/daedalus/compare/v3.30.10...v3.30.11) (2026-08-18)
+
+
+### Bug Fixes
+
+* **agents:** catch patch<->test loops + block fabricated test-count claims ([#131](https://github.com/bgill55/daedalus/issues/131)) ([c068df2](https://github.com/bgill55/daedalus/commit/c068df216bd18bc9a3e8ab3405083e40befe4085)), closes [#129](https://github.com/bgill55/daedalus/issues/129)
+
 ## [3.30.10](https://github.com/bgill55/daedalus/compare/v3.30.9...v3.30.10) (2026-08-18)
 
 
