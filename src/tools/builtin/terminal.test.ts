@@ -467,6 +467,59 @@ describe('terminal execute', () => {
     expect(r.error).toContain("Use 'rm -f <file>'");
   });
 
+  it('trips the verify-loop breaker on failing test->patch->failing-test loops (patches between do NOT reset it)', async () => {
+    // Regression: the model loops as FAIL-test -> patch(source) -> FAIL-test -> patch,
+    // where the intervening patch/write "succeeds" as a tool call, which would reset the
+    // terminalConsecutiveFails counter. This streak must ignore patches and only reset on
+    // a PASSING verify run. After 4 failing `npm test` runs (with patches between), the 5th
+    // is blocked.
+    const ctx = makeContext();
+    ctx.verifyFailStreak = 0;
+    const runFailingTest = async () => {
+      const mockProc = makeMockProcess();
+      (spawn as any).mockReturnValue(mockProc);
+      const p = execute({ command: 'npm test', timeout: 1 }, ctx);
+      mockProc.emit('close', 1); // test fails
+      return p;
+    };
+    const runPatch = async () => {
+      // Simulate a successful patch/write tool call between test runs (does NOT reset verifyFailStreak).
+      (spawn as any).mockClear();
+    };
+    for (let i = 0; i < 4; i++) {
+      const r = await runFailingTest();
+      expect(spawn).toHaveBeenCalledTimes(1);
+      await runPatch();
+    }
+    // 5th failing test: breaker trips BEFORE spawning.
+    (spawn as any).mockClear();
+    const r5 = await execute({ command: 'npm test', timeout: 1 }, ctx);
+    expect(spawn).not.toHaveBeenCalled();
+    expect(r5.success).toBe(false);
+    expect(r5.error).toContain('[CIRCUIT BREAKER]');
+    expect(r5.error).toContain('looping');
+  });
+
+  it('resets the verify-fail streak when a verify command PASSES (even after prior failures)', async () => {
+    const ctx = makeContext();
+    ctx.verifyFailStreak = 3; // one away from the breaker
+    const mockProc = makeMockProcess();
+    (spawn as any).mockReturnValue(mockProc);
+    const p = execute({ command: 'npm test', timeout: 1 }, ctx);
+    mockProc.emit('close', 0); // test passes -> resets
+    const r = await p;
+    expect(r.success).toBe(true);
+    expect(ctx.verifyFailStreak).toBe(0);
+    // Next failing test is treated as first, not a breaker.
+    (spawn as any).mockClear();
+    const mockProc2 = makeMockProcess();
+    (spawn as any).mockReturnValue(mockProc2);
+    const p2 = execute({ command: 'npm test', timeout: 1 }, ctx);
+    mockProc2.emit('close', 1);
+    await p2;
+    expect(spawn).toHaveBeenCalledTimes(1);
+  });
+
   it('resets the streak on a successful command', async () => {
     const ctx = makeContext();
     ctx.terminalFailureStreak = new Map<string, number>([['cd', 1]]);

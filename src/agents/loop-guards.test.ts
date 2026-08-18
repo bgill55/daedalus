@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ReadStallDetector, isGreenBuildTestClaim, isVerifyRunReport } from './loop-guards.js';
+import { ReadStallDetector, isGreenBuildTestClaim, isVerifyRunReport, fabricatedTestCountCorrection } from './loop-guards.js';
 
 describe('ReadStallDetector', () => {
   it('does not flag a few reads of the same file', () => {
@@ -68,5 +68,31 @@ describe('isVerifyRunReport', () => {
 
   it('false for a verify command with failures', () => {
     expect(isVerifyRunReport('> npm run build\nerror TS2375')).toBe(false);
+  });
+});
+
+describe('fabricatedTestCountCorrection', () => {
+  it('returns null when no actual count is known', () => {
+    expect(fabricatedTestCountCorrection('All 21 tests passing', undefined)).toBeNull();
+  });
+
+  it('returns null when the claimed count matches the real run', () => {
+    expect(fabricatedTestCountCorrection('All 9 tests passing', 9)).toBeNull();
+  });
+
+  it('flags a fabricated count that exceeds the real run', () => {
+    const c = fabricatedTestCountCorrection('All 21 tests passing (9 validation + 3 greet + 9 validation.test.ts)', 9);
+    expect(c).not.toBeNull();
+    expect(c).toContain('21');
+    expect(c).toContain('9');
+  });
+
+  it('flags a fabricated X/Y passing count', () => {
+    const c = fabricatedTestCountCorrection('Tests: 35/35 passing', 9);
+    expect(c).not.toBeNull();
+  });
+
+  it('does not flag a green claim without a concrete number', () => {
+    expect(fabricatedTestCountCorrection('All tests are green and passing', 9)).toBeNull();
   });
 });

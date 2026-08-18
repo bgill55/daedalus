@@ -87,4 +87,24 @@ export function isVerifyRunReport(text: string): boolean {
   return BUILD_OR_TEST_RE.test(text) && /\b(pass|passed|clean|green|✅|0 errors|succeed)/i.test(text);
 }
 
-export const __test = { BUILD_OR_TEST_RE, GREEN_BUILD_RE };
+/**
+ * Detects a fabricated test-count claim in a summary. The executor sometimes reports
+ * "All N tests passing" / "X/Y passing" with a number that was NEVER produced by an actual
+ * verify run this session (e.g. inventing "3 greet + 9 validation.test.ts" = 21 tests when
+ * no such files exist). Returns a correction message if `text` asserts a specific passing
+ * count that disagrees with `lastActualPassCount` (the last real `npm test` output), else null.
+ *
+ * A claim is only flagged when it names a concrete count AND we have a real observed count
+ * to compare against (so legitimate "tests green" without a number is never blocked).
+ */
+export function fabricatedTestCountCorrection(text: string, lastActualPassCount: number | undefined): string | null {
+  if (lastActualPassCount === undefined) return null; // nothing to compare against
+  const claimMatch = text.match(/(\d+)\s*\/\s*\d+\s*(?:passing|passed)|all\s+(\d+)\s+tests?\s+passing|(\d+)\s+tests?\s+pass(?:ing|ed)|(\d+)\s*(?:passed|passing)/i);
+  if (!claimMatch) return null;
+  const claimed = parseInt(claimMatch[1] ?? claimMatch[2] ?? claimMatch[3] ?? claimMatch[4] ?? '', 10);
+  if (Number.isNaN(claimed)) return null;
+  if (claimed === lastActualPassCount) return null; // matches reality
+  return `[VERIFY] Your summary claims ${claimed} tests passing, but the last actual \`npm test\` run reported ${lastActualPassCount} passing. Do not fabricate test counts — report the real number from the tool output (${lastActualPassCount}).`;
+}
+
+export const __test = { BUILD_OR_TEST_RE, GREEN_BUILD_RE, fabricatedTestCountCorrection };
