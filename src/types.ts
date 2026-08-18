@@ -74,6 +74,7 @@ export interface ToolContext {
   patchFailureTotal?: number; // session-wide count of patch syntax-reverts (loop guard, never reset by intervening reads)
   terminalFailureStreak?: Map<string, number>; // normalized command prefix -> consecutive failure count
   terminalRepeatStreak?: Map<string, number>; // full normalized command -> consecutive identical-run count (no-progress loop guard)
+  terminalConsecutiveFails?: number; // consecutive terminal failures across ALL commands (diversifying retry-loop guard)
   // Set true for the rest of the session once a build/test/lint verify command trips
   // the terminal circuit breaker, so a later turn cannot falsely claim "build/tests pass"
   // without a fresh successful run (see loop-guards.ts verification-claim guard).

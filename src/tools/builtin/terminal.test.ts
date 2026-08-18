@@ -403,6 +403,70 @@ describe('terminal execute', () => {
     }
   });
 
+  it('trips a diversifying retry-loop breaker after 5 consecutive failures (different commands)', async () => {
+    // Regression: a model stuck deleting a locked DB file varies the command each
+    // time (rm, taskkill, wmic, pkill, Get-Process, del). The identical/same-prefix
+    // breakers miss this; the consecutive-failure breaker must catch it. After 5
+    // consecutive failures the NEXT command is blocked before spawning.
+    const ctx = makeContext();
+    ctx.terminalConsecutiveFails = 0;
+    const cmds = ['rm -f data/prompts.db', 'taskkill /F /IM node.exe', 'wmic process delete', 'pkill node', 'Get-Process node', 'del data/prompts.db'];
+    const runFail = async (cmd: string) => {
+      const mockProc = makeMockProcess();
+      (spawn as any).mockReturnValue(mockProc);
+      const p = execute({ command: cmd, timeout: 1 }, ctx);
+      mockProc.emit('close', 1);
+      return p;
+    };
+    for (let i = 0; i < 5; i++) {
+      (spawn as any).mockClear();
+      const r = await runFail(cmds[i]);
+      expect(spawn).toHaveBeenCalledTimes(1); // first 5 still run
+    }
+    // 6th attempt: breaker trips BEFORE spawning.
+    (spawn as any).mockClear();
+    const r6 = await execute({ command: cmds[5], timeout: 1 }, ctx);
+    expect(spawn).not.toHaveBeenCalled();
+    expect(r6.success).toBe(false);
+    expect(r6.error).toContain('[CIRCUIT BREAKER]');
+    expect(r6.error).toContain('retry loop');
+  });
+
+  it('resets the consecutive-failure counter on a successful command', async () => {
+    const ctx = makeContext();
+    ctx.terminalConsecutiveFails = 4; // one away from the breaker
+    const mockProc = makeMockProcess();
+    (spawn as any).mockReturnValue(mockProc);
+    const p = execute({ command: 'npm run build', timeout: 1 }, ctx);
+    mockProc.emit('close', 0); // success resets it
+    const r = await p;
+    expect(r.success).toBe(true);
+    expect(ctx.terminalConsecutiveFails).toBe(0);
+    // Next failure is treated as first, not a breaker.
+    (spawn as any).mockClear();
+    const mockProc2 = makeMockProcess();
+    (spawn as any).mockReturnValue(mockProc2);
+    const p2 = execute({ command: 'rm -f data/prompts.db', timeout: 1 }, ctx);
+    mockProc2.emit('close', 1);
+    await p2;
+    expect(spawn).toHaveBeenCalledTimes(1);
+  });
+
+  it('appends a wrong-shell nudge when a PowerShell/cmd command is rejected by bash', async () => {
+    // Regression: the model emits `del`/`Remove-Item` into the bash shell; the
+    // failure output should tell it to use bash syntax instead of looping.
+    const ctx = makeContext();
+    const mockProc = makeMockProcess();
+    (spawn as any).mockReturnValue(mockProc);
+    const p = execute({ command: 'del data/prompts.db', timeout: 1 }, ctx);
+    mockProc.stderr.emit('data', Buffer.from("bash: line 1: del: command not found\n"));
+    mockProc.emit('close', 127);
+    const r = await p;
+    expect(r.success).toBe(false);
+    expect(r.error).toContain('WRONG SHELL');
+    expect(r.error).toContain("Use 'rm -f <file>'");
+  });
+
   it('resets the streak on a successful command', async () => {
     const ctx = makeContext();
     ctx.terminalFailureStreak = new Map<string, number>([['cd', 1]]);
