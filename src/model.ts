@@ -3,7 +3,7 @@ import { BUILTIN_TOOLS, POWER_TOOLS } from './tools/definitions.js';
 import { executeToolCalls } from './tools/executor.js';
 import { getSessionTodos } from './tools/builtin/todo.js';
 import { detectFalseCompletion, falseCompletionWarning, detectFalseCompletionOnDisk, isScopeOverstatedSummary, scopeOverstatementWarning } from './agents/completion-guard.js';
-import { ReadStallDetector, isGreenBuildTestClaim } from './agents/loop-guards.js';
+import { ReadStallDetector, isGreenBuildTestClaim, fabricatedTestCountCorrection } from './agents/loop-guards.js';
 import { mcpRegistry } from './tools/mcp/registry.js';
 import { DaedalusSpinner } from './tools/daedalus-spinner.js';
 import { calculateSessionTokens, pruneMessages } from './session/tokens.js';
@@ -494,6 +494,21 @@ export function createModelFunctions(deps: ModelDeps) {
           continue;
         }
         toolContext.verifyBreakerTrippedLastTurn = verifyBreakerTrippedThisTurn || verifyBreakerTrippedLastTurn;
+
+        // Layer D: fabricated test-count guard. If the assistant's final summary asserts a
+        // specific passing-test count that disagrees with the last REAL `npm test` output,
+        // reject it and force the true number. Prevents inventing "21 tests passing" when the
+        // run actually reported 9.
+        const testCorrection = fabricatedTestCountCorrection(cleanContent, toolContext.lastVerifyPassCount);
+        if (testCorrection) {
+          console.log(pc.dim(`\n  [CHECK] Verifying test-count claim — summary count disagrees with last real test run.`));
+          messages.push({ role: 'assistant', content: cleanContent });
+          messages.push({
+            role: 'user',
+            content: testCorrection,
+          } as ChatMessage);
+          continue;
+        }
 
         messages.push({ role: 'assistant', content: cleanContent });
         return { content: cleanContent, toolCalls: [] };

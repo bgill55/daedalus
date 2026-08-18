@@ -202,7 +202,7 @@ function normalizeCommandFull(command: string): string {
 // Exempting them stops the breaker from blocking the verify-after-fix iteration
 // (which otherwise wastes model upgrades) while still catching genuine runaway
 // respawn loops like `npm run dev & sleep 3`.
-const VERIFICATION_COMMAND_RE = /^\s*(npm run (build|test|lint|check|typecheck|type-check)|npx (tsc|vitest|eslint|tsx)|(node_modules\/\.bin\/)?(tsc|vitest|eslint|tsx|jest)\b|tsc|vitest|jest|eslint)\b/i;
+const VERIFICATION_COMMAND_RE = /^\s*(npm test|npm run (build|test|lint|check|typecheck|type-check)|npx (tsc|vitest|eslint|tsx)|(node_modules\/\.bin\/)?(tsc|vitest|eslint|tsx|jest)\b|tsc|vitest|jest|eslint)\b/i;
 function isVerificationCommand(command: string): boolean {
   return VERIFICATION_COMMAND_RE.test(command);
 }
@@ -266,6 +266,23 @@ export async function execute(args: { command: string; timeout?: number; workdir
       success: false,
       content: '',
       error: `[CIRCUIT BREAKER] Terminal has failed ${consecutiveFails} consecutive commands. You are likely in a retry loop varying the command at the same failing goal (e.g. a locked file, wrong shell syntax, or missing dependency). STOP varying the command — diagnose the root cause or ask the user. Do not keep re-issuing different commands.`,
+    });
+  }
+
+  // Verify-loop breaker: a model can loop as FAIL-test -> patch -> FAIL-test -> patch,
+  // where each failing `npm test` is separated by a (successful) patch/write. The
+  // terminalConsecutiveFails counter resets on the patch's tool success, so it never
+  // trips. This streak counts ONLY failing build/test/lint runs and resets only on a
+  // PASSING verify run — so 4 consecutive failing test runs (with any number of patches
+  // between) force a stop and a root-cause diagnosis instead of another patch-and-rerun.
+  const verifyStreak = context.verifyFailStreak ?? 0;
+  if (verifyStreak >= 4) {
+    return Promise.resolve({
+      toolCallId: '',
+      name: 'terminal',
+      success: false,
+      content: '',
+      error: `[CIRCUIT BREAKER] Build/test/lint has FAILED ${verifyStreak} consecutive times. You are looping: failing verify run -> edit -> failing verify run. STOP and diagnose the ROOT CAUSE (e.g. a locked DB file, seed/data conflict, a wrong test assertion, or a missing dependency) instead of patching-and-rerunning. Fix the underlying cause, or ask the user.`,
     });
   }
   // Terminal failure circuit breaker: if the same normalized command prefix has
@@ -622,6 +639,22 @@ export async function execute(args: { command: string; timeout?: number; workdir
         // Diversifying retry-loop guard: count consecutive failures across all commands.
         // A success (incl. a legitimate build/test re-run) resets it.
         context.terminalConsecutiveFails = succeeded ? 0 : (context.terminalConsecutiveFails ?? 0) + 1;
+        // Verify-loop guard: only build/test/lint runs feed this streak. A PASSING verify
+        // run resets it; a FAILING one increments it (patches/edits in between do NOT reset
+        // it, which is the whole point — it catches patch->test->patch->test loops).
+        if (isVerificationCommand(command)) {
+          context.verifyFailStreak = succeeded ? 0 : (context.verifyFailStreak ?? 0) + 1;
+          // Capture the ACTUAL passing-test count from a successful verify run so a later
+          // summary cannot fabricate a different number. Parse "Tests X passed (Y)" /
+          // "X/Y passing" / "X tests passed".
+          if (succeeded) {
+            const m = fullOutput.match(/(\d+)\s*(?:passed|passing|\/\s*\d+\s*passing)|Tests\s+(\d+)\s+passed/i);
+            if (m) {
+              const n = parseInt(m[1] ?? m[2] ?? '', 10);
+              if (!Number.isNaN(n)) context.lastVerifyPassCount = n;
+            }
+          }
+        }
         // Wrong-shell nudge: a PowerShell/cmd command rejected by the bash shell. Point
         // the model at the correct syntax instead of letting it loop more wrong-shell cmds.
         if (!succeeded && isWrongShellFailure(errorOutput, command)) {
