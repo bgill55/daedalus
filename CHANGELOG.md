@@ -1,3 +1,10 @@
+## [3.30.9](https://github.com/bgill55/daedalus/compare/v3.30.8...v3.30.9) (2026-08-18)
+
+
+### Bug Fixes
+
+* **terminal:** catch diversifying retry loops + nudge wrong-shell commands ([#129](https://github.com/bgill55/daedalus/issues/129)) ([0521876](https://github.com/bgill55/daedalus/commit/052187625126139ab9e530031f9ae31f164c656e))
+
 ## [3.30.8](https://github.com/bgill55/daedalus/compare/v3.30.7...v3.30.8) (2026-08-17)
 
 
