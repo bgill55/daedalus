@@ -9,6 +9,7 @@ import { getResolvedShellType } from '../tools/builtin/terminal.js';
 import { mcpRegistry } from '../tools/mcp/registry.js';
 import { executeToolCalls } from '../tools/executor.js';
 import { getAgentRole, filterToolsForRole, AgentRole } from './roles.js';
+import { VALID_AGENT_ROLES } from '../tools/builtin/handoff.js';
 import { ToolContext, ToolCall, ChatMessage, ToolResult, PatchEntry, messageText } from '../types.js';
 import pc from 'picocolors';
 import { DaedalusSpinner } from '../tools/daedalus-spinner.js';
@@ -1480,31 +1481,46 @@ export class Orchestrator {
     systemExtra?: string,
   ): Promise<string> {
     const currentDateStr = new Date().toLocaleString();
-    let dynamicSystemPrompt = `${role.systemPrompt}\n\n## CURRENT TIME\nThe current date and local time is: ${currentDateStr}.\n`;
-    const projectRoot = this.toolContext.projectRoot || this.sessionManager?.projectRoot;
-    if (projectRoot) {
-      const filesToCheck = ['CLAUDE.md', '.cursorrules', '.daedalusrules', 'DAEDALUS.md'];
-      let rules = '';
-      for (const file of filesToCheck) {
-        const fullPath = path.join(projectRoot, file);
-        if (fs.existsSync(fullPath)) {
-          try {
-            const content = fs.readFileSync(fullPath, 'utf8').trim();
-            if (content) {
-              rules += `\n### Rules from ${file}:\n${content}\n`;
+
+    // Build the system prompt for a given active role. Reused when a
+    // handoff_task mutates subContext.agentRole mid-run so the new role's
+    // system prompt and tool set actually take effect on subsequent turns.
+    const buildSystemPrompt = (activeRole: AgentRole): string => {
+      let prompt = `${activeRole.systemPrompt}\n\n## CURRENT TIME\nThe current date and local time is: ${currentDateStr}.\n`;
+      const projectRoot = this.toolContext.projectRoot || this.sessionManager?.projectRoot;
+      if (projectRoot) {
+        const filesToCheck = ['CLAUDE.md', '.cursorrules', '.daedalusrules', 'DAEDALUS.md'];
+        let rules = '';
+        for (const file of filesToCheck) {
+          const fullPath = path.join(projectRoot, file);
+          if (fs.existsSync(fullPath)) {
+            try {
+              const content = fs.readFileSync(fullPath, 'utf8').trim();
+              if (content) {
+                rules += `\n### Rules from ${file}:\n${content}\n`;
+              }
+            } catch {
+              // Ignore unreadable rule file
             }
-          } catch {
-            // Ignore unreadable rule file
           }
         }
+        if (rules) {
+          prompt += `\n## PROJECT-SPECIFIC GUIDELINES\n${rules}`;
+        }
       }
-      if (rules) {
-        dynamicSystemPrompt += `\n## PROJECT-SPECIFIC GUIDELINES\n${rules}`;
+      if (systemExtra) {
+        prompt += `\n${systemExtra}\n`;
       }
-    }
-    if (systemExtra) {
-      dynamicSystemPrompt += `\n${systemExtra}\n`;
-    }
+      const cv = this.subContext?.contextVariables;
+      if (cv && Object.keys(cv).length > 0) {
+        prompt += `\n## SHARED CONTEXT VARIABLES\nThe following state bag is shared across turns and handoffs. Honor it in your work:\n${JSON.stringify(cv, null, 2)}`;
+      }
+      return prompt;
+    };
+
+    // Mutable active role — a handoff_task call can transfer control to another role.
+    let currentRole = role;
+    const dynamicSystemPrompt = buildSystemPrompt(currentRole);
     const messages: ChatMessage[] = [
       { role: 'system', content: dynamicSystemPrompt },
       { role: 'user', content: `${context}\n\nTask: ${goal}` },
@@ -1522,8 +1538,12 @@ export class Orchestrator {
       allowTestEdits: this.toolContext.testApprovalGranted ? true : taskTestIntent,
     };
 
+    // Re-filter the tool set for the (possibly handoff-switched) active role,
+    // preserving any extra tools the caller passed in (e.g. MCP definitions).
+    let activeTools = filterToolsForRole(tools, currentRole.name);
+
     let turns = 0;
-    const maxTurns = role.maxTurns ?? 10;
+    let maxTurns = currentRole.maxTurns ?? 10;
     const patchFailures = new Map<string, number>();
     const taskStartHistoryLength = this.toolContext.patchHistory?.length || 0;
     let idleReadTurn = -1;
@@ -1532,12 +1552,12 @@ export class Orchestrator {
       if (this.toolContext.abortSignal.aborted) {
         return 'Agent execution aborted by user';
       }
-      const agentSpinner = new DaedalusSpinner({ text: `${role.name} running (turn ${turns + 1})`, color: (s) => pc.cyan(s) });
+      const agentSpinner = new DaedalusSpinner({ text: `${currentRole.name} running (turn ${turns + 1})`, color: (s) => pc.cyan(s) });
       agentSpinner.start();
       let completion;
       const isLastTurn = turns === maxTurns - 1;
-      const currentTools = isLastTurn ? undefined : (tools.length > 0 ? tools : undefined);
-      const currentToolChoice = isLastTurn ? undefined : ((role.name === 'coder' || role.name === 'debugger') && turns === 0 ? 'required' : 'auto');
+      const currentTools = isLastTurn ? undefined : (activeTools.length > 0 ? activeTools : undefined);
+      const currentToolChoice = isLastTurn ? undefined : ((currentRole.name === 'coder' || currentRole.name === 'debugger') && turns === 0 ? 'required' : 'auto');
 
       try {
         completion = await this.retryApiCall(
@@ -1545,11 +1565,11 @@ export class Orchestrator {
             model: this.modelOverride || 'auto',
             complexity: this.modelOverride ? undefined : 'complex',
             messages,
-            temperature: role.temperature ?? 0.1,
+            temperature: currentRole.temperature ?? 0.1,
             tools: currentTools,
             tool_choice: currentToolChoice,
           }),
-          `${role.name} API call`
+          `${currentRole.name} API call`
         );
       } finally {
         agentSpinner.stop();
@@ -1579,6 +1599,22 @@ export class Orchestrator {
           })),
           this.subContext
         );
+
+        // Dynamic handoff: handoff_task mutated subContext.agentRole. If it
+        // switched to a different valid role, re-role this runAgent instance so
+        // subsequent turns run with the new agent's system prompt + tool set.
+        const switchedRole = this.subContext?.agentRole;
+        if (switchedRole && switchedRole !== currentRole.name && (VALID_AGENT_ROLES as readonly string[]).includes(switchedRole)) {
+          const nextRole = getAgentRole(switchedRole);
+          currentRole = nextRole;
+          maxTurns = currentRole.maxTurns ?? 10;
+          // Re-filter from the FULL tool set (not the caller-filtered `tools` param,
+          // which is scoped to the original role) so the new role gains its own tools.
+          activeTools = filterToolsForRole([...BUILTIN_TOOLS, ...mcpRegistry.getToolDefinitions()], currentRole.name);
+          messages[0] = { role: 'system', content: buildSystemPrompt(currentRole) };
+          console.log(pc.magenta(`\n[HANDOFF] ${switchedRole} agent took over the execution turn`));
+        }
+
         // Track patch failures per file to break retry spirals
         let hadPatchFailure = false;
         let patchFailureFile: string | undefined;

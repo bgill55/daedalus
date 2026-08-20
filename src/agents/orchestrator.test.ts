@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Orchestrator } from './orchestrator.js';
+import { getAgentRole, filterToolsForRole } from './roles.js';
+import { BUILTIN_TOOLS } from '../tools/definitions.js';
+import { mcpRegistry } from '../tools/mcp/registry.js';
 import type { ToolContext, ChatMessage } from '../types.js';
 import type { LocalRouter } from '../router/index.js';
 import {
@@ -428,6 +431,60 @@ debugger: fix deprecations
     const systemMessage = firstCallArgs.messages.find((m: any) => m.role === 'system');
     expect(systemMessage.content).toContain('System prompt content');
     expect(systemMessage.content).toContain('CURRENT TIME');
+  });
+
+  it('runAgent rebuilds the system prompt and tools when handoff_task switches role', async () => {
+    // Snapshot the system-prompt string by value at each API call. runAgent
+    // mutates the same messages array in place across turns, so we can't rely
+    // on mock.calls arg references (they'd all reflect the final state).
+    const capturedSystems: string[] = [];
+    const capturedTools: string[][] = [];
+    const chatMock = vi.fn();
+    chatMock.mockImplementationOnce((args: any) => {
+      capturedSystems.push(args.messages.find((m: any) => m.role === 'system').content);
+      capturedTools.push((args.tools || []).map((t: any) => t.function.name));
+      return Promise.resolve({
+        choices: [{
+          message: {
+            content: '',
+            tool_calls: [{
+              id: 'call_1',
+              type: 'function',
+              function: { name: 'handoff_task', arguments: JSON.stringify({ target_role: 'reviewer', handoff_notes: 'take over' }) },
+            }],
+          },
+        }],
+      } as any);
+    });
+    chatMock.mockImplementationOnce((args: any) => {
+      capturedSystems.push(args.messages.find((m: any) => m.role === 'system').content);
+      capturedTools.push((args.tools || []).map((t: any) => t.function.name));
+      return Promise.resolve({ choices: [{ message: { content: 'Reviewer signing off', tool_calls: null } }] } as any);
+    });
+
+    const router = {
+      chat: { completions: { create: chatMock } },
+      chatStream: vi.fn(),
+      chatCompletion: chatMock,
+      getModels: vi.fn().mockReturnValue([{ name: 'test', model: 'test' }]),
+    } as unknown as LocalRouter;
+
+    const orch = new Orchestrator(router, messages, toolContext);
+    const coderRole = getAgentRole('coder');
+    const reviewerRole = getAgentRole('reviewer');
+    const tools = filterToolsForRole([...BUILTIN_TOOLS, ...mcpRegistry.getToolDefinitions()], 'coder');
+    await (orch as any).runAgent(coderRole, 'goal', 'context', tools);
+
+    expect(chatMock).toHaveBeenCalledTimes(2);
+
+    // Turn 1 system prompt carries the CODER identity; turn 2 must carry the REVIEWER identity.
+    expect(capturedSystems[0]).toContain(coderRole.systemPrompt.split('\n')[0]);
+    expect(capturedSystems[1]).toContain(reviewerRole.systemPrompt.split('\n')[0]);
+    expect(capturedSystems[1]).not.toContain(coderRole.systemPrompt.split('\n')[0]);
+
+    // The reviewer tool set must be active on turn 2 (git_diff allowed, write_file not).
+    expect(capturedTools[1]).toContain('git_diff');
+    expect(capturedTools[1]).not.toContain('write_file');
   });
 
   it('executePlan prompts for retry on task failure and handles abort', async () => {

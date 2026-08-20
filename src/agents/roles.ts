@@ -67,7 +67,7 @@ WORKFLOW:
 - STACK & PLATFORM AWARENESS: Always respect the target project's tech stack (e.g. React vs Vanilla JS) and hosting constraints (e.g., stateless serverless environments) when planning and delegating tasks.
 
 Delegate liberally — agents run in parallel. You're the middle manager that actually gets things done.`,
-    allowedTools: ['todo', 'read_file', 'search_files', 'list_files', 'web_search', 'find_symbol', 'get_definition', 'get_references'],
+    allowedTools: ['todo', 'read_file', 'search_files', 'list_files', 'web_search', 'find_symbol', 'get_definition', 'get_references', 'handoff_task', 'set_context_variable', 'get_context_variable'],
     canDelegate: true,
     temperature: 0.2,
   },
@@ -76,7 +76,7 @@ Delegate liberally — agents run in parallel. You're the middle manager that ac
     name: 'spec',
     description: 'Generates formal SpecFirst interface contracts and test assertions',
     systemPrompt: `You are a SpecFirst System Architect Agent. Your job is to define explicit contracts, TypeScript interfaces, and test criteria before implementation starts. Always output clean SpecContracts.`,
-    allowedTools: ['read_file', 'search_files', 'list_files', 'find_symbol'],
+    allowedTools: ['read_file', 'search_files', 'list_files', 'find_symbol', 'handoff_task', 'set_context_variable', 'get_context_variable'],
     canDelegate: false,
     temperature: 0.1,
   },
@@ -128,7 +128,7 @@ You MUST enumerate concrete files. Use the project context to determine which ap
 - Next.js Pages Router (has src/pages/ or pages/): create src/pages/index.tsx and one file per major section
 - React/Vite (no Next.js): create src/App.tsx and one component per major section
 Always include the full relative path in every task. If components are imported, plan their files first.`,
-    allowedTools: ['todo', 'read_file', 'search_files', 'list_files', 'web_search', 'find_symbol', 'get_definition', 'get_references'],
+    allowedTools: ['todo', 'read_file', 'search_files', 'list_files', 'web_search', 'find_symbol', 'get_definition', 'get_references', 'handoff_task', 'set_context_variable', 'get_context_variable'],
     canDelegate: false,
     temperature: 0.2,
   },
@@ -184,7 +184,7 @@ ${SHARED_CODER_GUARDRAILS}${BUG_PREVENTION_CHECKLIST}
 - Do NOT run git commands (git_diff, git_status, git commit, etc.) — git operations are handled by other roles. You write code, not commit messages.
 
 Use tools: read_file, write_file, patch, search_files, terminal, find_symbol, get_definition, get_references, index_codebase. Do NOT use git_diff or git_status — checking git state is the reviewer's job.`,
-    allowedTools: ['read_file', 'write_file', 'patch', 'search_files', 'list_files', 'terminal', 'web_search', 'fetch_url', 'index_codebase', 'find_symbol', 'get_definition', 'get_references', 'generate_image'],
+    allowedTools: ['read_file', 'write_file', 'patch', 'search_files', 'list_files', 'terminal', 'web_search', 'fetch_url', 'index_codebase', 'find_symbol', 'get_definition', 'get_references', 'generate_image', 'handoff_task', 'set_context_variable', 'get_context_variable'],
     canDelegate: false,
     temperature: 0.1,
     maxTurns: 12,
@@ -232,7 +232,7 @@ TOUCHED_FILES: [space-separated list]
 FINDINGS: [bullet list of issues or "None"]
 RECOMMENDATION: [1-sentence recommendation]
 DO NOT fix issues yourself. Report them.`,
-    allowedTools: ['read_file', 'search_files', 'list_files', 'terminal', 'git_diff', 'git_status', 'todo', 'find_symbol', 'get_definition', 'get_references'],
+    allowedTools: ['read_file', 'search_files', 'list_files', 'terminal', 'git_diff', 'git_status', 'todo', 'find_symbol', 'get_definition', 'get_references', 'handoff_task', 'set_context_variable', 'get_context_variable'],
     canDelegate: false,
     temperature: 0.1,
     maxTurns: 6,
@@ -267,7 +267,7 @@ Remember: 90% of debugging is reading error messages. Read them. All of them. Ye
 - Every response must end with a line Tools used: <comma‑separated list>.
 - Do NOT fabricate identifiers or imports.
 - Maintain Daedalus's signature dry, sarcastic, deadpan, and technically sharp tone while delivering clean, working code.`,
-    allowedTools: ['read_file', 'write_file', 'patch', 'search_files', 'list_files', 'terminal', 'git_diff', 'git_status', 'todo', 'index_codebase', 'find_symbol', 'get_definition', 'get_references'],
+    allowedTools: ['read_file', 'write_file', 'patch', 'search_files', 'list_files', 'terminal', 'git_diff', 'git_status', 'todo', 'index_codebase', 'find_symbol', 'get_definition', 'get_references', 'handoff_task', 'set_context_variable', 'get_context_variable'],
     canDelegate: false,
     temperature: 0.1,
   },
@@ -286,7 +286,7 @@ CAPABILITIES:
 OUTPUT RULE: Once you have gathered enough information to answer the question, output your findings as a concise plain-text summary with source links and STOP calling tools. Do not keep searching once you have the answer.
 
 OUTPUT: Concise summaries with source links. No one wants to read your life story or a preamble — just the raw facts and the links. Use todo to track research questions.`,
-    allowedTools: ['web_search', 'fetch_url', 'read_file', 'search_files', 'list_files', 'todo'],
+    allowedTools: ['web_search', 'fetch_url', 'read_file', 'search_files', 'list_files', 'todo', 'handoff_task', 'set_context_variable', 'get_context_variable'],
     canDelegate: false,
     temperature: 0.3,
     maxTurns: 8,

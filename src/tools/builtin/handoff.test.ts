@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { handoffTask, setContextVariable, VALID_AGENT_ROLES } from './handoff.js';
+import { handoffTask, setContextVariable, getContextVariable, VALID_AGENT_ROLES } from './handoff.js';
 import { ToolContext } from '../../types.js';
 
 describe('Sub-Agent Handoffs and Context Variables', () => {
@@ -63,5 +63,24 @@ describe('Sub-Agent Handoffs and Context Variables', () => {
     const res = await setContextVariable({ key: '', value: 'test' }, mockContext);
     expect(res.success).toBe(false);
     expect(res.error).toContain('Missing required parameter: key');
+  });
+
+  it('reads back a stored context variable via get_context_variable', async () => {
+    await setContextVariable({ key: 'pr_number', value: 42 }, mockContext);
+    const res = await getContextVariable({ key: 'pr_number' }, mockContext);
+    expect(res.success).toBe(true);
+    expect(res.content).toContain('"pr_number" = 42');
+  });
+
+  it('reports an unset key without error in get_context_variable', async () => {
+    const res = await getContextVariable({ key: 'does_not_exist' }, mockContext);
+    expect(res.success).toBe(true);
+    expect(res.content).toContain('No value set for "does_not_exist"');
+  });
+
+  it('only accepts valid agent roles', () => {
+    for (const role of VALID_AGENT_ROLES) {
+      expect(['planner', 'coder', 'reviewer', 'debugger', 'researcher']).toContain(role);
+    }
   });
 });

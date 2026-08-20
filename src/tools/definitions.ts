@@ -568,6 +568,20 @@ export const POWER_TOOLS: ToolDefinition[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'get_context_variable',
+      description: 'Read a key from the shared contextVariables state bag. Returns its stored value (or a notice if the key is unset) so an agent can act on cross-turn / cross-handoff state.',
+      parameters: {
+        type: 'object',
+        properties: {
+          key: { type: 'string', description: 'The state variable key to read (e.g. target_files, test_status, pr_number).' },
+        },
+        required: ['key'],
+      },
+    },
+  },
 ];
 
 // Tool name to implementation function mapping
@@ -604,4 +618,5 @@ export const TOOL_IMPLEMENTATIONS: Record<string, string> = {
   generate_image: 'tools/builtin/image.generateImage',
   handoff_task: 'tools/builtin/handoff.handoffTask',
   set_context_variable: 'tools/builtin/handoff.setContextVariable',
+  get_context_variable: 'tools/builtin/handoff.getContextVariable',
 };
