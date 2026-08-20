@@ -1,0 +1,163 @@
+// Auto-routing primitive for single-agent (REPL) mode.
+//
+// Lets the active agent fan a large task out to helper sub-agents WITHOUT the
+// user having to spawn them manually. The agent stays the conductor: it asks
+// the user for permission (via ask_user) first, then calls route_task with
+// confirmed: true to delegate independent sub-tasks in parallel.
+
+import { ToolContext, ToolResult } from '../../types.js';
+import { getAgentRole, filterToolsForRole } from '../../agents/roles.js';
+import { BUILTIN_TOOLS } from '../definitions.js';
+import { executeToolCalls } from '../executor.js';
+import { messageText } from '../../types.js';
+import type { ChatMessage, ToolCall } from '../../types.js';
+import type { ChatRequest } from '../../router/types.js';
+import { VALID_AGENT_ROLES } from './handoff.js';
+
+interface LocalRouter {
+  chat: {
+    completions: {
+      create(params: ChatRequest): Promise<any>;
+    };
+  };
+}
+
+let routerClient: LocalRouter | null = null;
+
+export function setRouteRouterClient(client: LocalRouter) {
+  routerClient = client;
+}
+
+interface SubTask {
+  role: string;
+  goal: string;
+  context?: string;
+}
+
+interface RouteArgs {
+  tasks: SubTask[];
+  confirmed?: boolean;
+  handoff_notes?: string;
+}
+
+async function runOneSubTask(task: SubTask, context: ToolContext): Promise<string> {
+  const role = VALID_AGENT_ROLES.includes(task.role as any) ? task.role : 'coder';
+  const agentRole = getAgentRole(role);
+  const currentDateStr = new Date().toLocaleString();
+  const dynamicSystemPrompt = `${agentRole.systemPrompt}\n\n## CURRENT TIME\nThe current date and local time is: ${currentDateStr}.\n`;
+  const messages: ChatMessage[] = [
+    { role: 'system', content: dynamicSystemPrompt },
+    { role: 'user', content: `${task.context ?? ''}\n\nTask: ${task.goal}` },
+  ];
+
+  const tools = filterToolsForRole(BUILTIN_TOOLS, role);
+  const maxTurns = agentRole.maxTurns ?? 10;
+
+  for (let turns = 0; turns < maxTurns; turns++) {
+    const completion = await routerClient!.chat.completions.create({
+      model: 'auto',
+      complexity: 'complex',
+      messages,
+      temperature: agentRole.temperature ?? 0.1,
+      tools,
+      tool_choice: 'auto',
+    } as ChatRequest);
+
+    const message = completion.choices[0].message;
+    messages.push(message);
+
+    if (message.tool_calls && message.tool_calls.length > 0) {
+      const subContext = { ...context, agentRole: role };
+      const results = await executeToolCalls(
+        message.tool_calls.map((tc: ToolCall) => ({
+          id: tc.id,
+          type: 'function' as const,
+          function: { name: tc.function.name, arguments: tc.function.arguments },
+        })),
+        subContext,
+      );
+      for (const result of results) {
+        messages.push({
+          role: 'tool',
+          content: result.content,
+          tool_call_id: result.toolCallId,
+        });
+      }
+      continue;
+    }
+
+    return messageText(message.content) || 'Sub-agent completed';
+  }
+
+  return 'Sub-agent reached max turns';
+}
+
+export async function routeTask(args: RouteArgs, context: ToolContext): Promise<ToolResult> {
+  if (!routerClient) {
+    return {
+      toolCallId: '',
+      name: 'route_task',
+      success: false,
+      content: '',
+      error: 'Router client not initialized for routing',
+    };
+  }
+
+  const tasks = Array.isArray(args.tasks) ? args.tasks : [];
+  if (tasks.length === 0) {
+    return {
+      toolCallId: '',
+      name: 'route_task',
+      success: false,
+      content: '',
+      error: 'No tasks provided to route_task',
+    };
+  }
+
+  // Permission gate: the agent MUST confirm the user approved routing. It should
+  // obtain that approval via ask_user before calling this tool with confirmed: true.
+  if (!args.confirmed) {
+    return {
+      toolCallId: '',
+      name: 'route_task',
+      success: false,
+      content: '[ROUTE] Permission not confirmed. Ask the user for approval (ask_user) before routing, then call route_task with confirmed: true.',
+      error: 'Routing requires explicit user confirmation (confirmed: true).',
+    };
+  }
+
+  try {
+    const settled = await Promise.allSettled(
+      tasks.map((t) => runOneSubTask(t, context))
+    );
+
+    const lines: string[] = [];
+    let anyFailed = false;
+    settled.forEach((res, i) => {
+      const t = tasks[i];
+      if (res.status === 'fulfilled') {
+        lines.push(`### ${t.role}: ${t.goal}\n${res.value}`);
+      } else {
+        anyFailed = true;
+        lines.push(`### ${t.role}: ${t.goal}\n[FAILED] ${res.reason instanceof Error ? res.reason.message : String(res.reason)}`);
+      }
+    });
+
+    const summary = `[ROUTED] Completed ${settled.filter((s) => s.status === 'fulfilled').length}/${tasks.length} sub-tasks in parallel.${args.handoff_notes ? `\n\nHandoff notes: ${args.handoff_notes}` : ''}\n\n${lines.join('\n\n')}`;
+
+    return {
+      toolCallId: '',
+      name: 'route_task',
+      success: !anyFailed,
+      content: summary,
+    };
+  } catch (err) {
+    return {
+      toolCallId: '',
+      name: 'route_task',
+      success: false,
+      content: '',
+      error: `Routing failed: ${(err instanceof Error ? err.message : String(err))}`,
+    };
+  }
+}

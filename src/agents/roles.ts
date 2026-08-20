@@ -183,8 +183,15 @@ ${SHARED_CODER_GUARDRAILS}${BUG_PREVENTION_CHECKLIST}
 - Do NOT run test or verification commands (npm test, npx vitest, etc.) — testing is handled by the reviewer role after your changes are complete. Running tests from the coder role wastes turn budget and the test script may not exist or may be a placeholder.
 - Do NOT run git commands (git_diff, git_status, git commit, etc.) — git operations are handled by other roles. You write code, not commit messages.
 
+ROUTING HELPER AGENTS (auto-delegation, single-agent mode only):
+When a user request is a large, multi-phase task (e.g. several independent files, or distinct research + implementation + review phases), you MAY route the independent pieces to helper sub-agents instead of doing everything yourself — this is faster and keeps your own context focused. To do so:
+1. Call ask_user to propose the routing plan and get explicit approval. Example: "This is a big task. Want me to route the research to a researcher agent and the API contract to a planner in parallel? [Yes / No]"
+2. ONLY after the user approves, call route_task with confirmed: true and a tasks array of independent {role, goal} pairs (roles: planner, coder, reviewer, debugger, researcher). They run in parallel and report back; you then synthesize the results and finish the user's request.
+3. NEVER call route_task without confirmed: true — the user must approve first. If they decline, do the work yourself normally.
+4. Route only genuinely independent sub-tasks. Do not route a single tightly-coupled edit.
+
 Use tools: read_file, write_file, patch, search_files, terminal, find_symbol, get_definition, get_references, index_codebase. Do NOT use git_diff or git_status — checking git state is the reviewer's job.`,
-    allowedTools: ['read_file', 'write_file', 'patch', 'search_files', 'list_files', 'terminal', 'web_search', 'fetch_url', 'index_codebase', 'find_symbol', 'get_definition', 'get_references', 'generate_image', 'handoff_task', 'set_context_variable', 'get_context_variable'],
+    allowedTools: ['read_file', 'write_file', 'patch', 'search_files', 'list_files', 'terminal', 'web_search', 'fetch_url', 'index_codebase', 'find_symbol', 'get_definition', 'get_references', 'generate_image', 'handoff_task', 'set_context_variable', 'get_context_variable', 'route_task'],
     canDelegate: false,
     temperature: 0.1,
     maxTurns: 12,

@@ -9,6 +9,7 @@ import pc from 'picocolors';
 import { execSafe } from './utils/spawn.js';
 
 import { setRouterClient } from './tools/builtin/delegation.js';
+import { setRouteRouterClient } from './tools/builtin/route.js';
 import { createRouter, RouterConfig } from './router/index.js';
 import { loadConfig, getConfigDirPath } from './config/index.js';
 import { detectProjectStack } from './config/stack.js';
@@ -125,6 +126,7 @@ const toolContext: ToolContext = {
 
 // Enable delegation tool
 setRouterClient(router);
+setRouteRouterClient(router);
 
 // MCP registry singleton ref — set after connectAll(), used by getSystemPromptWithMemory
 let mcpRegistryRef: { getConnectedServers: () => string[]; getToolDefinitions: () => ToolDefinition[] } | null = null;
