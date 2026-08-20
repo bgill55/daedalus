@@ -177,6 +177,40 @@ Flow:
 4. Each sub-task runs in its own role (planner, coder, reviewer, debugger, researcher) **in parallel** via `Promise.allSettled`, then reports back a consolidated `[ROUTED]` summary.
 5. The agent synthesizes the results and finishes the user's original request.
 
+**Worked example.** A user types a multi-phase request in the REPL:
+
+> Build a rate-limited API client and add integration tests for it.
+
+The agent (nudged by the ROUTING NUDGE) proposes routing, asks for approval, and on "yes" calls `route_task`:
+
+```json
+{
+  "tool": "ask_user",
+  "arguments": {
+    "question": "This is a big task. Want me to route the API contract to a planner and the research to a researcher in parallel, then implement + test?",
+    "options": ["Yes", "No"]
+  }
+}
+```
+
+User answers `Yes`. The agent then routes:
+
+```json
+{
+  "tool": "route_task",
+  "arguments": {
+    "confirmed": true,
+    "tasks": [
+      { "role": "planner", "goal": "Design the API client interface and rate-limit strategy (token bucket). Output a SpecContract." },
+      { "role": "researcher", "goal": "Find the project's existing HTTP/retry conventions and the testing framework in use." }
+    ],
+    "handoff_notes": "Implement the client + tests after the plan and research return."
+  }
+}
+```
+
+`route_task` runs the planner and researcher **in parallel**, then returns a consolidated `[ROUTED]` summary. The agent reads it, implements the client, and adds the integration tests — all without the user ever typing a `/spawn` or `/agent` command. If the user had answered `No`, the agent would simply do the work itself.
+
 **Heuristic nudge:** the coder agent also gets a one-time *ROUTING NUDGE* in its system prompt when your request looks like a large multi-phase task (e.g. it contains an action verb *plus* a coordination cue like "and", "then", "multiple files", "with tests"). The nudge only reminds the agent it *may* propose routing — it never bypasses the `ask_user` permission gate. A small single-file fix or a question will not trigger it.
 
 The `confirmed` flag is a hard gate: calling `route_task` without `confirmed: true` is rejected, so sub-agents are never spawned without explicit user approval. Routing applies to single-agent REPL mode; multi-agent `/autopilot` orchestration uses the planner/executor path instead.
