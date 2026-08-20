@@ -1,3 +1,10 @@
+# [3.33.0](https://github.com/bgill55/daedalus/compare/v3.32.0...v3.33.0) (2026-08-20)
+
+
+### Features
+
+* **orchestration:** heuristic routing nudge for multi-phase tasks ([#135](https://github.com/bgill55/daedalus/issues/135)) ([9845784](https://github.com/bgill55/daedalus/commit/984578433c9d377fce48494051921f801be37ca5)), closes [#134](https://github.com/bgill55/daedalus/issues/134)
+
 # [3.32.0](https://github.com/bgill55/daedalus/compare/v3.31.1...v3.32.0) (2026-08-20)
 
 
