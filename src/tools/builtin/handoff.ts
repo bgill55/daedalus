@@ -117,3 +117,54 @@ export async function setContextVariable(
     content: `[CONTEXT] Set context variable "${key}" = ${JSON.stringify(args.value)}`,
   };
 }
+
+export const getContextVariableToolDefinition: ToolDefinition = {
+  type: 'function',
+  function: {
+    name: 'get_context_variable',
+    description: 'Read a key from the shared contextVariables state bag. Returns its stored value (or a notice if the key is unset) so an agent can act on cross-turn / cross-handoff state.',
+    parameters: {
+      type: 'object',
+      properties: {
+        key: {
+          type: 'string',
+          description: 'The state variable key to read (e.g. target_files, test_status, pr_number).',
+        },
+      },
+      required: ['key'],
+    },
+  },
+};
+
+export async function getContextVariable(
+  args: Record<string, unknown>,
+  context: ToolContext
+): Promise<ToolResult> {
+  const key = String(args.key || '').trim();
+  if (!key) {
+    return {
+      toolCallId: '',
+      name: 'get_context_variable',
+      success: false,
+      content: 'Missing required parameter: key',
+      error: 'Missing required parameter: key',
+    };
+  }
+
+  const value = context.contextVariables?.[key];
+  if (value === undefined) {
+    return {
+      toolCallId: '',
+      name: 'get_context_variable',
+      success: true,
+      content: `[CONTEXT] No value set for "${key}".`,
+    };
+  }
+
+  return {
+    toolCallId: '',
+    name: 'get_context_variable',
+    success: true,
+    content: `[CONTEXT] "${key}" = ${JSON.stringify(value)}`,
+  };
+}
