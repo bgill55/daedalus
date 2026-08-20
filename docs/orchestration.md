@@ -166,7 +166,20 @@ Agents can store and query structured key-value metadata across turns using the 
 
 ---
 
-## Non-Linear Session Branching & Merging
+## Single-Agent Auto-Routing (`route_task`)
+
+In single-agent (REPL) mode the active agent can fan a large, multi-phase task out to helper sub-agents **without the user manually spawning them**. The agent stays the conductor: it proposes a routing plan, asks for permission, and only then delegates the independent pieces in parallel.
+
+Flow:
+1. The agent recognizes a big multi-phase task and calls `ask_user` to propose routing (e.g. *"This is a big task — want me to route the research to a researcher and the API contract to a planner in parallel?"*).
+2. The user approves (or declines).
+3. On approval, the agent calls `route_task` with `confirmed: true` and a `tasks` array of independent `{ role, goal }` pairs.
+4. Each sub-task runs in its own role (planner, coder, reviewer, debugger, researcher) **in parallel** via `Promise.allSettled`, then reports back a consolidated `[ROUTED]` summary.
+5. The agent synthesizes the results and finishes the user's original request.
+
+The `confirmed` flag is a hard gate: calling `route_task` without `confirmed: true` is rejected, so sub-agents are never spawned without explicit user approval. Routing applies to single-agent REPL mode; multi-agent `/autopilot` orchestration uses the planner/executor path instead.
+
+---
 
 Daedalus supports non-linear session exploration. Rather than abandoning context when an experimental approach fails, you can snapshot, branch, checkout, and merge session trajectories.
 

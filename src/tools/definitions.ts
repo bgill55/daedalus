@@ -582,6 +582,38 @@ export const POWER_TOOLS: ToolDefinition[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'route_task',
+      description: 'Fan a large multi-phase task out to helper sub-agents (planner, coder, reviewer, debugger, researcher) that run in parallel and report back, so the user does not have to spawn agents manually. REQUIRES prior user approval: call ask_user first, then invoke this with confirmed: true. Each sub-task is an independent {role, goal} pair.',
+      parameters: {
+        type: 'object',
+        properties: {
+          tasks: {
+            type: 'array',
+            description: 'Independent sub-tasks to delegate in parallel. Each: { role: one of planner|coder|reviewer|debugger|researcher, goal: concrete instruction, context?: extra context }.',
+            items: {
+              type: 'object',
+              properties: {
+                role: { type: 'string', enum: ['planner', 'coder', 'reviewer', 'debugger', 'researcher'] },
+                goal: { type: 'string' },
+                context: { type: 'string' },
+              },
+              required: ['role', 'goal'],
+            },
+          },
+          confirmed: {
+            type: 'boolean',
+            description: 'MUST be true — set only after the user approved routing via ask_user. If false/omitted, the call is rejected.',
+          },
+          handoff_notes: { type: 'string', description: 'Optional notes the agent wants preserved across the routing handoff.' },
+        },
+        required: ['tasks', 'confirmed'],
+        additionalProperties: false,
+      },
+    },
+  },
 ];
 
 // Tool name to implementation function mapping
@@ -598,6 +630,7 @@ export const TOOL_IMPLEMENTATIONS: Record<string, string> = {
   web_search: 'tools/builtin/web.search',
   fetch_url: 'tools/builtin/web.fetchUrl',
   delegate_task: 'tools/builtin/delegation.manage',
+  route_task: 'tools/builtin/route.routeTask',
   index_codebase: 'tools/builtin/indexing.index_codebase',
   find_symbol: 'tools/builtin/indexing.find_symbol',
   get_definition: 'tools/builtin/indexing.get_definition',
