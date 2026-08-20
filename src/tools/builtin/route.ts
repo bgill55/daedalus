@@ -161,3 +161,27 @@ export async function routeTask(args: RouteArgs, context: ToolContext): Promise<
     };
   }
 }
+
+// Heuristic nudge signal: does this single-agent request look like a large,
+// multi-phase task that could benefit from routing to helper agents?
+// Pure + deterministic so it is cheap to call on every turn and unit-testable.
+const MULTI_PHASE_CUES = [
+  /\b(implement|build|create|add|set up|scaffold)\b/i,
+  /\b(and|plus|along with|as well as)\b/i,
+  /\b(research|investigate|figure out|understand)\b/i,
+  /\b(plan|design|architecture|architect)\b/i,
+  /\b(then|after that|followed by|next)\b/i,
+  /\bmultiple (files|modules|services|components|packages)\b/i,
+  /\b(end[\s-]?to[\s-]?end|full[- ]stack|e2e)\b/i,
+  /\b(with (a |an )?(test|tests|tests? suite|documentation|docs))\b/i,
+];
+
+export function looksMultiPhase(request: string): boolean {
+  const text = (request || '').trim();
+  if (text.length < 25) return false; // too short to be a multi-phase task
+  // Require both an action verb AND a second phase/coordination cue, so a
+  // single-file "fix the bug in X" never triggers the nudge.
+  const hasAction = MULTI_PHASE_CUES.slice(0, 1).some((re) => re.test(text));
+  const hasSecondPhase = MULTI_PHASE_CUES.slice(1).some((re) => re.test(text));
+  return hasAction && hasSecondPhase;
+}
