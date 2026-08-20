@@ -177,6 +177,8 @@ Flow:
 4. Each sub-task runs in its own role (planner, coder, reviewer, debugger, researcher) **in parallel** via `Promise.allSettled`, then reports back a consolidated `[ROUTED]` summary.
 5. The agent synthesizes the results and finishes the user's original request.
 
+**Heuristic nudge:** the coder agent also gets a one-time *ROUTING NUDGE* in its system prompt when your request looks like a large multi-phase task (e.g. it contains an action verb *plus* a coordination cue like "and", "then", "multiple files", "with tests"). The nudge only reminds the agent it *may* propose routing — it never bypasses the `ask_user` permission gate. A small single-file fix or a question will not trigger it.
+
 The `confirmed` flag is a hard gate: calling `route_task` without `confirmed: true` is rejected, so sub-agents are never spawned without explicit user approval. Routing applies to single-agent REPL mode; multi-agent `/autopilot` orchestration uses the planner/executor path instead.
 
 ---

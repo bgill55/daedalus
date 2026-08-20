@@ -9,7 +9,7 @@ import pc from 'picocolors';
 import { execSafe } from './utils/spawn.js';
 
 import { setRouterClient } from './tools/builtin/delegation.js';
-import { setRouteRouterClient } from './tools/builtin/route.js';
+import { setRouteRouterClient, looksMultiPhase } from './tools/builtin/route.js';
 import { createRouter, RouterConfig } from './router/index.js';
 import { loadConfig, getConfigDirPath } from './config/index.js';
 import { detectProjectStack } from './config/stack.js';
@@ -131,6 +131,10 @@ setRouteRouterClient(router);
 // MCP registry singleton ref — set after connectAll(), used by getSystemPromptWithMemory
 let mcpRegistryRef: { getConnectedServers: () => string[]; getToolDefinitions: () => ToolDefinition[] } | null = null;
 
+// Tracks the last request we already nudged about, so the nudge appears once
+// per qualifying task rather than on every model turn for the same request.
+let lastNudgeRequest = '';
+
 // Build system prompt with project memory and user profile
 function getSystemPromptWithMemory(userRequest?: string): string {
   let prompt = systemPrompt;
@@ -201,6 +205,18 @@ function getSystemPromptWithMemory(userRequest?: string): string {
   const skillsSection = getSkillsSection(userRequest ?? '');
   if (skillsSection) {
     prompt += skillsSection;
+  }
+
+  // Heuristic routing nudge: when the active agent is the coder (the role that
+  // owns route_task) OR the configured single-agent default role, and the user's
+  // request looks like a large multi-phase task, remind it that it may propose
+  // routing to helper agents. Fired at most once per distinct qualifying request
+  // so it doesn't repeat every turn. The agent still must ask the user for
+  // permission before calling route_task.
+  const nudgedRole = config.agents?.default ?? 'coder';
+  if (userRequest && (toolContext.agentRole === 'coder' || toolContext.agentRole === nudgedRole) && looksMultiPhase(userRequest) && lastNudgeRequest !== userRequest) {
+    lastNudgeRequest = userRequest;
+    prompt += '\n\n## ROUTING NUDGE\nThis request looks like a multi-phase task. Remember you can propose routing independent pieces to helper agents (researcher / planner / reviewer / debugger) via `route_task` — but you MUST ask the user for approval with `ask_user` first, then call it with `confirmed: true`. Only route genuinely independent sub-tasks.';
   }
 
   return prompt;

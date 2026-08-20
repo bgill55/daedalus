@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { routeTask, setRouteRouterClient } from './route.js';
+import { routeTask, setRouteRouterClient, looksMultiPhase } from './route.js';
 import type { ToolContext } from '../../types.js';
 
 const mockContext: ToolContext = {
@@ -109,5 +109,28 @@ describe('route_task (single-agent auto-routing)', () => {
     expect(res.success).toBe(false);
     expect(res.content).toContain('Completed 1/2');
     expect(res.content).toContain('[FAILED]');
+  });
+});
+
+describe('looksMultiPhase heuristic', () => {
+  it('flags a large multi-phase request', () => {
+    expect(looksMultiPhase('Implement a full-stack auth system and add tests for the API')).toBe(true);
+    expect(looksMultiPhase('Research the best approach and then build the parser module')).toBe(true);
+    expect(looksMultiPhase('Plan the architecture and implement multiple modules with documentation')).toBe(true);
+  });
+
+  it('does NOT flag a single-file fix or short request', () => {
+    expect(looksMultiPhase('fix the bug in src/foo.ts')).toBe(false);
+    expect(looksMultiPhase('rename variable x to y')).toBe(false);
+    expect(looksMultiPhase('add a test')).toBe(false); // action verb but no second phase
+    expect(looksMultiPhase('short')).toBe(false); // under length threshold
+  });
+
+  it('does NOT flag a pure question', () => {
+    expect(looksMultiPhase('How does the router pick a model?')).toBe(false);
+  });
+
+  it('is case-insensitive and trims', () => {
+    expect(looksMultiPhase('  BUILD the CLI and write docs  ')).toBe(true);
   });
 });
