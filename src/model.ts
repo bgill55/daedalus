@@ -2,7 +2,7 @@ import pc from 'picocolors';
 import { BUILTIN_TOOLS, POWER_TOOLS } from './tools/definitions.js';
 import { executeToolCalls } from './tools/executor.js';
 import { getSessionTodos } from './tools/builtin/todo.js';
-import { detectFalseCompletion, falseCompletionWarning, detectFalseCompletionOnDisk, isScopeOverstatedSummary, scopeOverstatementWarning, isUnsubstantiatedProgressReport, unsubstantiatedProgressWarning, countAchievementItems } from './agents/completion-guard.js';
+import { detectFalseCompletion, falseCompletionWarning, detectFalseCompletionOnDisk, isScopeOverstatedSummary, scopeOverstatementWarning, isUnsubstantiatedProgressReport, unsubstantiatedProgressWarning, countAchievementItems, ClaimLedger, detectUngroundedClaim, ungroundedClaimWarning } from './agents/completion-guard.js';
 import { ReadStallDetector, isGreenBuildTestClaim, fabricatedTestCountCorrection, DivergenceDetector, isStaleReadFailure } from './agents/loop-guards.js';
 import { mcpRegistry } from './tools/mcp/registry.js';
 import { DaedalusSpinner } from './tools/daedalus-spinner.js';
@@ -243,6 +243,10 @@ export function createModelFunctions(deps: ModelDeps) {
     // turn (the "re-state the review after a failure" spin), force it to make concrete
     // progress or report the blocker honestly instead of looping on repeated text.
     const divergence = new DivergenceDetector();
+    // Claim-grounding ledger: records every file the agent actually inspected this session
+    // (read/searched/terminal-touched). Used to flag factual claims about files it never
+    // looked at (bare overclaims like "X is unused / already implemented / has no errors").
+    const claimLedger = new ClaimLedger();
     // Layer C: verification-claim guard. Set true if a build/test/lint verify command
     // trips the terminal circuit breaker this turn; cleared by a real successful run.
     let verifyBreakerTrippedThisTurn = false;
@@ -418,6 +422,23 @@ export function createModelFunctions(deps: ModelDeps) {
           content: `[SYSTEM WARNING] This response is nearly identical to output you already produced this turn. You are looping on repeated text instead of making progress. Do NOT re-state completed work. Either (1) take a concrete next action (read the failing test, fix the code, verify), or (2) if you are blocked, report the blocker concisely and stop. Do not emit the same deliverable again.`,
         } as ChatMessage);
         continue;
+      }
+
+      // Claim-grounding guard: flag a factual claim about a repo artifact the agent never
+      // inspected this session (no read/search/terminal on that file). Catches bare
+      // overclaims like "path/url are unused" or "rate limiting is already implemented"
+      // that have no tool evidence behind them. Forces the agent to verify before asserting.
+      if (toolCallArray.length === 0) {
+        const ungrounded = detectUngroundedClaim(cleanContent, claimLedger);
+        if (ungrounded) {
+          console.log(pc.dim(`\n  [CHECK] Claim about ${ungrounded} is ungrounded (no inspection this session).`));
+          messages.push({ role: 'assistant', content: cleanContent });
+          messages.push({
+            role: 'user',
+            content: ungroundedClaimWarning(ungrounded),
+          } as ChatMessage);
+          continue;
+        }
       }
 
       if (toolCallArray.length === 0) {
@@ -697,6 +718,27 @@ export function createModelFunctions(deps: ModelDeps) {
         }
         if (result.success && (result.name === 'patch' || result.name === 'write_file')) {
           readStall.registerWrite();
+        }
+        // Claim-grounding: record every file the agent actually inspected this session so a
+        // later factual claim about that file is grounded. read_file = observed; search_files
+        // = observed (hit or not); terminal = any path mentioned in the command.
+        if (result.name === 'read_file') {
+          try {
+            const p = (JSON.parse(approvedCalls[ri]?.function?.arguments ?? '{}').path) as string | undefined;
+            if (p) claimLedger.record({ kind: 'read', base: p, hit: result.success });
+          } catch { /* ignore */ }
+        }
+        if (result.name === 'search_files') {
+          try {
+            const p = (JSON.parse(approvedCalls[ri]?.function?.arguments ?? '{}').path) as string | undefined;
+            const hit = typeof result.content === 'string' && !/\(no matches\)|0 matches/i.test(result.content);
+            if (p) claimLedger.record({ kind: 'search', base: p, hit });
+          } catch { /* ignore */ }
+        }
+        if (result.name === 'terminal') {
+          const cmd = approvedCalls[ri]?.function?.arguments ?? '';
+          const m = cmd.match(/(?:[A-Za-z]:)?[\\/][\w.\-//\\]+\.(?:ts|tsx|js|mjs|cjs|jsx|py|go|rs|java|cs|rb|php|json|md|css|html)|\b[\w.\-]+\.(?:ts|tsx|js|mjs|cjs|jsx|py|go|rs|java|cs|rb|php|json|md|css|html)/i);
+          if (m) claimLedger.record({ kind: 'terminal', base: m[0], hit: result.success });
         }
         // Layer C: detect a terminal circuit-breaker on a build/test/lint verify command.
         if (result.name === 'terminal' && CIRCUIT_BREAKER_RE.test(`${result.error ?? ''}\n${result.content ?? ''}`)) {

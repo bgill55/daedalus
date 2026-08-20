@@ -192,3 +192,95 @@ export function unsubstantiatedProgressWarning(count: number): string {
     `Every "done" claim must correspond to a real, verified change.`
   );
 }
+
+// Claim-grounding guard (generalizes the deliverable-checklist guard above). It catches
+// BARE FACTUAL CLAIMS about a repo artifact — "path and url are unused imports",
+// "rate limiting is already implemented", "DatabaseError is defined", "the build has no
+// TS2304 errors" — that are not backed by any tool observation of that artifact this
+// session. The merged #136 guard only catches enumerated ✅ checklists; this catches the
+// single-sentence factual overclaim that the sandbox review report was full of (it asserted
+// errors/types that did not exist and features that were already shipped, with no grep/read
+// evidence behind them).
+//
+// Mechanism: the loop records an observation ledger of every file the agent actually looked
+// at this session (read_file path, search_files target, terminal command touching a path).
+// A factual claim about a file the agent never observed is ungrounded and must be verified
+// before it can be asserted. We intentionally only fire on claims paired with a file mention
+// + a claim verb, so free-form narration that merely names a file (e.g. "see db.ts") is safe.
+
+export interface Observation {
+  kind: 'read' | 'search' | 'terminal';
+  /** Normalized base filename (no dir, no :line) for matching. */
+  base: string;
+  hit: boolean;
+}
+
+export class ClaimLedger {
+  private seen = new Map<string, boolean>(); // base -> ever observed (hit or not)
+
+  record(o: Observation): void {
+    this.seen.set(baseOf(o.base), true);
+  }
+
+  /** True if the file (by base name) was observed at all this session. */
+  observed(base: string): boolean {
+    return this.seen.has(baseOf(base));
+  }
+
+  reset(): void {
+    this.seen.clear();
+  }
+}
+
+function baseOf(p: string): string {
+  return p.replace(/:\d+$/, '').replace(/^src[\\/]/, '').toLowerCase().split(/[\\/]/).pop() ?? p.toLowerCase();
+}
+
+// Reuse the file-mention pattern from detectFalseCompletionOnDisk. A fresh regex per call
+// avoids the shared-global lastIndex bug noted there.
+const CG_FILE_RE = /(?:src[\\/])?[\w.\-]+\.(?:json|tsx|jsx|cjs|mjs|ts|js|py|go|rs|java|cs|rb|php|md|css|html)(?::\d+)?/gi;
+
+// A sentence asserts a fact about an artifact when it pairs a file mention with a
+// claim/state verb. Listed as base verbs + the "already X" / "no longer Y" negations that
+// the review report abused ("already implemented", "no longer starts", "has no errors").
+const CG_CLAIM_VERB_RE =
+  /\b(is|are|was|were|has|have|had|contains?|defines?|declares?|exports?|imports?|uses?|implements?|added|removed|fixed|missing|redundant|unused|broken|clean(ed)?|already|no longer|does not|doesn't|not (present|defined|found|implemented|used)|✅)\b/i;
+
+function fileMentions(text: string): string[] {
+  return [...text.matchAll(new RegExp(CG_FILE_RE.source, CG_FILE_RE.flags))].map((m) => m[0]);
+}
+
+/**
+ * Detects a factual claim about a repo artifact the agent never observed this session.
+ * Returns the first ungrounded file mention, or null when every claimed file was actually
+ * inspected (read/searched/terminal-touched) this session.
+ */
+export function detectUngroundedClaim(text: string, ledger: ClaimLedger): string | null {
+  if (!text || !ledger) return null;
+  const sentences = text
+    .split(/(?<=[.!?])\s+|\n+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  for (const sentence of sentences) {
+    const mentioned = fileMentions(sentence);
+    if (mentioned.length === 0) continue;
+    if (!CG_CLAIM_VERB_RE.test(sentence)) continue;
+    for (const raw of mentioned) {
+      const base = baseOf(raw);
+      if (!ledger.observed(base)) return raw;
+    }
+  }
+  return null;
+}
+
+export function ungroundedClaimWarning(file: string): string {
+  return (
+    `[SYSTEM WARNING] You asserted a fact about ${file} (or a property of it) but you have not ` +
+    `read, searched, or otherwise inspected that file this session — the claim is ungrounded. ` +
+    `Do NOT report repo state you have not verified. Either (1) actually inspect ${file} ` +
+    `(read_file / search_files / grep) and confirm the claim against its real contents, or ` +
+    `(2) rephrase as a hypothesis or omit it. Every factual claim about a file must be backed by ` +
+    `a tool observation this session.`
+  );
+}
+

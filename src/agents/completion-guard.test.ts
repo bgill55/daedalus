@@ -7,6 +7,8 @@ import {
   detectFalseCompletionOnDisk,
   isScopeOverstatedSummary,
   isUnsubstantiatedProgressReport,
+  ClaimLedger,
+  detectUngroundedClaim,
 } from './completion-guard.js';
 import type { SqliteTodo } from '../session/sqlite.js';
 
@@ -188,5 +190,54 @@ describe('isUnsubstantiatedProgressReport', () => {
       'Here is where things stand. The tsconfig was adjusted and error handling was ' +
       'added to the database functions. Let me know if you want more.';
     expect(isUnsubstantiatedProgressReport(report)).toBe(false);
+  });
+});
+
+describe('ClaimLedger + detectUngroundedClaim', () => {
+  it('returns null when the claimed file was observed this session', () => {
+    const ledger = new ClaimLedger();
+    ledger.record({ kind: 'read', base: 'src/db.ts', hit: true });
+    const claim = 'The db.ts module exports updatePromptTemplateDb and it works correctly.';
+    expect(detectUngroundedClaim(claim, ledger)).toBeNull();
+  });
+
+  it('flags a factual claim about a file never inspected this session', () => {
+    const ledger = new ClaimLedger();
+    // Only looked at server.ts — not db.ts.
+    ledger.record({ kind: 'read', base: 'src/server.ts', hit: true });
+    const claim = 'The db.ts module has unused path and url imports that should be removed.';
+    expect(detectUngroundedClaim(claim, ledger)).toBe('db.ts');
+  });
+
+  it('flags an "already implemented" claim about an unobserved file', () => {
+    const ledger = new ClaimLedger();
+    const claim = 'Rate limiting is already implemented in package.json via express-rate-limit.';
+    expect(detectUngroundedClaim(claim, ledger)).toBe('package.json');
+  });
+
+  it('flags a claim about a type/error that was never verified', () => {
+    const ledger = new ClaimLedger();
+    const claim = 'updatePromptTemplateDb in src/db.ts has TS2304 errors that break the build.';
+    expect(detectUngroundedClaim(claim, ledger)).toBe('src/db.ts');
+  });
+
+  it('does NOT flag a sentence that merely names a file without a claim verb', () => {
+    const ledger = new ClaimLedger();
+    const claim = 'You can see the full logic in src/db.ts if you want to review it.';
+    expect(detectUngroundedClaim(claim, ledger)).toBeNull();
+  });
+
+  it('does NOT flag when no file is mentioned at all', () => {
+    const ledger = new ClaimLedger();
+    expect(detectUngroundedClaim('The code is clean and ready to ship.', ledger)).toBeNull();
+  });
+
+  it('ignores unrelated observed files and only flags the unobserved one', () => {
+    const ledger = new ClaimLedger();
+    ledger.record({ kind: 'search', base: 'src/server.ts', hit: true });
+    ledger.record({ kind: 'terminal', base: 'src/validation.ts', hit: true });
+    const claim =
+      'server.ts handles routing and validation.ts validates input. Also, logger.ts is missing a performance() method.';
+    expect(detectUngroundedClaim(claim, ledger)).toBe('logger.ts');
   });
 });
