@@ -1,3 +1,10 @@
+## [3.34.1](https://github.com/bgill55/daedalus/compare/v3.34.0...v3.34.1) (2026-08-20)
+
+
+### Bug Fixes
+
+* **agents:** add green-state claim guard for subset-omission overclaims ([#140](https://github.com/bgill55/daedalus/issues/140)) ([67c5452](https://github.com/bgill55/daedalus/commit/67c545263c0161233eceb5e7efe173cf7e3e821d)), closes [#131](https://github.com/bgill55/daedalus/issues/131)
+
 # [3.34.0](https://github.com/bgill55/daedalus/compare/v3.33.3...v3.34.0) (2026-08-20)
 
 
