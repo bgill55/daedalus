@@ -1,3 +1,10 @@
+## [3.34.2](https://github.com/bgill55/daedalus/compare/v3.34.1...v3.34.2) (2026-08-20)
+
+
+### Bug Fixes
+
+* **formatting:** keep streamed think content dimmed across chunk-split tags ([#142](https://github.com/bgill55/daedalus/issues/142)) ([90e7f67](https://github.com/bgill55/daedalus/commit/90e7f67ae44218353045021e3403d59762c50895))
+
 ## [3.34.1](https://github.com/bgill55/daedalus/compare/v3.34.0...v3.34.1) (2026-08-20)
 
 
