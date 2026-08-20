@@ -108,3 +108,90 @@ export function fabricatedTestCountCorrection(text: string, lastActualPassCount:
 }
 
 export const __test = { BUILD_OR_TEST_RE, GREEN_BUILD_RE, fabricatedTestCountCorrection };
+
+// Divergence detector: catches the "agent loses focus and re-emits identical output"
+// pathology. In a failing run the agent can, after a tool failure, simply restate a
+// prior deliverable (e.g. re-print the same review) instead of making progress. We hash
+// each assistant block and flag when the current block is near-identical to one already
+// produced this turn budget — that is a spin, not work. The loop then forces the agent to
+// either change the repo or report the blocker honestly.
+const DIVERGENCE_WINDOW = 6;
+const DIVERGENCE_SIMILARITY = 0.9;
+
+function shingles(text: string, size = 4): Set<string> {
+  const words = text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean);
+  const set = new Set<string>();
+  for (let i = 0; i + size <= words.length; i++) {
+    set.add(words.slice(i, i + size).join(' '));
+  }
+  // Short blocks (< size words) still compare by their single token set so trivial
+  // repeats ("Done.") are caught, not ignored.
+  if (set.size === 0 && words.length > 0) set.add(words.join(' '));
+  return set;
+}
+
+function jaccard(a: Set<string>, b: Set<string>): number {
+  if (a.size === 0 && b.size === 0) return a.size === b.size ? 1 : 0;
+  if (a.size === 0 || b.size === 0) return 0;
+  let inter = 0;
+  for (const x of a) if (b.has(x)) inter++;
+  return inter / (a.size + b.size - inter);
+}
+
+export class DivergenceDetector {
+  private blocks: string[] = [];
+
+  /**
+   * Register an assistant block. Returns true when the new block is near-identical
+   * (>= DIVERGENCE_SIMILARITY Jaccard over word-shingles) to any of the last
+   * DIVERGENCE_WINDOW blocks — a sign the agent is re-stating completed work.
+   */
+  register(text: string): boolean {
+    const norm = (text || '').trim();
+    if (norm.length < 40) return false; // ignore tiny blocks (acknowledgements, etc.)
+    const sh = shingles(norm);
+    let best = 0;
+    const recent = this.blocks.slice(-DIVERGENCE_WINDOW);
+    for (const prev of recent) {
+      const sim = jaccard(sh, shingles(prev));
+      if (sim > best) best = sim;
+    }
+    this.blocks.push(norm);
+    if (this.blocks.length > DIVERGENCE_WINDOW * 2) {
+      this.blocks = this.blocks.slice(-DIVERGENCE_WINDOW * 2);
+    }
+    return best >= DIVERGENCE_SIMILARITY;
+  }
+
+  reset(): void {
+    this.blocks = [];
+  }
+}
+
+// Stale-read recovery: when a write tool (patch/write_file) fails because the file was
+// modified since the agent last read it (the "STALE READ" / old-string-not-found case),
+// blindly retrying the same patch wastes turns. Detect the stale-read error and return the
+// path so the loop can auto-read the current content and inject it, giving the next attempt
+// fresh bytes instead of another blind retry.
+const STALE_READ_RE =
+  /stale read|was modified after you last read it|old string not found|did not match|no match|the string to (replace|find) was not found|patch did not apply/i;
+
+export function isStaleReadFailure(toolName: string, errorText: string): { stale: boolean; path?: string } {
+  const writeTools = ['patch', 'write_file'];
+  if (!writeTools.includes(toolName)) return { stale: false };
+  const text = errorText || '';
+  if (!STALE_READ_RE.test(text)) return { stale: false };
+  // Try to extract the file path from the error. Accepts either a full path
+  // (C:/repo/src/x.ts or /repo/src/x.ts) or a bare filename (package.json).
+  // Longer extensions are listed first so e.g. ".json" is not partial-matched by ".js".
+  const pathMatch = text.match(
+    /(?:[A-Za-z]:)?[\\/][\w.\-//\\]+\.(?:json|tsx|jsx|cjs|mjs|ts|js|py|go|rs|java|cs|rb|php|md|css|html)|\b[\w.\-]+\.(?:json|tsx|jsx|cjs|mjs|ts|js|py|go|rs|java|cs|rb|php|md|css|html)/i,
+  );
+  return { stale: true, path: pathMatch ? pathMatch[0] : undefined };
+}
+
+export const __test_helpers = { shingles, jaccard, DIVERGENCE_SIMILARITY, DIVERGENCE_WINDOW };

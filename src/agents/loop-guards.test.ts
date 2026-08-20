@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ReadStallDetector, isGreenBuildTestClaim, isVerifyRunReport, fabricatedTestCountCorrection } from './loop-guards.js';
+import { ReadStallDetector, isGreenBuildTestClaim, isVerifyRunReport, fabricatedTestCountCorrection, DivergenceDetector, isStaleReadFailure } from './loop-guards.js';
 
 describe('ReadStallDetector', () => {
   it('does not flag a few reads of the same file', () => {
@@ -94,5 +94,75 @@ describe('fabricatedTestCountCorrection', () => {
 
   it('does not flag a green claim without a concrete number', () => {
     expect(fabricatedTestCountCorrection('All tests are green and passing', 9)).toBeNull();
+  });
+});
+
+describe('DivergenceDetector', () => {
+  const reviewA =
+    '#### 1. Project Architecture & Tech Stack Overview\n' +
+    '| Layer | Technology | File Location(s) | Responsibilities |\n' +
+    '| Frontend | Vanilla JS | public/script.js | client UI |\n' +
+    '| Backend API | Express | src/server.ts | REST endpoints |\n' +
+    '| Database | better-sqlite3 | data/prompts.db | persistence |';
+  const reviewB = reviewA
+    .replace('client UI', 'client UI.');
+
+  it('does not flag the first block (no history)', () => {
+    const d = new DivergenceDetector();
+    expect(d.register(reviewA)).toBe(false);
+  });
+
+  it('flags a near-identical repeat of a prior block', () => {
+    const d = new DivergenceDetector();
+    d.register(reviewA);
+    // Tiny wording tweaks should still be caught as a near-duplicate.
+    expect(d.register(reviewB)).toBe(true);
+  });
+
+  it('does not flag a substantially different block', () => {
+    const d = new DivergenceDetector();
+    d.register(reviewA);
+    const different =
+      'Here is a short status note: I fixed the validation middleware and the tests now pass. ' +
+      'The cache layer needs a reset hook. Next I will add the resetDbForTest call.';
+    expect(d.register(different)).toBe(false);
+  });
+
+  it('ignores very short blocks (< 40 chars)', () => {
+    const d = new DivergenceDetector();
+    d.register('Done.');
+    expect(d.register('Done.')).toBe(false);
+  });
+
+  it('resets its window on reset()', () => {
+    const d = new DivergenceDetector();
+    d.register(reviewA);
+    d.reset();
+    expect(d.register(reviewB)).toBe(false);
+  });
+});
+
+describe('isStaleReadFailure', () => {
+  it('detects a stale-read error from a patch failure', () => {
+    const err = 'patch did not apply — [STALE READ] package.json was modified after you last read it. Use read_file to get the current content before patching.';
+    const r = isStaleReadFailure('patch', err);
+    expect(r.stale).toBe(true);
+    expect(r.path).toContain('package.json');
+  });
+
+  it('detects old-string-not-found from write_file', () => {
+    const err = 'Error: The string to replace was not found in D:/repo/src/server.ts';
+    const r = isStaleReadFailure('write_file', err);
+    expect(r.stale).toBe(true);
+    expect(r.path).toContain('server.ts');
+  });
+
+  it('returns stale:false for a syntax error (not a stale read)', () => {
+    const err = 'SyntaxError: Unexpected token (reverted to last-good state)';
+    expect(isStaleReadFailure('patch', err).stale).toBe(false);
+  });
+
+  it('returns stale:false for non-write tools', () => {
+    expect(isStaleReadFailure('read_file', 'old string not found').stale).toBe(false);
   });
 });

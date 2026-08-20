@@ -3,7 +3,7 @@ import { BUILTIN_TOOLS, POWER_TOOLS } from './tools/definitions.js';
 import { executeToolCalls } from './tools/executor.js';
 import { getSessionTodos } from './tools/builtin/todo.js';
 import { detectFalseCompletion, falseCompletionWarning, detectFalseCompletionOnDisk, isScopeOverstatedSummary, scopeOverstatementWarning, isUnsubstantiatedProgressReport, unsubstantiatedProgressWarning, countAchievementItems } from './agents/completion-guard.js';
-import { ReadStallDetector, isGreenBuildTestClaim, fabricatedTestCountCorrection } from './agents/loop-guards.js';
+import { ReadStallDetector, isGreenBuildTestClaim, fabricatedTestCountCorrection, DivergenceDetector, isStaleReadFailure } from './agents/loop-guards.js';
 import { mcpRegistry } from './tools/mcp/registry.js';
 import { DaedalusSpinner } from './tools/daedalus-spinner.js';
 import { calculateSessionTokens, pruneMessages } from './session/tokens.js';
@@ -239,6 +239,10 @@ export function createModelFunctions(deps: ModelDeps) {
     // intervening write is usually "the fix was already present" spinning on re-reads.
     // Short-circuit it before it burns minutes of wall-clock + model budget.
     const readStall = new ReadStallDetector(15);
+    // Divergence detector: if the agent emits output near-identical to a prior block this
+    // turn (the "re-state the review after a failure" spin), force it to make concrete
+    // progress or report the blocker honestly instead of looping on repeated text.
+    const divergence = new DivergenceDetector();
     // Layer C: verification-claim guard. Set true if a build/test/lint verify command
     // trips the terminal circuit breaker this turn; cleared by a real successful run.
     let verifyBreakerTrippedThisTurn = false;
@@ -401,6 +405,20 @@ export function createModelFunctions(deps: ModelDeps) {
       }
       const cleanContent = stripToolCallMarkup(fullContent);
       lastContent = cleanContent;
+
+      // Divergence guard: if this assistant block is near-identical to one already emitted
+      // this turn (and it produced no new tool calls — i.e. it's just re-stating work), force
+      // the agent to either change the repo or report the blocker honestly. This breaks the
+      // "test failed → re-print the same review" spin without bounding on max turns alone.
+      if (toolCallArray.length === 0 && divergence.register(cleanContent)) {
+        console.log(pc.dim(`\n  [CHECK] Detected near-duplicate of prior output — not making progress.`));
+        messages.push({ role: 'assistant', content: cleanContent });
+        messages.push({
+          role: 'user',
+          content: `[SYSTEM WARNING] This response is nearly identical to output you already produced this turn. You are looping on repeated text instead of making progress. Do NOT re-state completed work. Either (1) take a concrete next action (read the failing test, fix the code, verify), or (2) if you are blocked, report the blocker concisely and stop. Do not emit the same deliverable again.`,
+        } as ChatMessage);
+        continue;
+      }
 
       if (toolCallArray.length === 0) {
         // Only treat this as a "planned but omitted JSON" failure when the model
@@ -638,6 +656,28 @@ export function createModelFunctions(deps: ModelDeps) {
             content += `\n\n[SYSTEM WARNING] You have repeatedly failed to apply this change (${repeated} attempts). STOP attempting the same patch. Read the exact current file content and construct a patch that matches it exactly, or switch strategy (e.g. write_file with full content), or move on and summarize the blocker to the user.`;
           } else {
             content += `\n\n[SYSTEM WARNING] The changes to the file were NOT applied due to the error above. You MUST first resolve this error (e.g. by using "read_file" to get the current content if it was a stale read, or correcting code syntax/types) and successfully apply the file change before moving on to other tasks or files. Do not skip or ignore this file.`;
+          }
+          // Stale-read auto-recovery: if the write failed because the file changed since the
+          // last read (old-string-not-found), automatically read the current content and inject
+          // it so the next attempt patches against fresh bytes instead of blind-retrying. This
+          // turns a multi-turn thrash ("STALE READ → SELF-CORRECT → STALE READ") into one
+          // automatic re-read.
+          const stale = isStaleReadFailure(result.name, errText);
+          if (stale.stale && stale.path) {
+            try {
+              const readBack = await executeToolCalls(
+                [{ id: `auto_read_${Date.now()}`, type: 'function', function: { name: 'read_file', arguments: JSON.stringify({ path: stale.path }) } }],
+                toolContext,
+              );
+              const fresh = readBack[0]?.content ?? '';
+              messages.push({
+                role: 'user',
+                content: `[AUTO-READ after stale read] Current contents of ${stale.path} (re-read automatically because your edit targeted out-of-date bytes):\n\n${typeof fresh === 'string' ? fresh : JSON.stringify(fresh)}`,
+              } as ChatMessage);
+              console.log(pc.dim(`\n  [SELF-CORRECT] Stale read detected on ${stale.path} — auto-re-read current content for the next attempt.`));
+            } catch {
+              // If the auto-read itself fails, the warning above already tells the agent to read manually.
+            }
           }
         }
 
