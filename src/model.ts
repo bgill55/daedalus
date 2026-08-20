@@ -2,7 +2,7 @@ import pc from 'picocolors';
 import { BUILTIN_TOOLS, POWER_TOOLS } from './tools/definitions.js';
 import { executeToolCalls } from './tools/executor.js';
 import { getSessionTodos } from './tools/builtin/todo.js';
-import { detectFalseCompletion, falseCompletionWarning, detectFalseCompletionOnDisk, isScopeOverstatedSummary, scopeOverstatementWarning } from './agents/completion-guard.js';
+import { detectFalseCompletion, falseCompletionWarning, detectFalseCompletionOnDisk, isScopeOverstatedSummary, scopeOverstatementWarning, isUnsubstantiatedProgressReport, unsubstantiatedProgressWarning, countAchievementItems } from './agents/completion-guard.js';
 import { ReadStallDetector, isGreenBuildTestClaim, fabricatedTestCountCorrection } from './agents/loop-guards.js';
 import { mcpRegistry } from './tools/mcp/registry.js';
 import { DaedalusSpinner } from './tools/daedalus-spinner.js';
@@ -466,6 +466,23 @@ export function createModelFunctions(deps: ModelDeps) {
           messages.push({
             role: 'user',
             content: scopeOverstatementWarning(remaining),
+          } as ChatMessage);
+          continue;
+        }
+
+        // Hard guard (unsubstantiated progress): do not let a turn end with a deliverable
+        // checklist of completed work (✅ lists / numbered / bulleted achievement lists) that
+        // has no task tracker reconciling it AND no on-disk verification per claim. This is the
+        // "Current State Analysis: ✅ X / ✅ Y / Key Improvements Made: 1... 2... 3..." shape that
+        // slips past the todo-gated guards whenever the agent didn't use the todo tool. Force the
+        // agent to reconcile each claimed item with disk reality before concluding.
+        if (isUnsubstantiatedProgressReport(cleanContent)) {
+          const itemCount = countAchievementItems(cleanContent);
+          console.log(pc.dim(`\n  [CHECK] Verifying completion claim — ${itemCount} deliverables enumerated as done without a reconciling task list or per-item verification.`));
+          messages.push({ role: 'assistant', content: cleanContent });
+          messages.push({
+            role: 'user',
+            content: unsubstantiatedProgressWarning(itemCount),
           } as ChatMessage);
           continue;
         }

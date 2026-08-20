@@ -6,6 +6,7 @@ import {
   falseCompletionWarning,
   detectFalseCompletionOnDisk,
   isScopeOverstatedSummary,
+  isUnsubstantiatedProgressReport,
 } from './completion-guard.js';
 import type { SqliteTodo } from '../session/sqlite.js';
 
@@ -144,5 +145,48 @@ describe('isScopeOverstatedSummary', () => {
     const todos = [todo('completed'), todo('pending')];
     const summary = 'Issue #1: completed. Issue #2: completed. Everything is resolved.';
     expect(isScopeOverstatedSummary(summary, todos)).toBe(true);
+  });
+});
+
+describe('isUnsubstantiatedProgressReport', () => {
+  it('flags a ✅ deliverable checklist without a task tracker', () => {
+    const report =
+      'Current State Analysis:\n' +
+      '✅ TypeScript Configuration: Fixed\n' +
+      '✅ Error Handling: Added consistent try-catch blocks\n' +
+      '✅ Dependencies: Cleaned up redundant devDependencies';
+    expect(isUnsubstantiatedProgressReport(report)).toBe(true);
+  });
+
+  it('flags a numbered "Key Improvements Made" achievement list', () => {
+    const report =
+      'Key Improvements Made:\n' +
+      '1. Fixed tsconfig.json: Removed rootDir\n' +
+      '2. Enhanced Error Handling: Added try-catch blocks\n' +
+      '3. Cleaned package.json: Removed duplicate devDependencies';
+    expect(isUnsubstantiatedProgressReport(report)).toBe(true);
+  });
+
+  it('flags a bulleted achievement list', () => {
+    const report =
+      '• Fixed the build blocker\n' +
+      '• Added DB error handling\n' +
+      '• Removed unused imports';
+    expect(isUnsubstantiatedProgressReport(report)).toBe(true);
+  });
+
+  it('does NOT flag a single incidental done sentence', () => {
+    expect(isUnsubstantiatedProgressReport('I fixed the config bug and the build is green now.')).toBe(false);
+  });
+
+  it('does NOT flag a single ✅ bullet', () => {
+    expect(isUnsubstantiatedProgressReport('✅ TypeScript config fixed.')).toBe(false);
+  });
+
+  it('does NOT flag a plain status summary with no achievement enumeration', () => {
+    const report =
+      'Here is where things stand. The tsconfig was adjusted and error handling was ' +
+      'added to the database functions. Let me know if you want more.';
+    expect(isUnsubstantiatedProgressReport(report)).toBe(false);
   });
 });
