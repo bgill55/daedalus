@@ -644,6 +644,9 @@ export async function execute(args: { command: string; timeout?: number; workdir
         // it, which is the whole point — it catches patch->test->patch->test loops).
         if (isVerificationCommand(command)) {
           context.verifyFailStreak = succeeded ? 0 : (context.verifyFailStreak ?? 0) + 1;
+          // Track whether the most recent verify run was GREEN so a later "tests pass /
+          // clean state" claim cannot omit a failing overall suite.
+          context.lastVerifyPassed = succeeded;
           // Capture the ACTUAL passing-test count from a successful verify run so a later
           // summary cannot fabricate a different number. Parse "Tests X passed (Y)" /
           // "X/Y passing" / "X tests passed".

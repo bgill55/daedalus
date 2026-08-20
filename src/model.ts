@@ -2,7 +2,7 @@ import pc from 'picocolors';
 import { BUILTIN_TOOLS, POWER_TOOLS } from './tools/definitions.js';
 import { executeToolCalls } from './tools/executor.js';
 import { getSessionTodos } from './tools/builtin/todo.js';
-import { detectFalseCompletion, falseCompletionWarning, detectFalseCompletionOnDisk, isScopeOverstatedSummary, scopeOverstatementWarning, isUnsubstantiatedProgressReport, unsubstantiatedProgressWarning, countAchievementItems, ClaimLedger, detectUngroundedClaim, ungroundedClaimWarning } from './agents/completion-guard.js';
+import { detectFalseCompletion, falseCompletionWarning, detectFalseCompletionOnDisk, isScopeOverstatedSummary, scopeOverstatementWarning, isUnsubstantiatedProgressReport, unsubstantiatedProgressWarning, countAchievementItems, ClaimLedger, detectUngroundedClaim, ungroundedClaimWarning, isGreenStateClaim, greenStateWarning } from './agents/completion-guard.js';
 import { ReadStallDetector, isGreenBuildTestClaim, fabricatedTestCountCorrection, DivergenceDetector, isStaleReadFailure } from './agents/loop-guards.js';
 import { mcpRegistry } from './tools/mcp/registry.js';
 import { DaedalusSpinner } from './tools/daedalus-spinner.js';
@@ -562,6 +562,21 @@ export function createModelFunctions(deps: ModelDeps) {
           messages.push({
             role: 'user',
             content: testCorrection,
+          } as ChatMessage);
+          continue;
+        }
+
+        // Layer D2: green-state / clean-state claim vs last real verify run. Catches the
+        // subset-omission overclaim: a true passing count ("9 validation tests passing")
+        // slips past the count-fabrication guard, but the overall `npm test` was RED. If the
+        // agent asserts tests/build pass or a clean state while the most recent actual verify
+        // run this session FAILED, force a re-run or an honest report of what actually failed.
+        if (isGreenStateClaim(cleanContent) && toolContext.lastVerifyPassed === false) {
+          console.log(pc.dim(`\n  [CHECK] Verifying green-state claim — last real verify run this session FAILED.`));
+          messages.push({ role: 'assistant', content: cleanContent });
+          messages.push({
+            role: 'user',
+            content: greenStateWarning(),
           } as ChatMessage);
           continue;
         }
