@@ -1,3 +1,10 @@
+## [3.33.2](https://github.com/bgill55/daedalus/compare/v3.33.1...v3.33.2) (2026-08-20)
+
+
+### Bug Fixes
+
+* **agents:** add loop divergence detector + stale-read auto-recovery ([#137](https://github.com/bgill55/daedalus/issues/137)) ([fc8dcab](https://github.com/bgill55/daedalus/commit/fc8dcab64baad8763fe8e4768ace62263deeb764))
+
 ## [3.33.1](https://github.com/bgill55/daedalus/compare/v3.33.0...v3.33.1) (2026-08-20)
 
 
