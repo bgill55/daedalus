@@ -1,3 +1,10 @@
+## [3.33.1](https://github.com/bgill55/daedalus/compare/v3.33.0...v3.33.1) (2026-08-20)
+
+
+### Bug Fixes
+
+* **agents:** add unsubstantiated-progress-report completion guard ([#136](https://github.com/bgill55/daedalus/issues/136)) ([daca13b](https://github.com/bgill55/daedalus/commit/daca13b40c836303d8aa99135fe7a172efb83807))
+
 # [3.33.0](https://github.com/bgill55/daedalus/compare/v3.32.0...v3.33.0) (2026-08-20)
 
 
