@@ -148,3 +148,47 @@ export function scopeOverstatementWarning(remaining: number): string {
     `scoped to what actually shipped.`
   );
 }
+
+// Unsubstantiated-progress guard: catches the "Current State Analysis: ✅ X / ✅ Y /
+// Key Improvements Made: 1... 2... 3..." shape — a summary that enumerates specific
+// deliverables as DONE without any todo list to reconcile against. The existing
+// list-gated guards (detectFalseCompletion / isScopeOverstatedSummary) never fire when
+// the agent didn't use the todo tool, which is exactly how an unverified progress
+// report slips through and over-claims work. This guard fires on the enumeration
+// itself (≥2 achievement items with done-verbs), independent of todos, and forces the
+// agent to reconcile each claimed item with disk reality before the turn can end.
+//
+// Deliberately scoped to DELIVERABLE ENUMERATIONS (✅ lists, "N. <DoneVerb> ..." numbered
+// achievement lists, "• <DoneVerb> ..." bullet achievement lists). A plain sentence like
+// "I fixed the bug" or a read-only audit that names files is NOT an enumeration and will
+// not trip this guard — we only challenge claims that present a checklist of completed work.
+const ACHIEVEMENT_ITEM_RE =
+  /(?:^|\n)\s*(?:✅\s*|[•\-*]\s*|(?:\d+)[.)]\s*)[^\n]*?\b(?:fixed|removed|added|updated|changed|cleaned\s*up|refactored|resolved|implemented|completed|done|enhanced|deleted|optimized|improved)\b/i;
+
+export function countAchievementItems(text: string): number {
+  const lines = text.split('\n');
+  let count = 0;
+  for (const line of lines) {
+    if (ACHIEVEMENT_ITEM_RE.test(line)) count++;
+  }
+  return count;
+}
+
+export function isUnsubstantiatedProgressReport(text: string): boolean {
+  if (!text) return false;
+  // Require a substantive enumeration (≥2 items) so a single incidental "✅ done"
+  // or one bullet doesn't trip the guard — only a deliverable checklist does.
+  return countAchievementItems(text) >= 2;
+}
+
+export function unsubstantiatedProgressWarning(count: number): string {
+  return (
+    `[SYSTEM WARNING] Your message enumerates ${count} specific deliverables as done ` +
+    `(✅ / numbered / bulleted achievement list) but there is no task tracker reconciling them ` +
+    `and no on-disk verification accompanying each claim. Do NOT present a checklist of completed ` +
+    `work you have not verified. Either (1) actually perform and verify each item (run build/lint/test ` +
+    `and confirm the change on disk) before claiming it, or (2) rewrite the summary to only state what ` +
+    `you genuinely did and verified this session, marking anything partial or unverified honestly. ` +
+    `Every "done" claim must correspond to a real, verified change.`
+  );
+}
