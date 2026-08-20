@@ -1,3 +1,10 @@
+## [3.34.3](https://github.com/bgill55/daedalus/compare/v3.34.2...v3.34.3) (2026-08-20)
+
+
+### Bug Fixes
+
+* **agents:** harden against review-looping and ungrounded project claims ([#143](https://github.com/bgill55/daedalus/issues/143)) ([e4f5987](https://github.com/bgill55/daedalus/commit/e4f598788722c6ff322713a2eb6d59c6e1dcaf9e))
+
 ## [3.34.2](https://github.com/bgill55/daedalus/compare/v3.34.1...v3.34.2) (2026-08-20)
 
 
