@@ -77,6 +77,7 @@ export interface ToolContext {
   terminalConsecutiveFails?: number; // consecutive terminal failures across ALL commands (diversifying retry-loop guard)
   verifyFailStreak?: number; // consecutive FAILING build/test/lint runs; resets only on a PASSING verify run (catches patch→test→patch→test loops where patches reset terminalConsecutiveFails)
   lastVerifyPassCount?: number; // last actual passing-test count observed from a verify run's output (used to catch fabricated "N tests passing" summary claims)
+  lastVerifyPassed?: boolean; // whether the most recent build/test/lint verify run was GREEN (true) or RED (false). Lets the completion guard catch "tests passing / clean state" claims that omit a failing overall suite.
   // Set true for the rest of the session once a build/test/lint verify command trips
   // the terminal circuit breaker, so a later turn cannot falsely claim "build/tests pass"
   // without a fresh successful run (see loop-guards.ts verification-claim guard).

@@ -284,3 +284,29 @@ export function ungroundedClaimWarning(file: string): string {
   );
 }
 
+// Green-state claim guard: catches the "subset-omission" overclaim where the agent asserts
+// the tests/build pass or the project is in a clean state, while the most recent REAL
+// verify run this session was RED. The count-fabrication guard (#131) only fires when the
+// stated number disagrees with the run; this fires when the agent cherry-picks a green
+// subset ("9 validation tests passing") and silently omits a failing overall suite. The
+// run in the transcript reported "9 validation tests passing" while `npm test` had actually
+// failed 2 db/api tests — a true count, so the count guard missed it; this guard catches it.
+const GREEN_STATE_RE =
+  /\b(tests?\b[^\w]*?(?:pass|passing|green)|build\b[^\w]*?(?:pass|passing|clean|green)|all tests?\b[^\w]*?(?:pass|green|passing)|clean state|no (?:errors?|warnings?|failures?)|everything (?:is )?(?:green|passing)|the (?:suite|project)\b[^\w]*?(?:is )?(?:green|clean|passing))\b/i;
+
+export function isGreenStateClaim(text: string): boolean {
+  if (!text) return false;
+  return GREEN_STATE_RE.test(text);
+}
+
+export function greenStateWarning(): string {
+  return (
+    `[SYSTEM WARNING] You reported the tests/build as passing or the project as clean, but the ` +
+    `most recent actual verify run this session FAILED (the suite was not green). Do NOT report ` +
+    `a green/clean state by citing a passing subset while the overall run was red. Either (1) ` +
+    `re-run \`npm run build && npm run test\` and confirm a REAL all-green result before claiming ` +
+    `it, or (2) report the actual state honestly (which tests/files failed). A passing subset is ` +
+    `not a passing suite.`
+  );
+}
+

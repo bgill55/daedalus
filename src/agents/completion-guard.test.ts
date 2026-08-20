@@ -9,6 +9,7 @@ import {
   isUnsubstantiatedProgressReport,
   ClaimLedger,
   detectUngroundedClaim,
+  isGreenStateClaim,
 } from './completion-guard.js';
 import type { SqliteTodo } from '../session/sqlite.js';
 
@@ -239,5 +240,30 @@ describe('ClaimLedger + detectUngroundedClaim', () => {
     const claim =
       'server.ts handles routing and validation.ts validates input. Also, logger.ts is missing a performance() method.';
     expect(detectUngroundedClaim(claim, ledger)).toBe('logger.ts');
+  });
+});
+
+describe('isGreenStateClaim', () => {
+  it('detects a tests-passing claim', () => {
+    expect(isGreenStateClaim('Tests: ✅ 9 validation tests passing')).toBe(true);
+  });
+
+  it('detects a build-passing claim', () => {
+    expect(isGreenStateClaim('Build: ✅ Passing (tsc --noEmit)')).toBe(true);
+  });
+
+  it('detects a clean-state claim', () => {
+    expect(isGreenStateClaim('The project is now in a clean state with no warnings or errors.')).toBe(true);
+  });
+
+  it('does NOT flag a plain status summary without a green/clean assertion', () => {
+    const report =
+      'Here is where things stand. The tsconfig was adjusted and error handling was ' +
+      'added to the database functions. Let me know if you want more.';
+    expect(isGreenStateClaim(report)).toBe(false);
+  });
+
+  it('does NOT flag a report that names a failure honestly', () => {
+    expect(isGreenStateClaim('2 db/api tests are failing; the rest pass.')).toBe(false);
   });
 });
