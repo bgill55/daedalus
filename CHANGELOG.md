@@ -1,3 +1,10 @@
+## [3.31.1](https://github.com/bgill55/daedalus/compare/v3.31.0...v3.31.1) (2026-08-20)
+
+
+### Bug Fixes
+
+* **orchestration:** make handoff_task actually transfer control + add get_context_variable ([#133](https://github.com/bgill55/daedalus/issues/133)) ([57efda8](https://github.com/bgill55/daedalus/commit/57efda87cd3226410869532d0cab4151f471b26d))
+
 # [3.31.0](https://github.com/bgill55/daedalus/compare/v3.30.11...v3.31.0) (2026-08-20)
 
 

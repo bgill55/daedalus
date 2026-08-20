@@ -1,6 +1,6 @@
 {
   "name": "daedalus-cli",
-  "version": "3.31.0",
+  "version": "3.31.1",
   "description": "Local-first AI coding CLI with embedded model router, multi-agent orchestration, and codebase indexing",
   "type": "module",
   "bin": {
