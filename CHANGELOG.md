@@ -1,3 +1,10 @@
+# [3.34.0](https://github.com/bgill55/daedalus/compare/v3.33.3...v3.34.0) (2026-08-20)
+
+
+### Features
+
+* **formatting:** render <think> reasoning in dimmed font, answers in white ([#139](https://github.com/bgill55/daedalus/issues/139)) ([b5f530a](https://github.com/bgill55/daedalus/commit/b5f530a32e324f73699d0807197f4144d1ae7717))
+
 ## [3.33.3](https://github.com/bgill55/daedalus/compare/v3.33.2...v3.33.3) (2026-08-20)
 
 
