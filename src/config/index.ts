@@ -105,7 +105,8 @@ export const ConfigSchema = z.object({
       'read_file', 'write_file', 'patch', 'search_files', 'list_files',
       'terminal', 'git_diff', 'git_status', 'todo', 'delegate_task',
       'web_search', 'fetch_url', 'index_codebase', 'find_symbol',
-      'get_definition', 'get_references', 'generate_image'
+      'get_definition', 'get_references', 'generate_image',
+      'handoff_task', 'set_context_variable'
     ]),
     mcpServers: z.record(z.object({
       transport: z.enum(['stdio', 'http']),
@@ -245,7 +246,8 @@ export const DEFAULT_CONFIG: DaedalusConfig = {
       'read_file', 'write_file', 'patch', 'search_files', 'list_files',
       'terminal', 'git_diff', 'git_status', 'todo', 'delegate_task',
       'web_search', 'fetch_url', 'index_codebase', 'find_symbol',
-      'get_definition', 'get_references'
+      'get_definition', 'get_references', 'generate_image',
+      'handoff_task', 'set_context_variable'
     ],
     mcpServers: {},
     permissions: { terminal: 'auto', files: 'auto' },

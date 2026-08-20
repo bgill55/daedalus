@@ -93,6 +93,7 @@ export interface ToolContext {
   // tool (e.g. write_file blocked -> terminal cat >) and force the agent to
   // report the blocker instead of silently routing around the lock.
   blockedTestWrites?: Set<string>;
+  contextVariables?: Record<string, unknown>;
 }
 
 export interface PatchEntry {

@@ -536,6 +536,38 @@ export const POWER_TOOLS: ToolDefinition[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'handoff_task',
+      description: 'Dynamically hand off the active execution turn to another specialized sub-agent role (planner, coder, reviewer, debugger, researcher) with notes and shared context updates.',
+      parameters: {
+        type: 'object',
+        properties: {
+          target_role: { type: 'string', enum: ['planner', 'coder', 'reviewer', 'debugger', 'researcher'], description: 'The target sub-agent role to transfer control to.' },
+          handoff_notes: { type: 'string', description: 'Summary of work accomplished and specific instructions for the next agent role.' },
+          context_updates: { type: 'object', description: 'Optional key-value pairs to store in shared contextVariables for subsequent agent turns.' },
+        },
+        required: ['target_role', 'handoff_notes'],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'set_context_variable',
+      description: 'Set a key-value pair in the shared contextVariables state bag to persist structured metadata across agent turns and handoffs.',
+      parameters: {
+        type: 'object',
+        properties: {
+          key: { type: 'string', description: 'The state variable key name (e.g. target_files, test_status).' },
+          value: { description: 'The value to store (string, number, boolean, array, or object).' },
+        },
+        required: ['key', 'value'],
+      },
+    },
+  },
 ];
 
 // Tool name to implementation function mapping
@@ -570,4 +602,6 @@ export const TOOL_IMPLEMENTATIONS: Record<string, string> = {
   propose_skill: 'tools/builtin/propose_skill.proposeSkill',
   system_info: 'tools/builtin/system.systemInfo',
   generate_image: 'tools/builtin/image.generateImage',
+  handoff_task: 'tools/builtin/handoff.handoffTask',
+  set_context_variable: 'tools/builtin/handoff.setContextVariable',
 };
