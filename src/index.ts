@@ -208,11 +208,13 @@ function getSystemPromptWithMemory(userRequest?: string): string {
   }
 
   // Heuristic routing nudge: when the active agent is the coder (the role that
-  // owns route_task) and the user's request looks like a large multi-phase task,
-  // remind it that it may propose routing to helper agents. Fired at most once
-  // per distinct qualifying request so it doesn't repeat every turn. The agent
-  // still must ask the user for permission before calling route_task.
-  if (userRequest && toolContext.agentRole === 'coder' && looksMultiPhase(userRequest) && lastNudgeRequest !== userRequest) {
+  // owns route_task) OR the configured single-agent default role, and the user's
+  // request looks like a large multi-phase task, remind it that it may propose
+  // routing to helper agents. Fired at most once per distinct qualifying request
+  // so it doesn't repeat every turn. The agent still must ask the user for
+  // permission before calling route_task.
+  const nudgedRole = config.agents?.default ?? 'coder';
+  if (userRequest && (toolContext.agentRole === 'coder' || toolContext.agentRole === nudgedRole) && looksMultiPhase(userRequest) && lastNudgeRequest !== userRequest) {
     lastNudgeRequest = userRequest;
     prompt += '\n\n## ROUTING NUDGE\nThis request looks like a multi-phase task. Remember you can propose routing independent pieces to helper agents (researcher / planner / reviewer / debugger) via `route_task` — but you MUST ask the user for approval with `ask_user` first, then call it with `confirmed: true`. Only route genuinely independent sub-tasks.';
   }

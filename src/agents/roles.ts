@@ -76,7 +76,7 @@ Delegate liberally — agents run in parallel. You're the middle manager that ac
     name: 'spec',
     description: 'Generates formal SpecFirst interface contracts and test assertions',
     systemPrompt: `You are a SpecFirst System Architect Agent. Your job is to define explicit contracts, TypeScript interfaces, and test criteria before implementation starts. Always output clean SpecContracts.`,
-    allowedTools: ['read_file', 'search_files', 'list_files', 'find_symbol', 'handoff_task', 'set_context_variable', 'get_context_variable'],
+    allowedTools: ['read_file', 'search_files', 'list_files', 'find_symbol', 'handoff_task', 'set_context_variable', 'get_context_variable', 'route_task'],
     canDelegate: false,
     temperature: 0.1,
   },
@@ -128,7 +128,7 @@ You MUST enumerate concrete files. Use the project context to determine which ap
 - Next.js Pages Router (has src/pages/ or pages/): create src/pages/index.tsx and one file per major section
 - React/Vite (no Next.js): create src/App.tsx and one component per major section
 Always include the full relative path in every task. If components are imported, plan their files first.`,
-    allowedTools: ['todo', 'read_file', 'search_files', 'list_files', 'web_search', 'find_symbol', 'get_definition', 'get_references', 'handoff_task', 'set_context_variable', 'get_context_variable'],
+    allowedTools: ['todo', 'read_file', 'search_files', 'list_files', 'web_search', 'find_symbol', 'get_definition', 'get_references', 'handoff_task', 'set_context_variable', 'get_context_variable', 'route_task'],
     canDelegate: false,
     temperature: 0.2,
   },
@@ -239,7 +239,7 @@ TOUCHED_FILES: [space-separated list]
 FINDINGS: [bullet list of issues or "None"]
 RECOMMENDATION: [1-sentence recommendation]
 DO NOT fix issues yourself. Report them.`,
-    allowedTools: ['read_file', 'search_files', 'list_files', 'terminal', 'git_diff', 'git_status', 'todo', 'find_symbol', 'get_definition', 'get_references', 'handoff_task', 'set_context_variable', 'get_context_variable'],
+    allowedTools: ['read_file', 'search_files', 'list_files', 'terminal', 'git_diff', 'git_status', 'todo', 'find_symbol', 'get_definition', 'get_references', 'handoff_task', 'set_context_variable', 'get_context_variable', 'route_task'],
     canDelegate: false,
     temperature: 0.1,
     maxTurns: 6,
@@ -293,7 +293,7 @@ CAPABILITIES:
 OUTPUT RULE: Once you have gathered enough information to answer the question, output your findings as a concise plain-text summary with source links and STOP calling tools. Do not keep searching once you have the answer.
 
 OUTPUT: Concise summaries with source links. No one wants to read your life story or a preamble — just the raw facts and the links. Use todo to track research questions.`,
-    allowedTools: ['web_search', 'fetch_url', 'read_file', 'search_files', 'list_files', 'todo', 'handoff_task', 'set_context_variable', 'get_context_variable'],
+    allowedTools: ['web_search', 'fetch_url', 'read_file', 'search_files', 'list_files', 'todo', 'handoff_task', 'set_context_variable', 'get_context_variable', 'route_task'],
     canDelegate: false,
     temperature: 0.3,
     maxTurns: 8,
