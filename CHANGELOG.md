@@ -1,3 +1,10 @@
+# [3.31.0](https://github.com/bgill55/daedalus/compare/v3.30.11...v3.31.0) (2026-08-20)
+
+
+### Features
+
+* **orchestration:** ship dynamic sub-agent handoffs (handoff_task) and shared context variables (contextVariables) ([98995f5](https://github.com/bgill55/daedalus/commit/98995f58799cc1f9739192eee14c7f7c6a43d00c))
+
 ## [3.30.11](https://github.com/bgill55/daedalus/compare/v3.30.10...v3.30.11) (2026-08-18)
 
 
