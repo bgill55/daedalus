@@ -139,6 +139,33 @@ If the agent fails to resolve the errors after all repair attempts are exhausted
 
 ---
 
+## Dynamic Sub-Agent Handoffs & Shared Context Variables
+
+Inspired by OpenAI Swarm's ergonomic multi-agent orchestration, Daedalus supports mid-turn **Dynamic Sub-Agent Handoffs** and a shared **Context Variables** state bag:
+
+### 1. Dynamic Sub-Agent Handoffs (`handoff_task`)
+Any active agent can dynamically transfer the execution turn to another specialized sub-agent role without process restarts or losing conversation context:
+
+* **Target Roles**: `planner`, `coder`, `reviewer`, `debugger`, `researcher`.
+* **Handoff Notes**: Structured summary of what was accomplished and direct instructions for the next agent.
+* **Context Updates**: Optional dictionary updates merged directly into the shared state bag.
+
+```json
+{
+  "target_role": "reviewer",
+  "handoff_notes": "Implemented JWT auth in src/auth.ts. Please audit for type-safety and unhandled exceptions.",
+  "context_updates": {
+    "target_files": ["src/auth.ts"],
+    "tests_status": "green"
+  }
+}
+```
+
+### 2. Shared Context Variables (`set_context_variable` & `contextVariables`)
+Agents can store and query structured key-value metadata across turns using the `set_context_variable` tool. This allows agents to pass persistent state (such as `pr_number`, `benchmark_score`, or `affected_modules`) across handoffs and turns without relying on raw transcript scraping.
+
+---
+
 ## Non-Linear Session Branching & Merging
 
 Daedalus supports non-linear session exploration. Rather than abandoning context when an experimental approach fails, you can snapshot, branch, checkout, and merge session trajectories.
