@@ -1,3 +1,10 @@
+# [3.32.0](https://github.com/bgill55/daedalus/compare/v3.31.1...v3.32.0) (2026-08-20)
+
+
+### Features
+
+* **orchestration:** single-agent auto-routing via route_task (parallel helper agents, user-approved) ([#134](https://github.com/bgill55/daedalus/issues/134)) ([935ca42](https://github.com/bgill55/daedalus/commit/935ca429181afe38eb5fd6dd3368a154aee02fc7))
+
 ## [3.31.1](https://github.com/bgill55/daedalus/compare/v3.31.0...v3.31.1) (2026-08-20)
 
 
