@@ -124,6 +124,7 @@ let _codeLines: string[] = [];
 // chunks, so we buffer until a closing tag and flush any open block on block close.
 let _inThink = false;
 let _thinkBuf = '';
+let _pending = ''; // incomplete <think>/</think> tag fragment held across stream chunks
 
 export function collapseCommentary(): void {
   if (!_collapseEnabled) {
@@ -225,32 +226,66 @@ function emitCodeBlock(): void {
 export function writeAssistantChunk(chunk: string): void {
   // Render <think>...</think> reasoning inline in a dimmed (gray) font while the final
   // answer renders in white — so the user can tell "Daedalus is thinking" from "Daedalus is
-  // replying". Think tags can split across stream chunks, so we buffer until a closing tag
-  // and emit complete lines as they arrive.
-  const append = (s: string): void => {
-    if (_inThink) _thinkBuf += s;
-    else _buf += s;
-  };
+  // replying". Think tags routinely split across stream chunks, so we hold only a genuine
+  // incomplete-tag PREFIX (≤7 chars, a prefix of "<think>" or "</think>") in _pending for the
+  // next chunk; all other text is emitted immediately in the current (think/plain) context.
+  // Crucially, while a think block is open we accumulate its body in _thinkBuf and only ever
+  // emit it dimmed — never as a white reply. Completed think blocks flush dimmed; the answer
+  // after </think> renders white. Literal tags are never printed.
+  let s = _pending + chunk;
+  _pending = '';
+  let i = 0;
+  while (i < s.length) {
+    const open = s.indexOf('<think>', i);
+    const close = s.indexOf('</think>', i);
+    let tag = -1, tagLen = 0, isOpen = false;
+    if (open !== -1 && (close === -1 || open < close)) { tag = open; tagLen = 7; isOpen = true; }
+    else if (close !== -1) { tag = close; tagLen = 8; isOpen = false; }
 
-  let remaining = _buf + chunk;
-  _buf = '';
-  const re = /<think>([\s\S]*?)<\/think>/gi;
-  let lastIndex = 0;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(remaining)) !== null) {
-    const before = remaining.slice(0, m.index);
-    const inner = m[1];
-    lastIndex = re.lastIndex;
-    append(before);
-    // Render the think block's lines dimmed, then close the think state.
-    _inThink = true;
-    flushThinkBuffer();
-    for (const raw of inner.split('\n')) emitAssistantLine(raw);
-    _inThink = false;
+    if (tag === -1) {
+      // No complete tag remains. Emit everything except a trailing partial-tag prefix.
+      const keep = tagPrefixLen(s.slice(i));
+      emitRaw(s.slice(i, s.length - keep));
+      _pending = s.slice(s.length - keep);
+      break;
+    }
+
+    // Emit text before the tag in the current context.
+    emitRaw(s.slice(i, tag));
+
+    if (isOpen) {
+      _inThink = true;
+    } else {
+      _inThink = true;
+      flushThinkBuffer();
+      _inThink = false;
+    }
+    i = tag + tagLen;
   }
-  append(remaining.slice(lastIndex));
+}
 
-  flushCompleteLines();
+// Length (0..7) of the suffix of `str` that is a prefix of "<think>" or "</think>".
+// Used to hold a split tag fragment across stream chunks without dropping real text.
+function tagPrefixLen(str: string): number {
+  const tags = ['<think>', '</think>'];
+  let best = 0;
+  for (const t of tags) {
+    for (let k = 1; k <= Math.min(7, t.length - 1, str.length); k++) {
+      if (str.endsWith(t.slice(0, k))) best = Math.max(best, k);
+    }
+  }
+  return best;
+}
+
+function emitRaw(text: string): void {
+  if (!text) return;
+  if (_inThink) {
+    _thinkBuf += text;
+    flushCompleteLines();
+  } else {
+    _buf += text;
+    flushCompleteLines();
+  }
 }
 
 // Emit any complete lines buffered for the current think/non-think state; keep the trailing
@@ -294,8 +329,14 @@ export function closeAssistantBlock(
   tier?: string,
 ): void {
   // Flush any trailing think buffer (a model may end the stream without a closing tag)
-  // and any remaining non-think line before finalizing the block.
-  flushThinkBuffer();
+  // and any remaining non-think line before finalizing the block. Drop any partial tag
+  // fragment held in _pending (it will never complete now).
+  if (_inThink || _thinkBuf) {
+    _inThink = true;
+    flushThinkBuffer();
+    _inThink = false;
+  }
+  _pending = '';
   if (_buf) {
     const line = _buf.trimEnd();
     if (_inCode) {

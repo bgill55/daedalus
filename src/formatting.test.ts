@@ -161,6 +161,26 @@ describe('writeAssistantChunk (thinking renderer)', () => {
     // The think sentinel is rendered (dimmed) but the literal tags are gone.
     expect(text).toContain('SECRETTHINK');
     expect(text).not.toContain('<think>');
+    expect(text).not.toContain('</think>');
     expect(text).toContain('The answer is 42.');
+  });
+
+  it('does not render an open think block as white when the closer splits across chunks', () => {
+    openAssistantBlock();
+    // Open <think> arrives in one chunk; the closing </think> arrives later. The interim
+    // reasoning must stay dimmed, never flash white.
+    writeAssistantChunk('<think>reasoning begins');
+    writeAssistantChunk(' and continues');
+    writeAssistantChunk('dle</think>the answer');
+    closeAssistantBlock(10, 500, 0, 'model-x');
+    const text = output();
+    expect(text).not.toContain('<think>');
+    expect(text).not.toContain('</think>');
+    expect(text).toContain('reasoning begins');
+    expect(text).toContain('the answer');
+    // Reasoning rendered dimmed.
+    expect(text).toContain('\x1b[2m');
+    // Actual answer rendered bright (white), not as a leaked tag.
+    expect(text).toContain('\x1b[97m');
   });
 });
