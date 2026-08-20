@@ -118,6 +118,12 @@ export function clearToolBuffer(): void {
 let _buf = '';
 let _inCode = false;
 let _codeLines: string[] = [];
+// Thinking renderer: when a reasoning model emits raw <think>...</think> inline, we render
+// that block in dimmed (gray) font while the final answer renders in white — so the user can
+// tell "Daedalus is thinking" from "Daedalus is replying". Tags can split across stream
+// chunks, so we buffer until a closing tag and flush any open block on block close.
+let _inThink = false;
+let _thinkBuf = '';
 
 export function collapseCommentary(): void {
   if (!_collapseEnabled) {
@@ -217,31 +223,66 @@ function emitCodeBlock(): void {
 }
 
 export function writeAssistantChunk(chunk: string): void {
-  _buf += chunk;
-  const completeLines = _buf.split('\n');
-  _buf = completeLines.pop() || '';
+  // Render <think>...</think> reasoning inline in a dimmed (gray) font while the final
+  // answer renders in white — so the user can tell "Daedalus is thinking" from "Daedalus is
+  // replying". Think tags can split across stream chunks, so we buffer until a closing tag
+  // and emit complete lines as they arrive.
+  const append = (s: string): void => {
+    if (_inThink) _thinkBuf += s;
+    else _buf += s;
+  };
 
-  for (const raw of completeLines) {
-    const line = raw.trimEnd();
-
-    if (line.startsWith('```')) {
-      if (_inCode) {
-        emitCodeBlock();
-        _inCode = false;
-      } else {
-        _inCode = true;
-      }
-      continue;
-    }
-
-    if (_inCode) {
-      _codeLines.push(line);
-      continue;
-    }
-
-    const formatted = formatMarkdownLine(line);
-    printBoxLine(formatted);
+  let remaining = _buf + chunk;
+  _buf = '';
+  const re = /<think>([\s\S]*?)<\/think>/gi;
+  let lastIndex = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(remaining)) !== null) {
+    const before = remaining.slice(0, m.index);
+    const inner = m[1];
+    lastIndex = re.lastIndex;
+    append(before);
+    // Render the think block's lines dimmed, then close the think state.
+    _inThink = true;
+    flushThinkBuffer();
+    for (const raw of inner.split('\n')) emitAssistantLine(raw);
+    _inThink = false;
   }
+  append(remaining.slice(lastIndex));
+
+  flushCompleteLines();
+}
+
+// Emit any complete lines buffered for the current think/non-think state; keep the trailing
+// partial line in its buffer.
+function flushCompleteLines(): void {
+  const src = _inThink ? _thinkBuf : _buf;
+  if (!src) return;
+  const lines = src.split('\n');
+  const last = lines.pop() ?? '';
+  for (const raw of lines) emitAssistantLine(raw);
+  if (_inThink) _thinkBuf = last;
+  else _buf = last;
+}
+
+function flushThinkBuffer(): void {
+  if (!_thinkBuf) return;
+  for (const raw of _thinkBuf.split('\n')) emitAssistantLine(raw);
+  _thinkBuf = '';
+}
+
+function emitAssistantLine(raw: string): void {
+  const line = raw.trimEnd();
+  if (_inCode) {
+    _codeLines.push(line);
+    return;
+  }
+  if (line.startsWith('```')) {
+    emitCodeBlock();
+    return;
+  }
+  if (_inThink) printBoxLine(pc.dim(formatMarkdownLine(line)));
+  else printBoxLine(pc.whiteBright(formatMarkdownLine(line)));
 }
 
 export function closeAssistantBlock(
@@ -252,6 +293,9 @@ export function closeAssistantBlock(
   realOutTokens?: number,
   tier?: string,
 ): void {
+  // Flush any trailing think buffer (a model may end the stream without a closing tag)
+  // and any remaining non-think line before finalizing the block.
+  flushThinkBuffer();
   if (_buf) {
     const line = _buf.trimEnd();
     if (_inCode) {
@@ -260,14 +304,15 @@ export function closeAssistantBlock(
       if (line.startsWith('```')) {
         emitCodeBlock();
       } else {
-        const formatted = formatMarkdownLine(line);
-        printBoxLine(formatted);
+        printBoxLine(pc.whiteBright(formatMarkdownLine(line)));
       }
     }
   }
   emitCodeBlock();
   _inCode = false;
+  _inThink = false;
   _buf = '';
+  _thinkBuf = '';
 
   const parts: string[] = [];
   if (tier) parts.push(tier);
