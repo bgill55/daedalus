@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { formatMarkdownPRReply, closeAssistantBlock, openAssistantBlock, displayWidth } from './formatting.js';
+import { formatMarkdownPRReply, closeAssistantBlock, openAssistantBlock, displayWidth, writeAssistantChunk } from './formatting.js';
 
 describe('closeAssistantBlock', () => {
   let consoleSpy: ReturnType<typeof vi.spyOn>;
@@ -92,5 +92,75 @@ describe('parseTextToolCalls', () => {
     const raw = `<|toolcall>call:mcpfilesystemreadtextfile{path: "public/script.js"}<toolcall|>The collection dropdown should now update.`;
     const cleaned = stripToolCallMarkup(raw);
     expect(cleaned).toBe('The collection dropdown should now update.');
+  });
+});
+
+describe('writeAssistantChunk (thinking renderer)', () => {
+  let consoleSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    process.stdout.columns = 80;
+    consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    consoleSpy.mockRestore();
+  });
+
+  function output(): string {
+    return consoleSpy.mock.calls.map(c => c.join(' ')).join('\n');
+  }
+
+  it('renders a complete think block in dim (gray) font and strips the tags', () => {
+    openAssistantBlock();
+    writeAssistantChunk('<think>Let me figure out the best approach here.</think>Hello!');
+    closeAssistantBlock(10, 500, 0, 'model-x');
+    const text = output();
+    // Tags must never appear in the rendered output.
+    expect(text).not.toContain('<think>');
+    expect(text).not.toContain('</think>');
+    // Think content is dimmed.
+    expect(text).toContain('\x1b[2m');
+    // Answer content is bright white.
+    expect(text).toContain('\x1b[97m');
+    expect(text).toContain('Hello!');
+  });
+
+  it('handles think tags split across stream chunks', () => {
+    openAssistantBlock();
+    writeAssistantChunk('<thi');
+    writeAssistantChunk('nk>reasoning mid');
+    writeAssistantChunk('dle</think>final answer');
+    closeAssistantBlock(10, 500, 0, 'model-x');
+    const text = output();
+    expect(text).not.toContain('<think>');
+    expect(text).not.toContain('</think>');
+    expect(text).toContain('reasoning mid');
+    expect(text).toContain('final answer');
+    // Both dim (thinking) and bright (answer) segments present.
+    expect(text).toContain('\x1b[2m');
+    expect(text).toContain('\x1b[97m');
+  });
+
+  it('renders a reply with no think block in bright white only', () => {
+    openAssistantBlock();
+    writeAssistantChunk('Just a plain reply.');
+    closeAssistantBlock(10, 500, 0, 'model-x');
+    const text = output();
+    expect(text).toContain('Just a plain reply.');
+    expect(text).toContain('\x1b[97m');
+    // No think-only sentinel content is rendered (no reasoning was emitted).
+    expect(text).not.toContain('SECRETTHINK');
+  });
+
+  it('keeps think content separated from the answer (no tag leakage)', () => {
+    openAssistantBlock();
+    writeAssistantChunk('<think>SECRETTHINK internal reasoning</think>The answer is 42.');
+    closeAssistantBlock(10, 500, 0, 'model-x');
+    const text = output();
+    // The think sentinel is rendered (dimmed) but the literal tags are gone.
+    expect(text).toContain('SECRETTHINK');
+    expect(text).not.toContain('<think>');
+    expect(text).toContain('The answer is 42.');
   });
 });
