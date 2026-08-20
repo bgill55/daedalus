@@ -217,9 +217,25 @@ export interface Observation {
 
 export class ClaimLedger {
   private seen = new Map<string, boolean>(); // base -> ever observed (hit or not)
+  private features = new Set<string>(); // lowercase feature/dependency terms observed in tool output
 
   record(o: Observation): void {
     this.seen.set(baseOf(o.base), true);
+  }
+
+  /**
+   * Record raw tool-output text so a later claim about a project feature/dependency is
+   * grounded when that term actually appeared in something the agent read/ran. Without
+   * this, the file-paired guard (#138) misses PROJECT-LEVEL claims that name no file
+   * (e.g. "helmet causes TS errors", "uses a circuit breaker") — the exact hole that let
+   * an agent review a codebase it never opened. Terms are matched case-insensitively.
+   */
+  recordText(text: string): void {
+    if (!text) return;
+    const lower = text.toLowerCase();
+    for (const term of PROJECT_FEATURE_TERMS) {
+      if (lower.includes(term)) this.features.add(term);
+    }
   }
 
   /** True if the file (by base name) was observed at all this session. */
@@ -227,8 +243,19 @@ export class ClaimLedger {
     return this.seen.has(baseOf(base));
   }
 
+  /** True if a project feature/dependency term was observed in tool output this session. */
+  observedFeature(term: string): boolean {
+    return this.features.has(term.toLowerCase());
+  }
+
+  /** Total file observations this session (read/search/terminal with a path). */
+  get totalObservations(): number {
+    return this.seen.size;
+  }
+
   reset(): void {
     this.seen.clear();
+    this.features.clear();
   }
 }
 
@@ -281,6 +308,114 @@ export function ungroundedClaimWarning(file: string): string {
     `(read_file / search_files / grep) and confirm the claim against its real contents, or ` +
     `(2) rephrase as a hypothesis or omit it. Every factual claim about a file must be backed by ` +
     `a tool observation this session.`
+  );
+}
+
+// Project-level feature / dependency terms that an agent tends to hallucinate into a
+// codebase review when it never opened the repo. Used by the project-claim guard to force
+// grounding: a claim that the project HAS one of these features must be backed by a tool
+// observation of that term this session. Curated (not exhaustive) — biased toward the
+// jargon an LLM reaches for ("circuit breaker", "glassmorphism", "helmet", "favorites").
+// Keep terms lowercase; matched case-insensitively via substring.
+const PROJECT_FEATURE_TERMS = [
+  'helmet',
+  'pino',
+  'express-rate-limit',
+  'cors',
+  'circuit breaker',
+  'glassmorphism',
+  'debounce',
+  'favorites',
+  'favourites',
+  'dark theme',
+  'dark mode',
+  'jwt',
+  'oauth',
+  'websocket',
+  'graphql',
+  'redis',
+  'docker',
+  'kubernetes',
+  'swagger',
+];
+
+// Asserts a feature/dependency is PRESENT in the (target) project, not a hypothetical
+// ("we could add helmet") or a recommendation. Matches when a feature term is within a
+// short window of a possession/existence verb or a "the project/codebase has..." cue.
+const FEATURE_ASSERT_RE =
+  /\b(uses?|using|with|has|have|added|includes?|configured|set up|implements?|via|installed|the (?:project|codebase|app|server) (?:uses|has|includes|implements)|is (?:configured|set up|present|in place))\b/i;
+
+/**
+ * Detects a project-level claim about a feature/dependency the agent never observed this
+ * session. Returns the claimed term, or null when every asserted feature was actually seen
+ * in tool output (read_file/search_files/terminal) this session. This closes the #138 blind
+ * spot: file-paired grounding only catches claims that NAME a file, so an agent reviewing a
+ * codebase it never opened can still invent project features (helmet, circuit breaker,
+ * favorites, glassmorphism) with no file mentioned. Here, asserting the project HAS such a
+ * feature without ever observing the term is ungrounded.
+ */
+export function isUngroundedProjectClaim(text: string, ledger: ClaimLedger): string | null {
+  if (!text || !ledger) return null;
+  const lower = text.toLowerCase();
+  for (const term of PROJECT_FEATURE_TERMS) {
+    if (!lower.includes(term)) continue;
+    if (ledger.observedFeature(term)) continue; // actually saw it in tool output — grounded
+    // Only fire on an assertion of existence, not a recommendation/hypothetical.
+    // Check a window around the term for a possession verb.
+    const idx = lower.indexOf(term);
+    const window = lower.slice(Math.max(0, idx - 40), idx + term.length + 40);
+    if (FEATURE_ASSERT_RE.test(window)) return term;
+  }
+  return null;
+}
+
+export function ungroundedProjectClaimWarning(term: string): string {
+  return (
+    `[SYSTEM WARNING] You asserted the project has "${term}", but you never observed that ` +
+    `term in any file you read, search you ran, or command you executed this session. That is ` +
+    `an ungrounded project-level claim — you reviewed a codebase you did not inspect. Do NOT ` +
+    `report project features/dependencies you have not verified. Either (1) actually inspect the ` +
+    `relevant file or run a search/grep for "${term}" and confirm it exists, or (2) rephrase as a ` +
+    `hypothesis ("it may use...") or omit it. Every claim that a project HAS a feature or ` +
+    `dependency must be backed by a tool observation this session.`
+  );
+}
+
+// Inspection-before-review gate: when the user asked for a review/audit of a project
+// ("check out this project and give me your thoughts"), a closing report that describes the
+// codebase's architecture/features with ZERO file observations this session is a review of a
+// repo the agent never opened. This is the highest-leverage guard against the runaway
+// "fabricated multi-section review from a single passing `npm run typecheck`" failure: it
+// halts the turn at the first review deliverable instead of letting the agent loop on it.
+const REVIEW_TASK_RE =
+  /\b(check (out|this|the)|review|analy[sz]e|analyse|look at|take a look at|audit|assess|your (?:thoughts|feedback|opinion)|give me (?:your )?(?:thoughts|feedback)|walk me through|examine)\b/i;
+
+export function isReviewTask(task: string): boolean {
+  if (!task) return false;
+  return REVIEW_TASK_RE.test(task);
+}
+
+// A report is a "review deliverable" when it presents the codebase's structure/features in a
+// structured, multi-section form (headers like "Architecture & Tech Stack", "Key Features",
+// "Top Recommendations") and is substantive. Plain prose ("looks good") is NOT a deliverable.
+const REVIEW_DELIVERABLE_RE =
+  /\b(architecture|tech stack|high-level (?:project )?review|key features|top recommendations|strengths|weaknesses|project structure|codebase (?:overview|analysis)|what (?:i (?:see|notice)|stands out))\b/i;
+
+export function isReviewDeliverable(text: string): boolean {
+  if (!text) return false;
+  if (text.length < 400) return false; // a genuine review is substantive
+  return REVIEW_DELIVERABLE_RE.test(text);
+}
+
+export function reviewWithoutInspectionWarning(): string {
+  return (
+    `[SYSTEM WARNING] You produced a multi-section project review, but you have not inspected ` +
+    `a single file (no read_file / search_files / terminal this session). You are describing a ` +
+    `codebase you never opened. Do NOT fabricate architecture/feature claims from a single ` +
+    `passing command or from training priors. Either (1) actually read the relevant files ` +
+    `(read_file / search_files / grep) before reviewing, or (2) state plainly that you have not ` +
+    `inspected the code and can only give generic guidance. A review with zero file observations ` +
+    `is not a review — it is invention.`
   );
 }
 

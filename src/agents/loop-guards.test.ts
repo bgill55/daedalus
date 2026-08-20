@@ -142,6 +142,40 @@ describe('DivergenceDetector', () => {
   });
 });
 
+describe('DivergenceDetector consecutiveRepeats', () => {
+  const block = 'This is a long review block that the agent keeps re-emitting instead of making progress on the task it was given to do right now.';
+
+  it('reports 0 consecutive repeats for the first block', () => {
+    const d = new DivergenceDetector();
+    d.register(block);
+    expect(d.consecutiveRepeats).toBe(0);
+  });
+
+  it('counts a second identical block as 1 consecutive repeat', () => {
+    const d = new DivergenceDetector();
+    d.register(block);
+    d.register(block);
+    expect(d.consecutiveRepeats).toBe(1);
+  });
+
+  it('counts a third identical block as 2 consecutive repeats (hard-stop threshold)', () => {
+    const d = new DivergenceDetector();
+    d.register(block);
+    d.register(block);
+    d.register(block);
+    expect(d.consecutiveRepeats).toBe(2);
+  });
+
+  it('resets the repeat count when a genuinely different block appears', () => {
+    const d = new DivergenceDetector();
+    d.register(block);
+    d.register(block);
+    expect(d.consecutiveRepeats).toBe(1);
+    d.register('A completely different and substantive response that changes the subject entirely and proposes a concrete next step.');
+    expect(d.consecutiveRepeats).toBe(0);
+  });
+});
+
 describe('isStaleReadFailure', () => {
   it('detects a stale-read error from a patch failure', () => {
     const err = 'patch did not apply — [STALE READ] package.json was modified after you last read it. Use read_file to get the current content before patching.';

@@ -144,15 +144,22 @@ function jaccard(a: Set<string>, b: Set<string>): number {
 
 export class DivergenceDetector {
   private blocks: string[] = [];
+  private consecutiveRepeat = 0;
 
   /**
    * Register an assistant block. Returns true when the new block is near-identical
    * (>= DIVERGENCE_SIMILARITY Jaccard over word-shingles) to any of the last
    * DIVERGENCE_WINDOW blocks — a sign the agent is re-stating completed work.
+   * Tracks `consecutiveRepeats` so the loop can escalate from a soft warning (1st
+   * repeat) to a hard turn-halt once the same output has been re-emitted twice.
    */
   register(text: string): boolean {
     const norm = (text || '').trim();
-    if (norm.length < 40) return false; // ignore tiny blocks (acknowledgements, etc.)
+    if (norm.length < 40) {
+      // Tiny blocks don't count toward (or reset) the repeat streak — an
+      // acknowledgement between two real repeats shouldn't break the streak.
+      return false;
+    }
     const sh = shingles(norm);
     let best = 0;
     const recent = this.blocks.slice(-DIVERGENCE_WINDOW);
@@ -164,11 +171,22 @@ export class DivergenceDetector {
     if (this.blocks.length > DIVERGENCE_WINDOW * 2) {
       this.blocks = this.blocks.slice(-DIVERGENCE_WINDOW * 2);
     }
-    return best >= DIVERGENCE_SIMILARITY;
+    if (best >= DIVERGENCE_SIMILARITY) {
+      this.consecutiveRepeat += 1;
+      return true;
+    }
+    this.consecutiveRepeat = 0;
+    return false;
+  }
+
+  /** How many times in a row the current stream of blocks has been a near-duplicate. */
+  get consecutiveRepeats(): number {
+    return this.consecutiveRepeat;
   }
 
   reset(): void {
     this.blocks = [];
+    this.consecutiveRepeat = 0;
   }
 }
 
