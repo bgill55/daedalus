@@ -1,3 +1,10 @@
+## [3.33.3](https://github.com/bgill55/daedalus/compare/v3.33.2...v3.33.3) (2026-08-20)
+
+
+### Bug Fixes
+
+* **agents:** add claim-grounding guard for unverified factual claims ([#138](https://github.com/bgill55/daedalus/issues/138)) ([b3b80a0](https://github.com/bgill55/daedalus/commit/b3b80a06f9a020fee75eb1d9e585f2394afb8eca)), closes [#136](https://github.com/bgill55/daedalus/issues/136)
+
 ## [3.33.2](https://github.com/bgill55/daedalus/compare/v3.33.1...v3.33.2) (2026-08-20)
 
 
