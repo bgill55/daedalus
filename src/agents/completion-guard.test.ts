@@ -10,6 +10,9 @@ import {
   ClaimLedger,
   detectUngroundedClaim,
   isGreenStateClaim,
+  isUngroundedProjectClaim,
+  isReviewTask,
+  isReviewDeliverable,
 } from './completion-guard.js';
 import type { SqliteTodo } from '../session/sqlite.js';
 
@@ -265,5 +268,65 @@ describe('isGreenStateClaim', () => {
 
   it('does NOT flag a report that names a failure honestly', () => {
     expect(isGreenStateClaim('2 db/api tests are failing; the rest pass.')).toBe(false);
+  });
+});
+
+describe('isUngroundedProjectClaim', () => {
+  it('flags an asserted feature the agent never observed', () => {
+    const ledger = new ClaimLedger();
+    const review =
+      'Architecture & Tech Stack:\n' +
+      '• Express.js: Standard web framework with good middleware support (helmet).\n' +
+      '• The project uses a circuit breaker pattern for patch failures.\n' +
+      '• Favorites: API endpoint for favorite toggling.';
+    expect(isUngroundedProjectClaim(review, ledger)).toBeTruthy();
+  });
+
+  it('does NOT flag a feature the agent actually observed in tool output', () => {
+    const ledger = new ClaimLedger();
+    ledger.recordText('import helmet from "helmet";');
+    ledger.recordText('app.use(helmet());');
+    const review = 'The project uses helmet for security headers.';
+    expect(isUngroundedProjectClaim(review, ledger)).toBeNull();
+  });
+
+  it('does NOT flag a hypothetical / recommendation (no assertion verb)', () => {
+    const ledger = new ClaimLedger();
+    const review = 'If you want security you could add helmet, or fix the import path.';
+    expect(isUngroundedProjectClaim(review, ledger)).toBeNull();
+  });
+
+  it('does NOT flag when no feature term is present', () => {
+    const ledger = new ClaimLedger();
+    const review = 'Architecture: Node.js with Express and better-sqlite3. Build uses tsc --noEmit.';
+    expect(isUngroundedProjectClaim(review, ledger)).toBeNull();
+  });
+});
+
+describe('isReviewTask / isReviewDeliverable', () => {
+  it('detects a review request', () => {
+    expect(isReviewTask('can you check out this project and give me your thoughts.')).toBe(true);
+    expect(isReviewTask('review this codebase and tell me what you think')).toBe(true);
+    expect(isReviewTask('hey how are you today')).toBe(false);
+  });
+
+  it('detects a multi-section review deliverable', () => {
+    const review =
+      'High-Level Project Review\n\n' +
+      '#### Architecture & Tech Stack\n' +
+      '• Node.js with TypeScript: Clean setup with proper type safety enabled.\n' +
+      '• Express.js: Standard web framework with good middleware support for rate limiting and security headers.\n' +
+      '• Database: better-sqlite3 with a clear schema and proper separation of concerns in db.ts.\n' +
+      '• Build/Test: tsc --noEmit for typechecking, vitest for testing with the existing suite passing.\n\n' +
+      '#### Key Features\n' +
+      '• Prompt Management: CRUD operations with case-insensitive search and tag filtering.\n' +
+      '• Favorites System: database schema column and an API endpoint for favorite toggling.\n' +
+      '• User Experience: dark theme with glassmorphism styling and tag filtering in the frontend.\n' +
+      '• Rate Limiting: express-rate-limit middleware protecting the public API endpoints.\n';
+    expect(isReviewDeliverable(review)).toBe(true);
+  });
+
+  it('does NOT treat a short reply as a review deliverable', () => {
+    expect(isReviewDeliverable('Looks good to me, nice work!')).toBe(false);
   });
 });

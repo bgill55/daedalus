@@ -2,7 +2,7 @@ import pc from 'picocolors';
 import { BUILTIN_TOOLS, POWER_TOOLS } from './tools/definitions.js';
 import { executeToolCalls } from './tools/executor.js';
 import { getSessionTodos } from './tools/builtin/todo.js';
-import { detectFalseCompletion, falseCompletionWarning, detectFalseCompletionOnDisk, isScopeOverstatedSummary, scopeOverstatementWarning, isUnsubstantiatedProgressReport, unsubstantiatedProgressWarning, countAchievementItems, ClaimLedger, detectUngroundedClaim, ungroundedClaimWarning, isGreenStateClaim, greenStateWarning } from './agents/completion-guard.js';
+import { detectFalseCompletion, falseCompletionWarning, detectFalseCompletionOnDisk, isScopeOverstatedSummary, scopeOverstatementWarning, isUnsubstantiatedProgressReport, unsubstantiatedProgressWarning, countAchievementItems, ClaimLedger, detectUngroundedClaim, ungroundedClaimWarning, isGreenStateClaim, greenStateWarning, isUngroundedProjectClaim, ungroundedProjectClaimWarning, isReviewTask, isReviewDeliverable, reviewWithoutInspectionWarning } from './agents/completion-guard.js';
 import { ReadStallDetector, isGreenBuildTestClaim, fabricatedTestCountCorrection, DivergenceDetector, isStaleReadFailure } from './agents/loop-guards.js';
 import { mcpRegistry } from './tools/mcp/registry.js';
 import { DaedalusSpinner } from './tools/daedalus-spinner.js';
@@ -140,6 +140,13 @@ function clearAbortController(): void {
 // Streaming response handler with tool call support — iterative, not recursive
 export function createModelFunctions(deps: ModelDeps) {
   const { messages, config, router, toolContext, buildFileContext, askLine, refreshSystemPrompt } = deps;
+
+  // Capture the original user task (first user message in the conversation) so the
+  // inspection-before-review gate can tell whether this session is a "review the project"
+  // request. Used by the hard guard that halts a multi-section review produced with zero
+  // file observations this session.
+  const userTask =
+    messageText(messages.find((m) => m.role === 'user')?.content ?? '') ?? '';
 
   async function callModelWithTools(
     userContent: string,
@@ -412,9 +419,15 @@ export function createModelFunctions(deps: ModelDeps) {
 
       // Divergence guard: if this assistant block is near-identical to one already emitted
       // this turn (and it produced no new tool calls — i.e. it's just re-stating work), force
-      // the agent to either change the repo or report the blocker honestly. This breaks the
-      // "test failed → re-print the same review" spin without bounding on max turns alone.
+      // the agent to either change the repo or report the blocker honestly. The FIRST repeat
+      // is a soft warning; a SECOND consecutive repeat is a runaway loop — halt the turn.
       if (toolCallArray.length === 0 && divergence.register(cleanContent)) {
+        const repeats = divergence.consecutiveRepeats;
+        if (repeats >= 2) {
+          closeAssistantBlock(cleanContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
+          console.log(pc.dim(`\n  [STOP] Runaway loop: same output re-emitted ${repeats} times with no progress. Closing turn.`));
+          return { content: `${cleanContent}\n\n[SELF-CORRECT] I repeated the same output ${repeats} times without making progress. I am stopping this turn rather than looping.`, toolCalls: [] };
+        }
         console.log(pc.dim(`\n  [CHECK] Detected near-duplicate of prior output — not making progress.`));
         messages.push({ role: 'assistant', content: cleanContent });
         messages.push({
@@ -436,6 +449,24 @@ export function createModelFunctions(deps: ModelDeps) {
           messages.push({
             role: 'user',
             content: ungroundedClaimWarning(ungrounded),
+          } as ChatMessage);
+          continue;
+        }
+      }
+
+      // Project-level claim guard (broadens #138): flag a claim that the project HAS a
+      // feature/dependency the agent never observed in tool output this session (no file
+      // read/search/terminal mentioning it). Catches the "review a codebase you never opened"
+      // failure where the agent invents helmet / circuit-breaker / favorites / glassmorphism
+      // etc. — none of which name a file, so the file-paired guard above cannot catch them.
+      if (toolCallArray.length === 0) {
+        const projClaim = isUngroundedProjectClaim(cleanContent, claimLedger);
+        if (projClaim) {
+          console.log(pc.dim(`\n  [CHECK] Project claim about "${projClaim}" is ungrounded (never observed this session).`));
+          messages.push({ role: 'assistant', content: cleanContent });
+          messages.push({
+            role: 'user',
+            content: ungroundedProjectClaimWarning(projClaim),
           } as ChatMessage);
           continue;
         }
@@ -524,6 +555,17 @@ export function createModelFunctions(deps: ModelDeps) {
             content: unsubstantiatedProgressWarning(itemCount),
           } as ChatMessage);
           continue;
+        }
+
+        // Inspection-before-review gate: when the session is a "review the project" request
+        // and the agent produces a multi-section review deliverable with ZERO file observations
+        // this session, it is reviewing a codebase it never opened. Halt the turn and force a
+        // real inspection instead of letting a fabricated review loop. (Catches the runaway
+        // "fabricated review from a single passing typecheck" failure at the first deliverable.)
+        if (isReviewTask(userTask) && isReviewDeliverable(cleanContent) && claimLedger.totalObservations === 0) {
+          closeAssistantBlock(cleanContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
+          console.log(pc.dim(`\n  [STOP] Review produced with zero file inspections this session — halting.`));
+          return { content: `${cleanContent}\n\n[SELF-CORRECT] I described the project's architecture/features but have not inspected a single file this session. I am stopping rather than fabricating a review. I should read the code before reviewing.`, toolCalls: [] };
         }
 
         // Layer B: idle re-read breaker. If the turn spent its budget re-reading the same
@@ -754,6 +796,13 @@ export function createModelFunctions(deps: ModelDeps) {
           const cmd = approvedCalls[ri]?.function?.arguments ?? '';
           const m = cmd.match(/(?:[A-Za-z]:)?[\\/][\w.\-//\\]+\.(?:ts|tsx|js|mjs|cjs|jsx|py|go|rs|java|cs|rb|php|json|md|css|html)|\b[\w.\-]+\.(?:ts|tsx|js|mjs|cjs|jsx|py|go|rs|java|cs|rb|php|json|md|css|html)/i);
           if (m) claimLedger.record({ kind: 'terminal', base: m[0], hit: result.success });
+        }
+        // Project-feature grounding: feed raw tool output into the ledger so a later claim
+        // that the project HAS a feature/dependency is grounded when the term actually
+        // appeared in something the agent read/ran this session.
+        if (result.content) {
+          claimLedger.recordText(result.content);
+          claimLedger.recordText(`${approvedCalls[ri]?.function?.arguments ?? ''}`);
         }
         // Layer C: detect a terminal circuit-breaker on a build/test/lint verify command.
         if (result.name === 'terminal' && CIRCUIT_BREAKER_RE.test(`${result.error ?? ''}\n${result.content ?? ''}`)) {
