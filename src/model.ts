@@ -2,7 +2,7 @@ import pc from 'picocolors';
 import { BUILTIN_TOOLS, POWER_TOOLS } from './tools/definitions.js';
 import { executeToolCalls } from './tools/executor.js';
 import { getSessionTodos } from './tools/builtin/todo.js';
-import { detectFalseCompletion, falseCompletionWarning, detectFalseCompletionOnDisk, isScopeOverstatedSummary, scopeOverstatementWarning, isUnsubstantiatedProgressReport, unsubstantiatedProgressWarning, countAchievementItems, ClaimLedger, detectUngroundedClaim, ungroundedClaimWarning, isGreenStateClaim, greenStateWarning, isUngroundedProjectClaim, ungroundedProjectClaimWarning, isNegativeExistenceClaim, negativeExistenceWarning, isReviewTask, isReviewDeliverable, reviewWithoutInspectionWarning, isReviewWithoutSourceInspection, reviewWithoutSourceInspectionWarning, claimedTestCountWithoutRun, claimedTestCountWithoutRunWarning } from './agents/completion-guard.js';
+import { detectFalseCompletion, falseCompletionWarning, detectFalseCompletionOnDisk, isScopeOverstatedSummary, scopeOverstatementWarning, isUnsubstantiatedProgressReport, unsubstantiatedProgressWarning, countAchievementItems, ClaimLedger, detectUngroundedClaim, ungroundedClaimWarning, isGreenStateClaim, greenStateWarning, isUngroundedProjectClaim, ungroundedProjectClaimWarning, isNegativeExistenceClaim, negativeExistenceWarning, isReviewTask, isReviewDeliverable, reviewWithoutInspectionWarning, isReviewWithoutSourceInspection, reviewWithoutSourceInspectionWarning, claimedTestCountWithoutRun, claimedTestCountWithoutRunWarning, detectUngroundedWorksClaim, ungroundedWorksWarning, RUNTIME_EXERCISE_RE } from './agents/completion-guard.js';
 import { ReadStallDetector, isGreenBuildTestClaim, fabricatedTestCountCorrection, DivergenceDetector, isStaleReadFailure } from './agents/loop-guards.js';
 import { mcpRegistry } from './tools/mcp/registry.js';
 import { DaedalusSpinner } from './tools/daedalus-spinner.js';
@@ -614,6 +614,21 @@ export function createModelFunctions(deps: ModelDeps) {
           continue;
         }
 
+        // Runtime-exercise guard: block a "feature is wired in / working / verified" claim
+        // when no live integration probe (curl/HTTP/integration test) was recorded this
+        // session. A green typecheck/unit-test suite does NOT prove a newly-wired integration
+        // functions — the graded run built an endpoint, reported "wired in" after tests passed,
+        // and it was actually broken until the user exercised it. Forces real verification.
+        if (detectUngroundedWorksClaim(cleanContent, claimLedger)) {
+          console.log(pc.dim(`\n  [CHECK] "Works/verified" claim made with no live runtime probe (curl/HTTP/integration test) this session.`));
+          messages.push({ role: 'assistant', content: cleanContent });
+          messages.push({
+            role: 'user',
+            content: ungroundedWorksWarning(),
+          } as ChatMessage);
+          continue;
+        }
+
         // Layer B: idle re-read breaker. If the turn spent its budget re-reading the same
         // file (the "fix was already present" spin) with no edit, force it to report the
         // blocker honestly instead of looping. Close the turn with a concise note.
@@ -843,6 +858,12 @@ export function createModelFunctions(deps: ModelDeps) {
           const cmd = approvedCalls[ri]?.function?.arguments ?? '';
           const m = cmd.match(/(?:[A-Za-z]:)?[\\/][\w.\-//\\]+\.(?:ts|tsx|js|mjs|cjs|jsx|py|go|rs|java|cs|rb|php|json|md|css|html)|\b[\w.\-]+\.(?:ts|tsx|js|mjs|cjs|jsx|py|go|rs|java|cs|rb|php|json|md|css|html)/i);
           if (m) claimLedger.record({ kind: 'terminal', base: m[0], hit: result.success });
+          // Runtime-exercise signal: a live integration probe (curl/HTTP/fetch/integration test)
+          // grounds a later "feature works / is wired in / verified" claim. Static checks (tsc/
+          // vitest) do NOT set this — see detectUngroundedWorksClaim.
+          if (RUNTIME_EXERCISE_RE.test(`${cmd}\n${result.content ?? ''}`)) {
+            claimLedger.markRuntimeExercised();
+          }
         }
         // Project-feature grounding: feed raw tool output into the ledger so a later claim
         // that the project HAS a feature/dependency is grounded when the term actually
