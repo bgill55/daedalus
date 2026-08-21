@@ -1,3 +1,10 @@
+## [3.36.3](https://github.com/bgill55/daedalus/compare/v3.36.2...v3.36.3) (2026-08-21)
+
+
+### Bug Fixes
+
+* **guards:** detect ungrounded negative-existence claims in reviews ([#148](https://github.com/bgill55/daedalus/issues/148)) ([ca95bbe](https://github.com/bgill55/daedalus/commit/ca95bbee6c94247823db7f864e5754111e93fce2))
+
 ## [3.36.2](https://github.com/bgill55/daedalus/compare/v3.36.1...v3.36.2) (2026-08-21)
 
 
