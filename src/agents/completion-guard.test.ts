@@ -13,6 +13,8 @@ import {
   isUngroundedProjectClaim,
   isReviewTask,
   isReviewDeliverable,
+  isReviewWithoutSourceInspection,
+  claimedTestCountWithoutRun,
 } from './completion-guard.js';
 import type { SqliteTodo } from '../session/sqlite.js';
 
@@ -328,5 +330,74 @@ describe('isReviewTask / isReviewDeliverable', () => {
 
   it('does NOT treat a short reply as a review deliverable', () => {
     expect(isReviewDeliverable('Looks good to me, nice work!')).toBe(false);
+  });
+});
+
+const REVIEW_DELIVERABLE = (
+  'High-Level Project Review\n\n' +
+  '#### Architecture & Tech Stack\n' +
+  '• Node.js with TypeScript: Clean setup with proper type safety enabled.\n' +
+  '• Express.js: Standard web framework with good middleware support.\n' +
+  '• Database: better-sqlite3 with proper separation of concerns.\n\n' +
+  '#### Key Features\n' +
+  '• Prompt Management: CRUD operations with case-insensitive search.\n' +
+  '• Rate Limiting: express-rate-limit middleware protecting the API.\n' +
+  '#### Top Recommendations\n' +
+  '1. Add more tests. 2. Refactor db.ts. 3. Add environment validation.\n'
+);
+
+describe('isReviewWithoutSourceInspection', () => {
+  it('fires when agent only read walkthrough.md (no source files)', () => {
+    const ledger = new ClaimLedger();
+    ledger.record({ kind: 'read', base: 'walkthrough.md', hit: true });
+    expect(isReviewWithoutSourceInspection(REVIEW_DELIVERABLE, ledger)).toBe(true);
+  });
+
+  it('fires when agent only read README.md and CHANGELOG.md', () => {
+    const ledger = new ClaimLedger();
+    ledger.record({ kind: 'read', base: 'README.md', hit: true });
+    ledger.record({ kind: 'read', base: 'CHANGELOG.md', hit: true });
+    expect(isReviewWithoutSourceInspection(REVIEW_DELIVERABLE, ledger)).toBe(true);
+  });
+
+  it('does NOT fire when agent read at least 2 source files', () => {
+    const ledger = new ClaimLedger();
+    ledger.record({ kind: 'read', base: 'src/server.ts', hit: true });
+    ledger.record({ kind: 'read', base: 'src/db.ts', hit: true });
+    expect(isReviewWithoutSourceInspection(REVIEW_DELIVERABLE, ledger)).toBe(false);
+  });
+
+  it('does NOT fire when text is not a review deliverable', () => {
+    const ledger = new ClaimLedger();
+    expect(isReviewWithoutSourceInspection('Looks good!', ledger)).toBe(false);
+  });
+
+  it('fires when agent read only 1 source file (below MIN_SOURCE_READS threshold)', () => {
+    const ledger = new ClaimLedger();
+    ledger.record({ kind: 'read', base: 'src/server.ts', hit: true });
+    expect(isReviewWithoutSourceInspection(REVIEW_DELIVERABLE, ledger)).toBe(true);
+  });
+});
+
+describe('claimedTestCountWithoutRun', () => {
+  it('fires when agent claims "9 tests passing" with no real run', () => {
+    expect(claimedTestCountWithoutRun('The project has 9 tests passing.', undefined)).toBe('9');
+  });
+
+  it('fires when agent claims "all 16 tests passing" with no real run', () => {
+    expect(claimedTestCountWithoutRun('All 16 tests passing.', undefined)).toBe('16');
+  });
+
+  it('does NOT fire when lastActualPassCount is set (let existing guard handle it)', () => {
+    expect(claimedTestCountWithoutRun('9 tests passing', 9)).toBeNull();
+    expect(claimedTestCountWithoutRun('9 tests passing', 12)).toBeNull();
+  });
+
+  it('does NOT fire when no specific count is asserted', () => {
+    expect(claimedTestCountWithoutRun('Tests are green and passing.', undefined)).toBeNull();
+  });
+
+  it('does NOT fire when text has no test claim at all', () => {
+    expect(claimedTestCountWithoutRun('The build compiles cleanly with no errors.', undefined)).toBeNull();
   });
 });

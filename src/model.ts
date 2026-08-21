@@ -2,7 +2,7 @@ import pc from 'picocolors';
 import { BUILTIN_TOOLS, POWER_TOOLS } from './tools/definitions.js';
 import { executeToolCalls } from './tools/executor.js';
 import { getSessionTodos } from './tools/builtin/todo.js';
-import { detectFalseCompletion, falseCompletionWarning, detectFalseCompletionOnDisk, isScopeOverstatedSummary, scopeOverstatementWarning, isUnsubstantiatedProgressReport, unsubstantiatedProgressWarning, countAchievementItems, ClaimLedger, detectUngroundedClaim, ungroundedClaimWarning, isGreenStateClaim, greenStateWarning, isUngroundedProjectClaim, ungroundedProjectClaimWarning, isReviewTask, isReviewDeliverable, reviewWithoutInspectionWarning } from './agents/completion-guard.js';
+import { detectFalseCompletion, falseCompletionWarning, detectFalseCompletionOnDisk, isScopeOverstatedSummary, scopeOverstatementWarning, isUnsubstantiatedProgressReport, unsubstantiatedProgressWarning, countAchievementItems, ClaimLedger, detectUngroundedClaim, ungroundedClaimWarning, isGreenStateClaim, greenStateWarning, isUngroundedProjectClaim, ungroundedProjectClaimWarning, isReviewTask, isReviewDeliverable, reviewWithoutInspectionWarning, isReviewWithoutSourceInspection, reviewWithoutSourceInspectionWarning, claimedTestCountWithoutRun, claimedTestCountWithoutRunWarning } from './agents/completion-guard.js';
 import { ReadStallDetector, isGreenBuildTestClaim, fabricatedTestCountCorrection, DivergenceDetector, isStaleReadFailure } from './agents/loop-guards.js';
 import { mcpRegistry } from './tools/mcp/registry.js';
 import { DaedalusSpinner } from './tools/daedalus-spinner.js';
@@ -571,6 +571,34 @@ export function createModelFunctions(deps: ModelDeps) {
           closeAssistantBlock(cleanContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
           console.log(pc.dim(`\n  [STOP] Review produced with zero file inspections this session — halting.`));
           return { content: `${cleanContent}\n\n[SELF-CORRECT] I described the project's architecture/features but have not inspected a single file this session. I am stopping rather than fabricating a review. I should read the code before reviewing.`, toolCalls: [] };
+        }
+
+        // Fix 1: Upgraded review gate — reading only walkthrough.md / README.md does NOT
+        // satisfy the inspection requirement. Require at least MIN_SOURCE_READS real source
+        // files (.ts/.js/.py/etc.) before a multi-section review deliverable is allowed.
+        if (isReviewTask(userTask) && isReviewWithoutSourceInspection(cleanContent, claimLedger)) {
+          const srcCount = claimLedger.sourceFileObservations;
+          console.log(pc.dim(`\n  [CHECK] Review deliverable produced after reading only ${srcCount} source file(s) — insufficient inspection.`));
+          messages.push({ role: 'assistant', content: cleanContent });
+          messages.push({
+            role: 'user',
+            content: reviewWithoutSourceInspectionWarning(srcCount),
+          } as ChatMessage);
+          continue;
+        }
+
+        // Fix 3: Test-count claim without any real npm test run this session. Fires when the
+        // agent asserts a specific passing count (e.g. "9 tests passing") but lastVerifyPassCount
+        // is undefined (no real test run was observed). Prevents walkthrough-sourced count invention.
+        const noRunClaimed = claimedTestCountWithoutRun(cleanContent, toolContext.lastVerifyPassCount);
+        if (noRunClaimed) {
+          console.log(pc.dim(`\n  [CHECK] Test-count claim ("${noRunClaimed} passing") made with no real npm test run this session.`));
+          messages.push({ role: 'assistant', content: cleanContent });
+          messages.push({
+            role: 'user',
+            content: claimedTestCountWithoutRunWarning(noRunClaimed),
+          } as ChatMessage);
+          continue;
         }
 
         // Layer B: idle re-read breaker. If the turn spent its budget re-reading the same

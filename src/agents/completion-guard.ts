@@ -215,12 +215,22 @@ export interface Observation {
   hit: boolean;
 }
 
+// Source files that count toward real code inspection (not docs, walkthroughs, or changelogs).
+// Used by the review gate to distinguish "agent read actual code" from "agent only read README".
+const SOURCE_FILE_RE = /\.(ts|tsx|js|jsx|mjs|cjs|py|go|rs|java|cs|rb|php|html|css|json)$/i;
+
 export class ClaimLedger {
   private seen = new Map<string, boolean>(); // base -> ever observed (hit or not)
   private features = new Set<string>(); // lowercase feature/dependency terms observed in tool output
+  private srcSeen = new Set<string>(); // base names that are actual source files (not docs/markdown)
 
   record(o: Observation): void {
     this.seen.set(baseOf(o.base), true);
+    // Track source file observations separately. Walkthrough/docs reads are grounding
+    // for file-pair claims but NOT for the review-gate (which requires source inspection).
+    if (SOURCE_FILE_RE.test(o.base)) {
+      this.srcSeen.add(baseOf(o.base));
+    }
   }
 
   /**
@@ -253,9 +263,19 @@ export class ClaimLedger {
     return this.seen.size;
   }
 
+  /**
+   * Source-file observations only — excludes markdown, walkthrough, and doc files.
+   * Used by the review gate so that reading only a walkthrough.md does not satisfy
+   * the inspection requirement for a multi-section code review deliverable.
+   */
+  get sourceFileObservations(): number {
+    return this.srcSeen.size;
+  }
+
   reset(): void {
     this.seen.clear();
     this.features.clear();
+    this.srcSeen.clear();
   }
 }
 
@@ -442,6 +462,66 @@ export function greenStateWarning(): string {
     `re-run \`npm run build && npm run test\` and confirm a REAL all-green result before claiming ` +
     `it, or (2) report the actual state honestly (which tests/files failed). A passing subset is ` +
     `not a passing suite.`
+  );
+}
+
+// Fix 1: Upgraded review-gate — require actual SOURCE file reads, not just any file.
+// Reading walkthrough.md / README.md / CHANGELOG does NOT count as inspecting the codebase.
+// A minimum of MIN_SOURCE_READS source files must have been read before a multi-section
+// review deliverable is acceptable.
+const MIN_SOURCE_READS = 2;
+
+/**
+ * True when the agent produced a multi-section review deliverable but read fewer than
+ * MIN_SOURCE_READS actual source files (e.g. only read walkthrough.md / README.md).
+ * Stricter than the zero-observation gate: reading docs alone is insufficient for a code review.
+ */
+export function isReviewWithoutSourceInspection(text: string, ledger: ClaimLedger): boolean {
+  if (!text || !ledger) return false;
+  if (!isReviewDeliverable(text)) return false;
+  return ledger.sourceFileObservations < MIN_SOURCE_READS;
+}
+
+export function reviewWithoutSourceInspectionWarning(srcCount: number): string {
+  return (
+    `[SYSTEM WARNING] You produced a multi-section project review, but you only inspected ` +
+    `${srcCount} source file(s) this session (minimum required: ${MIN_SOURCE_READS}). Reading ` +
+    `only walkthrough.md, README.md, or similar docs is NOT code inspection — those files ` +
+    `describe intent, not reality. Do NOT fabricate architecture/feature claims from docs alone. ` +
+    `Either (1) actually read the relevant source files (read_file / search_files on .ts/.js/.py/etc.) ` +
+    `before reviewing, or (2) state plainly that you have only read documentation and can only ` +
+    `give provisional guidance. A review grounded only in docs — not source — is speculation.`
+  );
+}
+
+// Fix 3: Test-count claim without any npm test run this session.
+// The existing fabricatedTestCountCorrection guard only fires when lastActualPassCount is set
+// (i.e. a real npm test was observed). This companion guard fires unconditionally when the
+// agent claims a SPECIFIC test count (e.g. "9 tests passing") but no test run was recorded.
+const SPECIFIC_TEST_COUNT_RE =
+  /\b(\d+)\s*(?:\/\s*\d+\s*)?(?:tests?|specs?|suites?)\s+(?:pass(?:ing|ed)?|green)\b|\ball\s+(\d+)\s+tests?\s+pass(?:ing)?\b|(\d+)\s+(?:passing|passed)\b/i;
+
+/**
+ * Returns a correction string when the text claims a specific passing test count but
+ * no `npm test` / vitest / jest run was actually observed this session (lastActualPassCount
+ * is undefined). Returns null when no specific count is asserted or when a real run exists.
+ */
+export function claimedTestCountWithoutRun(text: string, lastActualPassCount: number | undefined): string | null {
+  if (lastActualPassCount !== undefined) return null; // real run exists, let the existing guard handle it
+  const m = text.match(SPECIFIC_TEST_COUNT_RE);
+  if (!m) return null;
+  const claimed = m[1] ?? m[2] ?? m[3];
+  if (!claimed) return null;
+  return claimed;
+}
+
+export function claimedTestCountWithoutRunWarning(claimed: string): string {
+  return (
+    `[SYSTEM WARNING] You reported "${claimed} tests passing" (or a similar specific test count), ` +
+    `but no \`npm test\` / vitest / jest run was observed in your tool calls this session. ` +
+    `Do NOT invent test counts from memory, walkthroughs, or prior sessions. Either (1) actually ` +
+    `run \`npm test\` and report the real output, or (2) omit the specific count and say you have ` +
+    `not run the test suite this session. Fabricating a passing count misleads the user.`
   );
 }
 
