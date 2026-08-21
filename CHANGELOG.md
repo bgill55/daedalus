@@ -1,3 +1,10 @@
+## [3.36.7](https://github.com/bgill55/daedalus/compare/v3.36.6...v3.36.7) (2026-08-21)
+
+
+### Bug Fixes
+
+* **guards:** order file-extension alternation longest-first ([#156](https://github.com/bgill55/daedalus/issues/156)) ([2f5ea54](https://github.com/bgill55/daedalus/commit/2f5ea544f5c8b51c749303efdc981664273bf863))
+
 ## [3.36.6](https://github.com/bgill55/daedalus/compare/v3.36.5...v3.36.6) (2026-08-21)
 
 
