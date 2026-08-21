@@ -1,3 +1,10 @@
+## [3.36.5](https://github.com/bgill55/daedalus/compare/v3.36.4...v3.36.5) (2026-08-21)
+
+
+### Bug Fixes
+
+* **patch:** treat async_hooks as a node built-in in pre-flight typecheck ([#150](https://github.com/bgill55/daedalus/issues/150)) ([07e8e4d](https://github.com/bgill55/daedalus/commit/07e8e4d3b92eb13b69d42469ca4a02f36b54352f))
+
 ## [3.36.4](https://github.com/bgill55/daedalus/compare/v3.36.3...v3.36.4) (2026-08-21)
 
 
