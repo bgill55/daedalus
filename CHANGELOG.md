@@ -1,3 +1,10 @@
+## [3.36.1](https://github.com/bgill55/daedalus/compare/v3.36.0...v3.36.1) (2026-08-21)
+
+
+### Bug Fixes
+
+* **agent/router:** stop retry loops on missing files and disabled models ([#147](https://github.com/bgill55/daedalus/issues/147)) ([755a125](https://github.com/bgill55/daedalus/commit/755a1254731d67bbf606b219ad3c42ef4321d86a))
+
 # [3.36.0](https://github.com/bgill55/daedalus/compare/v3.35.0...v3.36.0) (2026-08-21)
 
 
