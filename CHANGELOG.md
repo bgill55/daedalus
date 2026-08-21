@@ -1,3 +1,10 @@
+# [3.36.0](https://github.com/bgill55/daedalus/compare/v3.35.0...v3.36.0) (2026-08-21)
+
+
+### Features
+
+* **hints:** make prompt tips project-aware via stack detection ([#146](https://github.com/bgill55/daedalus/issues/146)) ([d8b08b3](https://github.com/bgill55/daedalus/commit/d8b08b3ce047133b84c668ee857beab43ee0662f))
+
 # [3.35.0](https://github.com/bgill55/daedalus/compare/v3.34.3...v3.35.0) (2026-08-21)
 
 
