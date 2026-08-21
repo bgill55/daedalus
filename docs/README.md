@@ -7,6 +7,7 @@ Welcome to the Daedalus documentation. Use the sidebar to browse guides, configu
 </p>
 
 Jump straight to:
+- [The Daedalus Manifesto](manifesto.md)
 - [Getting Started / Setup Guide](getting-started.md)
 - [NotebookLM & Architecture Summary](notebooklm-summary.md)
 - [Configuration Reference](configuration-reference.md)

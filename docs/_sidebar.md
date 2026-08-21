@@ -1,4 +1,5 @@
 - **Getting Started**
+  - [The Daedalus Manifesto 📜](manifesto.md)
   - [Quick Start](getting-started.md)
   - [Onboarding Cheat Sheet 🚀](cheat-sheet.md)
   - [Local-First FAQ 💬](faq.md)
