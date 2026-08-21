@@ -62,7 +62,7 @@ export function falseCompletionWarning(remaining: number): string {
 // loop — a shared global-flag regex carries persistent lastIndex state across calls,
 // which silently makes subsequent matches return empty. We build a fresh regex per
 // call (see matchFileMentions) to keep matching correct.
-const FILE_MENTION_RE = /(?:src[\\/])?[\w.-]+\.(?:ts|tsx|js|mjs|cjs|jsx|py|go|rs|java|cs|rb|php)(?::\d+)?/gi;
+const FILE_MENTION_RE = /(?:src[\\\\/])?[\w.-]+\.(?:tsx|jsx|cjs|mjs|ts|js|py|go|rs|java|rb|php|cs)(?::\d+)?/gi;
 
 function matchFileMentions(text: string): string[] {
   // Fresh regex each call: avoids the shared-global lastIndex bug that made
@@ -340,7 +340,7 @@ function baseOf(p: string): string {
 
 // Reuse the file-mention pattern from detectFalseCompletionOnDisk. A fresh regex per call
 // avoids the shared-global lastIndex bug noted there.
-const CG_FILE_RE = /(?:src[\\/])?[\w.\-]+\.(?:json|tsx|jsx|cjs|mjs|ts|js|py|go|rs|java|cs|rb|php|md|css|html)(?::\d+)?/gi;
+const CG_FILE_RE = /(?:src[\\\\/])?[\w.\-]+\.(?:tsx|jsx|cjs|mjs|json|ts|js|py|go|rs|java|rb|php|md|css|html|cs)(?::\d+)?/gi;
 
 // A sentence asserts a fact about an artifact when it pairs a file mention with a
 // claim/state verb. Listed as base verbs + the "already X" / "no longer Y" negations that

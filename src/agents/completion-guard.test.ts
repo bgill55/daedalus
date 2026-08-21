@@ -255,6 +255,22 @@ describe('ClaimLedger + detectUngroundedClaim', () => {
     const claim = 'import.meta.dirname exists in Node.js v22.23.2, confirmed via node -e.';
     expect(detectUngroundedClaim(claim, ledger)).toBeNull();
   });
+
+  it('extracts style.css as style.css, not style.cs (longest-extension-first)', () => {
+    const ledger = new ClaimLedger();
+    // The extension alternation must prefer the longer "css" over "cs", otherwise
+    // "style.css" collapses to "style.cs" and the ungrounded warning names the wrong file.
+    const claim = 'public/style.css has the gradient styling for the generate button.';
+    // style.css was never observed this session → flagged, and the reported base is style.css.
+    expect(detectUngroundedClaim(claim, ledger)).toBe('style.css');
+  });
+
+  it('still extracts a real .cs file correctly when one is actually named', () => {
+    const ledger = new ClaimLedger();
+    // detectUngroundedClaim returns the raw match (case-preserving), so "Program.cs" stays "Program.cs".
+    const claim = 'Program.cs defines the entry point of the service.';
+    expect(detectUngroundedClaim(claim, ledger)).toBe('Program.cs');
+  });
 });
 
 describe('isGreenStateClaim', () => {
