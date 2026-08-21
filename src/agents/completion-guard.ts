@@ -352,6 +352,16 @@ function fileMentions(text: string): string[] {
   return [...text.matchAll(new RegExp(CG_FILE_RE.source, CG_FILE_RE.flags))].map((m) => m[0]);
 }
 
+// Tokens that match CG_FILE_RE (e.g. "node.js", "tsx.ts") but are NEVER repo artifacts —
+// they are runtime/platform/CLI names the agent verifies via `node -e` / `tsx` commands,
+// not by reading a file. Treating them as uninspected files makes the ungrounded-claim
+// guard fire on legitimately-verified platform facts (the "Claim about Node.js is ungrounded"
+// false positive). Skip them so the guard only flags real repo files.
+const NON_FILE_TOKENS = new Set([
+  'node.js', 'node', 'deno', 'bun', 'tsx', 'npm', 'npx', 'yarn', 'pnpm', 'git',
+  'docker', 'kubectl', 'vim', 'bash', 'sh', 'powershell', 'cmd',
+]);
+
 /**
  * Detects a factual claim about a repo artifact the agent never observed this session.
  * Returns the first ungrounded file mention, or null when every claimed file was actually
@@ -369,6 +379,9 @@ export function detectUngroundedClaim(text: string, ledger: ClaimLedger): string
     if (!CG_CLAIM_VERB_RE.test(sentence)) continue;
     for (const raw of mentioned) {
       const base = baseOf(raw);
+      // Skip runtime/platform/CLI tokens (node.js, tsx, npm, ...) — verified via commands,
+      // not by reading a repo file. Flagging them as "uninspected" is a false positive.
+      if (NON_FILE_TOKENS.has(base)) continue;
       if (!ledger.observed(base)) return raw;
     }
   }

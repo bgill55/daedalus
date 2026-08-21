@@ -247,6 +247,14 @@ describe('ClaimLedger + detectUngroundedClaim', () => {
       'server.ts handles routing and validation.ts validates input. Also, logger.ts is missing a performance() method.';
     expect(detectUngroundedClaim(claim, ledger)).toBe('logger.ts');
   });
+
+  it('does NOT flag a claim about the Node.js runtime (verified via `node -e`, not a repo file)', () => {
+    const ledger = new ClaimLedger();
+    // Agent ran `node -e "typeof import.meta.dirname"` — that is a terminal observation of
+    // the runtime, not a file read. "Node.js" should not be treated as an uninspected file.
+    const claim = 'import.meta.dirname exists in Node.js v22.23.2, confirmed via node -e.';
+    expect(detectUngroundedClaim(claim, ledger)).toBeNull();
+  });
 });
 
 describe('isGreenStateClaim', () => {
