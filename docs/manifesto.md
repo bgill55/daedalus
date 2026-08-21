@@ -1,5 +1,7 @@
 # The Daedalus Manifesto
 
+![The Daedalus Manifesto — Engineering Integrity in the Terminal](images/the_daedalus_manifesto.png)
+
 We do not build translators for messy output. We make the output not messy in the first place.
 
 That is the thesis. Everything below is what it looks like when you refuse to ship an agent that lies, loops, or invents — and decide the agent should be fun to work with while it's at it.
