@@ -1,8 +1,8 @@
 - **Getting Started**
-  - [The Daedalus Manifesto 📜](manifesto.md)
+  - [The Daedalus Manifesto ](manifesto.md)
   - [Quick Start](getting-started.md)
-  - [Onboarding Cheat Sheet 🚀](cheat-sheet.md)
-  - [Local-First FAQ 💬](faq.md)
+  - [Onboarding Cheat Sheet ](cheat-sheet.md)
+  - [Local-First FAQ ](faq.md)
   - [NotebookLM & Architecture](notebooklm-summary.md)
   - [Configuration](configuration-reference.md)
 
@@ -28,7 +28,7 @@
   - [Gold Standard Spec](example-spec-stats.md)
   - [Social Media Manager](social-media-manager-sprint.md)
   - [Daedalus-Lite](daedalus-lite-sprint.md)
-  - [Daedalus-Lite — Live Demo ⚡](https://bgill55.github.io/daedalus-lite/live-demo.html)
+  - [Daedalus-Lite — Live Demo ](https://bgill55.github.io/daedalus-lite/live-demo.html)
   - [Bug Fix Report: Windows Terminal Crashes & Build-Fix Robustness](windows-terminal-crash-fix.md)
 
 - **Developer**

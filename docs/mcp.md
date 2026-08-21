@@ -62,7 +62,7 @@ Daedalus includes a built-in MCP server manager that lets you discover, install,
 
 ---
 
-## 📦 One-Click MCP Tool Bundles (`/mcp bundle`)
+##  One-Click MCP Tool Bundles (`/mcp bundle`)
 
 Instead of installing servers individually, Daedalus provides **Preset MCP Tool Bundles** that install complete toolkits in one command:
 

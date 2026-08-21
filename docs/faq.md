@@ -1,13 +1,13 @@
-# 🧑‍💻 Daedalus Local-First Discord FAQ
+#  Daedalus Local-First Discord FAQ
 
 This FAQ answers the most common setup questions, architectural concepts, and troubleshooting issues for developers onboarding to the Daedalus ecosystem.
 
 ---
 
-### 🖥️ Hardware & Local Execution
+###  Hardware & Local Execution
 
 #### Q: How do I try Daedalus without installing anything?
-Open the [Daedalus-Lite Live Demo ⚡](https://bgill55.github.io/daedalus-lite/live-demo.html) — a browser-based interactive REPL sandbox (no install, a few free queries included). To run the full CLI locally, install via `npm install -g daedalus-cli` (Node.js 20+) and point it at a local model (Ollama/LM Studio) or your own API key.
+Open the [Daedalus-Lite Live Demo ](https://bgill55.github.io/daedalus-lite/live-demo.html) — a browser-based interactive REPL sandbox (no install, a few free queries included). To run the full CLI locally, install via `npm install -g daedalus-cli` (Node.js 20+) and point it at a local model (Ollama/LM Studio) or your own API key.
 
 #### Q: What are the hardware requirements for running Daedalus 100% locally?
 To run Daedalus locally and offline with near-instant generation times, your machine should ideally meet the following hardware profile:
@@ -26,7 +26,7 @@ For local execution, the system is tuned and verified against these specific GGU
 
 ---
 
-### 🔀 Model Routing, Tiers, & Presets
+###  Model Routing, Tiers, & Presets
 
 #### Q: How does the embedded model router handle complex vs. simple tasks?
 Daedalus utilizes **Dynamic Complexity-Based Routing**. When you submit a prompt, the system classifies its complexity into a specific tier:
@@ -48,7 +48,7 @@ Instead of editing configuration files, you can execute `/preset` in the REPL to
 
 ---
 
-### 📐 SpecFirst Architecture & Verification Gates
+###  SpecFirst Architecture & Verification Gates
 
 #### Q: What is "SpecFirst" and how does it prevent agent coding pitfalls?
 Traditional multi-agent systems often suffer from **Contract Drift** (mismatched parameter types across files), **Untested Assertions** (syntactically correct code that fails runtime logic), and **Goal Drift** (losing sight of constraints over long loops).
@@ -60,7 +60,7 @@ During the verification stage of an orchestrator run, the engine executes `verif
 
 ---
 
-### 🧠 Σ-Mem (Sigma-Memory) Engine
+###  Σ-Mem (Sigma-Memory) Engine
 
 #### Q: What is the "Context Pollution" problem and how does Σ-Mem solve it?
 Traditional agent frameworks treat chat transcripts as flat history. They store every failed attempt, compilation warning, and hallucinated API right alongside valid code. Over long tasks, this noise pollates the context window, degrading the AI's cognitive performance.
@@ -76,7 +76,7 @@ Only memories with a score of Σ ≥ 0.60 are selectively injected into sub-agen
 
 ---
 
-### 🛡️ Guardrails, Circuit Breakers, & Resilience
+###  Guardrails, Circuit Breakers, & Resilience
 
 #### Q: The CLI says `[CIRCUIT BREAKER]`. Why did my command execution halt?
 Daedalus features an embedded **Command Circuit Breaker** to prevent runaway loops. It tracks **normalized command prefixes** (e.g. collapsing `npm install foo` to `npm install`).
@@ -88,7 +88,7 @@ When an agent turn emits multiple tools at once (e.g., `[patch(src/app.ts), term
 
 ---
 
-### 🪟 Windows Setup & Troubleshooting
+###  Windows Setup & Troubleshooting
 
 #### Q: I am on Windows and my terminal tool crashes repeatedly with Exit Code `3221225794` / `0xC0000142`. How do I resolve this?
 This was a critical environmental bug resolved in **v3.13.3**.
@@ -101,7 +101,7 @@ This issue was fixed in **v3.13.1**. Originally, `syntaxCheck` flagged any compi
 
 ---
 
-### 📦 Sandboxing & Isolation
+###  Sandboxing & Isolation
 
 #### Q: How do I isolate Daedalus execution environments?
 By default, Daedalus executes commands on your host machine. To isolate your builds, you can configure Docker or WSL sandboxing in `~/.daedalus/config.json` under the `tools` configuration:
@@ -110,7 +110,7 @@ By default, Daedalus executes commands on your host machine. To isolate your bui
 
 ---
 
-### 📚 Skills (Playbook Ingestion)
+###  Skills (Playbook Ingestion)
 
 #### Q: What are "Skills" in Daedalus? Are they executable code?
 No, skills are **instructions, not code**. They are packaged Markdown playbooks (yaml frontmatter + step-by-step instructions) that define how an agent should handle a specific problem. When your REPL prompt matches a skill's trigger phrase (such as "fix the build" triggering the `fix-typescript-build` skill), Daedalus automatically injects the playbook into the active system prompt.
@@ -123,7 +123,7 @@ When Daedalus resolves a complex, non-obvious problem, sub-agents can call the `
 
 ---
 
-### 🔌 Model Context Protocol (MCP)
+###  Model Context Protocol (MCP)
 
 #### Q: Does Daedalus support MCP? How do I install external tools?
 Yes! Daedalus supports MCP over both **stdio** (local process spawning) and **HTTP/SSE** (remote endpoints) transports. You can manage external tools directly from the REPL:

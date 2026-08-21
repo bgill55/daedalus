@@ -21,9 +21,9 @@ sequenceDiagram
     GH->>Daedalus: Trigger daedalus-pr-review workflow
     Note over Daedalus: Run tsc, lint, git diff & AI safety scan
     alt All Checks Pass
-        Daedalus->>PR: Post ✅ PASSED markdown review comment
+        Daedalus->>PR: Post  PASSED markdown review comment
     else Checks Fail
-        Daedalus->>PR: Post ❌ ACTION REQUIRED comment + failure logs
+        Daedalus->>PR: Post  ACTION REQUIRED comment + failure logs
     end
 ```
 
@@ -127,4 +127,4 @@ If you want Daedalus to analyze PR diffs with cloud models in GitHub Actions:
 2. Navigate to **Settings > Secrets and variables > Actions**.
 3. Add `OPENAI_API_KEY` (or your preferred provider key) under **Repository secrets**.
 
-That's it! Daedalus will now automatically review every Pull Request opened on your repository! 🎉
+That's it! Daedalus will now automatically review every Pull Request opened on your repository! 

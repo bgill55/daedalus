@@ -1,10 +1,10 @@
-# 🪄 Auto-Prompt Expansion & Codebase Auditing (`/enhance` & `/prompt`)
+#  Auto-Prompt Expansion & Codebase Auditing (`/enhance` & `/prompt`)
 
 This guide documents how **Daedalus** uses the `/enhance` (and `/prompt`) command alongside core system prompt guardrails to turn casual, 1-liner requests into high-yield architectural audits without token drift or repetition loops.
 
 ---
 
-## 🛑 The Problem: Open-Ended Prompt Drift
+##  The Problem: Open-Ended Prompt Drift
 
 When users ask open-ended questions like *"look at this project and tell me what you think"*, open-weights LLMs can fall into two common failure modes:
 1. **API Enumeration Spirals**: Outputting long, repetitive lists of standard library methods (such as listing `console.*` or `process.*` methods) until hitting repetition bounds.
@@ -12,7 +12,7 @@ When users ask open-ended questions like *"look at this project and tell me what
 
 ---
 
-## ⚡ The Solution: `/enhance` + Review Guardrails
+##  The Solution: `/enhance` + Review Guardrails
 
 Daedalus solves this using two complementary systems:
 
@@ -24,11 +24,11 @@ Daedalus solves this using two complementary systems:
 
 ---
 
-## 📊 Real-World Case Study: PromptVault Audit
+##  Real-World Case Study: PromptVault Audit
 
 ### 1. Casual User Input
 ```text
-⬡ › /prompt can you look at this project and tell me what you think.
+ › /prompt can you look at this project and tell me what you think.
 ```
 
 ### 2. Auto-Expanded Engineering Prompt
@@ -61,7 +61,7 @@ Ensure every section contains substantive analysis derived from your actual code
 ### 3. Daedalus Real-World Output
 
 ```text
-  🪽 Daedalus─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+   Daedalus─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
   Now I have a good understanding of the project. Let me create a comprehensive audit report based on my analysis.
 
   Project Overview
@@ -100,12 +100,12 @@ Ensure every section contains substantive analysis derived from your actual code
   • External AI Fallback: Add timeout/retry guards for external prompt generation services.
   • Input Size Limits: Set express.json({ limit: '100kb' }) to prevent large payload Denial of Service.
   intelligence · freellmapi-deepseek-v4 (deepseek-ai/deepseek-v4-pro) · 16 tool(s) · 2.4k out · 53.8s · 45.2 tok/s────────────────────────
-  ┊ ✔ Executed tools: list_files, read_file
+  ┊  Executed tools: list_files, read_file
 ```
 
 ---
 
-## 🚀 Key Takeaways
+##  Key Takeaways
 
 1. **Zero Repetition Loops**: Prevents AI agents from drifting into infinite API method lists.
 2. **100% Tool Grounded**: Orders the agent to run `list_files` and `read_file` before writing the report.

@@ -1,4 +1,4 @@
-# 🤖 Autopilot v3.0.0 & Greenfield Web UI Showcase
+#  Autopilot v3.0.0 & Greenfield Web UI Showcase
 
 Daedalus v3.0.0 introduces **Zero-Setup Autopilot**, allowing users to specify a high-level application feature (or complete greenfield application idea) and walk away while autonomous agents architect, code, test, and style the app end-to-end.
 
@@ -8,12 +8,12 @@ Daedalus v3.0.0 introduces **Zero-Setup Autopilot**, allowing users to specify a
 
 ---
 
-## 📺 Live CLI Terminal Flow Mockup
+##  Live CLI Terminal Flow Mockup
 
 Below is the step-by-step CLI execution of Daedalus `/autopilot` building **PromptVault** from a blank directory in a single command:
 
 ```text
- ⬡ › /autopilot Build PromptVault from scratch: an Express TypeScript web app with a dark-mode glassmorphism UI in public/index.html, public/style.css, public/script.js, and src/server.ts. Include 5 pre-populated seed prompt cards (Coding, Writing, Database, API, Debugging) with {{variables}}, live search bar by name/tag, tag pill filters, prompt template editor modal, interactive variable filling preview panel, and one-click copy to clipboard. Dont use emojis, use inline SVG icons where needed.
+  › /autopilot Build PromptVault from scratch: an Express TypeScript web app with a dark-mode glassmorphism UI in public/index.html, public/style.css, public/script.js, and src/server.ts. Include 5 pre-populated seed prompt cards (Coding, Writing, Database, API, Debugging) with {{variables}}, live search bar by name/tag, tag pill filters, prompt template editor modal, interactive variable filling preview panel, and one-click copy to clipboard. Dont use emojis, use inline SVG icons where needed.
 
 [INFO] Non-git directory detected. Auto-initializing Git repository for autonomous branch safety...
 [OK] Git repository initialized with tracking branch support.
@@ -24,7 +24,7 @@ Switched to a new branch 'daedalus-autopilot-build-promptvault-from-scratch'
 [AUTOPILOT] Starting autonomous implementation...
 
 [SpecFirst] Generating formal feature specification contract...
-✔ [SpecFirst] Spec contract created (2 interfaces, 5 test cases)
+ [SpecFirst] Spec contract created (2 interfaces, 5 test cases)
   Spec saved to .daedalus/spec.md & .daedalus/spec.json
 
 [AUTOPILOT] Progress: 0/6 completed | Active: [coder] create src/types.ts defining Prompt interface...
@@ -67,7 +67,7 @@ Switched to a new branch 'daedalus-autopilot-build-promptvault-from-scratch'
 
 ---
 
-## 🎨 The Result: PromptVault Web Application
+##  The Result: PromptVault Web Application
 
 The resulting web application is stored in the repository under [`examples/prompt-vault/`](https://github.com/bgill55/daedalus/tree/main/examples/prompt-vault).
 
@@ -79,7 +79,7 @@ The resulting web application is stored in the repository under [`examples/promp
 
 ---
 
-## 🛡️ Key v3.0.0 Autopilot Enhancements
+##  Key v3.0.0 Autopilot Enhancements
 
 1. **Auto Git Initialization**: Works seamlessly in empty, non-git directories by running `git init`, generating `.gitignore`, and creating isolated tracking branches automatically.
 2. **Pristine Project Isolation**: All walkthrough logs and spec documents are saved inside `.daedalus/` to prevent root project clutter.

@@ -4,7 +4,7 @@ Daedalus supports **Portable YAML Recipes**, allowing you to package complex, mu
 
 ---
 
-## 📜 What is a Recipe?
+##  What is a Recipe?
 
 A **Recipe** is a structured `.yaml` or `.json` file that defines:
 - **`name`**: The unique identifier for the recipe.
@@ -16,7 +16,7 @@ A **Recipe** is a structured `.yaml` or `.json` file that defines:
 
 ---
 
-## 📁 Recipe File Locations & Built-in Defaults
+##  Recipe File Locations & Built-in Defaults
 
 Daedalus automatically resolves recipes in the following order:
 
@@ -30,7 +30,7 @@ Daedalus automatically resolves recipes in the following order:
 
 ---
 
-## 🛠️ Slash Command Usage
+##  Slash Command Usage
 
 | Command | Description |
 | :--- | :--- |
@@ -40,7 +40,7 @@ Daedalus automatically resolves recipes in the following order:
 
 ---
 
-## ✍️ Example Recipe File
+##  Example Recipe File
 
 Create `.daedalus/recipes/security-audit.yaml`:
 
@@ -60,7 +60,7 @@ prompt: |
 
 ---
 
-## 🚀 Running a Recipe
+##  Running a Recipe
 
 To execute your security audit recipe, simply type:
 
