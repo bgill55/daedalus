@@ -4,7 +4,7 @@ Daedalus includes built-in support for running a **community/team Discord Bot** 
 
 ---
 
-## 🤖 1. Running the Daedalus Discord Bot
+##  1. Running the Daedalus Discord Bot
 
 You can host your own Daedalus AI assistant inside your team or community Discord server.
 
@@ -38,7 +38,7 @@ You can host your own Daedalus AI assistant inside your team or community Discor
 
 ---
 
-## 🔔 2. Discord Webhook Notifications (Autonomous Loop)
+##  2. Discord Webhook Notifications (Autonomous Loop)
 
 When running the autonomous **Finn Loop** (`/spec` and `daedalus --loop`), Daedalus can post real-time, color-coded embed updates directly to your Discord channel.
 
@@ -59,14 +59,14 @@ Or via CLI configuration:
 ### Real-Time Event Embeds
 
 When active, the loop automatically sends notifications for:
-- 📋 **Spec Queued**: Sent when `/spec` generates an implementation-ready issue on GitHub.
-- ⚙️ **Work Started**: Sent when `daedalus --loop` picks up an issue and begins orchestration.
-- ⚠️ **Review Gate Alert**: Sent if an automated self-review gate flags issues or reverts a failing build.
-- 🚀 **PR Ready**: Sent when orchestration and self-review pass cleanly, with clickable links to the Issue, Branch, and Pull Request.
+-  **Spec Queued**: Sent when `/spec` generates an implementation-ready issue on GitHub.
+-  **Work Started**: Sent when `daedalus --loop` picks up an issue and begins orchestration.
+-  **Review Gate Alert**: Sent if an automated self-review gate flags issues or reverts a failing build.
+-  **PR Ready**: Sent when orchestration and self-review pass cleanly, with clickable links to the Issue, Branch, and Pull Request.
 
 ---
 
-## 🛡️ Privacy & Security
+##  Privacy & Security
 
 - **No Hardcoded Tokens**: All tokens (`DISCORD_BOT_TOKEN`, `DISCORD_WEBHOOK_URL`) are read strictly from environment variables or local user configs.
 - **Open-Source Friendly**: The published npm package (`daedalus-cli`) includes only compiled core binaries. Discord bot features remain 100% optional for developers building from source or deploying custom bots.

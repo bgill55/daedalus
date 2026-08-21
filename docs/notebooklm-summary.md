@@ -6,7 +6,7 @@ Daedalus (published on npm as `daedalus-cli`) is a local-first AI coding compani
   <img src="images/notebooklm_infographic.jpg" alt="Daedalus: The Architect of Autonomous Coding Infographic" width="100%"/>
 </p>
 
-> **🎨 Explore the Visual Knowledge Hub on Discord:**
+> ** Explore the Visual Knowledge Hub on Discord:**
 > Browse all NotebookLM infographics, architectural diagrams, audio summaries, and video demonstrations directly in our **[Discord Knowledge Channel](https://discord.com/channels/1530095347651575939/1532496845035802795)**!
 
 ---
@@ -14,7 +14,7 @@ Daedalus (published on npm as `daedalus-cli`) is a local-first AI coding compani
 ## Latest Walkthrough & Ecosystem Overview
 
 * **3-minute NotebookLM walkthrough** — how Daedalus verifies its own patches and the full ecosystem architecture: [Watch on NotebookLM](https://notebook.google.com/notebook/c9d27926-1a36-49b1-8af5-ab43e626e7fa/artifact/7d56eccf-6eac-4718-83f1-dcd3a6aa83e1?utm_source=nlm_web_share&utm_medium=google_oo&utm_campaign=art_share_1)
-* **Interactive live demo** — try the REPL sandbox in your browser, no install: [Daedalus-Lite Live Demo ⚡](https://bgill55.github.io/daedalus-lite/live-demo.html)
+* **Interactive live demo** — try the REPL sandbox in your browser, no install: [Daedalus-Lite Live Demo ](https://bgill55.github.io/daedalus-lite/live-demo.html)
 
 <p align="center">
   <img src="images/daedalus_ecosystem_overview.png" alt="Daedalus Technical Ecosystem Overview" width="100%"/>
@@ -143,12 +143,12 @@ This case study documents an authentic, end-to-end execution of the **Daedalus A
 * Automatically generates **GitHub Issue #15** tagged with `daedalus-todo`.
 
 #### Stage 2: Autonomous Daemon Execution (`daedalus --loop`)
-* Daemon polls GitHub, detects Issue #15, and dispatches a **⚙️ Loop Work Started** Discord webhook embed.
+* Daemon polls GitHub, detects Issue #15, and dispatches a ** Loop Work Started** Discord webhook embed.
 * Multi-agent orchestrator delegates to Coder sub-agents to construct `src/version.ts` and `src/version.test.ts`.
 * Verification engine runs `npx tsc --noEmit` and `npm run lint` (both pass!).
 * **Magenta Self-Review Gate** executes AI semantic diff inspection, verifying code integrity.
 * Automatically creates branch `daedalus-issue-15`, pushes to origin, and opens **GitHub PR #16**.
-* Dispatches a **🚀 PR Ready** Discord embed with clickable links.
+* Dispatches a ** PR Ready** Discord embed with clickable links.
 
 #### Stage 3: Headless CI/CD Reviewer (`daedalus --ci 16`)
 * Developer invokes `npx tsx src/index.ts --ci 16`.
@@ -345,12 +345,12 @@ Runs 100% locally inside SQLite (`.daedalus/sessions/<session_id>.sqlite`) with 
 
 ---
 
-## 🎨 Explore the Visual Knowledge Hub
+##  Explore the Visual Knowledge Hub
 
 Want to see all generated **NotebookLM Infographics, Architecture Flowcharts, Audio Summaries, and Video Demonstrations** produced by the Daedalus research pipeline?
 
 Join our community Discord channel to browse the visual assets, discuss agent architectures, and share your specs:
 
-👉 **[Join the Daedalus Discord Knowledge Channel](https://discord.com/channels/1530095347651575939/1532496845035802795)**
+ **[Join the Daedalus Discord Knowledge Channel](https://discord.com/channels/1530095347651575939/1532496845035802795)**
 *(Official Discord Server: [https://discord.gg/74pCA68KGK](https://discord.gg/74pCA68KGK))*
 

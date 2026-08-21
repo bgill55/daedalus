@@ -57,8 +57,8 @@ Upon starting, the orchestrator prints a dynamically wrapped task checklist repr
 
 *   `[ ]` **Pending**: Task is queued for execution.
 *   `[▶]` **In Progress**: Active sub-agent is running the task.
-*   `[✓]` **Completed**: Task completed successfully and changes were verified.
-*   `[✗]` **Failed**: Task failed or exceeded its turn budget.
+*   `[]` **Completed**: Task completed successfully and changes were verified.
+*   `[]` **Failed**: Task failed or exceeded its turn budget.
 *   `[S]` **Skipped**: User chose to skip the task.
 
 ---

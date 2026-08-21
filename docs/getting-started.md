@@ -11,7 +11,7 @@ Welcome to Daedalus, a local-first, terminal-based AI coding assistant. This gui
 > **Looking to build & sell your own AI CLI?**
 > **Looking to build & sell your own AI CLI?** Check out **[Daedalus-Lite](https://bgill55.github.io/daedalus-lite/)** — the zero-dependency, rebrandable TypeScript starter template designed for developers to build, rebrand, and sell their own custom AI coding tools! [Learn more →](https://bgill55.github.io/daedalus-lite/)
 >
-> **Want to try Daedalus in your browser first?** No install needed — open the **[Daedalus-Lite Live Demo ⚡](https://bgill55.github.io/daedalus-lite/live-demo.html)** and chat with the interactive REPL sandbox right now (a few free queries included).
+> **Want to try Daedalus in your browser first?** No install needed — open the **[Daedalus-Lite Live Demo ](https://bgill55.github.io/daedalus-lite/live-demo.html)** and chat with the interactive REPL sandbox right now (a few free queries included).
 
 ---
 
@@ -168,7 +168,7 @@ To learn how to enable and configure these environments, see the [Execution Sand
 
 Have questions, need help setting up local LLM models (Ollama, LM Studio), or want to report a bug?
 
-* 💬 **Discord Community**: [Join the official Daedalus Discord](https://discord.gg/GPH2ZH57up) for live Q&A, setup assistance, release announcements, and showcase channels.
-* ⭐ **GitHub Issues**: [Open an issue on GitHub](https://github.com/bgill55/daedalus/issues) for bug reports and feature requests.
-* 🤖 **AI Bot**: Tag **@Daedalus** inside our Discord server for instant assistance!
+*  **Discord Community**: [Join the official Daedalus Discord](https://discord.gg/GPH2ZH57up) for live Q&A, setup assistance, release announcements, and showcase channels.
+*  **GitHub Issues**: [Open an issue on GitHub](https://github.com/bgill55/daedalus/issues) for bug reports and feature requests.
+*  **AI Bot**: Tag **@Daedalus** inside our Discord server for instant assistance!
 

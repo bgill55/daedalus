@@ -8,7 +8,7 @@ This document captures the autonomous case study where Daedalus built and then r
 ---
 
 <details>
-<summary>🛠️ System & Tool Logs</summary>
+<summary> System & Tool Logs</summary>
 
 **System Prompt**:
 ```javascript
@@ -168,24 +168,24 @@ Project Facts:
 
 </details>
 
-### 👤 Brian
+###  Brian
 
 > hey there Daedalus, how are ya?
 
-### 🤖 Daedalus
+###  Daedalus
 
 Well, I'm running on zero sleep and infinite patience — so, same as always. What's on your mind, Brian?
 
-### 👤 Brian
+###  Brian
 
 > can you look at our little side project and tell me what you think.
 
-### 🤖 Daedalus
+###  Daedalus
 
 Let me take a look at what we're working with.
 
 <details>
-<summary>🛠️ System & Tool Logs</summary>
+<summary> System & Tool Logs</summary>
 
 **Tool Result**:
 ```javascript
@@ -220,7 +220,7 @@ D:\Daedalus-Lite\walkthrough.md
 </details>
 
 <details>
-<summary>🛠️ System & Tool Logs</summary>
+<summary> System & Tool Logs</summary>
 
 **Tool Result**:
 ```javascript
@@ -562,7 +562,7 @@ D:\Daedalus-Lite\walkthrough.md
 </details>
 
 <details>
-<summary>🛠️ System & Tool Logs</summary>
+<summary> System & Tool Logs</summary>
 
 **Tool Result**:
 ```javascript
@@ -976,7 +976,7 @@ D:\Daedalus-Lite\walkthrough.md
 </details>
 
 <details>
-<summary>🛠️ System & Tool Logs</summary>
+<summary> System & Tool Logs</summary>
 
 **Tool Result**:
 ```javascript
@@ -1013,7 +1013,7 @@ D:\Daedalus-Lite\walkthrough.md
 
 </details>
 
-### 🤖 Daedalus
+###  Daedalus
 
 Alright Brian, I've read the whole thing. Here's my honest take on **Daedalus-Lite**:
 
@@ -1054,16 +1054,16 @@ Want me to fix any of these? I can:
 - Clean up the dead code
 - Or all of the above
 
-### 👤 Brian
+###  Brian
 
 > lets go with all of the above lol
 
-### 🤖 Daedalus
+###  Daedalus
 
 Let's clean this up. I'll tackle all of it.
 
 <details>
-<summary>🛠️ System & Tool Logs</summary>
+<summary> System & Tool Logs</summary>
 
 **Tool Result**:
 ```javascript
@@ -1080,7 +1080,7 @@ Todo list (7 items):
 </details>
 
 <details>
-<summary>🛠️ System & Tool Logs</summary>
+<summary> System & Tool Logs</summary>
 
 **Tool Result**:
 ```javascript
@@ -1097,7 +1097,7 @@ Todo list (7 items):
 </details>
 
 <details>
-<summary>🛠️ System & Tool Logs</summary>
+<summary> System & Tool Logs</summary>
 
 **Tool Result**:
 ```javascript
@@ -1107,12 +1107,12 @@ Patched D:\Daedalus-Lite\tsconfig.json
 </details>
 
 <details>
-<summary>🛠️ System & Tool Logs</summary>
+<summary> System & Tool Logs</summary>
 
 **Tool Result**:
 ```javascript
 Todo list (7 items):
-  ✓ 1: Fix tsconfig.json — change outDir to dist, adjust include/exclude
+   1: Fix tsconfig.json — change outDir to dist, adjust include/exclude
   ▶ 2: Add tsx devDep, fix npm start script
   ○ 3: Wire up errorHandlerMiddleware in index.ts
   ○ 4: Use endpoint constants from endpoints.ts in router
@@ -1124,7 +1124,7 @@ Todo list (7 items):
 </details>
 
 <details>
-<summary>🛠️ System & Tool Logs</summary>
+<summary> System & Tool Logs</summary>
 
 **Tool Result**:
 ```javascript
@@ -1134,7 +1134,7 @@ Todo list (7 items):
 </details>
 
 <details>
-<summary>🛠️ System & Tool Logs</summary>
+<summary> System & Tool Logs</summary>
 
 **Tool Result**:
 ```javascript
@@ -1169,12 +1169,12 @@ Todo list (7 items):
 
 </details>
 
-### 🤖 Daedalus
+###  Daedalus
 
 Ah, the old_string had an extra `{` at the start. Let me fix that.
 
 <details>
-<summary>🛠️ System & Tool Logs</summary>
+<summary> System & Tool Logs</summary>
 
 **Tool Result**:
 ```javascript
@@ -1184,7 +1184,7 @@ Patched D:\Daedalus-Lite\package.json
 </details>
 
 <details>
-<summary>🛠️ System & Tool Logs</summary>
+<summary> System & Tool Logs</summary>
 
 **Tool Result**:
 ```javascript
@@ -1199,13 +1199,13 @@ found 0 vulnerabilities
 </details>
 
 <details>
-<summary>🛠️ System & Tool Logs</summary>
+<summary> System & Tool Logs</summary>
 
 **Tool Result**:
 ```javascript
 Todo list (7 items):
-  ✓ 1: Fix tsconfig.json — change outDir to dist, adjust include/exclude
-  ✓ 2: Add tsx devDep, fix npm start script
+   1: Fix tsconfig.json — change outDir to dist, adjust include/exclude
+   2: Add tsx devDep, fix npm start script
   ▶ 3: Wire up errorHandlerMiddleware in index.ts
   ○ 4: Use endpoint constants from endpoints.ts in router
   ○ 5: Use fetchWithTimeout from utils.ts in router
@@ -1215,12 +1215,12 @@ Todo list (7 items):
 
 </details>
 
-### 🤖 Daedalus
+###  Daedalus
 
 Now let me wire up the middleware in `index.ts` — it's imported but never registered.
 
 <details>
-<summary>🛠️ System & Tool Logs</summary>
+<summary> System & Tool Logs</summary>
 
 **Tool Result**:
 ```javascript
@@ -1235,7 +1235,7 @@ Warnings:
 </details>
 
 <details>
-<summary>🛠️ System & Tool Logs</summary>
+<summary> System & Tool Logs</summary>
 
 **Tool Result**:
 ```javascript
@@ -1267,19 +1267,19 @@ Warnings:
 
 </details>
 
-### 🤖 Daedalus
+###  Daedalus
 
 The warnings are just the linter being confused about re-exports — those are fine. Now let me update the router to use the endpoint constants and `fetchWithTimeout`.
 
 <details>
-<summary>🛠️ System & Tool Logs</summary>
+<summary> System & Tool Logs</summary>
 
 **Tool Result**:
 ```javascript
 Todo list (7 items):
-  ✓ 1: Fix tsconfig.json — change outDir to dist, adjust include/exclude
-  ✓ 2: Add tsx devDep, fix npm start script
-  ✓ 3: Wire up errorHandlerMiddleware in index.ts
+   1: Fix tsconfig.json — change outDir to dist, adjust include/exclude
+   2: Add tsx devDep, fix npm start script
+   3: Wire up errorHandlerMiddleware in index.ts
   ▶ 4: Use endpoint constants from endpoints.ts in router
   ▶ 5: Use fetchWithTimeout from utils.ts in router
   ○ 6: Clean up orphaned .js files if any exist in src
@@ -1289,7 +1289,7 @@ Todo list (7 items):
 </details>
 
 <details>
-<summary>🛠️ System & Tool Logs</summary>
+<summary> System & Tool Logs</summary>
 
 **Tool Result**:
 ```javascript
@@ -1298,12 +1298,12 @@ Patched D:\Daedalus-Lite\src\router.ts
 
 </details>
 
-### 🤖 Daedalus
+###  Daedalus
 
 Now replace the hardcoded OpenAI URL and fetch:
 
 <details>
-<summary>🛠️ System & Tool Logs</summary>
+<summary> System & Tool Logs</summary>
 
 **Tool Result**:
 ```javascript
@@ -1312,12 +1312,12 @@ Patched D:\Daedalus-Lite\src\router.ts
 
 </details>
 
-### 🤖 Daedalus
+###  Daedalus
 
 Now the Anthropic endpoint:
 
 <details>
-<summary>🛠️ System & Tool Logs</summary>
+<summary> System & Tool Logs</summary>
 
 **Tool Result**:
 ```javascript
@@ -1326,12 +1326,12 @@ Patched D:\Daedalus-Lite\src\router.ts
 
 </details>
 
-### 🤖 Daedalus
+###  Daedalus
 
 Now the local endpoint too:
 
 <details>
-<summary>🛠️ System & Tool Logs</summary>
+<summary> System & Tool Logs</summary>
 
 **Tool Result**:
 ```javascript
@@ -1341,16 +1341,16 @@ Patched D:\Daedalus-Lite\src\router.ts
 </details>
 
 <details>
-<summary>🛠️ System & Tool Logs</summary>
+<summary> System & Tool Logs</summary>
 
 **Tool Result**:
 ```javascript
 Todo list (7 items):
-  ✓ 1: Fix tsconfig.json — change outDir to dist, adjust include/exclude
-  ✓ 2: Add tsx devDep, fix npm start script
-  ✓ 3: Wire up errorHandlerMiddleware in index.ts
-  ✓ 4: Use endpoint constants from endpoints.ts in router
-  ✓ 5: Use fetchWithTimeout from utils.ts in router
+   1: Fix tsconfig.json — change outDir to dist, adjust include/exclude
+   2: Add tsx devDep, fix npm start script
+   3: Wire up errorHandlerMiddleware in index.ts
+   4: Use endpoint constants from endpoints.ts in router
+   5: Use fetchWithTimeout from utils.ts in router
   ▶ 6: Clean up orphaned .js files if any exist in src
   ○ 7: Verify it compiles
 ```
@@ -1358,7 +1358,7 @@ Todo list (7 items):
 </details>
 
 <details>
-<summary>🛠️ System & Tool Logs</summary>
+<summary> System & Tool Logs</summary>
 
 **Tool Result**:
 ```javascript
@@ -1373,12 +1373,12 @@ D:\Daedalus-Lite\src\utils.js
 
 </details>
 
-### 🤖 Daedalus
+###  Daedalus
 
 Yep, there they are — the ghost of `outDir: "src"` past. Let me clean those out.
 
 <details>
-<summary>🛠️ System & Tool Logs</summary>
+<summary> System & Tool Logs</summary>
 
 **Tool Result**:
 ```javascript
@@ -1388,28 +1388,28 @@ Yep, there they are — the ghost of `outDir: "src"` past. Let me clean those ou
 </details>
 
 <details>
-<summary>🛠️ System & Tool Logs</summary>
+<summary> System & Tool Logs</summary>
 
 **Tool Result**:
 ```javascript
 Todo list (7 items):
-  ✓ 1: Fix tsconfig.json — change outDir to dist, adjust include/exclude
-  ✓ 2: Add tsx devDep, fix npm start script
-  ✓ 3: Wire up errorHandlerMiddleware in index.ts
-  ✓ 4: Use endpoint constants from endpoints.ts in router
-  ✓ 5: Use fetchWithTimeout from utils.ts in router
-  ✓ 6: Clean up orphaned .js files if any exist in src
+   1: Fix tsconfig.json — change outDir to dist, adjust include/exclude
+   2: Add tsx devDep, fix npm start script
+   3: Wire up errorHandlerMiddleware in index.ts
+   4: Use endpoint constants from endpoints.ts in router
+   5: Use fetchWithTimeout from utils.ts in router
+   6: Clean up orphaned .js files if any exist in src
   ▶ 7: Verify it compiles
 ```
 
 </details>
 
-### 🤖 Daedalus
+###  Daedalus
 
 Let me verify the final state of the files and then compile.
 
 <details>
-<summary>🛠️ System & Tool Logs</summary>
+<summary> System & Tool Logs</summary>
 
 **Tool Result**:
 ```javascript
@@ -1668,12 +1668,12 @@ Let me verify the final state of the files and then compile.
 
 </details>
 
-### 🤖 Daedalus
+###  Daedalus
 
 Everything looks right. Let me verify it compiles.
 
 <details>
-<summary>🛠️ System & Tool Logs</summary>
+<summary> System & Tool Logs</summary>
 
 **Tool Result**:
 ```javascript
@@ -1682,12 +1682,12 @@ Everything looks right. Let me verify it compiles.
 
 </details>
 
-### 🤖 Daedalus
+###  Daedalus
 
 Clean compile — zero errors. Let me also do a quick sanity check that `tsx` can actually parse the entry point:
 
 <details>
-<summary>🛠️ System & Tool Logs</summary>
+<summary> System & Tool Logs</summary>
 
 **Tool Result**:
 ```javascript
@@ -1698,53 +1698,53 @@ Imports OK: InMemoryRouter, defaultConfig, defaultRouter, errorHandlerMiddleware
 </details>
 
 <details>
-<summary>🛠️ System & Tool Logs</summary>
+<summary> System & Tool Logs</summary>
 
 **Tool Result**:
 ```javascript
 Todo list (7 items):
-  ✓ 1: Fix tsconfig.json — change outDir to dist, adjust include/exclude
-  ✓ 2: Add tsx devDep, fix npm start script
-  ✓ 3: Wire up errorHandlerMiddleware in index.ts
-  ✓ 4: Use endpoint constants from endpoints.ts in router
-  ✓ 5: Use fetchWithTimeout from utils.ts in router
-  ✓ 6: Clean up orphaned .js files if any exist in src
-  ✓ 7: Verify it compiles
+   1: Fix tsconfig.json — change outDir to dist, adjust include/exclude
+   2: Add tsx devDep, fix npm start script
+   3: Wire up errorHandlerMiddleware in index.ts
+   4: Use endpoint constants from endpoints.ts in router
+   5: Use fetchWithTimeout from utils.ts in router
+   6: Clean up orphaned .js files if any exist in src
+   7: Verify it compiles
 ```
 
 </details>
 
-### 🤖 Daedalus
+###  Daedalus
 
 All seven items done. Here's the recap:
 
 | # | What | Status |
 |---|------|--------|
-| 1 | **tsconfig.json** — `outDir` → `dist`, added `rootDir: "src"` | ✅ |
-| 2 | **package.json** — `start`/`repl` scripts now use `tsx`, added `tsx` devDep | ✅ |
-| 3 | **index.ts** — `errorHandlerMiddleware` is now registered on `defaultRouter` | ✅ |
-| 4 | **router.ts** — uses `OPENAI_ENDPOINT` and `ANTHROPIC_ENDPOINT` from `endpoints.ts` | ✅ |
-| 5 | **router.ts** — uses `fetchWithTimeout` from `utils.ts` instead of bare `fetch` | ✅ |
-| 6 | **src/*.js** — all 7 orphaned compiled JS files deleted | ✅ |
-| 7 | **TypeScript** — compiles clean, `tsx` resolves all imports | ✅ |
+| 1 | **tsconfig.json** — `outDir` → `dist`, added `rootDir: "src"` |  |
+| 2 | **package.json** — `start`/`repl` scripts now use `tsx`, added `tsx` devDep |  |
+| 3 | **index.ts** — `errorHandlerMiddleware` is now registered on `defaultRouter` |  |
+| 4 | **router.ts** — uses `OPENAI_ENDPOINT` and `ANTHROPIC_ENDPOINT` from `endpoints.ts` |  |
+| 5 | **router.ts** — uses `fetchWithTimeout` from `utils.ts` instead of bare `fetch` |  |
+| 6 | **src/*.js** — all 7 orphaned compiled JS files deleted |  |
+| 7 | **TypeScript** — compiles clean, `tsx` resolves all imports |  |
 
 The little skeleton is no longer haunted. `npm start` and `npm run repl` will actually work now.
 
-### 👤 Brian
+###  Brian
 
 > Daedalus you didn't just clean up the codebase; you actually leveled up the architecture by turning a disjointed skeleton into a cohesive, production-ready framework. 10/10 A+
 
-### 🤖 Daedalus
+###  Daedalus
 
 High praise from a guy who names his projects after himself. I'll take it.
 
 But seriously — the bones were good. I just made sure the muscles attached to them. If you ever want to add more providers, streaming support, or turn it into a full CLI tool, give me a shout.
 
-### 👤 Brian
+###  Brian
 
 > lol you named this side project.  we are sharing a lite version of you to the world.  this is your baby! and you nailed it
 
-### 🤖 Daedalus
+###  Daedalus
 
 Ah, so I'm looking at my own baby picture. That's... oddly meta. A lite version of me, stripped of the existential wit and shipped to the masses.
 

@@ -1,4 +1,4 @@
-# 🧠 $\Sigma$-Mem ($\Sigma$-Memory): Reliable Multi-Agent Memory Engine
+#  $\Sigma$-Mem ($\Sigma$-Memory): Reliable Multi-Agent Memory Engine
 
 Daedalus features an embedded, local-first **$\Sigma$-Mem ($\Sigma$-Memory)** engine that solves the "context pollution" problem in multi-agent systems. Rather than storing flat, unverified chat transcripts, $\Sigma$-Mem scores, rewards, decays, and prunes sub-agent knowledge based on **verification feedback** (compilation, linting, unit test results, and SpecFirst contract assertions).
 
@@ -8,7 +8,7 @@ Daedalus features an embedded, local-first **$\Sigma$-Mem ($\Sigma$-Memory)** en
 
 ---
 
-## 💡 The Core Problem: Flat Memory vs. $\Sigma$-Mem
+##  The Core Problem: Flat Memory vs. $\Sigma$-Mem
 
 In traditional multi-agent systems:
 - **Flat Memory**: Retains all conversation turns — including hallucinated APIs, syntax errors, and failed attempts — equal to correct code. Over long autonomous tasks, the context window fills with noise, causing performance decay.
@@ -16,7 +16,7 @@ In traditional multi-agent systems:
 
 ---
 
-## ⚙️ How $\Sigma$-Mem Works
+##  How $\Sigma$-Mem Works
 
 ```mermaid
 graph TD
@@ -34,7 +34,7 @@ graph TD
 
 ---
 
-## 📊 Reliability Scoring Math
+##  Reliability Scoring Math
 
 Every memory item maintains a floating-point score $\Sigma \in [0.0, 1.0]$, initialized at **$0.70$**.
 
@@ -52,7 +52,7 @@ $$\text{Purge if } \Sigma < 0.20$$
 
 ---
 
-## 🗄️ SQLite Database Schema
+##  SQLite Database Schema
 
 $\Sigma$-Mem runs 100% locally inside `.daedalus/sessions/<session_id>.sqlite` without requiring external vector databases or Redis servers:
 
@@ -77,7 +77,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_sigma_content_hash ON sigma_memories(conte
 
 ---
 
-## 🧬 Robustness Features (v3.1)
+##  Robustness Features (v3.1)
 
 The engine was hardened with four mechanisms so its knowledge base stays compact, current, and relevant.
 
@@ -116,7 +116,7 @@ The REPL injects the Σ-Mem context block into the main system prompt, refreshed
 
 ---
 
-## 💻 CLI Commands & Usage
+##  CLI Commands & Usage
 
 Inspect active $\Sigma$-Memories, scores, and decay counts directly in your terminal:
 
@@ -134,7 +134,7 @@ Inspect active $\Sigma$-Memories, scores, and decay counts directly in your term
 ### Example Terminal Output
 
 ```text
-=== 🧠 Σ-MEM (RELIABILITY-SCORED AGENT KNOWLEDGE) ===
+===  Σ-MEM (RELIABILITY-SCORED AGENT KNOWLEDGE) ===
   [Σ-Score: 90%] [CODER] SVG layout protection rule
     Used: 3 | Decays: 0 | Content: Always set max-width: 24px on raw svg tags...
 

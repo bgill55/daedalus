@@ -4,7 +4,7 @@ This case study documents an authentic execution of **Daedalus** (`daedalus-cli`
 
 ---
 
-## 📊 Executive Summary
+##  Executive Summary
 
 * **Session ID:** `session-1785966212722-02b5b3`
 * **Target Project:** `D:\prompt-vault` (Express + TypeScript + SQLite prompt template manager)
@@ -13,7 +13,7 @@ This case study documents an authentic execution of **Daedalus** (`daedalus-cli`
 
 ---
 
-## 🗺️ Execution Lifecycle & Stages
+##  Execution Lifecycle & Stages
 
 ```mermaid
 sequenceDiagram
@@ -44,7 +44,7 @@ sequenceDiagram
 
 ---
 
-## 📍 Stage 1: Codebase Audit & System Breakdown
+##  Stage 1: Codebase Audit & System Breakdown
 
 When given an unfamiliar codebase (`D:\prompt-vault`), Daedalus inspected file structures, dependency manifests, and database schemas, generating a structured project breakdown and prioritized backlog:
 
@@ -70,7 +70,7 @@ One sentence: A local-first web app to store, organize, and reuse prompt templat
 
 ---
 
-## 📐 Stage 2: Architecture Planning & Consent Protocol
+##  Stage 2: Architecture Planning & Consent Protocol
 
 When instructed to integrate `D:\freellmapi` as an AI provider into `D:\prompt-vault`, Daedalus inspected the target repository, drafted an integration plan, and **paused for user confirmation** before mutating code:
 
@@ -87,7 +87,7 @@ PromptVault (Node/TS)                 FreeLLM API (Node/TS)
 
 ---
 
-## 🛠️ Stage 3: Step-by-Step Implementation & Self-Healing Repair
+##  Stage 3: Step-by-Step Implementation & Self-Healing Repair
 
 Upon approval, Daedalus created git checkpoints (`[CHECKPOINT] Git snapshot created...`) and executed the multi-file implementation.
 
@@ -111,7 +111,7 @@ Daedalus intercepted its compiler errors, updated index signatures to `process.e
 
 ---
 
-## 💡 Stage 4: Feedback-Driven Refactoring (Native Fetch on Node 22)
+##  Stage 4: Feedback-Driven Refactoring (Native Fetch on Node 22)
 
 The developer noticed that `node-fetch` was installed despite running on Node 22:
 
@@ -127,7 +127,7 @@ One less dependency to maintain.
 
 ---
 
-## 🎉 Delivered Results
+##  Delivered Results
 
 1. **`src/providers/freellmapi.ts`**: Zero-dependency native `fetch` wrapper communicating with `http://localhost:3001/v1/chat/completions`.
 2. **`POST /api/v1/prompts/generate`**: Endpoint accepting seed prompts, requesting structured JSON from FreeLLM API, and persisting new prompts into SQLite.
