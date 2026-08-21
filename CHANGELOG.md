@@ -1,3 +1,10 @@
+## [3.36.2](https://github.com/bgill55/daedalus/compare/v3.36.1...v3.36.2) (2026-08-21)
+
+
+### Bug Fixes
+
+* **guards:** harden against docs-only reviews and no-run test count fabrication ([#145](https://github.com/bgill55/daedalus/issues/145)) ([0d74be0](https://github.com/bgill55/daedalus/commit/0d74be0cff7df86933f87efe81434ea3b0d48155))
+
 ## [3.36.1](https://github.com/bgill55/daedalus/compare/v3.36.0...v3.36.1) (2026-08-21)
 
 
