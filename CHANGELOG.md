@@ -1,3 +1,10 @@
+## [3.36.4](https://github.com/bgill55/daedalus/compare/v3.36.3...v3.36.4) (2026-08-21)
+
+
+### Bug Fixes
+
+* **ux:** distinguish command-exit failures from self-correction loops ([#149](https://github.com/bgill55/daedalus/issues/149)) ([c8b433d](https://github.com/bgill55/daedalus/commit/c8b433dc7f2d0414fe50d43ce41ea61fa6786497))
+
 ## [3.36.3](https://github.com/bgill55/daedalus/compare/v3.36.2...v3.36.3) (2026-08-21)
 
 
