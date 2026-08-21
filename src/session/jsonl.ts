@@ -3,6 +3,7 @@ import Database from 'better-sqlite3';
 import { getTurns, clearTurns, saveTurn, SqliteTurn } from './sqlite.js';
 
 import { ToolCall } from '../types.js';
+import { maskSecrets } from '../security/secret-detector.js';
 
 export interface JsonlTurn {
   turn: number;
@@ -39,7 +40,7 @@ export function exportToJsonl(db: Database.Database, jsonlPath: string): void {
     const line: JsonlTurn = {
       turn: index + 1,
       role: t.role,
-      content: t.content,
+      content: maskSecrets(t.content),
       tool_calls: toolCallsParsed,
       tool_call_id: t.tool_call_id || undefined,
       name: t.name || undefined,

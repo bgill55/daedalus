@@ -1,6 +1,7 @@
 // Daedalus Local Router - Main routing logic
 
 import { OpenAI } from 'openai';
+import { ProxyAgent } from 'undici';
 import type { ChatCompletionMessageParam, ChatCompletionCreateParamsNonStreaming, ChatCompletionCreateParamsStreaming } from 'openai/resources/chat/completions';
 import type { ChatMessage, ChatMessageContent, MessageContentPart } from '../types.js';
 import type { 
@@ -153,11 +154,29 @@ export class LocalRouter {
     let client = this.clients.get(key);
     
     if (!client) {
-      client = new OpenAI({
+      const proxyUrl = this.config.proxyUrl
+        ?? process.env.HTTPS_PROXY
+        ?? process.env.https_proxy
+        ?? process.env.HTTP_PROXY
+        ?? process.env.http_proxy;
+      const clientOpts: ConstructorParameters<typeof OpenAI>[0] = {
         baseURL: model.endpoint,
         apiKey: model.apiKey || 'not-needed', // Use apiKey from config if provided
         timeout: this.config.requestTimeout,
-      });
+      };
+      if (proxyUrl) {
+        try {
+          // Scoped proxy: only this HTTP client's fetches go through it. The
+          // agent's terminal/sandbox traffic is unaffected. OneCLI gateway /
+          // corporate proxy support requires the operator to set it deliberately.
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          clientOpts.fetch = ((input: any, init?: any) =>
+            fetch(input, { ...init, dispatcher: new ProxyAgent(proxyUrl) } as any)) as any;
+        } catch {
+          console.warn('[WARN] proxy configured but undici ProxyAgent unavailable; requests will bypass the proxy.');
+        }
+      }
+      client = new OpenAI(clientOpts);
       this.clients.set(key, client);
     }
     return client;

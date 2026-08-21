@@ -36,6 +36,7 @@ import { SigmaMemEngine } from '../session/sigma-mem.js';
 import { getSigmaMemories } from '../session/sqlite.js';
 import type Database from 'better-sqlite3';
 import type { DelegationTask, AgentResult } from './orchestrator-types.js';
+import { maskSecrets } from '../security/secret-detector.js';
 
 
 // Simplified placeholder regexes for common auto-fill tokens only
@@ -326,7 +327,7 @@ export class Orchestrator {
         for (const result of results) {
           messages.push({
             role: 'tool',
-            content: result.content,
+            content: maskSecrets(result.content),
             tool_call_id: result.toolCallId,
           });
         }
@@ -1648,7 +1649,7 @@ export class Orchestrator {
             : rawContent;
           messages.push({
             role: 'tool',
-            content: cappedContent,
+            content: maskSecrets(cappedContent),
             tool_call_id: result.toolCallId,
           });
         }

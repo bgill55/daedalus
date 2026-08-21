@@ -53,6 +53,7 @@ export interface RouterConfig {
     tpm: number;  // tokens per minute
   };
   autoEscalate?: boolean;  // switch to the next chain model after repeated tool failures
+  proxyUrl?: string; // optional outbound proxy (OneCLI gateway / corporate); explicit opt-in
 }
 
 export interface ChatRequest {

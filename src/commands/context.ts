@@ -10,6 +10,7 @@ import { extractAndSave } from '../extraction.js';
 import { printUserTurn, turnSeparator } from '../formatting.js';
 import { getClipboardText, getClipboardImage } from '../clipboard.js';
 import { createSessionBranch, checkoutSessionBranch, listSessionBranches, mergeSessionBranch } from '../session/branching.js';
+import { maskSecrets } from '../security/secret-detector.js';
 
 import type { Command } from './types.js';
 import { messageText } from '../types.js';
@@ -808,10 +809,11 @@ export const contextCommands: Command[] = [
             md += `---\n\n`;
           } else if (msg.role === 'tool') {
             md += `#### 📥 Tool Response (${msg.name || 'unknown'})\n\n`;
-            const trimmedContent = msg.content && msg.content.length > 2000 
-              ? msg.content.slice(0, 2000) + '\n\n... (output truncated for readability)'
-              : msg.content;
-            md += `\`\`\`text\n${trimmedContent || '(no output)'}\n\`\`\`\n\n---\n\n`;
+            const toolContent = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
+            const trimmedContent = toolContent.length > 2000
+              ? toolContent.slice(0, 2000) + '\n\n... (output truncated for readability)'
+              : toolContent;
+            md += `\`\`\`text\n${maskSecrets(trimmedContent || '(no output)')}\n\`\`\`\n\n---\n\n`;
           }
         }
 

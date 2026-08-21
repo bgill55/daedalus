@@ -212,6 +212,7 @@ describe('Documentation Sync Verification', () => {
       { prefix: 'session.', title: 'Session Settings' },
       { prefix: 'ui.', title: 'UI Settings' },
       { prefix: 'safety.', title: 'Safety Settings' },
+      { prefix: 'security.', title: 'Security Settings' },
       { prefix: 'updateCheck', title: 'Update Settings' },
     ];
 
