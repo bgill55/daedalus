@@ -911,6 +911,7 @@ export function createModelFunctions(deps: ModelDeps) {
         consecutiveToolFailures++;
         shouldPromptGate = false;
         let hadFileMissing = false;
+        let hadCommandExit = false; // a command ran and exited non-zero with real output (e.g. `npm test` failed)
         for (const r of failedResults) {
           const firstLine = (r.error || '').split('\n')[0] || 'unknown error';
           const snippet = firstLine.length > 160 ? `${firstLine.slice(0, 160)}...` : firstLine;
@@ -918,6 +919,11 @@ export function createModelFunctions(deps: ModelDeps) {
           // the same path is guaranteed to fail again. Surface it decisively so the
           // model creates the file or reports the blocker instead of looping.
           const isFileMissing = FILE_NOT_FOUND_RE.test(`${r.error ?? ''}\n${r.content ?? ''}`);
+          // A command that ran and exited non-zero (real output below) is a RESULT, not a
+          // transient tool error — e.g. `npm test` failing. Framing it as a self-correction
+          // is misleading; the agent should analyze the output, not "retry the approach".
+          const isCommandExit = /exit code:/i.test(r.error ?? '') && (r.content ?? '').trim().length > 0;
+          if (isCommandExit) hadCommandExit = true;
           if (isFileMissing) {
             hadFileMissing = true;
             console.log(pc.yellow(`\n  [FILE-MISSING] ${snippet}`));
@@ -942,6 +948,10 @@ export function createModelFunctions(deps: ModelDeps) {
             role: 'user',
             content: '[SYSTEM WARNING] A requested file does not exist. Stop re-reading the same missing path. Either create it, choose a correct path (verify with search_files/list_files), or stop and report the blocker to the user.',
           } as ChatMessage);
+        } else if (hadCommandExit) {
+          // A command ran and failed (e.g. tests/build red). This is a real result to
+          // analyze, not a self-correction loop — don't imply we are retrying the approach.
+          console.log(pc.dim(`\n  [RESULT] Command exited non-zero — output shown above. Analyze the failure; do not treat it as a transient tool error.`));
         } else {
           console.log(pc.dim(`\n  [SELF-CORRECT] Adjusting approach and retrying...`));
         }
