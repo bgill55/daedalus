@@ -32,6 +32,18 @@ function isHardFailure(err: unknown): boolean {
   return false;
 }
 
+// Upstream rejected the request because the specific model name is gone
+// (provider disabled / removed / renamed it) rather than a problem with the
+// prompt. When this happens the pinned model can never succeed, so the router
+// should drop the pin and fall back to other enabled models instead of looping
+// on the dead one. (Distinct from a generic 400 like malformed input.)
+// Exported for unit testing.
+export function isModelUnavailableError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return /(model|models?).{0,40}(disabled|not (found|available|in the catalog)|does not exist|no longer available|deprecated|unknown model)/i.test(msg)
+    || /(disabled|not (found|available)|does not exist|no longer available|deprecated|unknown model)/i.test(msg);
+}
+
 export class LocalRouter {
   private config: RouterConfig;
   private clients: Map<string, OpenAI> = new Map();
@@ -584,6 +596,12 @@ export class LocalRouter {
           }
           excludedModels.add(selectedModel.name);
           excludedModels.add(selectedModel.model);
+          // The pinned model was rejected by the provider as unavailable (disabled /
+          // removed / renamed). Re-pinning it next attempt would only loop on the
+          // dead model, so drop the pin and let the router fall back to others.
+          if (request.model && request.model !== 'auto' && isModelUnavailableError(err)) {
+            request.model = 'auto';
+          }
         }
       }
     }
@@ -666,6 +684,12 @@ export class LocalRouter {
           }
           excludedModels.add(selectedModel.name);
           excludedModels.add(selectedModel.model);
+          // The pinned model was rejected by the provider as unavailable (disabled /
+          // removed / renamed). Re-pinning it next attempt would only loop on the
+          // dead model, so drop the pin and let the router fall back to others.
+          if (request.model && request.model !== 'auto' && isModelUnavailableError(err)) {
+            request.model = 'auto';
+          }
         }
       }
     }

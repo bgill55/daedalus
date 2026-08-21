@@ -18,6 +18,10 @@ import { classifyTaskStart, stepRouting, floorForTask } from './router/complexit
 
 const TOOL_RESULT_MAX_CHARS = 32_000;
 const MAX_TOOL_TURNS = 40;
+// Deterministic, non-retryable read failures: the path genuinely does not exist.
+// A re-read is guaranteed to fail, so the agent loop must treat it as a hard
+// "file missing" signal rather than a transient error to retry.
+const FILE_NOT_FOUND_RE = /file not found|does not exist|enoent|no such file/i;
 
 let _turnStartTime = 0;
 
@@ -865,22 +869,41 @@ export function createModelFunctions(deps: ModelDeps) {
       if (failedResults.length > 0) {
         consecutiveToolFailures++;
         shouldPromptGate = false;
+        let hadFileMissing = false;
         for (const r of failedResults) {
           const firstLine = (r.error || '').split('\n')[0] || 'unknown error';
           const snippet = firstLine.length > 160 ? `${firstLine.slice(0, 160)}...` : firstLine;
-          console.log(pc.dim(`\n  [RETRY] ${r.name} didn't apply — ${snippet}`));
-          const tailLines = (r.content || '')
-            .replace(/\u001B\[\d+(;\d+)*m/g, '')
-            .split('\n')
-            .filter(l => l.trim());
-          if (tailLines.length > 0) {
-            const shown = tailLines.length > 12
-              ? [...tailLines.slice(0, 3), `  ... ${tailLines.length - 12} more lines`, ...tailLines.slice(-9)]
-              : tailLines;
-            console.log(pc.dim(shown.map(l => `    ${l}`).join('\n')));
+          // A read of a non-existent file is deterministic, not transient: re-reading
+          // the same path is guaranteed to fail again. Surface it decisively so the
+          // model creates the file or reports the blocker instead of looping.
+          const isFileMissing = FILE_NOT_FOUND_RE.test(`${r.error ?? ''}\n${r.content ?? ''}`);
+          if (isFileMissing) {
+            hadFileMissing = true;
+            console.log(pc.yellow(`\n  [FILE-MISSING] ${snippet}`));
+            console.log(pc.dim('    This path does not exist. Do not re-read it — create it, pick a different path, or report the blocker to the user.'));
+          } else {
+            console.log(pc.dim(`\n  [RETRY] ${r.name} didn't apply — ${snippet}`));
+            const tailLines = (r.content || '')
+              .replace(/\u001B\[\d+(;\d+)*m/g, '')
+              .split('\n')
+              .filter(l => l.trim());
+            if (tailLines.length > 0) {
+              const shown = tailLines.length > 12
+                ? [...tailLines.slice(0, 3), `  ... ${tailLines.length - 12} more lines`, ...tailLines.slice(-9)]
+                : tailLines;
+              console.log(pc.dim(shown.map(l => `    ${l}`).join('\n')));
+            }
           }
         }
-        console.log(pc.dim(`\n  [SELF-CORRECT] Adjusting approach and retrying...`));
+        if (hadFileMissing) {
+          // Decisive nudge: stop the re-read loop, force a different strategy.
+          messages.push({
+            role: 'user',
+            content: '[SYSTEM WARNING] A requested file does not exist. Stop re-reading the same missing path. Either create it, choose a correct path (verify with search_files/list_files), or stop and report the blocker to the user.',
+          } as ChatMessage);
+        } else {
+          console.log(pc.dim(`\n  [SELF-CORRECT] Adjusting approach and retrying...`));
+        }
       } else {
         consecutiveToolFailures = 0;
         escalatedThisStreak = false;

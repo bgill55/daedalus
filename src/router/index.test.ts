@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach, afterAll } from 'vites
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { LocalRouter, createRouter, sanitizeMessagesForModel } from './index.js';
+import { LocalRouter, createRouter, sanitizeMessagesForModel, isModelUnavailableError } from './index.js';
 import type { RouterConfig, StreamChunk } from './types.js';
 import * as health from './health.js';
 import * as rateLimiter from './rate-limiter.js';
@@ -744,6 +744,26 @@ describe('LocalRouter', () => {
         models: { list: vi.fn().mockRejectedValue(new Error('connect ECONNREFUSED')) },
       });
       await expect(router.syncCatalog()).rejects.toThrow(/Failed to read models from/);
+    });
+  });
+
+  describe('isModelUnavailableError', () => {
+    it('detects provider "model disabled" 400s', () => {
+      expect(isModelUnavailableError(new Error('400 Model \'gemini-3-flash-preview\' is disabled.'))).toBe(true);
+    });
+    it('detects "model does not exist"', () => {
+      expect(isModelUnavailableError(new Error('The model claude-opus-99 does not exist'))).toBe(true);
+    });
+    it('detects "not in the catalog"', () => {
+      expect(isModelUnavailableError(new Error('Model gpt-99 is not in the catalog'))).toBe(true);
+    });
+    it('does not flag generic 400s like malformed input', () => {
+      expect(isModelUnavailableError(new Error('400 Invalid request: tool_call schema invalid'))).toBe(false);
+    });
+    it('does not flag rate-limit 429s', () => {
+      const err = new Error('429 Too Many Requests') as Error & { status: number };
+      err.status = 429;
+      expect(isModelUnavailableError(err)).toBe(false);
     });
   });
 });
