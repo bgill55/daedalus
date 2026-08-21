@@ -18,6 +18,8 @@
 
 **Local-first terminal-based AI coding assistant.**
 
+Read the design thesis in the [Daedalus Manifesto](MANIFESTO.md) — grounded output, honest failure, and a CLI that will absolutely roast your type errors on the way to fixing them.
+
 Daedalus connects to local LLM servers (LM Studio, Ollama, llama.cpp, vLLM) or remote providers (OpenAI, Groq, OpenRouter, Anthropic), routes requests across models, and gives your AI agent access to your file system, terminal, git, web search, and codebase indexing.
 
 For full guides, configuration reference, and examples, visit the documentation site: [https://bgill55.github.io/daedalus/](https://bgill55.github.io/daedalus/)
