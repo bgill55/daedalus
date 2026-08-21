@@ -45,6 +45,10 @@ export type ModelEntry = z.infer<typeof ModelEntrySchema>;
 export const RouterConfigSchema = z.object({
   strategy: z.enum(['priority', 'round-robin', 'fastest']).default('priority'),
   chain: z.array(ModelEntrySchema).default([]),
+  // Optional outbound proxy (e.g. an OneCLI gateway or corporate proxy) applied
+  // to every model request. Explicit opt-in only — Daedalus never auto-discovers
+  // a MITM proxy. Falls back to HTTPS_PROXY/HTTP_PROXY env vars when unset.
+  proxyUrl: z.string().url().optional(),
   healthCheckInterval: z.number().int().positive().default(30000),
   requestTimeout: z.number().int().positive().default(120000),
   slowModelThresholdMs: z.number().int().nonnegative().default(45000),
@@ -207,6 +211,16 @@ export const ConfigSchema = z.object({
     protectGit: true,
     autoApprove: false,
   }),
+  security: z.object({
+    // Mask detected credentials in terminal output, model context, JSONL
+    // export, and session memory.
+    redactSecrets: z.boolean().default(true),
+    // Block commits that would introduce a credential into the staged diff.
+    preCommitGuard: z.boolean().default(true),
+  }).default({
+    redactSecrets: true,
+    preCommitGuard: true,
+  }),
 });
 
 export type DaedalusConfig = z.infer<typeof ConfigSchema>;
@@ -228,6 +242,7 @@ export const DEFAULT_CONFIG: DaedalusConfig = {
     defaultRateLimit: { rpm: 60, tpm: 100000 },
     autoEscalate: true,
     complexityRouting: true,
+    proxyUrl: undefined,
   },
   agents: {
     default: 'coder',
@@ -295,6 +310,10 @@ export const DEFAULT_CONFIG: DaedalusConfig = {
   safety: {
     protectGit: true,
     autoApprove: false,
+  },
+  security: {
+    redactSecrets: true,
+    preCommitGuard: true,
   },
 };
 

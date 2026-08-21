@@ -164,6 +164,7 @@ const SECTIONS = [
   { prefix: 'session.', title: 'Session Settings' },
   { prefix: 'ui.', title: 'UI Settings' },
   { prefix: 'safety.', title: 'Safety Settings' },
+  { prefix: 'security.', title: 'Security Settings' },
   { prefix: 'updateCheck', title: 'Update Settings' },
 ];
 
@@ -220,6 +221,9 @@ function syncConfigReference() {
     'ui.collapseCommentary': 'When true, collapses verbose model commentary into a single line instead of printing full paragraphs. Default: true.',
     'safety.protectGit': 'When true, requires explicit user confirmation before running git operations. Default: true.',
     'safety.autoApprove': 'When true, automatically approves terminal command execution without user prompt. Default: false.',
+    'security.redactSecrets': 'When true, detected credentials (API keys, tokens) are masked in terminal output, model context, JSONL export, and session memory. Default: true.',
+    'security.preCommitGuard': 'When true, commits that would introduce a credential into the staged diff are blocked (configurable via /config). Default: true.',
+    'router.proxyUrl': 'Optional outbound proxy URL (e.g. an OneCLI gateway or corporate proxy) applied to model requests. Explicit opt-in; falls back to HTTPS_PROXY/HTTP_PROXY when unset. Default: unset.',
     'updateCheck': 'When true, checks for new Daedalus CLI versions on startup and notifies you. Default: true.',
   };
 

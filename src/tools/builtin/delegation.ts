@@ -7,6 +7,7 @@ import { getAgentRole, filterToolsForRole } from '../../agents/roles.js';
 
 import type { ChatMessage, ToolCall } from '../../types.js';
 import type { ChatRequest, ChatResponse } from '../../router/types.js';
+import { maskSecrets } from '../../security/secret-detector.js';
 import { messageText } from '../../types.js';
 
 interface LocalRouter {
@@ -78,7 +79,7 @@ export async function manage(args: { goal: string; context?: string; role?: stri
         for (const result of results) {
           messages.push({
             role: 'tool',
-            content: result.content,
+            content: maskSecrets(result.content),
             tool_call_id: result.toolCallId,
           });
         }

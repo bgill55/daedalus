@@ -9,6 +9,8 @@ import { handleSpecCommand, getGitRepoInfo } from '../agents/loop.js';
 import { generateSpecContract, loadSpecContract, formatSpecForPrompt } from '../agents/spec.js';
 import { turnSeparator } from '../formatting.js';
 import { execSync } from 'child_process';
+import { loadConfig } from '../config/index.js';
+import { scanStagedDiffForSecrets } from '../security/secret-detector.js';
 import type { ModelEntry } from '../router/types.js';
 import type { AgentResult, DelegationTask } from '../agents/orchestrator-types.js';
 import type { RegistryServerEntry } from '../tools/mcp/manager.js';
@@ -53,6 +55,21 @@ function safeGitAdd(cwd: string): void {
     }
   } catch {
     // best-effort
+  }
+  // Pre-commit guard: refuse to proceed if the remaining staged diff still
+  // contains a credential in an added line. The autopilot would otherwise
+  // commit a leaked key. We throw so the caller's catch logs and stops.
+  try {
+    const enabled = loadConfig().security?.preCommitGuard !== false;
+    if (enabled) {
+      const hits = scanStagedDiffForSecrets(cwd);
+      if (hits.length > 0) {
+        throw new Error(`pre-commit guard: staged diff contains ${hits.length} credential line(s). Unstage and remove them (rotate the secret) before committing.`);
+      }
+    }
+  } catch (e) {
+    if (e instanceof Error && e.message.startsWith('pre-commit guard:')) throw e;
+    // loadConfig/path failures are best-effort: don't block the commit on them
   }
 }
 

@@ -15,6 +15,7 @@ This guide describes all configuration options available in Daedalus. You can vi
 
 *   **`router.strategy`**: Routing strategy: "priority" (try models in order), "round-robin" (cycle evenly), or "fastest" (lowest latency). Default: "priority".
 *   **`router.chain`**: Ordered list of model endpoint configurations. Each entry defines name, endpoint URL, model, priority, tier, and capability flags.
+*   **`router.proxyUrl`**: Optional outbound proxy URL (e.g. an OneCLI gateway or corporate proxy) applied to model requests. Explicit opt-in; falls back to HTTPS_PROXY/HTTP_PROXY when unset. Default: unset.
 *   **`router.healthCheckInterval`**: Interval in milliseconds between background health checks on configured endpoints. Default: 30000.
 *   **`router.requestTimeout`**: Maximum wait in milliseconds for a model response before considering it failed. Default: 120000.
 *   **`router.slowModelThresholdMs`**: Average latency in milliseconds above which a model is blacklisted. Blacklisting is TTL-bounded (see `router.blacklistTtlMs`) and persisted across restarts (see `router.blacklistPersist`) rather than lasting the whole session. Set to 0 to disable. Default: 45000.
@@ -103,6 +104,13 @@ This guide describes all configuration options available in Daedalus. You can vi
 
 *   **`safety.protectGit`**: When true, requires explicit user confirmation before running git operations. Default: true.
 *   **`safety.autoApprove`**: When true, automatically approves terminal command execution without user prompt. Default: false.
+
+---
+
+## Security Settings
+
+*   **`security.redactSecrets`**: When true, detected credentials (API keys, tokens) are masked in terminal output, model context, JSONL export, and session memory. Default: true.
+*   **`security.preCommitGuard`**: When true, commits that would introduce a credential into the staged diff are blocked (configurable via /config). Default: true.
 
 ---
 

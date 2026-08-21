@@ -11,6 +11,7 @@ import {
   pruneLowSigmaMemories,
   SqliteSigmaMemory,
 } from './sqlite.js';
+import { maskSecrets } from '../security/secret-detector.js';
 
 export function computeSigmaContentHash(agentRole: string, category: string, summary: string): string {
   return crypto.createHash('sha256').update(`${agentRole}|${category}|${summary}`).digest('hex');
@@ -42,13 +43,15 @@ export class SigmaMemEngine {
   ): SqliteSigmaMemory {
     const now = Date.now();
     const contentHash = computeSigmaContentHash(opts.agentRole, opts.category, opts.summary);
+    const safeContent = maskSecrets(opts.content);
+    const safeSummary = maskSecrets(opts.summary);
     const existing = getSigmaMemoryByHash(db, contentHash);
     if (existing) {
       const refreshed: SqliteSigmaMemory = {
         ...existing,
         tags: JSON.stringify(opts.tags || []),
-        summary: opts.summary,
-        content: opts.content,
+        summary: safeSummary,
+        content: safeContent,
         sigma_score: Math.round(Math.min(1.0, existing.sigma_score + 0.05) * 10000) / 10000,
         usefulness_count: existing.usefulness_count + 1,
         updated_at: now,
@@ -63,8 +66,8 @@ export class SigmaMemEngine {
       agent_role: opts.agentRole,
       category: opts.category,
       tags: JSON.stringify(opts.tags || []),
-      summary: opts.summary,
-      content: opts.content,
+      summary: safeSummary,
+      content: safeContent,
       content_hash: contentHash,
       sigma_score: opts.initialScore ?? 0.70,
       usefulness_count: 1,

@@ -13,6 +13,7 @@ import type { ToolContext, ToolCall, ChatMessage } from './types.js';
 import { messageText } from './types.js';
 import type { LocalRouter } from './router/index.js';
 import type { DaedalusConfig } from './config/index.js';
+import { maskSecrets } from './security/secret-detector.js';
 import { classifyTaskStart, stepRouting, floorForTask } from './router/complexity.js';
 
 const TOOL_RESULT_MAX_CHARS = 32_000;
@@ -759,9 +760,10 @@ export function createModelFunctions(deps: ModelDeps) {
           }
         }
 
+        const toolContentRaw = typeof content === 'string' ? content : JSON.stringify(content);
         messages.push({
           role: 'tool',
-          content: truncateToolResult(typeof content === 'string' ? content : JSON.stringify(content)),
+          content: truncateToolResult(maskSecrets(toolContentRaw)),
           tool_call_id: result.toolCallId || approvedCalls[ri]?.id || '',
         } as ChatMessage);
 
@@ -823,7 +825,7 @@ export function createModelFunctions(deps: ModelDeps) {
           }
         }
         if (result.success && result.content) {
-          printToolContentPreview(result.content);
+          printToolContentPreview(maskSecrets(typeof result.content === 'string' ? result.content : JSON.stringify(result.content)));
         }
         if (result.success && (result.name === 'screenshot_page' || result.name === 'read_file')) {
           try {

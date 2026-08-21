@@ -11,6 +11,7 @@ import { mcpRegistry } from '../tools/mcp/registry.js';
 import { executeToolCalls } from '../tools/executor.js';
 import { getFrameworkGuidance } from './orchestrator-validation.js';
 import { detectProjectStack } from '../config/stack.js';
+import { maskSecrets } from '../security/secret-detector.js';
 interface CandidateResult {
   diff: string;
   score: number;
@@ -65,7 +66,7 @@ async function executeAgentRole(
       for (const result of results) {
         messages.push({
           role: 'tool',
-          content: result.content,
+          content: maskSecrets(result.content),
           tool_call_id: result.toolCallId,
         });
       }

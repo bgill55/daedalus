@@ -8,6 +8,7 @@ import { DaedalusSpinner } from '../daedalus-spinner.js';
 import { ToolContext, ToolResult } from '../../types.js';
 import { loadConfig } from '../../config/index.js';
 import { guardGitCommand } from '../git-guard.js';
+import { guardCommitSecrets } from '../git-guard.js';
 import { createGitCheckpoint } from '../git-checkpoint.js';
 import { isTestFile, checkTestFileLock } from './patch-utils.js';
 
@@ -349,6 +350,18 @@ export async function execute(args: { command: string; timeout?: number; workdir
         error: gitGuardError,
       });
     }
+  }
+
+  // Gate: block commits that would introduce a credential into the staged diff.
+  const commitGuardError = guardCommitSecrets(command);
+  if (commitGuardError) {
+    return Promise.resolve({
+      toolCallId: '',
+      name: 'terminal',
+      success: false,
+      content: '',
+      error: commitGuardError,
+    });
   }
 
   // Gate: shell writes to test-suite files are blocked by default (mirrors the
