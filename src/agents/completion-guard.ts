@@ -266,6 +266,7 @@ export class ClaimLedger {
   private srcSeen = new Set<string>(); // base names that are actual source files (not docs/markdown)
   private searched = false; // agent ran at least one search/list/grep this session
   private negTermsSeen = new Set<string>(); // negative-existence terms actually observed in tool output
+  private exercisedRuntime = false; // agent ran a live integration probe (curl/HTTP/run) this session
 
   record(o: Observation): void {
     this.seen.set(baseOf(o.base), true);
@@ -311,6 +312,19 @@ export class ClaimLedger {
   /** True if a negative-existence term was actually observed in tool output this session. */
   observedNegTerm(term: string): boolean {
     return this.negTermsSeen.has(term.toLowerCase());
+  }
+
+  /** Set when the agent actually EXERCISED the integration at runtime — ran a live
+   * request/curl/HTTP probe against the thing it claims works, not just a static
+   * build/typecheck/unit-test. Required to ground a "feature is wired in / works /
+   * verified end-to-end" claim. A green `tsc`/`vitest` is NOT runtime exercise. */
+  markRuntimeExercised(): void {
+    this.exercisedRuntime = true;
+  }
+
+  /** True if the agent ran a live integration probe this session. */
+  get didExerciseRuntime(): boolean {
+    return this.exercisedRuntime;
   }
 
   /** Total file observations this session (read/search/terminal with a path). */
@@ -632,6 +646,55 @@ export function claimedTestCountWithoutRunWarning(claimed: string): string {
     `Do NOT invent test counts from memory, walkthroughs, or prior sessions. Either (1) actually ` +
     `run \`npm test\` and report the real output, or (2) omit the specific count and say you have ` +
     `not run the test suite this session. Fabricating a passing count misleads the user.`
+  );
+}
+
+// Runtime-exercise guard: a claim that a feature/integration "works", "is wired in",
+// "is verified", or "is functional end-to-end" must be backed by an actual runtime probe
+// (a live curl/HTTP request, a server run that was actually hit, an integration test) — NOT
+// by a green typecheck or unit-test suite alone. A passing `tsc`/`vitest` proves the code
+// compiles and unit-tested logic holds; it does NOT prove a newly-wired integration (an API
+// endpoint hitting an external service, a proxy, an auth flow) actually functions. The graded
+// run that motivated this: the agent built a /api/prompts/generate endpoint, reported "wired
+// in" after typecheck+tests passed, and the feature was in fact broken (missing dotenv load →
+// 401 → 500 swallowed by the frontend) until the user tested it and reported failure.
+//
+// This guard fires only when BOTH hold: (1) the text asserts the feature/integration works
+// (wired-in / verified / functional / end-to-end verbs), and (2) no live runtime probe was
+// recorded this session (ledger.didExerciseRuntime is false). Static checks (tsc/vitest) do
+// NOT satisfy the requirement. A plain "I added X" without a works-claim is out of scope —
+// this only challenges the VERIFICATION claim, not the work claim.
+
+// Asserts a feature/integration is functional / wired / verified working. Excludes
+// recommendations and hypotheticals ("we could verify", "to wire it in, do X").
+const WORKS_CLAIM_RE =
+  /\b(wired in|wired up|is (?:now )?(?:working|functional|verified|live)|works (?:now|correctly|as expected|end[ -]?to[ -]?end)|verified (?:end[ -]?to[ -]?end|and working|working)|functional|end[ -]?to[ -]?end|is complete and (?:working|functional)|confirmed working|successfully (?:wired|integrated|connected)|integration (?:works|is working|complete))\b/i;
+
+// A live integration probe: a real request against the thing under test, not a build/typecheck.
+// Covers curl/httpie to a localhost/remote endpoint, a Node http/fetch probe, a server run that
+// was then hit, or an integration/e2e test command. Deliberately excludes `npm run build`,
+// `tsc`, `vitest`/`jest` (those are static and do not exercise the wired integration).
+export const RUNTIME_EXERCISE_RE =
+  /\b(curl\s|httpie|http\s+[A-Z]+|invoke-(webrequest|restmethod)|node\s+.+\bfetch\b|\baxios\b|\.request\(|supertest|integration test|e2e test|playwright|cypress|--integration|--e2e)\b/i;
+
+export function detectUngroundedWorksClaim(text: string, ledger: ClaimLedger): boolean {
+  if (!text || !ledger) return false;
+  if (ledger.didExerciseRuntime) return false; // real probe ran this session — grounded
+  // Only fire when the text actually asserts the feature works/is wired/verified.
+  return WORKS_CLAIM_RE.test(text);
+}
+
+export function ungroundedWorksWarning(): string {
+  return (
+    `[SYSTEM WARNING] You claimed a feature/integration is "wired in" / "working" / "verified", ` +
+    `but no live runtime probe (a real request/curl/HTTP call hitting the integration, an ` +
+    `integration test, or a server run that was actually exercised) was recorded in your tool ` +
+    `calls this session. A passing typecheck or unit-test suite proves the code compiles and ` +
+    `unit logic holds — it does NOT prove a newly-wired integration (API endpoint, proxy, ` +
+    `auth flow, external call) actually functions. Do NOT report a feature as working without ` +
+    `exercising it: (1) actually run a real request against the endpoint/integration and confirm ` +
+    `it returns the expected result, or (2) rephrase as "implemented; not yet runtime-verified". ` +
+    `A "works" claim with only static checks behind it is a false verification.`
   );
 }
 

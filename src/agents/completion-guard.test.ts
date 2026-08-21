@@ -16,6 +16,7 @@ import {
   isReviewWithoutSourceInspection,
   claimedTestCountWithoutRun,
   isNegativeExistenceClaim,
+  detectUngroundedWorksClaim,
 } from './completion-guard.js';
 import type { SqliteTodo } from '../session/sqlite.js';
 
@@ -457,5 +458,39 @@ describe('claimedTestCountWithoutRun', () => {
 
   it('does NOT fire when text has no test claim at all', () => {
     expect(claimedTestCountWithoutRun('The build compiles cleanly with no errors.', undefined)).toBeNull();
+  });
+});
+
+describe('detectUngroundedWorksClaim (runtime-exercise guard)', () => {
+  it('fires on a "wired in" claim with no runtime probe recorded', () => {
+    const ledger = new ClaimLedger();
+    // Only static checks ran (typecheck + unit tests). No curl/HTTP probe.
+    const claim = 'The AI-assisted prompt generation feature is now wired in.';
+    expect(detectUngroundedWorksClaim(claim, ledger)).toBe(true);
+  });
+
+  it('fires on a "verified working end-to-end" claim with only static checks', () => {
+    const ledger = new ClaimLedger();
+    const claim = 'Typecheck and all 31 tests pass. The endpoint is verified working end-to-end.';
+    expect(detectUngroundedWorksClaim(claim, ledger)).toBe(true);
+  });
+
+  it('does NOT fire once a live runtime probe was recorded', () => {
+    const ledger = new ClaimLedger();
+    ledger.markRuntimeExercised();
+    const claim = 'The endpoint is wired in and verified working after I curled it.';
+    expect(detectUngroundedWorksClaim(claim, ledger)).toBe(false);
+  });
+
+  it('does NOT fire on a plain "I added X" work claim without a works-verb', () => {
+    const ledger = new ClaimLedger();
+    const claim = 'I added a new /api/prompts/generate endpoint and the validation middleware.';
+    expect(detectUngroundedWorksClaim(claim, ledger)).toBe(false);
+  });
+
+  it('does NOT fire on "implemented; not yet runtime-verified" (honest hedging)', () => {
+    const ledger = new ClaimLedger();
+    const claim = 'The integration is implemented but not yet runtime-verified — typecheck passes.';
+    expect(detectUngroundedWorksClaim(claim, ledger)).toBe(false);
   });
 });
