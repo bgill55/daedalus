@@ -176,7 +176,19 @@ export const enhanceCommand: Command = {
           if (ctx.messages.length > 0 && ctx.messages[0].role === 'system' && typeof ctx.getSystemPromptWithMemory === 'function') {
             ctx.messages[0] = { role: 'system', content: ctx.getSystemPromptWithMemory(rawQuery) };
           }
-          await ctx.callModelWithTools(userContent);
+          try {
+            await ctx.callModelWithTools(userContent);
+          } catch (execErr) {
+            // The execution turn can fail (e.g. the active model is unavailable
+            // upstream). Rather than kill the whole /enhance command, report the
+            // enhancer's already-validated prompt and the failure so the user can
+            // re-run with a working model. Don't throw — the enhanced prompt is the
+            // deliverable.
+            console.log(pc.yellow(`\n  [WARN] Execution turn failed: ${execErr instanceof Error ? execErr.message : String(execErr)}`));
+            console.log(pc.dim('  Enhanced prompt is shown above — re-run it directly, or switch models with /model and retry.'));
+            turnSeparator();
+            return true;
+          }
           if (ctx.sessionManager?.sessionDb) {
             ctx.sessionManager.saveSessionState(ctx.messages, ctx.activeFiles, getSessionTodos(ctx.sessionManager.sessionId));
           }
