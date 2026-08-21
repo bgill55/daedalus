@@ -16,4 +16,20 @@ describe('prompt-hints', () => {
     expect(hint).toContain('💡 Tip');
     expect(hint).toContain('Try:');
   });
+
+  it('getRandomPromptHint with a stack tag biases toward matched hints', () => {
+    // Run many trials; a react project should never surface a python-only tip.
+    for (let i = 0; i < 200; i++) {
+      const hint = getRandomPromptHint(['react', 'next']);
+      expect(hint).not.toContain('Python');
+      expect(hint).not.toContain('Rust');
+      expect(hint).not.toContain('Go');
+    }
+  });
+
+  it('getRandomPromptHint falls back to generic when no specific match', () => {
+    // 'cobol' matches nothing specific, so the full pool (incl. generic) is used.
+    const hint = getRandomPromptHint(['cobol']);
+    expect(hint).toContain('💡 Tip');
+  });
 });

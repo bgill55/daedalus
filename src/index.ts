@@ -12,7 +12,7 @@ import { setRouterClient } from './tools/builtin/delegation.js';
 import { setRouteRouterClient, looksMultiPhase } from './tools/builtin/route.js';
 import { createRouter, RouterConfig } from './router/index.js';
 import { loadConfig, getConfigDirPath } from './config/index.js';
-import { detectProjectStack } from './config/stack.js';
+import { detectProjectStack, classifyStack } from './config/stack.js';
 import { ToolContext, ChatMessage, ToolDefinition, ToolCall } from './types.js';
 import { setSessionTodos } from './tools/builtin/todo.js';
 import { SessionManager } from './session/manager.js';
@@ -535,6 +535,7 @@ async function main() {
         callModelWithTools,
         callModelWithFallback,
         getIndexDbPath,
+        projectStackTags: [...classifyStack(sessionManager.projectRoot)],
       });
     } else {
       chatLoop = createRepl({
@@ -551,6 +552,7 @@ async function main() {
         callModelWithTools,
         callModelWithFallback,
         getIndexDbPath,
+        projectStackTags: [...classifyStack(sessionManager.projectRoot)],
       });
     }
 
