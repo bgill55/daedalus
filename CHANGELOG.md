@@ -1,3 +1,10 @@
+# [3.35.0](https://github.com/bgill55/daedalus/compare/v3.34.3...v3.35.0) (2026-08-21)
+
+
+### Features
+
+* **security:** secret redaction, pre-commit leak guard, and explicit proxy support ([#144](https://github.com/bgill55/daedalus/issues/144)) ([2f13229](https://github.com/bgill55/daedalus/commit/2f13229436b5c59b3fd94b91a3ad1ff644632ffc))
+
 ## [3.34.3](https://github.com/bgill55/daedalus/compare/v3.34.2...v3.34.3) (2026-08-20)
 
 
