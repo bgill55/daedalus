@@ -1,3 +1,10 @@
+## [3.36.8](https://github.com/bgill55/daedalus/compare/v3.36.7...v3.36.8) (2026-08-21)
+
+
+### Bug Fixes
+
+* **guards:** require runtime probe for 'works/verified' claims ([#157](https://github.com/bgill55/daedalus/issues/157)) ([3371bea](https://github.com/bgill55/daedalus/commit/3371bea936a0434462ad060f618c5d35ec3fe5a1))
+
 ## [3.36.7](https://github.com/bgill55/daedalus/compare/v3.36.6...v3.36.7) (2026-08-21)
 
 
