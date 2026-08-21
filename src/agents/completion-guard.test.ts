@@ -15,6 +15,7 @@ import {
   isReviewDeliverable,
   isReviewWithoutSourceInspection,
   claimedTestCountWithoutRun,
+  isNegativeExistenceClaim,
 } from './completion-guard.js';
 import type { SqliteTodo } from '../session/sqlite.js';
 
@@ -302,6 +303,39 @@ describe('isUngroundedProjectClaim', () => {
     const ledger = new ClaimLedger();
     const review = 'Architecture: Node.js with Express and better-sqlite3. Build uses tsc --noEmit.';
     expect(isUngroundedProjectClaim(review, ledger)).toBeNull();
+  });
+});
+
+describe('isNegativeExistenceClaim', () => {
+  it('flags "no ESLint config" when the agent never searched', () => {
+    const ledger = new ClaimLedger();
+    const review = 'Negative Aspects:\n• No ESLint configuration found (lint script exists but no config file)';
+    expect(isNegativeExistenceClaim(review, ledger)).toBe('eslint');
+  });
+
+  it('flags "missing JSDoc" when the agent never searched', () => {
+    const ledger = new ClaimLedger();
+    const review = 'Missing JSDoc documentation for most functions.';
+    expect(isNegativeExistenceClaim(review, ledger)).toBe('jsdoc');
+  });
+
+  it('does NOT flag absence when the agent actually searched this session', () => {
+    const ledger = new ClaimLedger();
+    ledger.record({ kind: 'search', base: 'eslint.config.cjs', hit: false });
+    const review = 'No ESLint configuration found (lint script exists but no config file)';
+    expect(isNegativeExistenceClaim(review, ledger)).toBeNull();
+  });
+
+  it('does NOT flag a positive/existence claim (only absence)', () => {
+    const ledger = new ClaimLedger();
+    const review = 'The project uses ESLint for linting.';
+    expect(isNegativeExistenceClaim(review, ledger)).toBeNull();
+  });
+
+  it('does NOT flag when no negative-existence term is present', () => {
+    const ledger = new ClaimLedger();
+    const review = 'The architecture is clean and modular.';
+    expect(isNegativeExistenceClaim(review, ledger)).toBeNull();
   });
 });
 

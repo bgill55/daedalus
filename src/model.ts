@@ -2,7 +2,7 @@ import pc from 'picocolors';
 import { BUILTIN_TOOLS, POWER_TOOLS } from './tools/definitions.js';
 import { executeToolCalls } from './tools/executor.js';
 import { getSessionTodos } from './tools/builtin/todo.js';
-import { detectFalseCompletion, falseCompletionWarning, detectFalseCompletionOnDisk, isScopeOverstatedSummary, scopeOverstatementWarning, isUnsubstantiatedProgressReport, unsubstantiatedProgressWarning, countAchievementItems, ClaimLedger, detectUngroundedClaim, ungroundedClaimWarning, isGreenStateClaim, greenStateWarning, isUngroundedProjectClaim, ungroundedProjectClaimWarning, isReviewTask, isReviewDeliverable, reviewWithoutInspectionWarning, isReviewWithoutSourceInspection, reviewWithoutSourceInspectionWarning, claimedTestCountWithoutRun, claimedTestCountWithoutRunWarning } from './agents/completion-guard.js';
+import { detectFalseCompletion, falseCompletionWarning, detectFalseCompletionOnDisk, isScopeOverstatedSummary, scopeOverstatementWarning, isUnsubstantiatedProgressReport, unsubstantiatedProgressWarning, countAchievementItems, ClaimLedger, detectUngroundedClaim, ungroundedClaimWarning, isGreenStateClaim, greenStateWarning, isUngroundedProjectClaim, ungroundedProjectClaimWarning, isNegativeExistenceClaim, negativeExistenceWarning, isReviewTask, isReviewDeliverable, reviewWithoutInspectionWarning, isReviewWithoutSourceInspection, reviewWithoutSourceInspectionWarning, claimedTestCountWithoutRun, claimedTestCountWithoutRunWarning } from './agents/completion-guard.js';
 import { ReadStallDetector, isGreenBuildTestClaim, fabricatedTestCountCorrection, DivergenceDetector, isStaleReadFailure } from './agents/loop-guards.js';
 import { mcpRegistry } from './tools/mcp/registry.js';
 import { DaedalusSpinner } from './tools/daedalus-spinner.js';
@@ -472,6 +472,19 @@ export function createModelFunctions(deps: ModelDeps) {
           messages.push({
             role: 'user',
             content: ungroundedProjectClaimWarning(projClaim),
+          } as ChatMessage);
+          continue;
+        }
+        // Negative-existence guard: the agent asserts a config/dependency/file is
+        // MISSING/ABSENT without ever running a search/list/grep this session. Asserting
+        // absence requires the same grounding as asserting presence.
+        const negClaim = isNegativeExistenceClaim(cleanContent, claimLedger);
+        if (negClaim) {
+          console.log(pc.dim(`\n  [CHECK] Claim that "${negClaim}" is missing is ungrounded (no search/list run this session).`));
+          messages.push({ role: 'assistant', content: cleanContent });
+          messages.push({
+            role: 'user',
+            content: negativeExistenceWarning(negClaim),
           } as ChatMessage);
           continue;
         }
