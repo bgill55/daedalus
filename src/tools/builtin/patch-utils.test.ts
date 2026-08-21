@@ -285,6 +285,19 @@ describe('preflightDependencyCheck (pre-write prevention gate)', () => {
     expect(res).toBeNull();
   });
 
+  it('treats async_hooks as a node built-in (no @types/async_hooks suggestion)', () => {
+    // Regression: async_hooks was missing from NODE_BUILTINS, so a patch importing it
+    // was refused pre-write with "missing type declarations for: async_hooks" and the
+    // agent tried `npm install @types/async_hooks` (404, does not exist) — a wasted
+    // install + failed run. async_hooks resolves via @types/node like every other built-in.
+    const dir = makeProject(true);
+    const file = path.join(dir, 'logger.ts');
+    const content = "import { AsyncLocalStorage } from 'async_hooks';\nexport const store = new AsyncLocalStorage();\n";
+    const res = preflightDependencyCheck(file, dir, content);
+    fs.rmSync(dir, { recursive: true, force: true });
+    expect(res).toBeNull();
+  });
+
   it('flags a package with no bundled types and no @types companion BEFORE write', () => {
     // Simulates the helmet incident: package installed, but @types/helmet missing.
     const dir = makeProject(false); // goodpkg has no types and no @types/goodpkg
