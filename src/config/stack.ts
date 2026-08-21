@@ -59,3 +59,45 @@ export function detectProjectStack(projectRoot: string): string {
 
   return `\n--- DETECTED PROJECT TECH STACK ---\n- ${sysHeader}\n${parts.map((p) => `- ${p}`).join('\n')}\n-----------------------------------\n`;
 }
+
+/**
+ * Lightweight, synchronous project classifier. Returns a set of normalized tags
+ * (e.g. 'node', 'typescript', 'react', 'next', 'vue', 'svelte', 'python',
+ * 'rust', 'go', 'web') that callers can use to tailor behavior without paying
+ * for an LLM call or a codebase index. Cheap: only file-existence checks plus
+ * one package.json parse. Used by the dynamic prompt hints.
+ */
+export function classifyStack(projectRoot: string): Set<string> {
+  const tags = new Set<string>();
+
+  const pkgJsonPath = path.join(projectRoot, 'package.json');
+  const tsConfigPath = path.join(projectRoot, 'tsconfig.json');
+
+  if (fs.existsSync(pkgJsonPath)) {
+    tags.add('node');
+    if (fs.existsSync(tsConfigPath)) tags.add('typescript');
+    try {
+      const pkg = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8'));
+      const deps = { ...pkg.dependencies, ...pkg.devDependencies };
+      if (deps['react']) tags.add('react');
+      if (deps['next']) tags.add('next');
+      if (deps['vue']) tags.add('vue');
+      if (deps['svelte']) tags.add('svelte');
+      if (deps['angular']) tags.add('angular');
+    } catch {
+      // unparsed package.json still yields the 'node' tag
+    }
+  } else if (fs.existsSync(path.join(projectRoot, 'requirements.txt')) || fs.existsSync(path.join(projectRoot, 'pyproject.toml'))) {
+    tags.add('python');
+  } else if (fs.existsSync(path.join(projectRoot, 'Cargo.toml'))) {
+    tags.add('rust');
+  } else if (fs.existsSync(path.join(projectRoot, 'go.mod'))) {
+    tags.add('go');
+  }
+
+  if (fs.existsSync(path.join(projectRoot, 'index.html'))) {
+    tags.add('web');
+  }
+
+  return tags;
+}

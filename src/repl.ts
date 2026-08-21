@@ -35,6 +35,9 @@ export interface ReplDeps {
   callModelWithTools: (userContent: string, imageBase64?: string) => Promise<{ content: string; toolCalls: ToolCall[] }>;
   callModelWithFallback: (userContent: string, imageBase64?: string) => Promise<string>;
   getIndexDbPath: () => string;
+  // Detected project stack tags (from classifyStack) used to bias the
+  // first-turn prompt hint toward the active project. Empty when unknown.
+  projectStackTags: string[];
 }
 
 export function createRepl(deps: ReplDeps): () => Promise<void> {
@@ -43,6 +46,7 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
     messages, activeFiles, toolContext,
     getSystemPromptWithMemory,
     callModelWithTools, callModelWithFallback, getIndexDbPath,
+    projectStackTags,
   } = deps;
 
   let sessionId = sessionManager.sessionId;
@@ -147,7 +151,7 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
         isFirstTurn = false;
         try {
           const { getRandomPromptHint } = await import('./prompt-hints.js');
-          console.log(`\n  ${getRandomPromptHint()}`);
+          console.log(`\n  ${getRandomPromptHint(projectStackTags)}`);
         } catch {
           // ignore if hint module unavailable
         }
