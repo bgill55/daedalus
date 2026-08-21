@@ -1,3 +1,10 @@
+## [3.36.6](https://github.com/bgill55/daedalus/compare/v3.36.5...v3.36.6) (2026-08-21)
+
+
+### Bug Fixes
+
+* **guards:** stop flagging runtime/platform tokens as uninspected files ([#151](https://github.com/bgill55/daedalus/issues/151)) ([690146d](https://github.com/bgill55/daedalus/commit/690146dc2499d990934d7eb447f21d7c2e72f4ea))
+
 ## [3.36.5](https://github.com/bgill55/daedalus/compare/v3.36.4...v3.36.5) (2026-08-21)
 
 
