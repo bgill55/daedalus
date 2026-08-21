@@ -215,6 +215,47 @@ export interface Observation {
   hit: boolean;
 }
 
+// Config / dependency / artifact terms that an agent commonly asserts are
+// MISSING or ABSENT ("no ESLint config", "missing JSDoc", "no .env.example").
+// A negative-existence claim about one of these is only grounded if the agent
+// actually looked (ran a search/list this session). Biased toward terms an LLM
+// reaches for when it hasn't inspected the repo; not exhaustive.
+const NEG_EXISTENCE_TERMS = [
+  'eslint',
+  'prettier',
+  'jest',
+  'vitest',
+  'mocha',
+  'tsc',
+  'typescript',
+  'jsdoc',
+  '.env.example',
+  'env.example',
+  'dockerfile',
+  'ci',
+  'github actions',
+  'test',
+  'tests',
+  'tests dir',
+  'test directory',
+  'readme',
+  'changelog',
+  'license',
+  'config',
+  'configuration',
+  'helmet',
+  'cors',
+  'jwt',
+  'oauth',
+  'redis',
+  'docker',
+  'kubernetes',
+];
+
+// Asserts an artifact is ABSENT / MISSING / NOT FOUND / NOT CONFIGURED.
+const NEG_EXIST_VERB_RE =
+  /\b(no|not (?:found|configured|present|in place|set up)|missing|absent|lacking|without|no longer (?:has|have|present)|unable to find|couldn'?t find|no \w+ (?:config|configuration|file|script|directory|dir|setup|found))\b/i;
+
 // Source files that count toward real code inspection (not docs, walkthroughs, or changelogs).
 // Used by the review gate to distinguish "agent read actual code" from "agent only read README".
 const SOURCE_FILE_RE = /\.(ts|tsx|js|jsx|mjs|cjs|py|go|rs|java|cs|rb|php|html|css|json)$/i;
@@ -223,6 +264,8 @@ export class ClaimLedger {
   private seen = new Map<string, boolean>(); // base -> ever observed (hit or not)
   private features = new Set<string>(); // lowercase feature/dependency terms observed in tool output
   private srcSeen = new Set<string>(); // base names that are actual source files (not docs/markdown)
+  private searched = false; // agent ran at least one search/list/grep this session
+  private negTermsSeen = new Set<string>(); // negative-existence terms actually observed in tool output
 
   record(o: Observation): void {
     this.seen.set(baseOf(o.base), true);
@@ -231,20 +274,22 @@ export class ClaimLedger {
     if (SOURCE_FILE_RE.test(o.base)) {
       this.srcSeen.add(baseOf(o.base));
     }
+    // A search/list/grep observation means the agent actually looked for something —
+    // required to ground a negative-existence claim ("no X found"). Terminal commands
+    // like `ls`/`dir`/`find` also reveal file presence, so they count.
+    if (o.kind === 'search' || o.kind === 'terminal') this.searched = true;
   }
 
-  /**
-   * Record raw tool-output text so a later claim about a project feature/dependency is
-   * grounded when that term actually appeared in something the agent read/ran. Without
-   * this, the file-paired guard (#138) misses PROJECT-LEVEL claims that name no file
-   * (e.g. "helmet causes TS errors", "uses a circuit breaker") — the exact hole that let
-   * an agent review a codebase it never opened. Terms are matched case-insensitively.
-   */
+  /** Record raw tool-output text so a later claim about a project feature/dependency is
+   * grounded when that term actually appeared in something the agent read/ran. */
   recordText(text: string): void {
     if (!text) return;
     const lower = text.toLowerCase();
     for (const term of PROJECT_FEATURE_TERMS) {
       if (lower.includes(term)) this.features.add(term);
+    }
+    for (const term of NEG_EXISTENCE_TERMS) {
+      if (lower.includes(term)) this.negTermsSeen.add(term);
     }
   }
 
@@ -256,6 +301,16 @@ export class ClaimLedger {
   /** True if a project feature/dependency term was observed in tool output this session. */
   observedFeature(term: string): boolean {
     return this.features.has(term.toLowerCase());
+  }
+
+  /** True if the agent ran a search/list/grep this session (needed to ground "X is absent"). */
+  get didSearch(): boolean {
+    return this.searched;
+  }
+
+  /** True if a negative-existence term was actually observed in tool output this session. */
+  observedNegTerm(term: string): boolean {
+    return this.negTermsSeen.has(term.toLowerCase());
   }
 
   /** Total file observations this session (read/search/terminal with a path). */
@@ -398,6 +453,48 @@ export function ungroundedProjectClaimWarning(term: string): string {
     `relevant file or run a search/grep for "${term}" and confirm it exists, or (2) rephrase as a ` +
     `hypothesis ("it may use...") or omit it. Every claim that a project HAS a feature or ` +
     `dependency must be backed by a tool observation this session.`
+  );
+}
+
+/**
+ * Detects a claim that a config/dependency/artifact is ABSENT or MISSING
+ * ("no ESLint configuration found", "missing JSDoc", "no .env.example") when the
+ * agent never actually looked for it this session (no search/list/terminal run).
+ * Mirrors isUngroundedProjectClaim but for NEGATIVE existence: asserting something
+ * is gone requires the same grounding as asserting it is present. Without this, an
+ * agent that never ran `ls`/`search_files` can invent absent files with no check.
+ *
+ * Returns the claimed-absent term, or null when the claim is either absent or
+ * grounded (the agent searched this session, or actually observed the term present).
+ */
+export function isNegativeExistenceClaim(text: string, ledger: ClaimLedger): string | null {
+  if (!text || !ledger) return null;
+  const lower = text.toLowerCase();
+  for (const term of NEG_EXISTENCE_TERMS) {
+    if (!lower.includes(term)) continue;
+    // If the agent actually OBSERVED this term in tool output, the absence claim may
+    // be grounded (it saw context implying absence, e.g. a file listing without it).
+    if (ledger.observedNegTerm(term)) continue;
+    const idx = lower.indexOf(term);
+    const window = lower.slice(Math.max(0, idx - 50), idx + term.length + 50);
+    if (NEG_EXIST_VERB_RE.test(window)) {
+      // Grounded only if the agent actually searched/listed this session.
+      if (ledger.didSearch) continue;
+      return term;
+    }
+  }
+  return null;
+}
+
+export function negativeExistenceWarning(term: string): string {
+  return (
+    `[SYSTEM WARNING] You asserted "${term}" is missing/absent, but you never ran a ` +
+    `search, list, or grep for it this session — you have no basis to claim absence. ` +
+    `Do NOT report that a file, config, or dependency is missing unless you actually ` +
+    `checked (run \`search_files\` / \`list_files\` / \`ls\` / \`grep\` and confirm it is ` +
+    `not present). Either (1) actually look for "${term}" and report what you find, or ` +
+    `(2) rephrase as a hypothesis ("I did not see X") or omit it. A claim of absence ` +
+    `without a check is invention.`
   );
 }
 
