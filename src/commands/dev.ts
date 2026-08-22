@@ -467,25 +467,22 @@ Once you have finished making changes, I will automatically re-run the command t
 
       const { initIndexDb } = await import('../indexing/fts.js');
       const { indexCodebase } = await import('../indexing/indexer.js');
+      const { printProgressBar } = await import('../formatting.js');
       const db = initIndexDb(indexDbPath);
 
       console.log(pc.gray('\nScanning files...'));
       const start = Date.now();
 
       try {
-        const barWidth = 20;
         let lastPct = -1;
         const onProgress = ({ current, total, file }: { current: number; total: number; file: string }) => {
           const pct = Math.round((current / total) * 100);
           if (pct === lastPct) return;
           lastPct = pct;
-          const filled = Math.round((current / total) * barWidth);
-          const bar = '\u2588'.repeat(filled) + '\u2591'.repeat(barWidth - filled);
-          process.stdout.write(`\r  ${pc.cyan(bar)} ${pc.white(`${current}/${total}`)} ${pc.gray(file.slice(-40))}`);
+          printProgressBar(current / total, file, { final: current >= total });
         };
 
         const result = await indexCodebase(db, process.cwd(), ctx.projectHash, { ...opts, onProgress });
-        process.stdout.write('\n');
         const elapsed = Date.now() - start;
 
         ctx.toolContext.indexDb = db;
@@ -1062,9 +1059,9 @@ Once you have finished making changes, I will automatically re-run the command t
     description: 'Display session analytics, token usage, index count, and router status',
     usage: '/stats',
     helpText: 'Display real-time session statistics including token counters, uptime, codebase index counts, and model router health.',
-    execute: async (_args, _ctx) => {
+    execute: async (_args, ctx) => {
       const { handleStatsCommand } = await import('../commands/stats.js');
-      console.log(`\n${handleStatsCommand()}\n`);
+      console.log(`\n${handleStatsCommand(ctx)}\n`);
     }
   },
   {

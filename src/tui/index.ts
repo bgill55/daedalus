@@ -1,5 +1,6 @@
 import blessed from 'neo-blessed';
 import pc from 'picocolors';
+import { brand } from '../ui/theme.js';
 import fs from 'fs';
 import readline from 'readline';
 import { Writable } from 'stream';
@@ -347,7 +348,7 @@ export function createTuiRepl(deps: ReplDeps): () => Promise<void> {
 
   async function chatLoop(): Promise<void> {
     // Initial welcome logs
-    logBox.log(pc.cyan('  ⬡') + pc.bold(pc.white(' Daedalus TUI Active. Type your prompts below.')));
+    logBox.log(brand('  Daedalus TUI') + pc.bold(pc.white(' Active. Type your prompts below.')));
     logBox.log(pc.dim('  Press Ctrl+C to exit. Use Tab to switch focus. Use ↑↓, PgUp/PgDown to scroll logs. Scrollbar on right.'));
     screen.render();
 

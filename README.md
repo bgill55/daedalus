@@ -198,6 +198,7 @@ AI assistance without:
 
 | Command | Description |
 |---------|-------------|
+| `/theme` / `theme` | Set or show the UI color theme (dark, light, auto). |
 | `/lite` | Show Daedalus Lite documentation |
 | `/history` / `/h` | Show recent turns with tool calls from the session log |
 | `/onboard` | First-time setup — discover local models, configure, and test |

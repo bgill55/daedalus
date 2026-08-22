@@ -15,6 +15,7 @@ import type { LocalRouter } from './router/index.js';
 import type { DaedalusConfig } from './config/index.js';
 import { maskSecrets } from './security/secret-detector.js';
 import { classifyTaskStart, stepRouting, floorForTask } from './router/complexity.js';
+import { globalSessionStats } from './session/analytics.js';
 
 const TOOL_RESULT_MAX_CHARS = 32_000;
 const MAX_TOOL_TURNS = 40;
@@ -303,6 +304,7 @@ export function createModelFunctions(deps: ModelDeps) {
         return { content: lastContent, toolCalls: [] };
       }
       turnUsageOut = undefined;
+      const useStreaming = config.ui?.streaming !== false;
       const thinkingStyle = DaedalusSpinner.getThinkingStyle(config.ui?.spinner);
       const spinner = new DaedalusSpinner({
         text: 'Daedalus thinking',
@@ -348,9 +350,11 @@ export function createModelFunctions(deps: ModelDeps) {
           const delta = choice.delta;
 
           if (delta.content) {
-            openBlock();
             fullContent += delta.content;
-            writeAssistantChunk(delta.content);
+            if (useStreaming) {
+              openBlock();
+              writeAssistantChunk(delta.content);
+            }
 
             if (detectRepetition(fullContent)) {
               writeAssistantChunk(pc.red('\n\n[STOP] Repetition loop detected. Aborting stream.'));
@@ -383,6 +387,14 @@ export function createModelFunctions(deps: ModelDeps) {
         }
 
         if (!blockOpened) spinner.stop();
+
+        // Buffered mode: the spinner ran for the whole turn; now dump the
+        // accumulated reply in one block so it renders as a finished message.
+        if (!useStreaming && fullContent) {
+          openBlock();
+          writeAssistantChunk(fullContent);
+          spinner.stop();
+        }
 
         if (signal.aborted) {
           closeAssistantBlock((lastContent || fullContent).length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
@@ -753,6 +765,7 @@ export function createModelFunctions(deps: ModelDeps) {
 
       const approvedCalls = toolCallArray.filter((_, i) => approvedCallIndices.has(i));
       for (const c of approvedCalls) executedToolNames.add(c.function.name);
+      globalSessionStats.recordToolCall(approvedCalls.length);
 
       const toolNames = approvedCalls.map(c => c.function.name);
       printToolStart(approvedCalls.length, toolNames);

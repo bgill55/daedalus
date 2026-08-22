@@ -1061,7 +1061,7 @@ export const agentCommands: Command[] = [
             console.log(`  ${pc.yellow('❌ Verification check failed — required files failed artifact or build checks.')}`);
           }
 
-          console.log(`\n  ${pc.cyan('💡 Recommendations:')}`);
+          console.log(`\n  ${pc.cyan('Recommendations:')}`);
           console.log(`     - Target missing file: ${pc.bold(`/task create <file>`)}`);
           console.log(`     - Re-run autopilot:   ${pc.bold(`/autopilot ${idea}`)}`);
           console.log(`  ${pc.dim('─'.repeat(lineLen + 2))}\n`);

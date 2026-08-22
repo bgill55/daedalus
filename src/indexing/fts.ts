@@ -104,6 +104,14 @@ export function insertSymbols(db: Database.Database, rows: SymbolRow[]): void {
   })();
 }
 
+/** Count distinct indexed source files for a project. */
+export function getIndexedFileCount(db: Database.Database, projectHash: string): number {
+  const row = db.prepare(
+    `SELECT COUNT(DISTINCT file_path) AS n FROM symbols WHERE project_hash = ?`
+  ).get(projectHash) as { n: number } | undefined;
+  return row?.n ?? 0;
+}
+
 /** Search symbols by fuzzy query */
 export function searchSymbols(db: Database.Database, query: string, projectHash: string, limit: number = 30): SymbolRow[] {
   // SQLite FTS5 uses MATCH query

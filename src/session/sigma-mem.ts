@@ -125,7 +125,7 @@ export class SigmaMemEngine {
       return `• [Σ-Score: ${scorePct}%] [${m.agent_role.toUpperCase()}] ${m.summary}\n  ${m.content.trim()}`;
     });
 
-    const prompt = `\n--- 🧠 Σ-Mem Verified Team Memory (Reliability-Scored Knowledge) ---\n${lines.join('\n\n')}\n--- End Σ-Mem ---\n`;
+    const prompt = `\n--- Σ-Mem Verified Team Memory (Reliability-Scored Knowledge) ---\n${lines.join('\n\n')}\n--- End Σ-Mem ---\n`;
     const activeMemoryIds = selected.map((m) => m.id);
 
     return { prompt, activeMemoryIds };

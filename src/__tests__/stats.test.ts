@@ -8,6 +8,9 @@ describe('handleStatsCommand', () => {
     expect(result).toContain('Uptime:');
     expect(result).toContain('Interactions:');
     expect(result).toContain('Total Tokens:');
-    expect(result).toContain('Error Count:');
+    expect(result).toContain('Errors:');
+    expect(result).toContain('Tool Calls:');
+    expect(result).toContain('Indexed Files:');
+    expect(result).toContain('Last Model:');
   });
 });

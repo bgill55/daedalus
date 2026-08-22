@@ -1,4 +1,6 @@
 import fs from 'fs';
+import os from 'os';
+import path from 'path';
 import readline from 'readline';
 import { Writable } from 'stream';
 import pc from 'picocolors';
@@ -20,6 +22,7 @@ import { resetTurnAborted } from './model.js';
 import { parseAgentTag } from './agents/roles.js';
 import { SigmaMemEngine } from './session/sigma-mem.js';
 import { synthesizeSkillFromTurn } from './skills/auto-synthesis.js';
+import { brand } from './ui/theme.js';
 
 export interface ReplDeps {
   config: DaedalusConfig;
@@ -54,6 +57,33 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
   // Build commands completion list dynamically from registered commands
   const COMMANDS = commandsList.flatMap(cmd => [cmd.name, ...(cmd.aliases || [])]);
 
+  // Persistent command history at ~/.daedalus/history so Up/Down works across
+  // sessions. The file retains the most recent entries (capped) and excludes
+  // blank lines and exact duplicates of the immediately previous entry.
+  const HISTORY_LIMIT = 1000;
+  const historyPath = path.join(configDir || path.join(os.homedir(), '.daedalus'), 'history');
+  let history: string[] = [];
+  try {
+    if (fs.existsSync(historyPath)) {
+      history = fs.readFileSync(historyPath, 'utf8')
+        .split('\n')
+        .map(l => l.replace(/\r$/, ''))
+        .filter(Boolean);
+    }
+  } catch { /* best-effort load */ }
+
+  function appendHistory(line: string): void {
+    const trimmed = line.trim();
+    if (!trimmed) return;
+    if (history[history.length - 1] === trimmed) return;
+    history.push(trimmed);
+    if (history.length > HISTORY_LIMIT) history = history.slice(history.length - HISTORY_LIMIT);
+    try {
+      fs.mkdirSync(path.dirname(historyPath), { recursive: true });
+      fs.writeFileSync(historyPath, history.join('\n') + '\n', 'utf8');
+    } catch { /* best-effort persist */ }
+  }
+
   // Wrapper stream so rl.close() doesn't call process.stdout.end(),
   // which would break TUI rendering on mode switch
   const rlOutput = new Writable({
@@ -66,6 +96,8 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
   const rl = readline.createInterface({
     input: process.stdin,
     output: rlOutput,
+    history,
+    historySize: HISTORY_LIMIT,
     completer: (line: string) => {
       const prefix = line.toLowerCase();
       const hits = prefix.startsWith('/') || prefix.startsWith('?') || prefix.startsWith('exit') || prefix.startsWith('quit')
@@ -164,7 +196,7 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
             console.log(pc.yellow(pendingNotifications.shift()!));
           }
         }
-        let prompt = `\n${pc.cyan('  ⬡')} `;
+        let prompt = `\n${brand('  ›')} `;
         if (activeFiles.size > 0 || (config.ui.showTokens && messages.length > 1)) {
           const fileStr = activeFiles.size > 0 ? `${activeFiles.size} file${activeFiles.size > 1 ? 's' : ''}` : '';
           let tokenStr = '';
@@ -180,6 +212,7 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
         const input = await readMultiLineInput(prompt);
         const trimmedInput = input.trim();
         if (!trimmedInput) continue;
+        appendHistory(trimmedInput);
 
         resetTurnAborted();
         toolContext.autoApproveTools = false;

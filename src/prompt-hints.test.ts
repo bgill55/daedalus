@@ -13,7 +13,7 @@ describe('prompt-hints', () => {
 
   it('getRandomPromptHint returns formatted tip', () => {
     const hint = getRandomPromptHint();
-    expect(hint).toContain('💡 Tip');
+    expect(hint).toContain('Tip');
     expect(hint).toContain('Try:');
   });
 
@@ -30,6 +30,6 @@ describe('prompt-hints', () => {
   it('getRandomPromptHint falls back to generic when no specific match', () => {
     // 'cobol' matches nothing specific, so the full pool (incl. generic) is used.
     const hint = getRandomPromptHint(['cobol']);
-    expect(hint).toContain('💡 Tip');
+    expect(hint).toContain('Tip');
   });
 });
