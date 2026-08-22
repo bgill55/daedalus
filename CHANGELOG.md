@@ -1,3 +1,10 @@
+# [3.40.0](https://github.com/bgill55/daedalus/compare/v3.39.0...v3.40.0) (2026-08-22)
+
+
+### Features
+
+* **tools:** wire same-edit loop detector into the graduated patch breaker ([1fd2bd0](https://github.com/bgill55/daedalus/commit/1fd2bd01ce8a9b81d2debbafd65fc953171b0afa))
+
 # [3.39.0](https://github.com/bgill55/daedalus/compare/v3.38.0...v3.39.0) (2026-08-22)
 
 
