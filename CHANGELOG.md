@@ -1,3 +1,10 @@
+## [3.37.3](https://github.com/bgill55/daedalus/compare/v3.37.2...v3.37.3) (2026-08-22)
+
+
+### Bug Fixes
+
+* **guards:** session-scope claim ledger + anchor MCP paths to cwd ([#162](https://github.com/bgill55/daedalus/issues/162)) ([1cac9c7](https://github.com/bgill55/daedalus/commit/1cac9c73c7128ee24fb3451a7d2371bcb5d9ab74))
+
 ## [3.37.2](https://github.com/bgill55/daedalus/compare/v3.37.1...v3.37.2) (2026-08-22)
 
 
