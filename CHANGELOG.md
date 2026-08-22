@@ -1,3 +1,10 @@
+# [3.37.0](https://github.com/bgill55/daedalus/compare/v3.36.8...v3.37.0) (2026-08-22)
+
+
+### Features
+
+* **ui:** CLI UI/UX overhaul — emoji cleanup, syntax highlighting, history, dead configs, richer stats, tip-of-day ([#158](https://github.com/bgill55/daedalus/issues/158)) ([ee70fc8](https://github.com/bgill55/daedalus/commit/ee70fc81e6c03716acfd065ade97c55ad6134f81))
+
 ## [3.36.8](https://github.com/bgill55/daedalus/compare/v3.36.7...v3.36.8) (2026-08-21)
 
 
