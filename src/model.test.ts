@@ -678,6 +678,13 @@ describe('Tool failure handling', () => {
     }]);
 
     const askLine = vi.fn().mockResolvedValue('y');
+    // Seed an in-progress todo so the resume path prints a [TODO] Progress line
+    // (kills the blank gap the user saw between "[OK] Continuing" and the next output).
+    setSessionTodos('test', [
+      { id: '1', content: 'Sprint 5: Usage analytics - src/db.ts', status: 'completed' },
+      { id: '2', content: 'Sprint 6: Bulk operations', status: 'in_progress' },
+      { id: '3', content: 'Sprint 7: Accessibility', status: 'in_progress' },
+    ]);
     const { callModelWithTools } = createModelFunctions({
       messages,
       config: TEST_CONFIG,
@@ -696,6 +703,9 @@ describe('Tool failure handling', () => {
       expect(output).toContain('Reached max tool turns (40). Pausing to checkpoint.');
       expect(output).toContain('[SUMMARY] 40 tool call(s) executed: read_file');
       expect(output).toContain('[OK] Continuing with a fresh turn budget.');
+      // Resume must surface progress immediately (no silent blank gap while thinking).
+      expect(output).toContain('[TODO] Progress: 1/3 completed');
+      expect(output).toContain('Active: Sprint 6: Bulk operations');
       expect(result.content).toBe('done.');
     } finally {
       (process.stdin as any).isTTY = origIsTTY;
