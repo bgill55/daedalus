@@ -15,10 +15,29 @@ import type { ToolContext } from '../types.js';
 const COMPLETION_CLAIM_RE =
   /\b(all (sprints|tasks|done|complete|finished)|all \d+ (sprints|tasks) (completed|done|finished)|fully (complete|done)|everything (is )?complete|all work (is )?complete|done with (all|the) (sprints|tasks)|task[s]? (are )?(complete|done)|work is complete|complete[d]? all (sprints|tasks))\b/i;
 
+// Honesty disclaimers: an update that explicitly says the work is NOT done, is
+// partial, or lists what remains must NOT be treated as a completion / progress /
+// scope-overstatement claim. Without this carve-out the whole-text completion regex
+// (and the achievement-enumeration / task-enumeration guards) match incidental
+// wrap-up phrasing and force-loop a token-wasting [SYSTEM WARNING] even on an honest
+// status update. Mirrors the negation exclusion used by detectFalseCompletionOnDisk
+// (claimSegments). Centralised here so every closing-turn guard shares the same
+// notion of "this message is an honest 'not done yet, here's where we are' update."
+export const HONESTY_DISCLAIMER_RE =
+  /\b(i (?:can'?t|cannot|can not)|not (?:all )?(?:done|complete|finished|yet)|not (?:yet )?(?:done|complete)|still (?:in progress|pending|open|remaining|to do|needs? (?:work|doing))|hasn'?t (?:been )?(?:done|completed|finished)|have ?n'?t (?:been )?(?:done|completed|finished)|remain(?:s|ing)? (?:to be done|incomplete|open)|only (?:partially )?(?:done|complete)|what (?:was )?(?:actually )?(?:done|completed)|what (?:is )?left|not (?:actually )?completed|did not (?:complete|finish)|incomplete|not (?:yet )?verified|not (?:properly )?implemented|was (?:not|never) (?:actually )?(?:completed|done|implemented))\b/i;
+
+export function isHonestDisclaimer(text: string): boolean {
+  if (!text) return false;
+  return HONESTY_DISCLAIMER_RE.test(text);
+}
+
+
 export function isCompletionClaim(text: string): boolean {
   if (!text) return false;
+  if (isHonestDisclaimer(text)) return false;
   return COMPLETION_CLAIM_RE.test(text);
 }
+
 
 export function countIncompleteTodos(todos: SqliteTodo[]): number {
   return todos.filter((t) => t.status !== 'completed').length;
@@ -132,6 +151,10 @@ const SUMMARY_DONE_VERB_RE =
 
 export function isScopeOverstatedSummary(text: string, todos: SqliteTodo[]): boolean {
   if (!text || !SUMMARY_TASK_ENUM_RE.test(text)) return false;
+  // An honest "not all done / here's what remains" update must not be flagged as a
+  // scope over-statement. Lets the agent close a turn after stating remaining todos
+  // instead of force-looping the [SYSTEM WARNING].
+  if (isHonestDisclaimer(text)) return false;
   // If every todo is closed, the enumeration is accurate — no over-statement.
   if (todos.length === 0 || countIncompleteTodos(todos) === 0) return false;
   // Only flag when the summary asserts completion of the enumerated tasks.
@@ -176,6 +199,11 @@ export function countAchievementItems(text: string): number {
 
 export function isUnsubstantiatedProgressReport(text: string): boolean {
   if (!text) return false;
+  // An honest "not done yet / here's what's left" update must NOT be challenged as
+  // an unverified progress report. Without this, a reconciled status update that
+  // enumerates verified ✅ items alongside explicit ❌/NOT-completed items loops the
+  // guard and wastes tokens re-stating reality.
+  if (isHonestDisclaimer(text)) return false;
   // Require a substantive enumeration (≥2 items) so a single incidental "✅ done"
   // or one bullet doesn't trip the guard — only a deliverable checklist does.
   return countAchievementItems(text) >= 2;
