@@ -4,9 +4,13 @@
 
 Daedalus does not delegate to faceless "sub-agents." It commands a **pantheon** — seven divine archetypes, each carrying a callsign drawn from Greek myth, each bound to a single craft. The master craftsman **Daedalus** designs the Labyrinth but never swings the hammer; the gods of the pantheon do the work.
 
+<p align="center">
+  <video src="images/The_Assembly_Line_of_the_Gods.mp4" width="100%" controls poster="images/machine-pantheon-workflow.png"></video>
+</p>
+
 <img src="images/machine-pantheon-workflow.png" alt="The Machine Pantheon — seven divine AI agent archetypes and the 5-stage divine workflow lifecycle" width="100%"/>
 
-*Community visual: the seven archetypes mapped to the 5-stage workflow (SpecFirst → Plan → Parallel Execute → Review/Heal → Synthesize). Illustrative — the spec artifacts are `.daedalus/spec.json` + `spec.md`, and review verdicts are natural-language findings rather than the stylized codes shown here.*
+*Community visual & video: the seven archetypes mapped to the 5-stage workflow (SpecFirst → Plan → Parallel Execute → Review/Heal → Synthesize). Illustrative — the spec artifacts are `.daedalus/spec.json` + `spec.md`, and review verdicts are natural-language findings rather than stylized codes.*
 
 You can summon any god two ways:
 
