@@ -1,3 +1,11 @@
+## [3.37.4](https://github.com/bgill55/daedalus/compare/v3.37.3...v3.37.4) (2026-08-22)
+
+
+### Bug Fixes
+
+* **guards:** allow honest 'not done, here is what remains' status updates ([#164](https://github.com/bgill55/daedalus/issues/164)) ([8702c64](https://github.com/bgill55/daedalus/commit/8702c64dde4078288198dfac5d22820d1f3d8668))
+* **ux:** show todo progress immediately on max-turn resume (kill dead space) ([#163](https://github.com/bgill55/daedalus/issues/163)) ([88dcf26](https://github.com/bgill55/daedalus/commit/88dcf267181e06579440c92b85aec34e57726165))
+
 ## [3.37.3](https://github.com/bgill55/daedalus/compare/v3.37.2...v3.37.3) (2026-08-22)
 
 
