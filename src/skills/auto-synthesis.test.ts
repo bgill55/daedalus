@@ -86,4 +86,14 @@ describe('Auto Skill Synthesis', () => {
     const res = synthesizeSkillFromTurn(prompt, summary);
     expect(res.synthesized).toBe(false);
   });
+
+  it('skips synthesis for casual / meta turns with no work signal', () => {
+    // Regression: a conversational chat about the tool itself (e.g. joking about the
+    // guardrails) must not synthesize a skill draft. The model's banter summary has
+    // no "did work" verb, so the work-signal gate blocks it.
+    const prompt = 'lol this made me laugh, you are correct it shouldnt create skills from non working prompts or casual talk';
+    const summary = 'The user pointed out the guardrails were too strict and we made fixes. The banter keeps it fresh for end users.';
+    const res = synthesizeSkillFromTurn(prompt, summary);
+    expect(res.synthesized).toBe(false);
+  });
 });

@@ -39,6 +39,15 @@ export function isTrivialPrompt(prompt: string): boolean {
 const NO_WORK_SUMMARY_RE =
   /\b(no (changes|patches|edits|fix(es)?) (were )?made|already (fixed|resolved|done|present)|nothing (to do|left|changed)|no further (changes|action)|change[s]? (already )?(present|in place|existing))\b/i;
 
+// Positive proof of work: a reusable skill can only be synthesized from a turn that
+// actually DID something — ran a command, edited/created a file, installed a dep,
+// fixed/implemented/verified something. Conversational or meta turns (the agent
+// bantering, or the user discussing the tool itself) produce summaries with no work
+// signal, so they must not spawn a skill draft. This is the mechanism-level gate:
+// "ground, don't guess" — no observed work, no synthesized playbook.
+const DID_WORK_SUMMARY_RE =
+  /\b(installed|ran|run|executed|edited|updated|created|added|removed|deleted|fixed|resolved|refactored|implemented|patched|configured|set up|migrated|verified|tests? (?:pass|passed|green)|built|changed|wrote|generated|debugged)\b/i;
+
 export function synthesizeSkillFromTurn(
   userPrompt: string,
   turnSummary: string
@@ -48,6 +57,10 @@ export function synthesizeSkillFromTurn(
 
   if (isTrivialPrompt(userPrompt)) return { synthesized: false };
   if (NO_WORK_SUMMARY_RE.test(turnSummary)) return { synthesized: false };
+  // Require proof of actual work before proposing a skill. Without this, a casual
+  // chat / meta turn (e.g. the user joking about the guardrails) whose summary
+  // happens to exceed the length floor would synthesize a spurious draft.
+  if (!DID_WORK_SUMMARY_RE.test(turnSummary)) return { synthesized: false };
 
   const slug = slugify(userPrompt);
   if (!slug || slug.length < 3) return { synthesized: false };
