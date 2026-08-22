@@ -1,5 +1,5 @@
-- **The Forge**
-  - [The Agent Pantheon](the-forge.md)
+- **The Pantheon**
+  - [The Agent Pantheon](the-pantheon.md)
 
 - **Getting Started**
   - [The Daedalus Manifesto ](manifesto.md)

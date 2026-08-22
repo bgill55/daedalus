@@ -1,8 +1,8 @@
-# The Forge — Daedalus' Agent Pantheon
+# The Pantheon — Daedalus' Council of Gods
 
 > *"We do not build translators for messy output. We make the output not messy in the first place."* — The Daedalus Manifesto
 
-Daedalus does not delegate to faceless "sub-agents." It commands a **pantheon** — seven divine archetypes, each carrying a callsign drawn from Greek myth, each bound to a single craft. The master craftsman **Daedalus** designs the Labyrinth but never swings the hammer; the gods of the forge do the work.
+Daedalus does not delegate to faceless "sub-agents." It commands a **pantheon** — seven divine archetypes, each carrying a callsign drawn from Greek myth, each bound to a single craft. The master craftsman **Daedalus** designs the Labyrinth but never swings the hammer; the gods of the pantheon do the work.
 
 You can summon any god two ways:
 

@@ -415,8 +415,8 @@
     .markdown-section ul li { line-height: 1.6; }
     .markdown-section ul li::marker { color: var(--daedalus-cyan); }
 
-    /* ---- The Forge sidebar flourish ---- */
-    .sidebar .forge-link > a {
+    /* ---- The Pantheon sidebar flourish ---- */
+    .sidebar .pantheon-link > a {
       color: var(--daedalus-text) !important;
       font-weight: 700;
       background: linear-gradient(90deg, rgba(0,212,170,0.12), rgba(124,58,237,0.12));
@@ -424,17 +424,17 @@
       border-radius: 0 6px 6px 0;
       padding-left: 12px !important;
     }
-    .sidebar .forge-link > a::before {
+    .sidebar .pantheon-link > a::before {
       content: "\u2692  "; /* hammer and pick ⚒ */
       filter: drop-shadow(0 0 4px rgba(0,212,170,0.6));
     }
-    .sidebar .forge-link > a:hover {
+    .sidebar .pantheon-link > a:hover {
       background: linear-gradient(90deg, rgba(0,212,170,0.22), rgba(124,58,237,0.22));
       color: var(--daedalus-cyan) !important;
     }
 
-    /* ---- The Forge page hero ---- */
-    .markdown-section .forge-hero {
+    /* ---- The Pantheon page hero ---- */
+    .markdown-section .pantheon-hero {
       background: linear-gradient(135deg, rgba(0,212,170,0.08), rgba(124,58,237,0.08));
       border: 1px solid var(--daedalus-border);
       border-left: 4px solid var(--daedalus-purple);
@@ -530,10 +530,10 @@
             sidebar.appendChild(apiItem);
             sidebar.appendChild(hierItem);
 
-            // The Forge flourish: tag the pantheon sidebar link
-            var forgeLink = sidebar.querySelector('a[href="#/the-forge.md"]');
+            // The Pantheon flourish: tag the pantheon sidebar link
+            var forgeLink = sidebar.querySelector('a[href="#/the-pantheon.md"]');
             if (forgeLink && forgeLink.parentElement) {
-              forgeLink.parentElement.classList.add('forge-link');
+              forgeLink.parentElement.classList.add('pantheon-link');
             }
           });
         }
