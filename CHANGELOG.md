@@ -1,3 +1,10 @@
+## [3.37.5](https://github.com/bgill55/daedalus/compare/v3.37.4...v3.37.5) (2026-08-22)
+
+
+### Bug Fixes
+
+* **skills:** require proof of work before auto-synthesizing a skill draft ([#165](https://github.com/bgill55/daedalus/issues/165)) ([17992f4](https://github.com/bgill55/daedalus/commit/17992f40e32bf2602304a194f5c364594e61f3ed))
+
 ## [3.37.4](https://github.com/bgill55/daedalus/compare/v3.37.3...v3.37.4) (2026-08-22)
 
 
