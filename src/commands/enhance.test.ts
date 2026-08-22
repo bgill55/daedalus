@@ -146,13 +146,35 @@ describe('enhanceCommand', () => {
     expect(sysPromptSpy).toHaveBeenCalledWith('review server.ts');
   });
 
-  it('ENHANCE_SYSTEM_PROMPT forbids asserting unverified findings (Rule 10)', () => {
-    // Regression: the enhancer fabricated findings (helmet import, 12 TODOs, TS2304) with no
-    // file context, and the execution agent then "fixed" the hallucinations. Rule 10 requires
-    // the enhancer to structure the report and let the agent discover findings from real
-    // inspection — never pre-fill them.
-    expect(ENHANCE_SYSTEM_PROMPT).toContain('DO NOT ASSERT UNVERIFIED FINDINGS');
-    expect(ENHANCE_SYSTEM_PROMPT).toContain('you only received the user');
-    expect(ENHANCE_SYSTEM_PROMPT).toContain('must be discovered by the agent');
+  it('ENHANCE_SYSTEM_PROMPT grounds proposals in provided context and forbids bare scaffolds (Rule 11)', () => {
+    // Regression: the enhancer emitted a generic "Enhancement | Impact | Feasibility"
+    // table with empty rows for an open "make this outstanding" ask, drifting off the
+    // real project. Rule 11 requires scope-to-project + vision, and forbids skeletons.
+    expect(ENHANCE_SYSTEM_PROMPT).toContain('GROUND EVERYTHING IN THE PROVIDED PROJECT CONTEXT');
+    expect(ENHANCE_SYSTEM_PROMPT).toContain('VERIFIED PROJECT CONTEXT');
+    expect(ENHANCE_SYSTEM_PROMPT).toContain('NEVER return a bare skeleton');
+    expect(ENHANCE_SYSTEM_PROMPT).toContain('Enhancement | Impact | Feasibility | Idea');
+  });
+
+  it('includes verified project context when ctx exposes active files', async () => {
+    const mockCallModel = vi.fn().mockResolvedValue('Enhanced prompt grounded in the project.');
+    // Point root at D:/Daedalus so buildEnhanceContext finds the real package.json
+    // (TypeScript stack) and AGENTS.md — a genuine grounding signal, not a model claim.
+    const mockCtx = {
+      callModelWithFallback: mockCallModel,
+      activeFiles: new Map<string, string>([['D:/Daedalus/src/index.ts', 'index.ts']]),
+    } as any;
+
+    // Capture the prompt passed to the model.
+    let captured = '';
+    const spy = vi.fn().mockImplementation(async (p: string) => { captured = p; return 'Enhanced prompt grounded in the project.'; });
+    mockCtx.callModelWithFallback = spy;
+
+    const result = await enhancePrompt('what would make this project more outstanding for an end user', mockCtx);
+    expect(result).toBeTruthy();
+    // Grounding block must be injected into the enhancement call.
+    expect(captured).toContain('VERIFIED PROJECT CONTEXT');
+    expect(captured).toContain('DETECTED STACK');
+    expect(captured).toContain('AGENTS.md');
   });
 });
