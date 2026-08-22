@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { extractErrorLines, normalizeErrorLine, syntaxCheck, preflightDependencyCheck, recordRevert, recordWriteSuccess, checkGlobalPatchBreaker, checkCircuitBreaker, patchBreakerLevel, buildRemovedSymbolHint, isTestFile, checkTestFileLock, guardTestWrite } from './patch-utils.js';
+import { extractErrorLines, normalizeErrorLine, syntaxCheck, preflightDependencyCheck, recordRevert, recordWriteSuccess, checkGlobalPatchBreaker, checkCircuitBreaker, patchBreakerLevel, getPatchRepeatCount, buildRemovedSymbolHint, isTestFile, checkTestFileLock, guardTestWrite } from './patch-utils.js';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -309,6 +309,64 @@ describe('graduated patch circuit-breaker ladder', () => {
     const msg = checkGlobalPatchBreaker(ctx);
     expect(msg).toContain('pausing to avoid a loop');
   });
+});
+
+describe('same-edit loop detector', () => {
+  function ctxWithRepeat(): any {
+    return {
+      patchFailureStreak: new Map<string, number>(),
+      patchRepeatKey: new Map<string, string>(),
+      patchRepeatCount: new Map<string, number>(),
+      patchFailureTotal: 0,
+    };
+  }
+
+  it('bumps the repeat count when the same intent reverts twice', () => {
+    const ctx = ctxWithNoMaps();
+    recordRevert('/p/a.ts', ctx, 'const x = 1;');
+    expect(getPatchRepeatCount('/p/a.ts', ctx)).toBe(1);
+    recordRevert('/p/a.ts', ctx, 'const x = 1;');
+    expect(getPatchRepeatCount('/p/a.ts', ctx)).toBe(2);
+  });
+
+  it('resets the repeat count when the intent changes', () => {
+    const ctx = ctxWithRepeat();
+    recordRevert('/p/a.ts', ctx, 'const x = 1;');
+    recordRevert('/p/a.ts', ctx, 'const x = 1;');
+    expect(getPatchRepeatCount('/p/a.ts', ctx)).toBe(2);
+    recordRevert('/p/a.ts', ctx, 'const y = 2;');
+    expect(getPatchRepeatCount('/p/a.ts', ctx)).toBe(1);
+  });
+
+  it('near-identical intents (whitespace-only) still collide as a loop', () => {
+    const ctx = ctxWithRepeat();
+    recordRevert('/p/a.ts', ctx, 'const x = 1;');
+    recordRevert('/p/a.ts', ctx, '  const   x =   1;  ');
+    expect(getPatchRepeatCount('/p/a.ts', ctx)).toBe(2);
+  });
+
+  it('names the loop in the circuit-breaker message when repeating', () => {
+    const ctx = ctxWithRepeat();
+    recordRevert('/p/a.ts', ctx, 'const x = 1;');
+    recordRevert('/p/a.ts', ctx, 'const x = 1;');
+    const map = ctx.patchFailureStreak as Map<string, number>;
+    map.set('/p/a.ts', 2);
+    const msg = checkCircuitBreaker('/p/a.ts', ctx);
+    expect(msg).toContain('looping on the same broken approach');
+  });
+
+  it('clears the repeat signal on a successful write', () => {
+    const ctx = ctxWithRepeat();
+    recordRevert('/p/a.ts', ctx, 'const x = 1;');
+    recordRevert('/p/a.ts', ctx, 'const x = 1;');
+    expect(getPatchRepeatCount('/p/a.ts', ctx)).toBe(2);
+    recordWriteSuccess('/p/a.ts', ctx);
+    expect(getPatchRepeatCount('/p/a.ts', ctx)).toBe(0);
+  });
+
+  function ctxWithNoMaps(): any {
+    return { patchFailureStreak: new Map<string, number>(), patchFailureTotal: 0 };
+  }
 });
 
 describe('buildRemovedSymbolHint', () => {

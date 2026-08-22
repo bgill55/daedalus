@@ -834,13 +834,20 @@ export function checkCircuitBreaker(targetPath: string, context: ToolContext): s
 
   const level = patchBreakerLevel(streak);
   const base = `[CIRCUIT BREAKER] patch reverted ${streak} consecutive times on ${path.basename(targetPath)}`;
+  // Same-edit loop signal: the SAME intent was reverted repeatedly. This is the
+  // clearest runaway shape — name it explicitly so the agent stops re-issuing
+  // the identical broken edit and reads the actual error instead.
+  const repeats = getPatchRepeatCount(targetPath, context);
+  const loopNote = repeats >= 2
+    ? ` This exact edit has now failed ${repeats} times in a row — you are looping on the same broken approach. Stop patching and diagnose the real error before trying again.`
+    : '';
   switch (level) {
     case 'steering':
-      return `${base}. Re-read the current file with read_file and reconstruct your patch from the actual content.`;
+      return `${base}. Re-read the current file with read_file and reconstruct your patch from the actual content.${loopNote}`;
     case 'constrained':
-      return `${base}. You keep issuing variations of the same edit — stop. Read the FULL current file, then either produce a written plan via the todo tool and a small verified patch, or report the blocker to the user.`;
+      return `${base}. You keep issuing variations of the same edit — stop. Read the FULL current file, then either produce a written plan via the todo tool and a small verified patch, or report the blocker to the user.${loopNote}`;
     case 'stopped':
-      return `${base}. Too many reverted patches on this file — pausing to avoid a loop. Diagnose the root cause by reading the FULL current file, then report the blocker to the user instead of retrying.`;
+      return `${base}. Too many reverted patches on this file — pausing to avoid a loop. Diagnose the root cause by reading the FULL current file, then report the blocker to the user instead of retrying.${loopNote}`;
     default:
       return null;
   }
@@ -851,12 +858,15 @@ export function recordWriteSuccess(targetPath: string, context: ToolContext): vo
   // A successful patch to this file clears the session-wide loop counter too, so a
   // later genuine failure on a different file/area starts the budget fresh.
   context.patchFailureTotal = 0;
+  // Recovery: a real successful write resets the same-edit loop signal.
+  context.patchRepeatCount?.delete(targetPath);
+  context.patchRepeatKey?.delete(targetPath);
   if (context.sessionReadCache && fs.existsSync(targetPath)) {
     context.sessionReadCache.set(targetPath, fs.statSync(targetPath).mtimeMs);
   }
 }
 
-export function recordRevert(targetPath: string, context: ToolContext): void {
+export function recordRevert(targetPath: string, context: ToolContext, intent?: string): void {
   const map = getStreakMap(context);
   const streak = map.get(targetPath) ?? 0;
   map.set(targetPath, streak + 1);
@@ -864,6 +874,38 @@ export function recordRevert(targetPath: string, context: ToolContext): void {
   if (context.sessionReadCache && fs.existsSync(targetPath)) {
     context.sessionReadCache.set(targetPath, fs.statSync(targetPath).mtimeMs);
   }
+  // Same-edit loop detector (Munder Difflin "looping" signal): a repeated revert
+  // of the SAME intent (target + attempted new content) is the clearest runaway
+  // signal — the agent is re-issuing the identical broken edit. Bump the repeat
+  // count so checkCircuitBreaker can name the loop and escalate faster.
+  if (intent !== undefined) {
+    if (!context.patchRepeatKey) context.patchRepeatKey = new Map<string, string>();
+    if (!context.patchRepeatCount) context.patchRepeatCount = new Map<string, number>();
+    const sig = `${targetPath}::${intentSignature(intent)}`;
+    const prev = context.patchRepeatKey.get(targetPath);
+    if (prev === sig) {
+      context.patchRepeatCount.set(targetPath, (context.patchRepeatCount.get(targetPath) ?? 0) + 1);
+    } else {
+      context.patchRepeatKey.set(targetPath, sig);
+      context.patchRepeatCount.set(targetPath, 1);
+    }
+  }
+}
+
+/** Lightweight, stable signature of an attempted patch's new content. Truncated
+ *  so near-identical intents (whitespace/spacing tweaks) still collide as a loop. */
+function intentSignature(intent: string): string {
+  const normalized = intent.replace(/\s+/g, ' ').trim().slice(0, 200);
+  let h = 5381;
+  for (let i = 0; i < normalized.length; i++) {
+    h = ((h << 5) + h + normalized.charCodeAt(i)) | 0;
+  }
+  return `${normalized.length}:${h}`;
+}
+
+/** Consecutive same-intent revert count for a path (0 when unknown). */
+export function getPatchRepeatCount(targetPath: string, context: ToolContext): number {
+  return context.patchRepeatCount?.get(targetPath) ?? 0;
 }
 
 // Global patch-failure loop breaker. Unlike the per-path streak (which resets on a

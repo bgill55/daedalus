@@ -227,7 +227,7 @@ export async function writeFile(args: { path: string; content: string }, context
     if (syntaxError) {
       if (previousContent !== null) {
         fs.writeFileSync(targetPath, previousContent, 'utf8');
-        recordRevert(targetPath, context);
+        recordRevert(targetPath, context, finalContent);
       } else {
         fs.unlinkSync(targetPath);
         context.sessionReadCache?.delete(targetPath);
@@ -389,7 +389,7 @@ export async function patchFile(args: { path: string; old_string: string; new_st
       const syntaxError = await syntaxCheck(targetPath, context.projectRoot, finalNormalized, content);
       if (syntaxError) {
         fs.writeFileSync(targetPath, rawContent, 'utf8');
-        recordRevert(targetPath, context);
+        recordRevert(targetPath, context, finalNormalized);
         return formatError(`${syntaxError}\n\nAnalyze the compiler error above (note the file path and line:column shown), check your brackets, semicolons, import declarations, and type definitions, and retry with a corrected patch.`);
       }
       if (context.patchHistory) {
@@ -446,7 +446,7 @@ export async function patchFile(args: { path: string; old_string: string; new_st
     const syntaxError = await syntaxCheck(targetPath, context.projectRoot, writeContent, content);
     if (syntaxError) {
       fs.writeFileSync(targetPath, rawContent, 'utf8');
-      recordRevert(targetPath, context);
+      recordRevert(targetPath, context, writeContent);
       return formatError(`${syntaxError}\n\nAnalyze the compiler error above (note the file path and line:column shown), check your brackets, semicolons, import declarations, and type definitions, and retry with a corrected patch.`);
     }
 

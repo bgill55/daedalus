@@ -94,12 +94,51 @@ Daedalus includes a programmatic **Self-Healing & Immunity Engine** that enforce
    - **Assertion Weakening**: Verifying test assertions were not deleted or loosened.
 4. **Self-Generated Skill Synthesis (`src/skills/auto-synthesis.ts`)**: Auto-extracts problem-solution recipes from successful complex bug fixes and saves draft playbooks in `.daedalus/skills/drafts/`.
 
+## 5. Graduated patch circuit breaker
+
+When a `patch` or `write_file` keeps failing the in-memory syntax check, Daedalus
+escalates **one level at a time** instead of hard-stopping on the first repeat.
+This is a steer-first ladder (ported from the Munder Difflin breaker philosophy):
+the agent gets a chance to self-correct before being paused.
+
+**Per-file (per-path) breaker** — counts consecutive reverts on the same file:
+
+| Streak | Level | Message |
+|--------|-------|---------|
+| 2 | **steering** | `Re-read the current file with read_file and reconstruct your patch from the actual content.` |
+| 3 | **constrained** | `You keep issuing variations of the same edit — stop. Read the FULL current file…` |
+| ≥4 | **stopped** | `Too many reverted patches on this file — pausing to avoid a loop… report the blocker to the user instead of retrying.` |
+
+**Session-wide (global) breaker** — counts *every* syntax-reverting patch in the
+session, including ones spread across different files or interleaved with reads
+(the per-path streak can miss these). It trips `[PAUSED]` at 3 total reverts and
+escalates its wording by level.
+
+**Same-edit loop detector** — the clearest runaway signal: if the *exact same
+edit intent* (target file + attempted new content, whitespace-normalized so
+near-identical retries collide) is reverted repeatedly, the breaker names the
+loop explicitly in the message:
+
+```
+[CIRCUIT BREAKER] patch reverted N consecutive times on <file>.
+Re-read the current file with read_file and reconstruct your patch from the actual content.
+This exact edit has now failed N times in a row — you are looping on the same
+broken approach. Stop patching and diagnose the real error before trying again.
+```
+
+- A successful patch **clears the streak and the loop signal** for that file, so a
+  genuine fix resets the budget (recovery, not permanent lockout).
+- How to recover: read the FULL current file, read the compiler error's
+  file:line:column, and either (1) produce a written plan via the `todo` tool and a
+  small verified patch, or (2) report the blocker to the user instead of looping.
+
 ## Related guardrails
 
 - **Patch syntax verification** — a proposed edit is validated in memory before it is
   applied; only genuine syntax errors or *newly introduced* type errors block the edit.
   Module-resolution noise from freshly-installed packages (e.g. `npm install helmet`
   then importing it) never causes a false revert.
-- **Trust layer** — write-without-read guardrail, patch circuit breaker, import/export
-  validation, auto-test loop, and large-rewrite annotation. See the
-  [Skills](skills.md) and [Sandboxing](sandboxing.md) guides for more.
+- **Trust layer** — write-without-read guardrail, graduated patch circuit breaker
+  (see §5 above), import/export validation, auto-test loop, and large-rewrite
+  annotation. See the [Skills](skills.md) and [Sandboxing](sandboxing.md) guides
+  for more.
