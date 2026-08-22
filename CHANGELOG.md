@@ -1,3 +1,10 @@
+# [3.39.0](https://github.com/bgill55/daedalus/compare/v3.38.0...v3.39.0) (2026-08-22)
+
+
+### Features
+
+* **tools:** graduate the patch circuit breaker into a steer→constrain→stop ladder ([0f7665a](https://github.com/bgill55/daedalus/commit/0f7665a49f7841211afb85a1805298ffc72d6e5e))
+
 # [3.38.0](https://github.com/bgill55/daedalus/compare/v3.37.6...v3.38.0) (2026-08-22)
 
 
