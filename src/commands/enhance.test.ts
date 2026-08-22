@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import path from 'path';
 import { enhancePrompt, enhanceCommand, ENHANCE_SYSTEM_PROMPT } from './enhance.js';
 
 describe('enhanceCommand', () => {
@@ -181,11 +182,15 @@ describe('enhanceCommand', () => {
 
   it('includes verified project context when ctx exposes active files', async () => {
     const mockCallModel = vi.fn().mockResolvedValue('Enhanced prompt grounded in the project.');
-    // Point root at D:/Daedalus so buildEnhanceContext finds the real package.json
-    // (TypeScript stack) and AGENTS.md — a genuine grounding signal, not a model claim.
+    // Point the active file at a real source file in THIS repo (resolved from cwd),
+    // so buildEnhanceContext walks up to the repo root and finds the real
+    // package.json (TypeScript stack) and AGENTS.md — a genuine grounding signal,
+    // not a model claim. Using a cwd-relative path keeps the test deterministic
+    // across local (Windows) and CI (linux/mac) runners.
+    const activeFilePath = path.join(process.cwd(), 'src', 'commands', 'enhance.ts');
     const mockCtx = {
       callModelWithFallback: mockCallModel,
-      activeFiles: new Map<string, string>([['D:/Daedalus/src/index.ts', 'index.ts']]),
+      activeFiles: new Map<string, string>([[activeFilePath, 'enhance.ts']]),
     } as any;
 
     // Capture the prompt passed to the model.
