@@ -114,9 +114,9 @@ Each god's system prompt speaks in its own voice, and the terminal shows its cal
 [AUTOPILOT] Progress: 3/5 completed | Active: [Hephaestus] build src/server.ts
 ```
 
-## Why Callsigs, Not "Sub-Agents"
+## Why Callsigns, Not "Sub-Agents"
 
-A "sub-agent" is a tool. A **god of the forge** is a角色 with a craft, a temperament, and a remit. Naming them turns a process into a cast — easier to reason about, easier to steer, and far more memorable when you are watching six of them divide and conquer your codebase at 3 a.m.
+A "sub-agent" is a tool. A **god of the forge** is a character with a craft, a temperament, and a remit. Naming them turns a process into a cast — easier to reason about, easier to steer, and far more memorable when you are watching six of them divide and conquer your codebase at 3 a.m.
 
 > The names are Daedalus' own. One seat — the researcher — is deliberately *not* named Hermes: that name is reserved.
 
