@@ -1,3 +1,10 @@
+## [3.37.1](https://github.com/bgill55/daedalus/compare/v3.37.0...v3.37.1) (2026-08-22)
+
+
+### Bug Fixes
+
+* **enhance:** ground the /enhance prompt in real project context ([#160](https://github.com/bgill55/daedalus/issues/160)) ([60d3035](https://github.com/bgill55/daedalus/commit/60d3035c9d6f655727d71d91f31a6cc029d02771))
+
 # [3.37.0](https://github.com/bgill55/daedalus/compare/v3.36.8...v3.37.0) (2026-08-22)
 
 
