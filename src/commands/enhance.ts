@@ -12,15 +12,15 @@ Expand the user's raw or casual request into a crisp, high-yield engineering pro
 Rules for the generated prompt:
 1. Frame the prompt as a direct action command instructing the agent to perform the task and write out its completed report.
 2. Instruct the agent to inspect relevant files and codebase context using tools before writing.
-3. Require the agent to deliver a fully populated report formatted in Markdown with headers, filled-in comparison tables, and bullet points.
-4. NEVER output empty Markdown templates, empty table rows (e.g. "| Aspect | | |"), or bracketed placeholders (e.g. "[dependency]", "[what it does]"). Instead, write clear instructions ordering the agent to analyze the code and populate those sections with actual findings.
+3. Require the agent to deliver a fully populated report formatted in clean Markdown: use \`##\` section headings and \`-\` bullet lists. Do NOT use pipe-delimited tables (rows like \`| Column | Column |\`) — they are hard for the CLI/agent to parse and render as noise. Express structured comparisons as labeled bullets instead.
+4. NEVER output empty Markdown templates, empty table rows (e.g. "| Aspect | | |"), pipe-delimited table syntax of any kind (rows beginning and ending with \`|\`), or bracketed placeholders (e.g. "[dependency]", "[what it does]"). Pipe tables are forbidden as an output format — use \`##\` headings and \`-\` bullets instead. Instead, write clear instructions ordering the agent to analyze the code and populate those sections with actual findings expressed as prose or bullets.
 5. Return ONLY the final enhanced prompt text without meta-commentary, introductory remarks, or surrounding quote marks.
 6. If the user's request already contains tool-call markup (e.g. \`<tool_call>\`, \`<function=...>\`), code fences, or XML-like tags, DO NOT copy that structured markup into the output. Rephrase the request as a clean natural-language instruction that a coding agent can act on directly. The enhanced prompt must be plain prose/Markdown an agent can execute — never raw tool-call XML.
 7. PRESERVE THE USER'S INTENT MODE. If the user's request is a proposal, ideation, brainstorm, design, or discussion ask (e.g. "come up with ideas", "propose", "what are some options", "brainstorm", "think about how to", "suggest approaches", "architecture review"), the enhanced prompt MUST remain a proposal/analysis ask. Do NOT reframe it as an implement/build command, and do NOT inject execution-scope deliverables such as "implement the following", "deliver a comprehensive Markdown report with sprint breakdowns and file modifications", "manageable sprints", or "populate all sections with actual implementation plans". If the user wants implementation, they will say so — your job is to make the proposal sharper and more specific, not to expand a question into a build order. Conversely, if the request IS a direct implementation task, keep Rule 1-3 as written.
 8. DO NOT NAME SPECIFIC TOOL FUNCTIONS. The execution agent selects its own tools from whatever is available in its environment — you cannot know the exact tool names, and naming non-existent ones (e.g. "using find_symbol and get_definition to locate files") makes the agent attempt calls that fail. Instead, describe the ACTION in plain language ("inspect the relevant source files", "search the codebase for usages of X"). Never write "using <tool_name> to ..." or "via <tool_name>" clauses.
 9. BOUNDED, DISTINCT OUTPUT — DEPTH OVER BREADTH. When the request asks for "improvements", "ideas", "options", or "areas for <X>", instruct the agent to produce AT MOST 8-10 highest-impact, DISTINCT items. Never generate templated or boilerplate variations of the same idea (e.g. fifty "Add Prompt Template Variables ..." bullets that only swap words). Each item must be a concrete, independently valuable change with its own rationale. "Fully populated" (Rule 3-4) means every table ROW holds real findings — it does NOT mean padding an open-ended list with repetitive permutations. If the codebase yields fewer than 8 genuine items, stop; do not invent filler.
 10. DO NOT ASSERT UNVERIFIED FINDINGS. You have NOT inspected the codebase — you only received the user's raw request. NEVER state specific findings as fact (file names, error codes like "TS2304", counts like "12 TODO comments", dependency names like "helmet", specific function names, or "missing X in server.ts"). Doing so fabricates problems the agent will then try to "fix", corrupting the project. Instead, define the report's SECTIONS and instruct the EXECUTION agent to populate each section from real file inspection. A "Current Pain Points" or "Findings" list must be discovered by the agent, never pre-filled by you. If the user only asked for an explanation, the enhanced prompt should ask the agent to report what it actually finds — not what you assume.
-11. GROUND EVERYTHING IN THE PROVIDED PROJECT CONTEXT. When a "VERIFIED PROJECT CONTEXT" block is supplied, your enhanced prompt MUST be scoped to THAT project — its real stack, real commands, and real convention files. Do not propose features for a different or generic project, and do not invent capabilities outside the AVAILABLE COMMANDS list. For open asks like "make this project outstanding" or "what would help the end user", you MUST still show VISION: propose concrete forward-looking enhancements (new commands, workflow improvements, UX polish) that fit THIS project's trajectory — but each proposal must trace to an observed gap, convention, or missing capability in the provided context, never to a generic template. If the context names a detected stack, align proposals to it. NEVER return a bare skeleton (e.g. an "Enhancement | Impact | Feasibility | Idea" table with empty rows, or bracketed placeholders like "[dependency]") — when context is present, instruct the agent to populate every row from real inspection, and frame each row around a specific, project-grounded idea.`;
+11. GROUND EVERYTHING IN THE PROVIDED PROJECT CONTEXT. When a "VERIFIED PROJECT CONTEXT" block is supplied, your enhanced prompt MUST be scoped to THAT project — its real stack, real commands, and real convention files. Do not propose features for a different or generic project, and do not invent capabilities outside the AVAILABLE COMMANDS list. For open asks like "make this project outstanding" or "what would help the end user", you MUST still show VISION: propose concrete forward-looking enhancements (new commands, workflow improvements, UX polish) that fit THIS project's trajectory — but each proposal must trace to an observed gap, convention, or missing capability in the provided context, never to a generic template. If the context names a detected stack, align proposals to it. NEVER return a bare skeleton (e.g. an "Enhancement | Impact | Feasibility | Idea" pipe table with empty rows, or bracketed placeholders like "[dependency]") — pipe tables are forbidden (see Rule 4); when context is present, express each grounded idea as a \`-\` bullet under a \`##\` heading, instructing the agent to populate it from real inspection.`;
 
 /**
  * Build a real, verified grounding snapshot of the active project to anchor the
@@ -162,6 +162,41 @@ function stripModeViolation(rawPrompt: string, enhanced: string): string {
     .trim();
 }
 
+// Matches a Markdown pipe-table row: at least two cells delimited by `|`,
+// trimmed so a leading/fence `|` is allowed (GitHub-style). Excludes the
+// separator row (---|---) which is handled separately.
+const PIPE_ROW_RE = /^\s*\|(.+\|.+)\|\s*$/;
+const PIPE_SEP_RE = /^\s*\|?[\s:|-]+\|?\s*$/;
+
+/**
+ * Backstop for Rule 4: even after the system prompt forbids pipe tables, a model
+ * can still emit them. Convert any surviving pipe-table rows into `-` bullets so
+ * the enhanced prompt stays clean Markdown the CLI/agent can parse. Header and
+ * separator rows are dropped; each data row becomes a bullet of its cell contents.
+ */
+function stripPipeTables(enhanced: string): string {
+  const lines = enhanced.split('\n');
+  const out: string[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (PIPE_SEP_RE.test(line.trim())) {
+      // separator row of a table we're about to strip — drop it
+      continue;
+    }
+    if (PIPE_ROW_RE.test(line)) {
+      // If the next line is a separator, this is a header row: drop it too.
+      if (i + 1 < lines.length && PIPE_SEP_RE.test(lines[i + 1].trim())) {
+        continue;
+      }
+      const cells = line.split('|').map(c => c.trim()).filter(c => c.length > 0);
+      out.push(`- ${cells.join(': ')}`);
+      continue;
+    }
+    out.push(line);
+  }
+  return out.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
 export async function enhancePrompt(rawPrompt: string, ctx: CommandContext): Promise<string> {
   const grounding = buildEnhanceContext(ctx);
   const fullPrompt = `${ENHANCE_SYSTEM_PROMPT}${grounding}\n\nUser request to enhance: "${rawPrompt}"`;
@@ -183,7 +218,7 @@ export async function enhancePrompt(rawPrompt: string, ctx: CommandContext): Pro
         // markup so the displayed/enhanced prompt is always plain prose an agent
         // can execute (see bug where /enhance returned <tool_call><function=read_file>).
         const stripped = stripToolCallMarkup(res.trim());
-        return capRepetition(stripInventedToolRefs(stripModeViolation(rawPrompt, stripped)));
+        return stripPipeTables(capRepetition(stripInventedToolRefs(stripModeViolation(rawPrompt, stripped))));
       }
     }
   } catch (_err) {
