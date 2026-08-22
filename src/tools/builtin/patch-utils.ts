@@ -805,13 +805,45 @@ function getStreakMap(context: ToolContext): Map<string, number> {
   return context.patchFailureStreak;
 }
 
+// ── Graduated patch circuit breaker ──────────────────────────────────────────
+// Ported philosophy from Munder Difflin's breaker: escalate ONE level per
+// failure (steer → constrain → stop) instead of a single binary trip, and
+// recover one level per successful write. A successful patch clears the streak,
+// so the ladder resets naturally (see recordWriteSuccess).
+
+export type PatchBreakerLevel = 'healthy' | 'steering' | 'constrained' | 'stopped';
+
+// Per-path streak thresholds, mirroring the steer→constrain→stop ladder.
+// Tuned to Daedalus' small budgets: the per-path breaker escalates fast because
+// a single file reverting twice is already a strong loop signal.
+export const PATCH_BREAKER_STEER = 2; // gentle: re-read and reconstruct
+export const PATCH_BREAKER_CONSTRAIN = 3; // firm: stop varying the same edit
+export const PATCH_BREAKER_STOP = 4; // hard: pause the loop
+
+export function patchBreakerLevel(streak: number): PatchBreakerLevel {
+  if (streak >= PATCH_BREAKER_STOP) return 'stopped';
+  if (streak >= PATCH_BREAKER_CONSTRAIN) return 'constrained';
+  if (streak >= PATCH_BREAKER_STEER) return 'steering';
+  return 'healthy';
+}
+
 export function checkCircuitBreaker(targetPath: string, context: ToolContext): string | null {
   const map = getStreakMap(context);
   const streak = map.get(targetPath) ?? 0;
-  if (streak >= 2) {
-    return `[CIRCUIT BREAKER] patch reverted ${streak} consecutive times on ${path.basename(targetPath)}. Re-read the current file with read_file and reconstruct your patch from the actual content.`;
+  if (streak < PATCH_BREAKER_STEER) return null;
+
+  const level = patchBreakerLevel(streak);
+  const base = `[CIRCUIT BREAKER] patch reverted ${streak} consecutive times on ${path.basename(targetPath)}`;
+  switch (level) {
+    case 'steering':
+      return `${base}. Re-read the current file with read_file and reconstruct your patch from the actual content.`;
+    case 'constrained':
+      return `${base}. You keep issuing variations of the same edit — stop. Read the FULL current file, then either produce a written plan via the todo tool and a small verified patch, or report the blocker to the user.`;
+    case 'stopped':
+      return `${base}. Too many reverted patches on this file — pausing to avoid a loop. Diagnose the root cause by reading the FULL current file, then report the blocker to the user instead of retrying.`;
+    default:
+      return null;
   }
-  return null;
 }
 
 export function recordWriteSuccess(targetPath: string, context: ToolContext): void {
@@ -845,16 +877,18 @@ export const PATCH_FAILURE_LIMIT = 3;
 
 export function checkGlobalPatchBreaker(context: ToolContext): string | null {
   const total = context.patchFailureTotal ?? 0;
-  if (total >= PATCH_FAILURE_LIMIT) {
-    return (
-      '[PAUSED] ' + total + ' patch(es) were reverted by the in-memory syntax ' +
-      'check this session. Pause issuing further patches to this file/area. Diagnose the ' +
-      'root cause by reading the FULL current file, then either (1) produce a written plan ' +
-      'via the todo tool and a small, verified patch, or (2) report the blocker to the user ' +
-      'instead of looping. Do NOT keep retrying variations of the same edit.'
-    );
+  if (total < PATCH_FAILURE_LIMIT) return null;
+
+  const level = patchBreakerLevel(total);
+  const prefix = '[PAUSED] ' + total + ' patch(es) were reverted by the in-memory syntax check this session';
+  switch (level) {
+    case 'stopped':
+      return `${prefix}. Too many reverted patches — pausing to avoid a loop. Diagnose the root cause by reading the FULL current file, then report the blocker to the user instead of retrying. Do NOT keep retrying variations of the same edit.`;
+    case 'constrained':
+      return `${prefix}. You keep issuing variations of the same edit across files/areas — stop. Read the FULL current file(s), produce a written plan via the todo tool and a small verified patch, or report the blocker to the user.`;
+    default: // 'steering' (total === PATCH_FAILURE_LIMIT)
+      return `${prefix}. Pause issuing further patches to this file/area. Diagnose the root cause by reading the FULL current file, then either (1) produce a written plan via the todo tool and a small, verified patch, or (2) report the blocker to the user instead of looping. Do NOT keep retrying variations of the same edit.`;
   }
-  return null;
 }
 
 export function recordPatchFailure(targetPath: string, context: ToolContext): void {

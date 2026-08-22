@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { extractErrorLines, normalizeErrorLine, syntaxCheck, preflightDependencyCheck, recordRevert, recordWriteSuccess, checkGlobalPatchBreaker, buildRemovedSymbolHint, isTestFile, checkTestFileLock, guardTestWrite } from './patch-utils.js';
+import { extractErrorLines, normalizeErrorLine, syntaxCheck, preflightDependencyCheck, recordRevert, recordWriteSuccess, checkGlobalPatchBreaker, checkCircuitBreaker, patchBreakerLevel, buildRemovedSymbolHint, isTestFile, checkTestFileLock, guardTestWrite } from './patch-utils.js';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -255,6 +255,59 @@ describe('global patch-failure loop breaker', () => {
     recordWriteSuccess('/p/a.ts', ctx);
     expect(ctx.patchFailureTotal).toBe(0);
     expect(checkGlobalPatchBreaker(ctx)).toBeNull();
+  });
+});
+
+describe('graduated patch circuit-breaker ladder', () => {
+  function streakContext(target: string, n: number): any {
+    const m = new Map<string, number>();
+    m.set(target, n);
+    return { patchFailureStreak: m, patchFailureTotal: n };
+  }
+
+  it('patchBreakerLevel maps streak to ladder rungs', () => {
+    expect(patchBreakerLevel(0)).toBe('healthy');
+    expect(patchBreakerLevel(1)).toBe('healthy');
+    expect(patchBreakerLevel(2)).toBe('steering');
+    expect(patchBreakerLevel(3)).toBe('constrained');
+    expect(patchBreakerLevel(4)).toBe('stopped');
+    expect(patchBreakerLevel(9)).toBe('stopped');
+  });
+
+  it('per-path breaker steers at streak 2 (re-read, no hard stop)', () => {
+    const ctx = streakContext('/p/a.ts', 2);
+    const msg = checkCircuitBreaker('/p/a.ts', ctx);
+    expect(msg).not.toBeNull();
+    expect(msg).toContain('[CIRCUIT BREAKER]');
+    expect(msg).toContain('Re-read the current file');
+    expect(msg).not.toContain('pausing to avoid a loop');
+  });
+
+  it('per-path breaker constrains at streak 3 (stop varying the same edit)', () => {
+    const ctx = streakContext('/p/a.ts', 3);
+    const msg = checkCircuitBreaker('/p/a.ts', ctx);
+    expect(msg).toContain('variations of the same edit');
+    expect(msg).not.toContain('pausing to avoid a loop');
+  });
+
+  it('per-path breaker stops at streak 4 (hard pause)', () => {
+    const ctx = streakContext('/p/a.ts', 4);
+    const msg = checkCircuitBreaker('/p/a.ts', ctx);
+    expect(msg).toContain('pausing to avoid a loop');
+  });
+
+  it('global breaker escalates by total and keeps [PAUSED] at the limit', () => {
+    const ctx = streakContext('/p/a.ts', 3);
+    const msg = checkGlobalPatchBreaker(ctx);
+    expect(msg).not.toBeNull();
+    expect(msg).toContain('[PAUSED]');
+    expect(msg).toContain('variations of the same edit');
+  });
+
+  it('global breaker stops at total >= 4', () => {
+    const ctx = streakContext('/p/a.ts', 5);
+    const msg = checkGlobalPatchBreaker(ctx);
+    expect(msg).toContain('pausing to avoid a loop');
   });
 });
 

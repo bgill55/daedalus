@@ -72,6 +72,7 @@ export interface ToolContext {
   patchHistory?: PatchEntry[];    // for /undo support
   sessionReadCache?: Map<string, number>;  // absPath -> mtime when last read
   patchFailureStreak?: Map<string, number>; // absPath -> consecutive failure count
+  patchRepeatKey?: Map<string, string>; // absPath -> last revert signature (target+intent); same key across reverts flags a same-edit loop
   patchFailureTotal?: number; // session-wide count of patch syntax-reverts (loop guard, never reset by intervening reads)
   terminalFailureStreak?: Map<string, number>; // normalized command prefix -> consecutive failure count
   terminalRepeatStreak?: Map<string, number>; // full normalized command -> consecutive identical-run count (no-progress loop guard)
