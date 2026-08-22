@@ -1,6 +1,7 @@
 // Shared types for the CLI
 
 import type Database from 'better-sqlite3';
+import type { ClaimLedger } from './agents/completion-guard.js';
 
 export interface ToolDefinition {
   type: 'function';
@@ -95,6 +96,11 @@ export interface ToolContext {
   // report the blocker instead of silently routing around the lock.
   blockedTestWrites?: Set<string>;
   contextVariables?: Record<string, unknown>;
+  // Claim-grounding ledger (session-scoped): records every file the agent actually
+  // inspected this session (read/search/terminal) so factual claims about those files
+  // are credited even across turns. MUST be persisted on the context (not recreated per
+  // turn) — see model.ts runSingleAgentTurn. Lives here to match verifyBreakerTrippedLastTurn.
+  claimLedger?: ClaimLedger;
 }
 
 export interface PatchEntry {

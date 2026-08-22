@@ -493,4 +493,24 @@ describe('detectUngroundedWorksClaim (runtime-exercise guard)', () => {
     const claim = 'The integration is implemented but not yet runtime-verified — typecheck passes.';
     expect(detectUngroundedWorksClaim(claim, ledger)).toBe(false);
   });
+
+  it('session-scoped ledger credits a read in a prior turn (no false ungrounded flag)', () => {
+    // Regression: claimLedger was recreated per turn, so a file read in turn N did
+    // not credit a factual claim made in turn N+1 — the guard falsely flagged the
+    // grounded claim as "ungrounded (no inspection this session)". The ledger must
+    // persist on the shared context across turns. Simulate two turns sharing one
+    // ledger (as model.ts now does via toolContext.claimLedger).
+    const shared: { claimLedger?: ClaimLedger } = {};
+    // Turn N: agent reads src/server.ts; ledger is created and recorded.
+    const ledgerN = shared.claimLedger ?? new ClaimLedger();
+    shared.claimLedger = ledgerN;
+    ledgerN.record({ kind: 'read', base: 'src/server.ts', hit: true });
+    // Turn N+1: a NEW turn reuses the persisted ledger (not a fresh one).
+    const ledgerN1 = shared.claimLedger ?? new ClaimLedger();
+    shared.claimLedger = ledgerN1;
+    expect(ledgerN1).toBe(ledgerN); // same instance — reads survived
+    // Claim about the read file must now be grounded, not flagged ungrounded.
+    const claim = 'src/server.ts:290 contains a global error handler middleware.';
+    expect(detectUngroundedClaim(claim, ledgerN1)).toBe(null);
+  });
 });

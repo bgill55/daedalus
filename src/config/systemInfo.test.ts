@@ -40,6 +40,15 @@ describe('System Diagnostics Module', () => {
     expect(header).toContain('RAM:');
   });
 
+  it('header includes the real Working Directory so the agent anchors file paths', () => {
+    // Regression: without the working directory, the model guessed a wrong root
+    // (e.g. "C:\src") and the MCP filesystem server failed with "Parent directory
+    // does not exist". The header must state the actual cwd.
+    const header = getSystemPromptHeader();
+    expect(header).toContain('Working Directory:');
+    expect(header).toContain(process.cwd());
+  });
+
   it('detectShell falls back to bash for unknown platforms', () => {
     expect(detectShell('android')).toBe('bash');
     expect(detectShell('cygwin')).toBe('bash');
