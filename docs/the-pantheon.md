@@ -8,10 +8,6 @@ Daedalus does not delegate to faceless "sub-agents." It commands a **pantheon** 
   <video src="images/The_Assembly_Line_of_the_Gods.mp4" width="100%" controls poster="images/machine-pantheon-workflow.png"></video>
 </p>
 
-<img src="images/machine-pantheon-workflow.png" alt="The Machine Pantheon — seven divine AI agent archetypes and the 5-stage divine workflow lifecycle" width="100%"/>
-
-*Community visual & video: the seven archetypes mapped to the 5-stage workflow (SpecFirst → Plan → Parallel Execute → Review/Heal → Synthesize). Illustrative — the spec artifacts are `.daedalus/spec.json` + `spec.md`, and review verdicts are natural-language findings rather than stylized codes.*
-
 You can summon any god two ways:
 
 - by **machine key** — `@coder`, `@planner`, `@reviewer` …
@@ -139,5 +135,13 @@ A "sub-agent" is a tool. A **god of the forge** is a character with a craft, a t
 | Apollo | `reviewer` | Critique | `@apollo` |
 | Asclepius | `debugger` | Healing | `@asclepius` |
 | Mnemosyne | `researcher` | Lore | `@mnemosyne` |
+
+---
+
+<img src="images/machine-pantheon-workflow.png" alt="The Machine Pantheon — seven divine AI agent archetypes and the 5-stage divine workflow lifecycle" width="100%"/>
+
+*The Machine Pantheon: seven divine AI archetypes mapped to the 5-stage workflow lifecycle (SpecFirst → Strategic Decomposition → Parallel Execution → Validation & Healing → Divine Synthesis).*
+
+---
 
 See [Multi-Agent Orchestration](orchestration.md) for the full task-control model, circuit breakers, and self-repair loop.
