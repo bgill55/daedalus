@@ -106,6 +106,50 @@ describe('syntaxCheck file-scoping', () => {
     expect(err).toContain('app.ts');
   });
 
+  it('localizes an unterminated template literal to its OPENING backtick, not the recovery point', async () => {
+    // Reproduces the prompt-vault bug class: a template literal opened with ` but
+    // closed with a " stays OPEN and swallows the rest of the file. tsc reports the
+    // symptom at a far-away recovery point; the revert message must point the agent
+    // at the OPENING backtick (line 2 here) so it fixes the one stray character
+    // instead of blaming whitespace or the diff tool and re-proposing a reindent.
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'daedalus-syntax-tmpl-'));
+    fs.writeFileSync(path.join(dir, 'tsconfig.json'), JSON.stringify({
+      compilerOptions: { strict: true, noEmit: true, skipLibCheck: true, esModuleInterop: true },
+    }));
+    const file = path.join(dir, 'server.ts');
+    const orig = 'export const a = 1;\n';
+    const edited =
+      'export const a = 1;\n' +
+      'const dup = `unterminated at line 2\n' +                 // opens a template literal, never closed
+      '  name: ${prompt.name} (copy)\n' +                     // no closing backtick -> stays open
+      'const b = 2;\n' +                                      // swallowed as template text
+      'export const msg = count is ${count};\n';               // ${...} is the recovery-point symptom
+    fs.writeFileSync(file, edited);
+    const err = await syntaxCheck(file, dir, edited, orig);
+    fs.rmSync(dir, { recursive: true, force: true });
+    expect(err).not.toBeNull();
+    expect(err).toContain('Localized root cause');
+    expect(err).toContain('Template literal opened with `');
+    // The agent must be told to fix line 2 (the open backtick), not the recovery line.
+    expect(err).toContain('line 2');
+  });
+
+  it('localizes an unclosed bracket to its opening position', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'daedalus-syntax-brace-'));
+    fs.writeFileSync(path.join(dir, 'tsconfig.json'), JSON.stringify({
+      compilerOptions: { strict: true, noEmit: true, skipLibCheck: true },
+    }));
+    const file = path.join(dir, 'thing.ts');
+    const orig = 'export const a = 1;\n';
+    const edited = 'export function go() {\n  return 1;\n'; // missing closing }
+    fs.writeFileSync(file, edited);
+    const err = await syntaxCheck(file, dir, edited, orig);
+    fs.rmSync(dir, { recursive: true, force: true });
+    expect(err).not.toBeNull();
+    expect(err).toContain('Localized root cause');
+    expect(err).toContain('Unclosed delimiter');
+  });
+
   it('blocks a NEWLY introduced type error but not a pre-existing one', async () => {
     // Pre-existing file has a type error (unused var). The agent fixes a DIFFERENT
     // line but accidentally introduces a NEW type error. Only the new one blocks.

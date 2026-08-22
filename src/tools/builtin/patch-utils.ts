@@ -540,7 +540,13 @@ export async function syntaxCheck(
     // A genuine syntax break (bad brackets, stray token) fails here regardless of
     // the rest of the project, and we never touch disk to discover it.
     const transpileDiag = transpileContent(content, targetAbs);
-    if (transpileDiag) return `Syntax error introduced by patch — reverted.\n${transpileDiag}`;
+    if (transpileDiag) {
+      const local = localizeUnbalancedDelimiter(content);
+      const localHint = local
+        ? `\n\nLocalized root cause: ${local}`
+        : '';
+      return `Syntax error introduced by patch — reverted.${localHint}\n${transpileDiag}`;
+    }
 
     // 2) Type-error gate: compile the proposed content in memory and diff its
     // (code:line) diagnostics against the original content. Only NEWLY INTRODUCED
@@ -669,6 +675,84 @@ function transpileContent(content: string, filePath: string): string | null {
   } catch {
     return null;
   }
+}
+
+// Localize a syntax break to the OPENING delimiter, not the parser's recovery point.
+// tsc/esbuild report (e.g.) "error TS1005 at line 387" for an unterminated template
+// literal opened at line 260 — pointing the agent at 387 makes it blame whitespace or
+// the diff/side-by-side tool and re-propose a cosmetic reindent (the exact loop the
+// user hit). This scanner finds the first unbalanced delimiter (template literal or
+// bracket) and reports where it OPENED, which is what the agent must fix. It runs only
+// on files that already failed the transpile gate, so the cost is bounded by the failure
+// path. Regex/JSX content may add bracket noise, but on a genuinely broken file the
+// dangling-template signal dominates and is regex-proof (it keys off the backtick only).
+function localizeUnbalancedDelimiter(content: string): string | null {
+  const lines = content.split('\n');
+  const stack: { ch: string; line: number; col: number }[] = [];
+  const openers: Record<string, string> = { '(': ')', '{': '}', '[': ']' };
+  const closers: Record<string, string> = { ')': '(', '}': '{', ']': '[' };
+  let inTemplate = false;
+  let templateOpenLine = 0;
+  let templateOpenCol = 0;
+  let templateDepth = 0; // count of open ${...} inside the current top-level template
+  let inBlock = false;
+  for (let li = 0; li < lines.length; li++) {
+    const line = lines[li];
+    for (let ci = 0; ci < line.length; ci++) {
+      const ch = line[ci];
+      const nxt = line[ci + 1] ?? '';
+      if (inBlock) {
+        if (ch === '*' && nxt === '/') { inBlock = false; ci++; }
+        continue;
+      }
+      if (ch === '/' && nxt === '/') { break; } // line comment: rest of line is inert
+      if (ch === '/' && nxt === '*') { inBlock = true; ci++; continue; }
+      if (inTemplate) {
+        if (ch === '\\') { ci++; continue; }
+        if (ch === '`') {
+          // A backtick closes the template ONLY at the top level (depth 0). A backtick
+          // inside ${...} closes an INNER template and leaves the outer one open — without
+          // this guard a legitimate `${ `inner` }` would wrongly close the outer literal.
+          if (templateDepth === 0) { inTemplate = false; }
+          continue;
+        }
+        if (ch === '$' && nxt === '{') { templateDepth++; ci++; continue; }
+        if (ch === '}') { if (templateDepth > 0) templateDepth--; continue; }
+        continue;
+      }
+      if (ch === '`') {
+        if (!inTemplate) { inTemplate = true; templateOpenLine = li + 1; templateOpenCol = ci + 1; }
+        continue;
+      }
+      if (ch === '"' || ch === "'") {
+        const q = ch;
+        ci++;
+        while (ci < line.length) {
+          const c2 = line[ci];
+          if (c2 === '\\') { ci += 2; continue; }
+          if (c2 === q) break;
+          ci++;
+        }
+        continue;
+      }
+      if (openers[ch]) { stack.push({ ch, line: li + 1, col: ci + 1 }); continue; }
+      if (closers[ch]) {
+        const top = stack.pop();
+        const expect = closers[ch];
+        if (!top || top.ch !== expect) {
+          return `Mismatched closer '${ch}' at line ${li + 1} col ${ci + 1}${top ? ` (opened '${top.ch}' at line ${top.line} col ${top.col})` : ''}.`;
+        }
+      }
+    }
+  }
+  if (inTemplate) {
+    return `Template literal opened with \` at line ${templateOpenLine} col ${templateOpenCol} is never closed (it is likely closed by the wrong character, e.g. a " instead of a \`). This is the root cause of the syntax break — tsc reports the error much later at its recovery point. Fix THIS opening backtick and its matching closer, not the line tsc points at.`;
+  }
+  if (stack.length > 0) {
+    const top = stack[stack.length - 1];
+    return `Unclosed delimiter '${top.ch}' opened at line ${top.line} col ${top.col} and never closed — tsc may report the error far from here (at its recovery point). Fix this OPENING delimiter.`;
+  }
+  return null;
 }
 
 // Compute the (code:line) diagnostic keys for `originalContent` as if it were the

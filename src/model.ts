@@ -826,7 +826,15 @@ export function createModelFunctions(deps: ModelDeps) {
           const errText = `${result.error ?? ''}\n${result.content ?? ''}`;
           const isSyntaxLoop = isWriteToolSyntaxLoop(result.name, errText);
           if (isSyntaxLoop) {
-            content += `\n\n[SYSTEM WARNING] Your ${result.name} on this file keeps failing validation and the change was reverted to the last-good state. STOP rewriting the whole file — that is what keeps producing invalid syntax. Instead: (1) call read_file on the current file to get its exact content, then (2) call patch with mode='replace' on the SMALLEST unique region that needs to change. Do not emit a full-file rewrite. If you cannot make a clean minimal edit, stop and summarize the blocker to the user.`;
+            if (errText.includes('Localized root cause')) {
+              // The revert message names the EXACT unbalanced delimiter and its line
+              // (e.g. a stray quote/backtick/bracket). This is almost never whitespace
+              // or the diff/side-by-side tool. Tell the agent to fix the one character
+              // so it stops re-proposing the same edit or a cosmetic reindent.
+              content += `\n\n[SYSTEM WARNING] Your ${result.name} was reverted: the message above names the EXACT unbalanced delimiter and its line. Fix that single character (likely a stray quote, backtick, or bracket) — this is almost never whitespace or the diff/side-by-side tool. Do NOT re-propose the same edit or a cosmetic reindent. Read the named line, correct the one offending character, and re-patch ONLY that. If you cannot see the typo, call read_file on the file and inspect the reported line before retrying.`;
+            } else {
+              content += `\n\n[SYSTEM WARNING] Your ${result.name} on this file keeps failing validation and the change was reverted to the last-good state. STOP rewriting the whole file — that is what keeps producing invalid syntax. Instead: (1) call read_file on the current file to get its exact content, then (2) call patch with mode='replace' on the SMALLEST unique region that needs to change. Do not emit a full-file rewrite. If you cannot make a clean minimal edit, stop and summarize the blocker to the user.`;
+            }
           } else if (repeated >= 2) {
             content += `\n\n[SYSTEM WARNING] You have repeatedly failed to apply this change (${repeated} attempts). STOP attempting the same patch. Read the exact current file content and construct a patch that matches it exactly, or switch strategy (e.g. write_file with full content), or move on and summarize the blocker to the user.`;
           } else {
