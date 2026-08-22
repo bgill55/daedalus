@@ -12,6 +12,20 @@ import { parseTextToolCalls, stripToolCallMarkup, openAssistantBlock, writeAssis
 import type { ToolContext, ToolCall, ChatMessage } from './types.js';
 import { messageText } from './types.js';
 import type { LocalRouter } from './router/index.js';
+
+// Render the current session todo progress (completed/total + active task). Used
+// after a successful `todo` tool result AND immediately on resume from a max-turn
+// checkpoint pause, so the user gets an instant "where we are" signal instead of a
+// blank gap while the model thinks. Mirrors the inline block historically printed
+// after todo results.
+function printTodoProgress(sessionId: string): void {
+  const todos = getSessionTodos(sessionId);
+  if (todos.length === 0) return;
+  const done = todos.filter(t => t.status === 'completed').length;
+  const active = todos.find(t => t.status === 'in_progress');
+  const activeText = active ? ` | Active: ${active.content.slice(0, 50)}${active.content.length > 50 ? '...' : ''}` : '';
+  console.log(pc.cyan(`\n  [TODO] Progress: ${done}/${todos.length} completed${activeText}`));
+}
 import type { DaedalusConfig } from './config/index.js';
 import { maskSecrets } from './security/secret-detector.js';
 import { classifyTaskStart, stepRouting, floorForTask } from './router/complexity.js';
@@ -293,6 +307,10 @@ export function createModelFunctions(deps: ModelDeps) {
           const answer = await (toolContext.askLine || askLine)(`  Continue working? [y]es / [n]o: `);
           if (answer.trim().toLowerCase().startsWith('y')) {
             console.log(pc.green('  [OK] Continuing with a fresh turn budget.'));
+            // Surface immediate progress so the resume isn't a silent blank gap
+            // while the model thinks (especially on slow models). Shows exactly
+            // where the work resumes.
+            printTodoProgress(toolContext.sessionId);
             toolTurnsRemaining = MAX_TOOL_TURNS;
             consecutiveToolFailures = 0;
             continue;
@@ -900,13 +918,7 @@ export function createModelFunctions(deps: ModelDeps) {
           verifyBreakerTrippedLastTurn = false;
         }
         if (result.success && result.name === 'todo') {
-          const todos = getSessionTodos(toolContext.sessionId);
-          const done = todos.filter(t => t.status === 'completed').length;
-          const active = todos.find(t => t.status === 'in_progress');
-          if (todos.length > 0) {
-            const activeText = active ? ` | Active: ${active.content.slice(0, 50)}${active.content.length > 50 ? '...' : ''}` : '';
-            console.log(pc.cyan(`\n  [TODO] Progress: ${done}/${todos.length} completed${activeText}`));
-          }
+          printTodoProgress(toolContext.sessionId);
         }
         if (result.success && result.content) {
           printToolContentPreview(maskSecrets(typeof result.content === 'string' ? result.content : JSON.stringify(result.content)));
