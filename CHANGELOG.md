@@ -1,3 +1,10 @@
+## [3.37.2](https://github.com/bgill55/daedalus/compare/v3.37.1...v3.37.2) (2026-08-22)
+
+
+### Bug Fixes
+
+* **diff-ui:** use regex ANSI strip instead of non-existent pc.stripColor ([#161](https://github.com/bgill55/daedalus/issues/161)) ([fbd1068](https://github.com/bgill55/daedalus/commit/fbd106804ec525d6c5e3584237e6903ac6f110f3))
+
 ## [3.37.1](https://github.com/bgill55/daedalus/compare/v3.37.0...v3.37.1) (2026-08-22)
 
 
