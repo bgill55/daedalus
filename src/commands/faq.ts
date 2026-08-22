@@ -1,10 +1,7 @@
 import pc from 'picocolors';
 import type { Command, CommandContext } from './types.js';
 
-export const faqText = `
-${pc.bold(pc.cyan('🧑‍💻 Daedalus Local-First FAQ'))}
-
-${pc.bold(pc.yellow('🖥️  HARDWARE & LOCAL EXECUTION'))}
+export const faqText = `\n${pc.bold(pc.cyan('Daedalus Local-First FAQ'))}\n\n${pc.bold(pc.yellow('HARDWARE & LOCAL EXECUTION'))}
 ${pc.bold('Q: How do I try Daedalus without installing anything?')}
   Open the Daedalus-Lite Live Demo (https://bgill55.github.io/daedalus-lite/live-demo.html) — a
   browser-based interactive REPL sandbox (no install, a few free queries included). For the full
@@ -22,7 +19,7 @@ ${pc.bold('Q: Which local models are officially recommended?')}
   • ${pc.bold('Qwen2.5-Coder-7B-Instruct')} (Q4_K_M / Q5_K_M) – accurate multilingual code generation & inline patching.
   • ${pc.bold('Llama-3-8B-Instruct')} (Q4_K_M / Q5_K_M) – general chat, sub-agent planning, orchestrator loops.
 
-${pc.bold(pc.yellow('🔀  MODEL ROUTING, TIERS & PRESETS'))}
+${pc.bold(pc.yellow('MODEL ROUTING, TIERS & PRESETS'))}
 ${pc.bold('Q: How does the embedded model router handle complex vs. simple tasks?')}
   Dynamic Complexity-Based Routing classifies each prompt:
   • Fast tier – simple edits (typos, single commas).
@@ -43,7 +40,7 @@ ${pc.bold('Q: What are the ready-to-use presets and how do I apply them?')}
   • ${pc.bold('hybrid')} – fast local for quick edits + cloud for complex orchestration.
   • ${pc.bold('privacy-strict')} – 100% offline local execution, web tools disabled.
 
-${pc.bold(pc.yellow('📐  SPECFIRST ARCHITECTURE & VERIFICATION GATES'))}
+${pc.bold(pc.yellow('SPECFIRST ARCHITECTURE & VERIFICATION GATES'))}
 ${pc.bold('Q: What is "SpecFirst" and how does it prevent agent coding pitfalls?')}
   It inserts a mandatory spec + verification gate before/after code synthesis, preventing Contract
   Drift, Untested Assertions, and Goal Drift. Run ${pc.bold('/spec <goal>')} to gather requirements and
@@ -54,7 +51,7 @@ ${pc.bold('Q: How does the SpecFirst Verification Engine enforce code safety?')}
   type/function signatures are exported, and code aligns 100% with the JSON contract. On failure it feeds
   logs into the auto-repair loop.
 
-${pc.bold(pc.yellow('🧠  Σ-Mem (SIGMA-MEMORY) ENGINE'))}
+${pc.bold(pc.yellow('Σ-Mem (SIGMA-MEMORY) ENGINE'))}
 ${pc.bold('Q: What is the "Context Pollution" problem and how does Σ-Mem solve it?')}
   Flat chat history stores failed attempts and hallucinations alongside valid code, polluting context.
   Σ-Mem scores and prunes memories from real verification feedback (compile, lint, test, spec contracts).
@@ -66,7 +63,7 @@ ${pc.bold('Q: What is the math behind Σ-Mem scoring and pruning?')}
   • Auto-Prune (<0.20): purged from SQLite to clear hallucinations.
   Only memories with Σ ≥ 0.60 are injected into sub-agent prompts.
 
-${pc.bold(pc.yellow('🛡️  GUARDRAILS, CIRCUIT BREAKERS & RESILIENCE'))}
+${pc.bold(pc.yellow('GUARDRAILS, CIRCUIT BREAKERS & RESILIENCE'))}
 ${pc.bold('Q: The CLI says [CIRCUIT BREAKER]. Why did my command execution halt?')}
   The Command Circuit Breaker tracks normalized command prefixes (e.g. 'npm install foo' → 'npm install').
   On repeated failure it stops and asks you to change approach. The companion Repeat Breaker trips if the
@@ -77,7 +74,7 @@ ${pc.bold('Q: What is a "Batch Short-Circuit" and why are some tool calls skippe
   subsequent mutating/build/test calls to avoid compiling against corrupt code. Read-only tools
   (read_file, git_status, git_diff) are never skipped, so the agent can inspect and recover.
 
-${pc.bold(pc.yellow('🪟  WINDOWS SETUP & TROUBLESHOOTING'))}
+${pc.bold(pc.yellow('WINDOWS SETUP & TROUBLESHOOTING'))}
 ${pc.bold('Q: Terminal tool crashes with Exit Code 3221225794 / 0xC0000142 on Windows. How do I resolve this?')}
   Fixed in ${pc.bold('v3.13.3')}. Cause: child processes inherited the parent stdin pipe and were killed when it
   closed. Fix: the terminal tool now uses stdio: ['ignore','pipe','pipe'] and detaches the process group.
@@ -86,13 +83,13 @@ ${pc.bold('Q: A valid Windows patch was reverted as a "syntax error" even though
   Fixed in ${pc.bold('v3.13.1')}. Cause: syntaxCheck flagged any error on a touched line, even pre-existing ones.
   Fix: it compiles a pre-edit baseline and diffs post-edit diagnostics, so valid edits stick.
 
-${pc.bold(pc.yellow('📦  SANDBOXING & ISOLATION'))}
+${pc.bold(pc.yellow('SANDBOXING & ISOLATION'))}
 ${pc.bold('Q: How do I isolate Daedalus execution environments?')}
   In ~/.daedalus/config.json under 'tools':
   • ${pc.bold('"sandbox": "docker"')} – spins up a container (default node:20), mounts project root to /workspace.
   • ${pc.bold('"sandbox": "wsl"')} – routes through WSL, translating Windows paths (D:\\project) to /mnt/d/project.
 
-${pc.bold(pc.yellow('📚  SKILLS (PLAYBOOK INGESTION)'))}
+${pc.bold(pc.yellow('SKILLS (PLAYBOOK INGESTION)'))}
 ${pc.bold('Q: What are "Skills"? Are they executable code?')}
   No — instructions, not code. Markdown playbooks (yaml frontmatter + steps). A matching trigger phrase
   injects the playbook into the system prompt.
@@ -105,7 +102,7 @@ ${pc.bold('Q: How does the agent propose and learn new skills?')}
   Sub-agents call propose_skill → draft saved to ~/.daedalus/skills/.drafts/. Use ${pc.bold('/skills')} to review,
   then ${pc.bold('/skills accept <name>')} to promote it to a trusted active skill.
 
-${pc.bold(pc.yellow('🔌  MODEL CONTEXT PROTOCOL (MCP)'))}
+${pc.bold(pc.yellow('MODEL CONTEXT PROTOCOL (MCP)'))}
 ${pc.bold('Q: Does Daedalus support MCP? How do I install external tools?')}
   Yes — stdio and HTTP/SSE transports. From the REPL:
   • ${pc.bold('/mcp explore')} – browse curated community MCP servers.

@@ -7,6 +7,7 @@ import readline from 'readline';
 import os from 'os';
 import pc from 'picocolors';
 import { execSafe } from './utils/spawn.js';
+import { brand } from './ui/theme.js';
 
 import { setRouterClient } from './tools/builtin/delegation.js';
 import { setRouteRouterClient, looksMultiPhase } from './tools/builtin/route.js';
@@ -18,6 +19,7 @@ import { setSessionTodos } from './tools/builtin/todo.js';
 import { SessionManager } from './session/manager.js';
 import { loadProfile, getProfilePrompt, UserProfile } from './profile.js';
 import { printBanner, printConfigInfo } from './banner.js';
+import { getTipOfDay } from './tips.js';
 import { checkForUpdates, checkChangelogOnUpgrade } from './update-check.js';
 import { createModelFunctions, currentAbortController, abortTurn, evaluatePatchOutcome, maxPatchFailureStreak } from './model.js';
 import { SigmaMemEngine } from './session/sigma-mem.js';
@@ -361,6 +363,9 @@ async function main() {
     printBanner(APP_VERSION);
     printConfigInfo(enabledCount, config.router.strategy, configDir + '/config.json');
 
+    // Tip of the day (rotates daily, persisted under configDir)
+    console.log(`  ${getTipOfDay(configDir)}`);
+
     // Load & log project-specific rules
     const filesToCheck = ['CLAUDE.md', '.cursorrules', '.daedalusrules', 'DAEDALUS.md'];
     for (const file of filesToCheck) {
@@ -563,7 +568,7 @@ async function main() {
       if (err instanceof Error && err.message === 'SWITCH_MODE_CLI') {
         currentMode = 'cli';
         console.clear();
-        console.log(pc.cyan('\n  ⬡ Returned to CLI mode... Type ? for commands.'));
+        console.log(brand('\n  Daedalus') + pc.dim(' Returned to CLI mode... Type ? for commands.'));
         continue;
       }
       if (err instanceof Error && err.message === 'SWITCH_MODE_TUI') {

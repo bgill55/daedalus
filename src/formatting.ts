@@ -1,6 +1,9 @@
 import pc from 'picocolors';
+import { highlight } from 'cli-highlight';
 import type { ToolCall } from './types.js';
 import { TOOL_IMPLEMENTATIONS } from './tools/definitions.js';
+import { setTheme, brand, rule } from './ui/theme.js';
+import { globalSessionStats } from './session/analytics.js';
 
 export const termW = Math.max(50, (process.stdout.columns ?? 80) - 5);
 
@@ -98,10 +101,13 @@ let _toolBuffer: ToolBufferEntry[] = [];
 let _commentaryLines = 0;
 let _collapseEnabled = true;
 let _compactMode = true;
+let _showCost = false;
 
-export function setFormattingConfig(config: { ui?: { collapseCommentary?: boolean; compactMode?: boolean } & Record<string, unknown> }): void {
+export function setFormattingConfig(config: { ui?: { collapseCommentary?: boolean; compactMode?: boolean; showCost?: boolean; diffStyle?: string; theme?: string } & Record<string, unknown> }): void {
   if (config?.ui?.collapseCommentary === false) _collapseEnabled = false;
   if (config?.ui?.compactMode === false) _compactMode = false;
+  if (config?.ui?.showCost === true) _showCost = true;
+  if (config?.ui?.theme) setTheme(config.ui.theme as 'dark' | 'light' | 'auto');
 }
 
 export function getToolBuffer(): ToolBufferEntry[] {
@@ -117,6 +123,7 @@ export function clearToolBuffer(): void {
 
 let _buf = '';
 let _inCode = false;
+let _codeLang = '';
 let _codeLines: string[] = [];
 // Thinking renderer: when a reasoning model emits raw <think>...</think> inline, we render
 // that block in dimmed (gray) font while the final answer renders in white — so the user can
@@ -167,6 +174,34 @@ export function collapseCommentary(): void {
 
 let _lastBoxW = 70;
 
+// Approximate blended $/1k-token pricing for common cloud families, used only
+// for the opt-in cost estimate in the assistant footer. Local endpoints
+// (lmstudio/ollama/localhost) are free. Heuristic — not an invoice.
+interface PriceRate { in: number; out: number; }
+const PRICE_TABLE: Array<{ re: RegExp; rate: PriceRate }> = [
+  { re: /gpt-4o/i, rate: { in: 0.005, out: 0.015 } },
+  { re: /gpt-4/i, rate: { in: 0.03, out: 0.06 } },
+  { re: /gpt-3\.5/i, rate: { in: 0.0005, out: 0.0015 } },
+  { re: /claude-3\.5/i, rate: { in: 0.003, out: 0.015 } },
+  { re: /claude/i, rate: { in: 0.003, out: 0.015 } },
+  { re: /sonnet/i, rate: { in: 0.003, out: 0.015 } },
+  { re: /haiku/i, rate: { in: 0.00025, out: 0.00125 } },
+  { re: /(gemini|gemma)/i, rate: { in: 0.0005, out: 0.0015 } },
+  { re: /(deepseek)/i, rate: { in: 0.00027, out: 0.0011 } },
+  { re: /(command|cohere)/i, rate: { in: 0.0015, out: 0.002 } },
+];
+
+function estimatePrice(modelName?: string): PriceRate | null {
+  if (!modelName) return null;
+  if (/(lmstudio|ollama|localhost|:1234|:11434|vllm|llama\.cpp|local)/i.test(modelName)) {
+    return null;
+  }
+  for (const { re, rate } of PRICE_TABLE) {
+    if (re.test(modelName)) return rate;
+  }
+  return null;
+}
+
 function getBoxWidth(): number {
   const cols = process.stdout.columns ?? 80;
   return Math.max(40, cols - 6);
@@ -176,8 +211,8 @@ export function openAssistantBlock(): void {
   collapseCommentary();
   _lastBoxW = getBoxWidth();
   // Straight top rule: title padded to a fixed width with displayWidth-aware padding
-  // so an emoji in the title (🪽 = 2 cells) can't throw the alignment off.
-  printRule(`${pc.bold(pc.cyan('🪽 Daedalus'))}`);
+  // so a wide glyph in the title can't throw the alignment off.
+  printRule(`${pc.bold(brand('Daedalus'))}`);
 }
 
 // Horizontal rule of exactly _lastBoxW cells. `content` (if any) is placed at the
@@ -186,12 +221,12 @@ function printRule(content: string): void {
   const inner = '─'.repeat(Math.max(2, _lastBoxW - 2));
   const prefix = '  ';
   if (!content) {
-    console.log(`${prefix}${pc.cyan(inner)}`);
+    console.log(`${prefix}${rule(inner)}`);
     return;
   }
   const vis = displayWidth(content);
   const fill = '─'.repeat(Math.max(0, _lastBoxW - 2 - vis));
-  console.log(`${prefix}${pc.cyan(content)}${pc.cyan(fill)}`);
+  console.log(`${prefix}${rule(content)}${rule(fill)}`);
 }
 
 // Box geometry: total visible width = _lastBoxW (includes the 2-space indent).
@@ -206,20 +241,56 @@ function printBoxLine(line: string): void {
   }
 }
 
+/**
+ * Render a determinate progress bar on a single line (carriage-return update).
+ * `ratio` is 0..1. Uses theme-aware colors. Pass `final: true` to append a
+ * newline so subsequent output starts on a fresh line.
+ */
+export function printProgressBar(ratio: number, label: string, opts?: { width?: number; final?: boolean }): void {
+  const width = opts?.width ?? 24;
+  const pct = Math.max(0, Math.min(1, ratio));
+  const filled = Math.round(pct * width);
+  const bar = brand('█'.repeat(filled)) + pc.dim('░'.repeat(width - filled));
+  const pctStr = `${Math.round(pct * 100)}%`.padStart(4);
+  const tail = label ? ` ${pc.gray(label.slice(-36))}` : '';
+  process.stdout.write(`\r  ${bar} ${pc.bold(pctStr)}${tail}${opts?.final ? '\n' : ''}`);
+}
+
 function emitCodeBlock(): void {
-  if (_codeLines.length === 0) return;
-  const innerW = Math.max(20, _lastBoxW - 2);
-  const lineDigits = String(_codeLines.length).length;
-  for (let i = 0; i < _codeLines.length; i++) {
-    const lineNo = String(i + 1).padStart(lineDigits);
-    const content = _codeLines[i];
-    const wrapped = wrapLine(content, innerW - lineDigits - 3);
-    for (const part of wrapped) {
-      const vis = displayWidth(part);
-      const pad = Math.max(0, innerW - lineDigits - 3 - vis);
-      console.log(`  ${pc.dim(`${lineNo} │`)} ${part}${' '.repeat(pad)}`);
-    }
+  if (!_inCode) return;
+  // Drop a trailing closing fence if the model emitted one inside the buffer.
+  const rawLines = _codeLines.filter(l => !l.trimStart().startsWith('```'));
+  if (rawLines.length === 0) {
+    _inCode = false;
+    _codeLang = '';
+    _codeLines = [];
+    return;
   }
+  const innerW = Math.max(20, _lastBoxW - 2);
+  const lineDigits = String(rawLines.length).length;
+
+  // Highlight the whole block once (preserves ANSI across lines), then render
+  // each line with a gutter line number. Unknown languages fall back to plain.
+  let highlighted: string;
+  try {
+    highlighted = highlight(rawLines.join('\n'), {
+      language: _codeLang || 'text',
+      ignoreIllegals: true,
+    });
+  } catch {
+    highlighted = rawLines.join('\n');
+  }
+  const hlLines = highlighted.split('\n');
+  // Guard against a mismatch between source/highlighted line counts.
+  for (let i = 0; i < rawLines.length; i++) {
+    const lineNo = String(i + 1).padStart(lineDigits);
+    const part = hlLines[i] ?? rawLines[i];
+    const vis = displayWidth(stripAnsi(part));
+    const pad = Math.max(0, innerW - lineDigits - 3 - vis);
+    console.log(`  ${pc.dim(`${lineNo} │`)} ${part}${' '.repeat(pad)}`);
+  }
+  _inCode = false;
+  _codeLang = '';
   _codeLines = [];
 }
 
@@ -313,7 +384,10 @@ function emitAssistantLine(raw: string): void {
     return;
   }
   if (line.startsWith('```')) {
-    emitCodeBlock();
+    // Opening fence: capture the language token (e.g. "```ts" -> "ts") and switch
+    // into code mode. The closing fence is detected in closeAssistantBlock.
+    _inCode = true;
+    _codeLang = line.slice(3).trim();
     return;
   }
   if (_inThink) printBoxLine(pc.dim(formatMarkdownLine(line)));
@@ -327,7 +401,10 @@ export function closeAssistantBlock(
   modelName?: string,
   realOutTokens?: number,
   tier?: string,
+  opts?: { showCost?: boolean },
 ): void {
+  if (modelName) globalSessionStats.setLastModel(modelName, tier);
+  const showCost = opts?.showCost === true || _showCost;
   // Flush any trailing think buffer (a model may end the stream without a closing tag)
   // and any remaining non-think line before finalizing the block. Drop any partial tag
   // fragment held in _pending (it will never complete now).
@@ -340,7 +417,10 @@ export function closeAssistantBlock(
   if (_buf) {
     const line = _buf.trimEnd();
     if (_inCode) {
-      _codeLines.push(line);
+      // A ``` fence while in code mode is the closing fence, not code content.
+      if (!line.startsWith('```')) {
+        _codeLines.push(line);
+      }
     } else {
       if (line.startsWith('```')) {
         emitCodeBlock();
@@ -370,6 +450,17 @@ export function closeAssistantBlock(
   if (elapsedMs > 0 && outTokens > 0) {
     const tps = (outTokens / (elapsedMs / 1000)).toFixed(1);
     parts.push(`${tps} tok/s`);
+  }
+
+  // Cost estimate (opt-in via ui.showCost). Local models cost $0; cloud families
+  // use approximate blended $/1k-token rates. Heuristic — not an invoice.
+  if (showCost && outTokens > 0) {
+    const inTokens = tokens > 0 ? tokens : 0;
+    const rate = estimatePrice(modelName);
+    if (rate) {
+      const cost = (inTokens / 1000) * rate.in + (outTokens / 1000) * rate.out;
+      if (cost > 0) parts.push(`$${cost.toFixed(4)}`);
+    }
   }
 
   const rawStats = parts.join(' · ');

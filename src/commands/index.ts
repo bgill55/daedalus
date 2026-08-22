@@ -1,4 +1,6 @@
 import pc from 'picocolors';
+import { loadConfig, saveConfig } from '../config/index.js';
+import { setTheme, getTheme } from '../ui/theme.js';
 
 import { contextCommands } from './context.js';
 import { agentCommands } from './agents.js';
@@ -101,13 +103,43 @@ const helpCommand: Command = {
     printCategory('Help', categories.Help);
     printCategory('Other', categories.Other);
 
-    console.log(pc.gray('\n  Detailed documentation: ') + pc.underline(pc.cyan('https://bgill55.github.io/daedalus/#/')));
+    console.log(pc.gray('  Detailed documentation: ') + pc.underline(pc.cyan('https://bgill55.github.io/daedalus/#/')));
     console.log(pc.gray('  Tip: Type ') + pc.cyan('/help <command>') + pc.gray(' for detailed usage and subcommands.'));
     console.log();
   }
 };
 
+const THEMES = ['dark', 'light', 'auto'] as const;
+
+const themeCommand: Command = {
+  name: '/theme',
+  aliases: ['theme'],
+  description: 'Set or show the UI color theme (dark, light, auto).',
+  usage: '/theme [dark|light|auto]',
+  helpText: 'Set or show the UI color theme.\n\nArguments:\n  (no args)   Show the current theme\n  dark        High-contrast palette for dark terminals (default)\n  light       Legible palette for light/white terminal backgrounds\n  auto        dark, unless NO_COLOR is set\n\nThe selection persists to ~/.daedalus/config.json (ui.theme) and applies immediately.',
+  execute: async (args, _ctx) => {
+    const arg = args.trim().toLowerCase();
+    if (!arg) {
+      console.log(`\n  ${pc.bold('Current theme:')} ${pc.cyan(getTheme())}`);
+      console.log(`  ${pc.dim('Available: ' + THEMES.join(', '))}`);
+      console.log();
+      return;
+    }
+    if (!THEMES.includes(arg as typeof THEMES[number])) {
+      console.log(pc.yellow(`\n  [WARN] Unknown theme "${arg}". Choose one of: ${THEMES.join(', ')}`));
+      return;
+    }
+    setTheme(arg as typeof THEMES[number]);
+    const config = loadConfig();
+    config.ui.theme = arg as typeof THEMES[number];
+    saveConfig(config);
+    console.log(`\n  ${pc.green('[OK]')} Theme set to ${pc.cyan(arg)} and saved.`);
+    console.log();
+  },
+};
+
 export const commandsList: Command[] = [
+  themeCommand,
   ...contextCommands,
   ...agentCommands,
   ...devCommands,

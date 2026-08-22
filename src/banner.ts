@@ -1,4 +1,5 @@
 import pc from 'picocolors';
+import { brand, rule } from './ui/theme.js';
 
 const LOGO_ROWS = [
   ' ██████╗   █████╗  ███████╗ ██████╗   █████╗  ██╗     ██╗   ██╗ ███████╗ ',
@@ -27,7 +28,7 @@ function centred(text: string, width: number, color: (s: string) => string): str
 }
 
 export function printBanner(version: string): void {
-  const cyan  = pc.cyan.bind(pc);
+  const cyan  = brand;
   const white = pc.white.bind(pc);
   const bold  = pc.bold.bind(pc);
   const dim   = pc.dim.bind(pc);
@@ -47,7 +48,7 @@ export function printBanner(version: string): void {
 
   console.log(box(' '.repeat(W), cyan));
 
-  const tagline = '⬡  local-first  ·  embedded router  ·  multi-agent  ·  not sentient  ⬡';
+  const tagline = 'local-first  ·  embedded router  ·  multi-agent  ·  not sentient';
   console.log(box(centred(tagline, W, dim), cyan));
 
   console.log(hRule('╚', '╝', '═', W, cyan));
@@ -59,7 +60,7 @@ export function printBanner(version: string): void {
   console.log(
     '  ' +
     pc.bgCyan(pc.black(bold(` DAEDALUS `))) +
-    pc.bgBlack(pc.cyan(bold(badge))) +
+    pc.bgBlack(brand(bold(badge))) +
     pc.bgBlack(dim(divider)) +
     pc.bgBlack(pc.white(author))
   );
@@ -72,7 +73,7 @@ export function printConfigInfo(
   configPath: string,
 ): void {
   const contentLine = `strategy  ${strategy}    models  ${enabledCount}   config  ${configPath}`;
-  const top = pc.dim('  ┌─ ') + pc.cyan('router') + pc.dim(' ' + '─'.repeat(Math.max(0, contentLine.length - 7)) + '┐');
+  const top = pc.dim('  ┌─ ') + rule('router') + pc.dim(' ' + '─'.repeat(Math.max(0, contentLine.length - 7)) + '┐');
   const mid = pc.dim('  │ ') + pc.white(contentLine) + pc.dim(' │');
   const bot = pc.dim('  └' + '─'.repeat(contentLine.length + 2) + '┘');
 
@@ -81,6 +82,6 @@ export function printConfigInfo(
   console.log(bot);
   console.log('');
 
-  console.log(`  ${pc.dim('Type')} ${pc.cyan('?')} ${pc.dim('for commands  ·  ')} ${pc.cyan('https://discord.gg/74pCA68KGK')} ${pc.dim('(Discord)')} ${pc.dim('  ·  ')} ${pc.cyan('https://github.com/bgill55/daedalus')} ${pc.dim('(Star us!)')}`);
+  console.log(`  ${pc.dim('Type')} ${rule('?')} ${pc.dim('for commands  ·  ')} ${rule('https://discord.gg/74pCA68KGK')} ${pc.dim('(Discord)')} ${pc.dim('  ·  ')} ${rule('https://github.com/bgill55/daedalus')} ${pc.dim('(Star us!)')}`);
   console.log('');
 }

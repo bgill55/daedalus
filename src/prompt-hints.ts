@@ -95,5 +95,5 @@ export function getRandomPromptHint(stackTags?: Iterable<string>): string {
     }
   }
   const h = pool[Math.floor(Math.random() * pool.length)];
-  return `${pc.cyan('💡 Tip')} ${pc.dim(`[${h.category}]:`)} ${h.tip}\n   ${pc.dim('Try:')} ${pc.yellow(`"${h.example}"`)}`;
+  return `${pc.cyan('Tip')} ${pc.dim(`[${h.category}]:`)} ${h.tip}\n   ${pc.dim('Try:')} ${pc.yellow(`"${h.example}"`)}`;
 }

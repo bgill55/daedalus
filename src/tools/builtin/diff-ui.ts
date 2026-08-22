@@ -5,6 +5,7 @@ import pc from 'picocolors';
 import * as diff from 'diff';
 import { ToolContext } from '../../types.js';
 import { withRawMode } from '../../utils/terminal-mode.js';
+import { loadConfig } from '../../config/index.js';
 
 export interface DiffHunk {
   oldStart: number;
@@ -86,8 +87,74 @@ export function generateUnifiedDiff(
     }
   }
 
-  output += pc.bold(pc.cyan(`\u2514${'\u2500'.repeat(borderW)}\u2518\n`));
+  output += pc.bold(pc.cyan(`\u2514${'─'.repeat(borderW)}\u2518\n`));
   return output;
+}
+
+/**
+ * Render a side-by-side diff: old content on the left, new on the right, with a
+ * center divider. Aligned blank lines are inserted so removals and additions
+ * line up vertically; pure-context rows show the same line on both sides.
+ */
+export function generateSideBySideDiff(
+  oldContent: string,
+  newContent: string,
+  filePath: string,
+): string {
+  const maxCols = Math.max(40, Math.min(120, (process.stdout.columns ?? 80) - 4));
+  const sideW = Math.floor((maxCols - 3) / 2);
+  const title = ` Proposed change to ${filePath} `;
+  const out: string[] = [];
+  out.push(pc.bold(pc.cyan(`\n\u250c${'─'.repeat(maxCols)}\u2510`)));
+  out.push(pc.bold(pc.cyan(`\u2502${title.padEnd(maxCols)}\u2502`)));
+  if (oldContent === newContent) {
+    out.push(pc.dim(`\u2502${' no changes '.padEnd(maxCols)}\u2502`));
+    out.push(pc.bold(pc.cyan(`\u2514${'─'.repeat(maxCols)}\u2518`)));
+    return out.join('\n') + '\n';
+  }
+
+  const patches = diff.diffLines(oldContent, newContent);
+  const rows: Array<{ left: string; right: string; kind: 'ctx' | 'add' | 'del' }> = [];
+  for (const part of patches) {
+    const lines = part.value.split('\n').filter((l, i, arr) => !(l === '' && i === arr.length - 1));
+    if (part.added) {
+      for (const l of lines) rows.push({ left: '', right: l, kind: 'add' });
+    } else if (part.removed) {
+      for (const l of lines) rows.push({ left: l, right: '', kind: 'del' });
+    } else {
+      for (const l of lines) rows.push({ left: l, right: l, kind: 'ctx' });
+    }
+  }
+
+  out.push(pc.dim(`${'─'.repeat(sideW + 1)}│${'─'.repeat(sideW + 1)}`));
+  out.push(pc.dim(`${pc.bold(pc.red('─ old')).padEnd(sideW)} │ ${pc.bold(pc.green('+ new')).padEnd(sideW)}`));
+
+  for (const r of rows) {
+    let ls: string;
+    let rs: string;
+    switch (r.kind) {
+      case 'add':
+        ls = pc.dim('      ');
+        rs = pc.bgGreen(pc.black(' + ')) + pc.green(' ' + r.right);
+        break;
+      case 'del':
+        ls = pc.bgRed(pc.white(' - ')) + pc.red(' ' + r.left);
+        rs = pc.dim('      ');
+        break;
+      default:
+        ls = '   ' + pc.gray(r.left);
+        rs = '   ' + pc.gray(r.right);
+    }
+    out.push(`${truncateCell(ls, sideW)} │ ${truncateCell(rs, sideW)}`);
+  }
+  out.push(pc.bold(pc.cyan(`\u2514${'─'.repeat(maxCols)}\u2518`)));
+  return out.join('\n') + '\n';
+}
+
+function truncateCell(s: string, w: number): string {
+  const vis = (pc as unknown as { stripColor: (x: string) => string }).stripColor(s).length;
+  if (vis <= w) return s + ' '.repeat(w - vis);
+  return s.slice(0, Math.max(1, w - 1)) + pc.dim('…');
 }
 
 /** Show compact diff summary (for 'diff' option) */
@@ -129,7 +196,13 @@ export async function promptDiffDecision(
   }
 
   // Show the diff
-  const diffOutput = generateUnifiedDiff(options.oldContent, options.newContent, options.filePath);
+  let diffStyle = 'unified';
+  try {
+    diffStyle = loadConfig()?.ui?.diffStyle ?? 'unified';
+  } catch { /* config read best-effort */ }
+  const diffOutput = diffStyle === 'side-by-side'
+    ? generateSideBySideDiff(options.oldContent, options.newContent, options.filePath)
+    : generateUnifiedDiff(options.oldContent, options.newContent, options.filePath);
   process.stdout.write(diffOutput);
 
   // Use line-based input when available (avoids raw-mode/PTY hangs)

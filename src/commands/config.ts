@@ -80,7 +80,7 @@ export const modelManagerCommand: Command = {
     const chain = config.router.chain;
 
     if (sub === 'list' || !trimmed) {
-      console.log(pc.bold('\n=== 🤖 ROUTER MODEL CHAIN ==='));
+      console.log(pc.bold('\n=== ROUTER MODEL CHAIN ==='));
       if (chain.length === 0) {
         console.log(pc.yellow('  No models configured. Run /onboard or /preset apply local-free'));
         console.log();
