@@ -1,3 +1,10 @@
+## [3.37.6](https://github.com/bgill55/daedalus/compare/v3.37.5...v3.37.6) (2026-08-22)
+
+
+### Bug Fixes
+
+* **tools:** localize syntax-revert errors to the opening delimiter, not the parser recovery point ([#166](https://github.com/bgill55/daedalus/issues/166)) ([f42bb8c](https://github.com/bgill55/daedalus/commit/f42bb8cb403d61d3d2adda7d9b261dfb94ffd4b9))
+
 ## [3.37.5](https://github.com/bgill55/daedalus/compare/v3.37.4...v3.37.5) (2026-08-22)
 
 
