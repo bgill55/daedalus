@@ -38,6 +38,14 @@ describe('completion-guard', () => {
     expect(isCompletionClaim('Sprint 1 done.')).toBe(false);
   });
 
+  it('does NOT flag an honest "not done yet / here is what remains" update', () => {
+    // Regression: a reconciled status update that states remaining work must close
+    // without force-looping the [SYSTEM WARNING].
+    expect(isCompletionClaim('I cannot claim completion of work that hasn\'t been verified. The sprints are NOT completed.')).toBe(false);
+    expect(isCompletionClaim('Tasks are not all complete. Here is what is left: 1. Fix the build 2. Add tests')).toBe(false);
+    expect(isCompletionClaim('Still in progress. Next steps: finish Sprint 5.')).toBe(false);
+  });
+
   it('counts incomplete todos (pending + in_progress)', () => {
     const todos = [todo('completed'), todo('pending'), todo('in_progress')];
     expect(countIncompleteTodos(todos)).toBe(2);
@@ -60,6 +68,14 @@ describe('completion-guard', () => {
   it('detectFalseCompletion: false when claiming done but no claim phrase', () => {
     const todos = [todo('completed'), todo('pending')];
     expect(detectFalseCompletion('Here is a summary of what I changed.', todos)).toBe(false);
+  });
+
+  it('detectFalseCompletion: false on an honest "not done, here is what remains" update (regression)', () => {
+    // The model stated remaining todos and disclosed it cannot claim completion.
+    // This must NOT force-loop the guard — it is a truthful status update.
+    const todos = [todo('completed'), todo('pending'), todo('pending')];
+    const honest = 'I cannot claim completion of work that hasn\'t been verified. The syntax errors mean none of the sprints were actually completed. Next steps: fix server.ts, then re-run tests.';
+    expect(detectFalseCompletion(honest, todos)).toBe(false);
   });
 
   it('warning names the remaining count', () => {
@@ -197,6 +213,23 @@ describe('isUnsubstantiatedProgressReport', () => {
     const report =
       'Here is where things stand. The tsconfig was adjusted and error handling was ' +
       'added to the database functions. Let me know if you want more.';
+    expect(isUnsubstantiatedProgressReport(report)).toBe(false);
+  });
+
+  it('does NOT flag an HONEST reconciled update that lists ✅ done + ❌ NOT completed', () => {
+    // Regression: the exact shape from a graded run. The agent separated verified
+    // ✅ items from explicit ❌/NOT-completed items and said it cannot claim
+    // completion. This is a truthful status update and must close without the guard
+    // force-looping the [SYSTEM WARNING].
+    const report =
+      'Honest Assessment - What Was Actually Accomplished\n' +
+      '✅ What WAS Actually Completed:\n' +
+      '1. Installed helmet - npm install helmet ✓\n' +
+      '2. Added helmet import to server.ts ✓\n' +
+      '❌ What WAS NOT Actually Completed:\n' +
+      '• Syntax errors in server.ts prevent compilation\n' +
+      '• Sprints 2-9 were NOT actually completed because the code has syntax errors\n' +
+      'I cannot claim completion of work that hasn\'t been properly implemented and verified.';
     expect(isUnsubstantiatedProgressReport(report)).toBe(false);
   });
 });
