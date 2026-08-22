@@ -1,3 +1,6 @@
+- **The Forge**
+  - [The Agent Pantheon](the-forge.md)
+
 - **Getting Started**
   - [The Daedalus Manifesto ](manifesto.md)
   - [Quick Start](getting-started.md)
