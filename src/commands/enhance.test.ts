@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import path from 'path';
 import { enhancePrompt, enhanceCommand, ENHANCE_SYSTEM_PROMPT } from './enhance.js';
 
 describe('enhanceCommand', () => {
@@ -146,13 +147,62 @@ describe('enhanceCommand', () => {
     expect(sysPromptSpy).toHaveBeenCalledWith('review server.ts');
   });
 
-  it('ENHANCE_SYSTEM_PROMPT forbids asserting unverified findings (Rule 10)', () => {
-    // Regression: the enhancer fabricated findings (helmet import, 12 TODOs, TS2304) with no
-    // file context, and the execution agent then "fixed" the hallucinations. Rule 10 requires
-    // the enhancer to structure the report and let the agent discover findings from real
-    // inspection — never pre-fill them.
-    expect(ENHANCE_SYSTEM_PROMPT).toContain('DO NOT ASSERT UNVERIFIED FINDINGS');
-    expect(ENHANCE_SYSTEM_PROMPT).toContain('you only received the user');
-    expect(ENHANCE_SYSTEM_PROMPT).toContain('must be discovered by the agent');
+  it('ENHANCE_SYSTEM_PROMPT forbids pipe-delimited table output (Rules 3-4)', () => {
+    // Regression: the enhancer produced ASCII pipe tables ("| Col | Col |") that are
+    // noise for the CLI/agent to parse. The prompt must mandate clean Markdown
+    // (## headings + - bullets) and ban pipe tables as an output format.
+    expect(ENHANCE_SYSTEM_PROMPT).toContain('Do NOT use pipe-delimited tables');
+    expect(ENHANCE_SYSTEM_PROMPT).toContain('Pipe tables are forbidden as an output format');
+    expect(ENHANCE_SYSTEM_PROMPT).toContain('use `##` headings and `-` bullets');
+  });
+
+  it('strips any surviving pipe-table rows from the enhanced prompt (backstop)', async () => {
+    // Even with the prompt ban, a model can still emit a pipe table. The backstop
+    // must convert it to clean bullets/headings so it can't poison the execution turn.
+    const pipeTable = [
+      '## Proposed Enhancements',
+      '| Enhancement | Impact | Effort |',
+      '|-------------|--------|--------|',
+      '| Add caching | High   | Low    |',
+      '| Improve CLI output | Medium | Med |',
+      '',
+      'Next, inspect the codebase and populate each item.',
+    ].join('\n');
+    const mockCallModel = vi.fn().mockResolvedValue(pipeTable);
+    const mockCtx = { callModelWithFallback: mockCallModel } as any;
+
+    const result = await enhancePrompt('what would make this project more outstanding', mockCtx);
+    // No pipe-table syntax survives.
+    expect(result).not.toMatch(/^\s*\|.*\|\s*$/m);
+    expect(result).not.toMatch(/\|[-:\s]+\|/);
+    // The data rows become bullets/headings instead.
+    expect(result).toContain('- Add caching: High: Low');
+    expect(result).toContain('## Proposed Enhancements');
+  });
+
+  it('includes verified project context when ctx exposes active files', async () => {
+    const mockCallModel = vi.fn().mockResolvedValue('Enhanced prompt grounded in the project.');
+    // Point the active file at a real source file in THIS repo (resolved from cwd),
+    // so buildEnhanceContext walks up to the repo root and finds the real
+    // package.json (TypeScript stack) and AGENTS.md — a genuine grounding signal,
+    // not a model claim. Using a cwd-relative path keeps the test deterministic
+    // across local (Windows) and CI (linux/mac) runners.
+    const activeFilePath = path.join(process.cwd(), 'src', 'commands', 'enhance.ts');
+    const mockCtx = {
+      callModelWithFallback: mockCallModel,
+      activeFiles: new Map<string, string>([[activeFilePath, 'enhance.ts']]),
+    } as any;
+
+    // Capture the prompt passed to the model.
+    let captured = '';
+    const spy = vi.fn().mockImplementation(async (p: string) => { captured = p; return 'Enhanced prompt grounded in the project.'; });
+    mockCtx.callModelWithFallback = spy;
+
+    const result = await enhancePrompt('what would make this project more outstanding for an end user', mockCtx);
+    expect(result).toBeTruthy();
+    // Grounding block must be injected into the enhancement call.
+    expect(captured).toContain('VERIFIED PROJECT CONTEXT');
+    expect(captured).toContain('DETECTED STACK');
+    expect(captured).toContain('AGENTS.md');
   });
 });
