@@ -1,5 +1,6 @@
 // MCP tool executor - bridges LLM tool calls to MCP servers
 
+import path from 'node:path';
 import { ToolContext, ToolResult } from '../../types.js';
 import { mcpRegistry } from './registry.js';
 
@@ -14,9 +15,10 @@ function unwrapMcpContent(result: unknown): string {
   return JSON.stringify(result, null, 2);
 }
 
-export async function executeMCPTool(prefixedName: string, args: Record<string, unknown>, _context: ToolContext, toolCallId: string): Promise<ToolResult> {
+export async function executeMCPTool(prefixedName: string, args: Record<string, unknown>, context: ToolContext, toolCallId: string): Promise<ToolResult> {
   try {
-    const result = await mcpRegistry.callTool(prefixedName, args);
+    const resolvedArgs = resolveMcpFilePaths(args, context);
+    const result = await mcpRegistry.callTool(prefixedName, resolvedArgs);
     return {
       toolCallId,
       name: prefixedName,
@@ -33,5 +35,28 @@ export async function executeMCPTool(prefixedName: string, args: Record<string, 
       error: `MCP tool error: ${errorMessage}`,
     };
   }
+}
+
+// MCP filesystem servers fail hard on a relative or wrong-root path (e.g. the model
+// emitting "C:\src\server.ts" when the project is at D:\prompt-vault\src\server.ts,
+// or a bare "src/server.ts"). Best-effort: if a file-path arg is relative, resolve it
+// against the session's projectRoot so it lands on a real file. Absolute paths and
+// non-path args pass through untouched. This is defense-in-depth on top of the system
+// prompt stating the real Working Directory — it cannot fix a model that picks a
+// completely wrong drive, but it converts the common relative-path case into a hit.
+const MCP_PATH_ARG_KEYS = ['path', 'filepath', 'file_path', 'filePath', 'target', 'source', 'destination'];
+
+function resolveMcpFilePaths(args: Record<string, unknown>, context: ToolContext): Record<string, unknown> {
+  const root = context?.projectRoot;
+  if (!root || typeof root !== 'string') return args;
+  const out: Record<string, unknown> = { ...args };
+  for (const key of MCP_PATH_ARG_KEYS) {
+    const val = args[key];
+    if (typeof val !== 'string' || val.trim() === '') continue;
+    if (path.isAbsolute(val)) continue; // already rooted — leave it to the server
+    const resolved = path.resolve(root, val);
+    if (resolved !== val) out[key] = resolved;
+  }
+  return out;
 }
 

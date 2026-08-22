@@ -61,5 +61,6 @@ export function getSystemDiagnostics(): SystemDiagnostics {
 
 export function getSystemPromptHeader(): string {
   const diag = getSystemDiagnostics();
-  return `[System Diagnostics] OS: ${diag.osName} (${diag.platform}, ${diag.arch}) | Shell: ${diag.shell} | Path Sep: '${diag.pathSeparator}' | CPUs: ${diag.cpus} | RAM: ${diag.totalMemoryGB} GB (${diag.freeMemoryGB} GB free)`;
+  const cwd = process.cwd();
+  return `[System Diagnostics] OS: ${diag.osName} (${diag.platform}, ${diag.arch}) | Shell: ${diag.shell} | Path Sep: '${diag.pathSeparator}' | CPUs: ${diag.cpus} | RAM: ${diag.totalMemoryGB} GB (${diag.freeMemoryGB} GB free) | Working Directory: ${cwd}`;
 }

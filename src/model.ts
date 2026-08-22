@@ -256,10 +256,15 @@ export function createModelFunctions(deps: ModelDeps) {
     // turn (the "re-state the review after a failure" spin), force it to make concrete
     // progress or report the blocker honestly instead of looping on repeated text.
     const divergence = new DivergenceDetector();
-    // Claim-grounding ledger: records every file the agent actually inspected this session
-    // (read/searched/terminal-touched). Used to flag factual claims about files it never
-    // looked at (bare overclaims like "X is unused / already implemented / has no errors").
-    const claimLedger = new ClaimLedger();
+    // Claim-grounding ledger: records every file the agent actually inspected this
+    // session (read/searched/terminal-touched). Used to flag factual claims about
+    // files it never looked at (bare overclaims like "X is unused / already
+    // implemented / has no errors"). Session-scoped: persisted on toolContext so a
+    // file read in one turn credits a claim made in a later turn (the audit-then-
+    // report pattern). Recreating it per turn would wipe prior reads and make the
+    // guard falsely flag grounded claims as "ungrounded (no inspection this session)".
+    const claimLedger = toolContext.claimLedger ?? new ClaimLedger();
+    toolContext.claimLedger = claimLedger;
     // Layer C: verification-claim guard. Set true if a build/test/lint verify command
     // trips the terminal circuit breaker this turn; cleared by a real successful run.
     let verifyBreakerTrippedThisTurn = false;

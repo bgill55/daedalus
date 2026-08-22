@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import path from 'node:path';
 import { executeMCPTool } from './tool-executor.js';
 import { mcpRegistry } from './registry.js';
 
@@ -33,5 +34,30 @@ describe('executeMCPTool', () => {
     expect(res.toolCallId).toBe('call-xyz');
     expect(res.success).toBe(false);
     expect(res.error).toContain('boom');
+  });
+
+  it('resolves relative file-path args against projectRoot', async () => {
+    const callTool = mcpRegistry.callTool as unknown as ReturnType<typeof vi.fn>;
+    callTool.mockResolvedValue({ content: [{ type: 'text', text: 'ok' }], isError: false });
+    const ctx = { projectRoot: 'D:/prompt-vault' } as any;
+    const expected = path.resolve('D:/prompt-vault', 'src/server.ts');
+
+    await executeMCPTool('mcp_fs_edit', { path: 'src/server.ts' }, ctx, 'call-rel');
+
+    // The relative path must be resolved to an absolute path under projectRoot
+    // before reaching the MCP server (platform-correct separators).
+    expect(callTool).toHaveBeenCalledWith('mcp_fs_edit', { path: expected });
+  });
+
+  it('leaves absolute paths untouched (no double-rooted paths)', async () => {
+    const callTool = mcpRegistry.callTool as unknown as ReturnType<typeof vi.fn>;
+    callTool.mockResolvedValue({ content: [{ type: 'text', text: 'ok' }], isError: false });
+    const ctx = { projectRoot: path.resolve('prompt-vault') } as any;
+    // An OS-correct absolute path must pass through unchanged.
+    const absPath = path.resolve('prompt-vault', 'src', 'server.ts');
+
+    await executeMCPTool('mcp_fs_read', { path: absPath }, ctx, 'call-abs');
+
+    expect(callTool).toHaveBeenCalledWith('mcp_fs_read', { path: absPath });
   });
 });
