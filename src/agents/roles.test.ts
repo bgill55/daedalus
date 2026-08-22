@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getAgentRole, filterToolsForRole, parseAgentTag, AGENT_ROLES } from './roles.js';
+import { getAgentRole, filterToolsForRole, parseAgentTag, roleLabel, AGENT_ROLES } from './roles.js';
 import type { ToolDefinition } from '../tools/definitions.js';
 
 describe('Agent roles', () => {
@@ -11,6 +11,28 @@ describe('Agent roles', () => {
     expect(roleNames).toContain('reviewer');
     expect(roleNames).toContain('debugger');
     expect(roleNames).toContain('researcher');
+  });
+
+  it('every role has a divine callsign', () => {
+    for (const role of Object.values(AGENT_ROLES)) {
+      expect(role.callsign).toBeTruthy();
+      expect(role.callsign).toMatch(/^[A-Z][a-z]+$/); // PascalCase deity name
+    }
+  });
+
+  it('maps each role key to its expected divine callsign', () => {
+    expect(AGENT_ROLES.orchestrator.callsign).toBe('Daedalus');
+    expect(AGENT_ROLES.spec.callsign).toBe('Themis');
+    expect(AGENT_ROLES.planner.callsign).toBe('Metis');
+    expect(AGENT_ROLES.coder.callsign).toBe('Hephaestus');
+    expect(AGENT_ROLES.reviewer.callsign).toBe('Apollo');
+    expect(AGENT_ROLES.debugger.callsign).toBe('Asclepius');
+    expect(AGENT_ROLES.researcher.callsign).toBe('Mnemosyne');
+  });
+
+  it('roleLabel returns the divine callsign', () => {
+    expect(roleLabel('coder')).toBe('Hephaestus');
+    expect(roleLabel('unknown-role')).toBe('unknown-role');
   });
 
   it('getAgentRole returns the correct role', () => {
@@ -128,6 +150,20 @@ describe('Agent roles', () => {
       expect(res).not.toBeNull();
       expect(res?.role).toBe('planner');
       expect(res?.cleanInput).toBe('break down the user auth task');
+    });
+
+    it('parses @role by divine callsign (e.g. @hephaestus → coder)', () => {
+      const res = parseAgentTag('@hephaestus build the API server');
+      expect(res).not.toBeNull();
+      expect(res?.role).toBe('coder');
+      expect(res?.cleanInput).toBe('build the API server');
+    });
+
+    it('parses @agent <callsign> syntax', () => {
+      const res = parseAgentTag('@agent Apollo review the changes');
+      expect(res).not.toBeNull();
+      expect(res?.role).toBe('reviewer');
+      expect(res?.cleanInput).toBe('review the changes');
     });
 
     it('parses @agent <role> syntax', () => {

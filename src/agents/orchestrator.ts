@@ -8,7 +8,7 @@ import { BUILTIN_TOOLS } from '../tools/definitions.js';
 import { getResolvedShellType } from '../tools/builtin/terminal.js';
 import { mcpRegistry } from '../tools/mcp/registry.js';
 import { executeToolCalls } from '../tools/executor.js';
-import { getAgentRole, filterToolsForRole, AgentRole } from './roles.js';
+import { getAgentRole, filterToolsForRole, roleLabel, AgentRole } from './roles.js';
 import { VALID_AGENT_ROLES } from '../tools/builtin/handoff.js';
 import { ToolContext, ToolCall, ChatMessage, ToolResult, PatchEntry, messageText } from '../types.js';
 import pc from 'picocolors';
@@ -364,10 +364,10 @@ export class Orchestrator {
       }
 
       // Validate the plan
-      const testTasks = this.parseDelegationTasks(planText || `- delegate to coder: ${goal}`, goal);
+      const testTasks = this.parseDelegationTasks(planText || `- delegate to ${roleLabel('coder')}: ${goal}`, goal);
       const validationError = validateTasks(testTasks, goal, this.toolContext.projectRoot);
       if (!validationError) {
-        return planText || `- delegate to coder: ${goal}`;
+        return planText || `- delegate to ${roleLabel('coder')}: ${goal}`;
       }
       lastValidationError = validationError;
       console.log(pc.yellow(`\nPlan didn't pass validation — re-planning (attempt ${attempts}/${maxAttempts})...`));
@@ -390,9 +390,9 @@ export class Orchestrator {
 
       if (isNextJs && (hasApp || (!hasSrcPages && !hasPages))) {
         return [
-          `- delegate to coder: create app/layout.tsx as the root Next.js App Router layout with a header and footer${styleNote}`,
-          `- delegate to coder: create app/page.tsx as the main landing page with a hero section and call-to-action${styleNote}`,
-          `- delegate to coder: create app/about/page.tsx with project overview and a link back to home${styleNote}`,
+          `- delegate to ${roleLabel('coder')}: create app/layout.tsx as the root Next.js App Router layout with a header and footer${styleNote}`,
+          `- delegate to ${roleLabel('coder')}: create app/page.tsx as the main landing page with a hero section and call-to-action${styleNote}`,
+          `- delegate to ${roleLabel('coder')}: create app/about/page.tsx with project overview and a link back to home${styleNote}`,
         ].join('\n');
       }
 
@@ -404,12 +404,12 @@ export class Orchestrator {
         const dashboardExists = fs.existsSync(path.join(pagesDir, 'dashboard.tsx'));
         const featuresExists  = fs.existsSync(path.join(pagesDir, 'features.tsx'));
         if (!indexExists) {
-          tasks.push(`- delegate to coder: create ${pagesPrefix}/index.tsx as the main landing page with a hero section and call-to-action${styleNote}`);
+          tasks.push(`- delegate to ${roleLabel('coder')}: create ${pagesPrefix}/index.tsx as the main landing page with a hero section and call-to-action${styleNote}`);
         } else if (!dashboardExists) {
-          tasks.push(`- delegate to coder: create ${pagesPrefix}/dashboard.tsx as a dashboard page showing key project stats${styleNote}`);
+          tasks.push(`- delegate to ${roleLabel('coder')}: create ${pagesPrefix}/dashboard.tsx as a dashboard page showing key project stats${styleNote}`);
         }
         if (!featuresExists) {
-          tasks.push(`- delegate to coder: create ${pagesPrefix}/features.tsx with feature cards describing the project${styleNote}`);
+          tasks.push(`- delegate to ${roleLabel('coder')}: create ${pagesPrefix}/features.tsx with feature cards describing the project${styleNote}`);
         }
         if (tasks.length > 0) return tasks.join('\n');
       }
@@ -419,7 +419,7 @@ export class Orchestrator {
     const explicitFiles = goal.match(/(?:src|public|app|pages)\/[a-zA-Z0-9_\-\.\/]+/g);
     if (explicitFiles && explicitFiles.length > 1) {
       const uniqueFiles = Array.from(new Set(explicitFiles));
-      return uniqueFiles.map(f => `- delegate to coder: create or update ${f} to support: ${goal.slice(0, 100)}`).join('\n');
+      return uniqueFiles.map(f => `- delegate to ${roleLabel('coder')}: create or update ${f} to support: ${goal.slice(0, 100)}`).join('\n');
     }
 
     const isCoder = /\b(create|add|build|implement|write|generate|make|new|refactor|fix|modify|update)\b/i.test(goal);
@@ -430,7 +430,7 @@ export class Orchestrator {
         : /\b(research|investigate|find out|look up|search for)\b/i.test(goal)
           ? 'researcher'
           : 'coder';
-    return `- delegate to ${fallbackRole}: ${goal}`;
+    return `- delegate to ${roleLabel(fallbackRole)}: ${goal}`;
   }
 
   private formatGoal(goal: string, indentLength: number, width: number = 80): string {
@@ -464,7 +464,7 @@ export class Orchestrator {
     // Only print full task list on initial plan, re-plan, or forced summary
     if (!forceFull && (running > 0 || completed > 0)) {
       const activeTask = tasks.find(t => t.status === 'in_progress');
-      const activeText = activeTask ? ` | Active: [${activeTask.role}] ${activeTask.goal.slice(0, 50)}...` : '';
+      const activeText = activeTask ? ` | Active: [${roleLabel(activeTask.role)}] ${activeTask.goal.slice(0, 50)}...` : '';
       console.log(pc.cyan(`\n[AUTOPILOT] Progress: ${completed}/${total} completed${failed > 0 ? ` (${failed} failed)` : ''}${activeText}`));
       return;
     }
