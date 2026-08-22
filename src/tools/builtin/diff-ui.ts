@@ -152,7 +152,10 @@ export function generateSideBySideDiff(
 }
 
 function truncateCell(s: string, w: number): string {
-  const vis = (pc as unknown as { stripColor: (x: string) => string }).stripColor(s).length;
+  // Measure visible width after stripping ANSI color codes. picocolors has no
+  // stripColor helper, so strip escape sequences with a regex (dependency-free).
+  const ansi = /\x1b\[[0-9;]*m/g;
+  const vis = s.replace(ansi, '').length;
   if (vis <= w) return s + ' '.repeat(w - vis);
   return s.slice(0, Math.max(1, w - 1)) + pc.dim('…');
 }
