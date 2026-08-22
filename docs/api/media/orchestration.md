@@ -6,14 +6,16 @@ Daedalus uses a multi-agent orchestration architecture to plan, delegate, execut
 
 ## Agent Roles
 
-The orchestrator manages six specialized sub-agents:
+The orchestrator (Daedalus, the master craftsman) manages six specialized sub-agents, each carrying a divine callsign:
 
-1.  **Spec**: Generates formal SpecFirst interface contracts (`.daedalus/spec.json` & `spec.md`), TypeScript schemas, and test assertions before coding.
-2.  **Planner**: Outlines the plan, breaks down the main goal into bite-sized tasks, and defines verification criteria.
-3.  **Coder**: Edits existing files, creates new files, and executes commands.
-4.  **Researcher**: Explores the codebase, searches the web, and reads documentation.
-5.  **Reviewer**: Evaluates code changes, security vulnerabilities, and confirms formatting requirements.
-6.  **Debugger**: Runs tests, parses error logs, and corrects syntax or logic failures.
+1.  **Themis** (`spec`): Goddess of divine law — generates formal SpecFirst interface contracts (`.daedalus/spec.json` & `spec.md`), TypeScript schemas, and test assertions before coding.
+2.  **Metis** (`planner`): Titan of deep counsel — outlines the plan, breaks down the main goal into bite-sized tasks, and defines verification criteria.
+3.  **Hephaestus** (`coder`): God of the forge — edits existing files, creates new files, and executes commands.
+4.  **Mnemosyne** (`researcher`): Goddess of memory and knowledge — explores the codebase, searches the web, and reads documentation.
+5.  **Apollo** (`reviewer`): God of clarity and order — evaluates code changes, security vulnerabilities, and confirms formatting requirements.
+6.  **Asclepius** (`debugger`): God of healing — runs tests, parses error logs, and corrects syntax or logic failures.
+
+Each agent's system prompt speaks in its deity's voice. You can invoke any agent by its machine key (`@coder`, `@planner`, …) or by its divine callsign (`@hephaestus`, `@metis`, …).
 
 ---
 
@@ -84,7 +86,7 @@ o › /spawn --bg researcher "Find all usages of configDir in src/"
 Daedalus incorporates Loop Engineering principles into the multi-agent orchestrator to emulate the iterative workflow of human developers. This consists of three core phases: **Drafting**, **Verification**, and **Self-Repair / Rollback**.
 
 ### 1. Compile & Build Verification
-After a Coder or Debugger agent completes a draft of changes, the orchestrator automatically runs a project-level verification check:
+After a Hephaestus (coder) or Asclepius (debugger) agent completes a draft of changes, the orchestrator automatically runs a project-level verification check:
 * **Auto-Discovery:** It scans the project root for compilation/test config files:
   * TypeScript/JavaScript: Checks for `"daedalus-check"` script in `package.json`, falling back to `npx tsc --noEmit` if `tsconfig.json` exists, or `npm run build`.
   * Rust: Checks for `Cargo.toml` and runs `cargo check`.

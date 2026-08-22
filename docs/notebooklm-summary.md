@@ -34,14 +34,14 @@ Daedalus (published on npm as `daedalus-cli`) is a local-first AI coding compani
 
 ## 1. System Architecture & Agent Roles
 
-Daedalus coordinates six specialized sub-agents to divide and conquer coding goals:
+Daedalus coordinates six specialized sub-agents — each carrying a divine callsign — to divide and conquer coding goals:
 
-* **Spec**: Generates formal SpecFirst interface contracts (`.daedalus/spec.json` & `spec.md`), TypeScript schemas, and test assertions before coding.
-* **Planner**: Explores requirements, creates step-by-step task lists, and determines acceptance criteria for verification.
-* **Coder**: Writes new files, makes surgical edits using a patch tool, and executes shell scripts.
-* **Researcher**: Explores the local workspace, reads documentation, and searches the web.
-* **Debugger**: Runs test suites, analyzes error logs, and corrects syntax/logic failures.
-* **Reviewer**: Reviews pull requests, runs security checks, verifies JSDoc contract alignment, and validates styles/formatting.
+* **Themis** (`spec`): Goddess of divine law — generates formal SpecFirst interface contracts (`.daedalus/spec.json` & `spec.md`), TypeScript schemas, and test assertions before coding.
+* **Metis** (`planner`): Titan of deep counsel — explores requirements, creates step-by-step task lists, and determines acceptance criteria for verification.
+* **Hephaestus** (`coder`): God of the forge — writes new files, makes surgical edits using a patch tool, and executes shell scripts.
+* **Mnemosyne** (`researcher`): Goddess of memory and knowledge — explores the local workspace, reads documentation, and searches the web.
+* **Asclepius** (`debugger`): God of healing — runs test suites, analyzes error logs, and corrects syntax/logic failures.
+* **Apollo** (`reviewer`): God of clarity and order — reviews pull requests, runs security checks, verifies JSDoc contract alignment, and validates styles/formatting.
 
 ### Loop Engineering Lifecycle
 
@@ -144,7 +144,7 @@ This case study documents an authentic, end-to-end execution of the **Daedalus A
 
 #### Stage 2: Autonomous Daemon Execution (`daedalus --loop`)
 * Daemon polls GitHub, detects Issue #15, and dispatches a ** Loop Work Started** Discord webhook embed.
-* Multi-agent orchestrator delegates to Coder sub-agents to construct `src/version.ts` and `src/version.test.ts`.
+* Multi-agent orchestrator delegates to Hephaestus (coder) sub-agents to construct `src/version.ts` and `src/version.test.ts`.
 * Verification engine runs `npx tsc --noEmit` and `npm run lint` (both pass!).
 * **Magenta Self-Review Gate** executes AI semantic diff inspection, verifying code integrity.
 * Automatically creates branch `daedalus-issue-15`, pushes to origin, and opens **GitHub PR #16**.
