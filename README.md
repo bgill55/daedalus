@@ -104,6 +104,15 @@ AI assistance without:
 - **MCP support** — Model Context Protocol servers via stdio and HTTP/SSE
 - **Windows + Unix** — full cross-platform support
 
+### Interface & Experience
+- **Syntax-highlighted responses** — assistant code blocks render language-aware, line-numbered, and colorized in the terminal (via `cli-highlight`), so diffs and snippets are easy to scan.
+- **Persistent command history** — your REPL input history is saved to `~/.daedalus/history` and recalled with ↑/↓ across sessions (deduped, capped at 1000 entries).
+- **Tip of the day** — a rotating practical tip prints under the banner on startup to surface lesser-known workflows.
+- **Themeable UI** — `/theme [dark|light|auto]` switches the palette live (light mode stays legible on white terminals) and persists to config.
+- **Cost-aware footer** — with `ui.showCost` on, each reply shows an estimated per-turn cost for cloud models (local models stay $0).
+- **Buffered or streaming replies** — `ui.streaming` toggles token-by-token streaming vs. a single rendered block.
+- **Side-by-side diffs** — set `ui.diffStyle` to `side-by-side` for a two-column old-vs-new view in the patch approval UI.
+
 ### Tools
 - **File tools** — read, write, patch with interactive diff UI; fuzzy whitespace matching, syntax validation with auto-revert
 - **Trust layer** — write-without-read guardrail, terminal + patch circuit breakers, batch short-circuit on failed file edits, actionable edit hints, import/export validation, auto-test loop, large-rewrite annotation
