@@ -1,3 +1,10 @@
+# [3.38.0](https://github.com/bgill55/daedalus/compare/v3.37.6...v3.38.0) (2026-08-22)
+
+
+### Features
+
+* **agents:** give the forge its gods — divine callsigns for agent roles ([1328ad9](https://github.com/bgill55/daedalus/commit/1328ad9624b15d5c957c602c4f98b4be8e767103))
+
 ## [3.37.6](https://github.com/bgill55/daedalus/compare/v3.37.5...v3.37.6) (2026-08-22)
 
 
