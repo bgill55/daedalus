@@ -162,4 +162,64 @@ describe('SigmaMemEngine (Σ-Mem)', () => {
     expect(memories[0].sigma_score).toBeCloseTo(0.20, 2);
     expect(memories[0].decay_count).toBe(1);
   });
+
+  // REGRESSION: the day-one bug set the consolidateAndPruneMemories default
+  // threshold to 1.0, which deleted EVERY memory every turn (nothing scores
+  // exactly 1.0), so /sigma showed empty and Daedalus never learned. This pins
+  // that memories survive consolidation at the corrected 0.20 default and are
+  // still retrievable for the prompt context.
+  it('REGRESSION: memories survive consolidateAndPruneMemories at default 0.20 (not wiped)', () => {
+    SigmaMemEngine.recordVerifiedKnowledge(db, {
+      agentRole: 'coder', category: 'code_pattern', tags: ['ts'],
+      summary: 'TS type guard rule', content: 'Prefer user-defined type guards.',
+      initialScore: 0.70,
+    });
+    SigmaMemEngine.recordVerifiedKnowledge(db, {
+      agentRole: 'debugger', category: 'fix_resolution', tags: ['express'],
+      summary: 'Express static path fix', content: 'Use path.join(process.cwd(), "public")',
+      initialScore: 0.85,
+    });
+
+    // Run the SAME maintenance call the REPL invokes each turn (no explicit threshold).
+    const removed = SigmaMemEngine.consolidateAndPruneMemories(db);
+    expect(removed).toBe(0);
+
+    const surviving = getSigmaMemories(db, 0.0);
+    expect(surviving.length).toBe(2);
+
+    // And it must still surface in the prompt context for the agent.
+    const { activeMemoryIds } = SigmaMemEngine.getPromptContext(db, undefined, 0.50, 6);
+    expect(activeMemoryIds.length).toBe(2);
+  });
+
+  it('REGRESSION: a 1.0 prune threshold would wipe real memories (guards the fix)', () => {
+    SigmaMemEngine.recordVerifiedKnowledge(db, {
+      agentRole: 'coder', category: 'code_pattern', tags: ['ts'],
+      summary: 'TS type guard rule', content: 'Prefer user-defined type guards.',
+      initialScore: 0.95, // highest possible real score, still < 1.0
+    });
+    // The buggy default would call this with 1.0 and delete everything.
+    const removed = SigmaMemEngine.consolidateAndPruneMemories(db, 1.0);
+    expect(removed).toBe(1);
+    expect(getSigmaMemories(db, 0.0).length).toBe(0);
+  });
+
+  // REGRESSION: sigma memory must persist at the PROJECT level, not per-session,
+  // so knowledge carries across sessions for the same project. Reopening the
+  // project-mem DB (as SessionManager does per projectHash) must show prior memories.
+  it('REGRESSION: memories persist across reopened project-mem DB (project-level, not session)', () => {
+    SigmaMemEngine.recordVerifiedKnowledge(db, {
+      agentRole: 'coder', category: 'build_rule', tags: ['lint'],
+      summary: 'Always run lint before commit', content: 'Run npm run lint.',
+      initialScore: 0.80,
+    });
+    db.close();
+
+    // Simulate a new session opening the same project's mem DB.
+    const db2 = initProjectMemDb(dbPath);
+    const memories = getSigmaMemories(db2, 0.0);
+    expect(memories.length).toBe(1);
+    expect(memories[0].summary).toBe('Always run lint before commit');
+    db2.close();
+  });
 });
