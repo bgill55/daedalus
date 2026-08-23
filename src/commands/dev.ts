@@ -27,6 +27,7 @@ export const devCommands: Command[] = [
   {
     name: '/branch',
     description: 'Git branch operations',
+    helpText: 'Git branch operations for the current project (list, create, switch, delete). Usage: /branch <subcommand> [args].',
     execute: async (args, ctx) => {
       try {
         const { execute: termExec } = await import('../tools/builtin/terminal.js');
@@ -62,6 +63,7 @@ export const devCommands: Command[] = [
   {
     name: '/pr',
     description: 'Generate PR description Compared to base branch',
+    helpText: 'Generate a pull-request description by diffing the current branch against its base, summarizing the changes.',
     execute: async (args, ctx) => {
       const arg = args.trim();
       try {
@@ -137,6 +139,7 @@ export const devCommands: Command[] = [
   {
     name: '/debug',
     description: 'Run command and autonomously debug failures',
+    helpText: 'Run a command and autonomously debug failures: reproduce, localize, and propose a fix for the failing command.',
     execute: async (args, ctx) => {
       const debugCmd = args.trim();
       if (!debugCmd) {
@@ -212,6 +215,7 @@ Once you have finished making changes, I will automatically re-run the command t
   {
     name: '/commit',
     description: 'Stage and commit changes',
+    helpText: 'Stage all changes and create a git commit, generating a conventional-commit message from the diff.',
     execute: async (args, ctx) => {
       const forcedMsg = args.trim();
       try {
@@ -445,6 +449,7 @@ Once you have finished making changes, I will automatically re-run the command t
   {
     name: '/index',
     description: 'Index codebase for symbol search',
+    helpText: 'Index the codebase for fast symbol search (used by /find, /def, /refs, /callgraph, /impact).',
     execute: async (args, ctx) => {
       const parts = args.trim().split(/\s+/).filter(Boolean);
       const opts: { exclude?: string[]; extensions?: string[] } = {};
@@ -506,6 +511,7 @@ Once you have finished making changes, I will automatically re-run the command t
   {
     name: '/find',
     description: 'Search indexed symbols',
+    helpText: 'Search the indexed codebase for a symbol by name and show its locations.',
     execute: async (args, ctx) => {
       const parts = args.trim().split(/\s+/).filter(Boolean);
       if (parts.length === 0) {
@@ -550,6 +556,7 @@ Once you have finished making changes, I will automatically re-run the command t
   {
     name: '/refs',
     description: 'Find symbol references (callers)',
+    helpText: 'Find all references (callers) of a symbol across the indexed codebase.',
     execute: async (args, ctx) => {
       const symbol = args.trim();
       if (!symbol) {
@@ -596,6 +603,7 @@ Once you have finished making changes, I will automatically re-run the command t
   {
     name: '/def',
     description: 'Get symbol definition',
+    helpText: 'Show the definition of a symbol, jumping to its source location.',
     execute: async (args, ctx) => {
       const symbol = args.trim();
       if (!symbol) {
@@ -634,6 +642,7 @@ Once you have finished making changes, I will automatically re-run the command t
   {
     name: '/callgraph',
     description: 'Display bidirectional call graph for a symbol',
+    helpText: 'Display the bidirectional call graph for a symbol: what it calls and what calls it.',
     execute: async (args, ctx) => {
       const parts = args.trim().split(/\s+/).filter(Boolean);
       if (parts.length === 0) {
@@ -689,6 +698,7 @@ Once you have finished making changes, I will automatically re-run the command t
   {
     name: '/impact',
     description: 'Analyze refactoring impact & blast radius for a symbol',
+    helpText: 'Analyze the refactoring blast radius for a symbol: which files and callers would be affected by a change.',
     execute: async (args, ctx) => {
       const symbol = args.trim();
       if (!symbol) {
@@ -721,6 +731,7 @@ Once you have finished making changes, I will automatically re-run the command t
   {
     name: '/ci',
     description: 'Run headless CI/CD PR review or auto-fix simulation locally',
+    helpText: 'Run a headless CI/CD PR review or an auto-fix simulation locally, without pushing.',
     execute: async (args, _ctx) => {
       const mode = args.trim().toLowerCase();
       const { runHeadlessCiReview, runHeadlessCiFix } = await import('../ci.js');
@@ -739,6 +750,7 @@ Once you have finished making changes, I will automatically re-run the command t
   {
     name: '/badge',
     description: 'Generate Shields.io README badges or build custom badges',
+    helpText: 'Generate Shields.io README badges or build custom status badges for your project.',
     execute: async (args, _ctx) => {
       const { handleBadgeCommand } = await import('./badge.js');
       await handleBadgeCommand(args, process.cwd());
@@ -747,6 +759,7 @@ Once you have finished making changes, I will automatically re-run the command t
   {
     name: '/changelog',
     description: 'View the latest CLI changes',
+    helpText: 'Show the latest CLI changes (most recent release notes / version history).',
     execute: async (_args, _ctx) => {
       const { fileURLToPath } = await import('url');
       const __filename = fileURLToPath(import.meta.url);
@@ -787,6 +800,7 @@ Once you have finished making changes, I will automatically re-run the command t
   {
     name: '/models',
     description: 'List available and healthy models',
+    helpText: 'List the available and currently-healthy models, with their health-check status.',
     execute: async (args, ctx) => {
       console.log(pc.bold('\n--- Available Models ---'));
       const models = await ctx.router.listModels();

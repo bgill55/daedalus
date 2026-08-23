@@ -8,6 +8,7 @@ import path from 'path';
 export const recipeCommand: Command = {
   name: '/recipe',
   description: 'Manage and run portable YAML recipes (/recipe [list | run <name> | create <name>])',
+  helpText: 'Manage and run portable YAML recipes. Usage: /recipe [list | run <name> | create <name>].',
   execute: async (args: string, ctx: CommandContext) => {
     const trimmed = args.trim();
     const parts = trimmed.split(/\s+/);

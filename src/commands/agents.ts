@@ -368,6 +368,7 @@ export const agentCommands: Command[] = [
   {
     name: '/ensemble',
     description: 'Ensemble model drafting pipeline',
+    helpText: 'Run the ensemble drafting pipeline: multiple models draft in parallel and a synthesizer merges the best parts.',
     execute: async (args, ctx) => {
       const ensembleGoal = args.trim();
       if (!ensembleGoal) {

@@ -10,7 +10,6 @@ import { extractAndSave } from '../extraction.js';
 import { printUserTurn, turnSeparator } from '../formatting.js';
 import { getClipboardText, getClipboardImage } from '../clipboard.js';
 import { createSessionBranch, checkoutSessionBranch, listSessionBranches, mergeSessionBranch } from '../session/branching.js';
-import { maskSecrets } from '../security/secret-detector.js';
 
 import type { Command } from './types.js';
 import { messageText } from '../types.js';
@@ -70,6 +69,7 @@ export const contextCommands: Command[] = [
   {
     name: '/context',
     description: 'Show active file context',
+    helpText: 'Show the files currently loaded as active context for this session, with their token counts.',
     execute: async (args, ctx) => {
       console.log(pc.bold('\n--- Monitored Files in Context ---'));
       if (ctx.activeFiles.size === 0) {
@@ -85,6 +85,7 @@ export const contextCommands: Command[] = [
   {
     name: '/paste',
     description: 'Paste clipboard text/image as message',
+    helpText: 'Paste clipboard text (or an image on supported platforms) directly into the conversation as your next message.',
     execute: async (args, ctx) => {
       const extra = args.trim();
       if (extra && !extra.startsWith('http')) {
@@ -174,6 +175,7 @@ export const contextCommands: Command[] = [
   {
     name: '/clear',
     description: 'Clear conversation history',
+    helpText: 'Clear the in-memory conversation history for the current session. Does not delete saved session files.',
     execute: async (args, ctx) => {
       ctx.messages.length = 0;
       ctx.messages.push({ role: 'system', content: ctx.getSystemPromptWithMemory() });
@@ -183,6 +185,7 @@ export const contextCommands: Command[] = [
   {
     name: '/system',
     description: 'Print the current active system prompt (including loaded rules)',
+    helpText: 'Print the full active system prompt Daedalus is using this turn, including any loaded project rules (AGENTS.md, etc.).',
     execute: async (args, ctx) => {
       const sysMsg = ctx.messages.find(m => m.role === 'system');
       if (sysMsg) {
@@ -197,6 +200,7 @@ export const contextCommands: Command[] = [
   {
     name: '/memory',
     description: 'View project memory (facts & conventions)',
+    helpText: 'View the project memory: stored facts and conventions Daedalus uses to stay consistent across sessions.',
     execute: async (args, ctx) => {
       const mem = ctx.sessionManager.loadMemory();
       console.log(pc.bold('\n--- Project Facts & Conventions (Memory) ---'));
@@ -222,6 +226,7 @@ export const contextCommands: Command[] = [
   {
     name: '/fact',
     description: 'Add a project fact to memory',
+    helpText: 'Add a durable project fact to memory (e.g. "We use npm, not yarn"). Facts are recalled in future sessions.',
     execute: async (args, ctx) => {
       const eqIdx = args.indexOf('=');
       if (eqIdx < 0) {
@@ -237,6 +242,7 @@ export const contextCommands: Command[] = [
   {
     name: '/convention',
     description: 'Add a project convention to memory',
+    helpText: 'Add a project convention to memory (e.g. "Always use named exports"). Conventions guide future edits.',
     execute: async (args, ctx) => {
       const eqIdx = args.indexOf('=');
       if (eqIdx < 0) {
@@ -252,6 +258,7 @@ export const contextCommands: Command[] = [
   {
     name: '/extract',
     description: 'Manually extract facts from session',
+    helpText: 'Manually trigger fact/convention extraction from the current session, saving discovered knowledge to project memory.',
     execute: async (args, ctx) => {
       console.log(pc.dim('  [EXTRACT] Extracting facts from conversation...'));
       await extractAndSave(ctx.router, ctx.sessionManager, ctx.messages);
@@ -510,9 +517,23 @@ export const contextCommands: Command[] = [
         return;
       }
 
+      if (subcommand === 'rename') {
+        if (!subcommandArg) {
+          console.log(pc.red('Usage: /session rename <new-title>'));
+          return;
+        }
+        ctx.sessionManager.updateSessionTitle(subcommandArg);
+        console.log(pc.green(`Session renamed to: "${subcommandArg}"`));
+        return;
+      }
+
       if (subcommand === 'delete') {
         if (!subcommandArg) {
           console.log(pc.red('Usage: /session delete <id>'));
+          return;
+        }
+        if (subcommandArg === ctx.sessionManager.sessionId) {
+          console.log(pc.red('Cannot delete the current active session.'));
           return;
         }
         ctx.sessionManager.deleteSession(subcommandArg);
@@ -628,204 +649,6 @@ export const contextCommands: Command[] = [
     }
   },
   {
-    name: '/session',
-    description: 'Manage chat sessions — /session new to start, /session load <id> to restore, /session export [path] to save transcript',
-    usage: '/session <subcommand> [args]',
-    helpText: 'Manage, list, load, save, and export SQLite-persisted conversation sessions.\n\nSubcommands:\n  list                  List all saved sessions\n  load <id>             Load a saved session by ID\n  save                  Save the current session manually\n  new                   Start a new conversation session\n  export [path]     Export the current session transcript to Markdown',
-    execute: async (args, ctx) => {
-      const parts = args.trim().split(/\s+/);
-      const subcommand = parts[0].toLowerCase();
-      const subcommandArg = parts.slice(1).join(' ').trim();
-
-      if (!subcommand || subcommand === 'list') {
-        const sessions = ctx.sessionManager.getSessionsForProject();
-        console.log(pc.bold('\n--- Past Sessions ---'));
-        if (sessions.length === 0) {
-          console.log(pc.gray('  No past sessions found.'));
-        } else {
-          sessions.forEach(s => {
-            const currentTag = s.id === ctx.sessionManager.sessionId ? pc.green(' (current)') : '';
-            const dateStr = new Date(s.updated_at).toLocaleString();
-            console.log(`  • ${pc.cyan(s.id)}${currentTag}`);
-            console.log(`    Title: ${pc.white(s.title)}`);
-            console.log(`    Updated: ${pc.dim(dateStr)}`);
-          });
-        }
-        console.log(pc.bold('---------------------\n'));
-        console.log(pc.gray('Use `/session load <id>` to resume a past session.'));
-        console.log(pc.gray('Use `/session search <query>` to search sessions.'));
-        console.log(pc.gray('Use `/session new [title]` to start a new session.'));
-        console.log(pc.gray('Use `/session rename <title>` to rename the current session.'));
-        console.log(pc.gray('Use `/session delete <id>` to delete a session.'));
-        console.log(pc.gray('Use `/session export [path]` to export the current session to Markdown.'));
-        return;
-      }
-
-      if (subcommand === 'search') {
-        if (!subcommandArg) {
-          console.log(pc.red('Usage: /session search <query>'));
-          return;
-        }
-        const query = subcommandArg.toLowerCase();
-        const sessions = ctx.sessionManager.getSessionsForProject();
-        const matches = sessions.filter(s =>
-          s.title.toLowerCase().includes(query) ||
-          s.id.toLowerCase().includes(query)
-        );
-        if (matches.length === 0) {
-          console.log(pc.yellow(`No sessions matching "${subcommandArg}"`));
-        } else {
-          console.log(pc.bold(`\n--- Matching Sessions (${matches.length}) ---`));
-          matches.forEach(s => {
-            const currentTag = s.id === ctx.sessionManager.sessionId ? pc.green(' (current)') : '';
-            const dateStr = new Date(s.updated_at).toLocaleString();
-            console.log(`  • ${pc.cyan(s.id)}${currentTag}`);
-            console.log(`    Title: ${pc.white(s.title)}`);
-            console.log(`    Updated: ${pc.dim(dateStr)}`);
-          });
-          console.log(pc.bold('----------------------------------\n'));
-        }
-        return;
-      }
-
-      if (subcommand === 'load') {
-        if (!subcommandArg) {
-          console.log(pc.red('Usage: /session load <session-id>'));
-          return;
-        }
-        const sessions = ctx.sessionManager.getSessionsForProject();
-        const found = sessions.find(s => s.id === subcommandArg || s.id.startsWith(subcommandArg));
-        if (!found) {
-          console.log(pc.red(`Session "${subcommandArg}" not found.`));
-          return;
-        }
-        const currentTodos = getSessionTodos(ctx.toolContext.sessionId);
-        ctx.sessionManager.saveSessionState(ctx.messages, ctx.activeFiles, currentTodos);
-
-        if (found.project_path && found.project_path !== ctx.sessionManager.projectRoot) {
-          ctx.sessionManager.setProjectRoot(found.project_path);
-          ctx.sessionManager.reopenIndexDb();
-          ctx.projectHash = ctx.sessionManager.projectHash;
-          ctx.toolContext.projectRoot = ctx.sessionManager.projectRoot;
-          ctx.toolContext.projectHash = ctx.sessionManager.projectHash;
-        }
-
-        const loaded = ctx.sessionManager.startSession(found.id, found.title);
-        ctx.initializeSessionState(loaded);
-        console.log(pc.green(`Loaded session: ${pc.bold(found.id)} ("${found.title}") [${ctx.sessionManager.projectRoot}]`));
-        return;
-      }
-
-      if (subcommand === 'new') {
-        const currentTodos = getSessionTodos(ctx.toolContext.sessionId);
-        ctx.sessionManager.saveSessionState(ctx.messages, ctx.activeFiles, currentTodos);
-
-        let title: string;
-        let projectRoot: string | undefined;
-
-        if (path.isAbsolute(subcommandArg)) {
-          projectRoot = subcommandArg;
-          title = `Session on ${path.basename(subcommandArg.replace(/[\\/]$/, ''))} — ${new Date().toLocaleDateString()}`;
-        } else {
-          title = subcommandArg || `Session on ${new Date().toLocaleDateString()}`;
-        }
-
-        if (projectRoot && projectRoot !== ctx.sessionManager.projectRoot) {
-          ctx.sessionManager.setProjectRoot(projectRoot);
-          ctx.sessionManager.reopenIndexDb();
-          ctx.projectHash = ctx.sessionManager.projectHash;
-          ctx.toolContext.projectRoot = ctx.sessionManager.projectRoot;
-          ctx.toolContext.projectHash = ctx.sessionManager.projectHash;
-        }
-
-        const loaded = ctx.sessionManager.startSession(undefined, title);
-        ctx.initializeSessionState(loaded);
-        console.log(pc.green(`Started new session: ${pc.bold(loaded.sessionId)} [${ctx.sessionManager.projectRoot}]`));
-        return;
-      }
-
-      if (subcommand === 'rename') {
-        if (!subcommandArg) {
-          console.log(pc.red('Usage: /session rename <new-title>'));
-          return;
-        }
-        ctx.sessionManager.updateSessionTitle(subcommandArg);
-        console.log(pc.green(`Session renamed to: "${subcommandArg}"`));
-        return;
-      }
-
-      if (subcommand === 'delete') {
-        if (!subcommandArg) {
-          console.log(pc.red('Usage: /session delete <session-id>'));
-          return;
-        }
-        if (subcommandArg === ctx.sessionManager.sessionId) {
-          console.log(pc.red('Cannot delete the current active session.'));
-          return;
-        }
-        const sessions = ctx.sessionManager.getSessionsForProject();
-        const found = sessions.find(s => s.id === subcommandArg || s.id.startsWith(subcommandArg));
-        if (!found) {
-          console.log(pc.red(`Session "${subcommandArg}" not found.`));
-          return;
-        }
-
-        ctx.sessionManager.deleteSession(found.id);
-        console.log(pc.green(`Deleted session: ${pc.bold(found.id)}`));
-        return;
-      }
-
-      if (subcommand === 'export') {
-        const cleanedPath = (subcommandArg || `transcript-${ctx.sessionManager.sessionId}.md`).replace(/^["']|["']$/g, '');
-        const resolved = path.resolve(ctx.sessionManager.projectRoot || '.', cleanedPath);
-        
-        let md = `# Daedalus Session: ${ctx.sessionManager.sessionTitle}\n\n`;
-        md += `*Generated: ${new Date().toLocaleString()}*\n\n---\n\n`;
-
-        for (const msg of ctx.messages) {
-          if (msg.role === 'system') continue;
-
-          if (msg.role === 'user') {
-            md += `### 👤 User\n\n`;
-            md += `${msg.content}\n\n---\n\n`;
-          } else if (msg.role === 'assistant') {
-            md += `### 🤖 Daedalus\n\n`;
-            if (msg.content) {
-              md += `${msg.content}\n\n`;
-            }
-            if (msg.tool_calls && msg.tool_calls.length > 0) {
-              md += `#### 🛠️ Tool Execution\n\n`;
-              for (const tc of msg.tool_calls) {
-                md += `* **${tc.function.name}**\n`;
-                try {
-                  const prettyArgs = JSON.stringify(JSON.parse(tc.function.arguments), null, 2);
-                  md += `  \`\`\`json\n${prettyArgs}\n  \`\`\`\n`;
-                } catch {
-                  md += `  *Arguments*: \`${tc.function.arguments}\`\n`;
-                }
-              }
-              md += `\n`;
-            }
-            md += `---\n\n`;
-          } else if (msg.role === 'tool') {
-            md += `#### 📥 Tool Response (${msg.name || 'unknown'})\n\n`;
-            const toolContent = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
-            const trimmedContent = toolContent.length > 2000
-              ? toolContent.slice(0, 2000) + '\n\n... (output truncated for readability)'
-              : toolContent;
-            md += `\`\`\`text\n${maskSecrets(trimmedContent || '(no output)')}\n\`\`\`\n\n---\n\n`;
-          }
-        }
-
-        fs.writeFileSync(resolved, md, 'utf8');
-        console.log(pc.green(`Session transcript exported to: ${pc.bold(resolved)}`));
-        return;
-      }
-
-      console.log(pc.red(`Unknown subcommand: ${subcommand}. Try: list, search, load, new, rename, delete, export`));
-    }
-  },
-  {
     name: '/history',
     aliases: ['/h'],
     description: 'Show recent turns with tool calls from the session log',
@@ -876,6 +699,7 @@ export const contextCommands: Command[] = [
     name: '/exit',
     aliases: ['/quit', '/bye'],
     description: 'Save session and exit',
+    helpText: 'Save the current session state and exit Daedalus cleanly.',
     execute: async (args, ctx) => {
       const todos = getSessionTodos(ctx.toolContext.sessionId);
       ctx.sessionManager.saveSessionState(ctx.messages, ctx.activeFiles, todos);
