@@ -1,3 +1,10 @@
+## [3.40.1](https://github.com/bgill55/daedalus/compare/v3.40.0...v3.40.1) (2026-08-23)
+
+
+### Bug Fixes
+
+* **ui:** make /theme actually recolor the CLI (don't ship a no-op toggle) ([7ade63f](https://github.com/bgill55/daedalus/commit/7ade63fd67d8472e28227fc04d6e29798e8061eb))
+
 # [3.40.0](https://github.com/bgill55/daedalus/compare/v3.39.0...v3.40.0) (2026-08-22)
 
 
