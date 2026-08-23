@@ -1,3 +1,10 @@
+## [3.40.3](https://github.com/bgill55/daedalus/compare/v3.40.2...v3.40.3) (2026-08-23)
+
+
+### Bug Fixes
+
+* **commands:** dedupe /session, backfill 25 missing helpTexts, fix omnivoice port ([cf0bf5c](https://github.com/bgill55/daedalus/commit/cf0bf5cdce4287c0e1b6064cdca555ab65b0aedb))
+
 ## [3.40.2](https://github.com/bgill55/daedalus/compare/v3.40.1...v3.40.2) (2026-08-23)
 
 
