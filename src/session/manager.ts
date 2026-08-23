@@ -9,6 +9,7 @@ import { getProjectHash } from '../project-hash.js';
 import {
   initIndexDb,
   initSessionDb,
+  initProjectMemDb,
   registerSession,
   listSessionsForProject,
   deleteSessionFromIndex,
@@ -45,6 +46,7 @@ export class SessionManager {
 
   private indexDb!: Database.Database;
   public sessionDb?: Database.Database;
+  public projectMemDb?: Database.Database;
 
   projectRoot!: string;
   projectHash!: string;
@@ -84,6 +86,8 @@ export class SessionManager {
     if (!fs.existsSync(projectSessionDir)) fs.mkdirSync(projectSessionDir, { recursive: true });
 
     this.indexDb = initIndexDb(this.indexDbPath);
+    const projectMemDbPath = path.join(this.sessionsDir, this.projectHash, 'project-mem.sqlite');
+    this.projectMemDb = initProjectMemDb(projectMemDbPath);
   }
 
   /** Start a new session or load an existing one */
@@ -314,6 +318,10 @@ export class SessionManager {
     if (this.sessionDb) {
       this.sessionDb.close();
       this.sessionDb = undefined;
+    }
+    if (this.projectMemDb) {
+      this.projectMemDb.close();
+      this.projectMemDb = undefined;
     }
     if (this.indexDb) {
       this.indexDb.close();

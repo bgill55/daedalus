@@ -1158,8 +1158,8 @@ export class Orchestrator {
     
     let sigmaMemBlock = '';
     let activeSigmaMemoryIds: string[] = [];
-    if (this.sessionManager?.sessionDb) {
-      const sigmaRes = SigmaMemEngine.getPromptContext(this.sessionManager.sessionDb, task.role, 0.60, 5, extractFilePaths(task.goal));
+    if (this.sessionManager?.projectMemDb) {
+      const sigmaRes = SigmaMemEngine.getPromptContext(this.sessionManager.projectMemDb, task.role, 0.60, 5, extractFilePaths(task.goal));
       sigmaMemBlock = sigmaRes.prompt;
       activeSigmaMemoryIds = sigmaRes.activeMemoryIds;
     }
@@ -1370,10 +1370,10 @@ export class Orchestrator {
       const clean = buildCleanSummary(this.toolContext, task, result, historyStartIndex);
       if (clean) result = clean;
 
-      if (this.sessionManager?.sessionDb) {
-        const related = this.getTaskRelatedSigmaIds(this.sessionManager.sessionDb, activeSigmaMemoryIds, task);
-        SigmaMemEngine.rewardSuccessfulPass(this.sessionManager.sessionDb, related.length > 0 ? related : activeSigmaMemoryIds);
-        SigmaMemEngine.recordVerifiedKnowledge(this.sessionManager.sessionDb, {
+      if (this.sessionManager?.projectMemDb) {
+        const related = this.getTaskRelatedSigmaIds(this.sessionManager.projectMemDb, activeSigmaMemoryIds, task);
+        SigmaMemEngine.rewardSuccessfulPass(this.sessionManager.projectMemDb, related.length > 0 ? related : activeSigmaMemoryIds);
+        SigmaMemEngine.recordVerifiedKnowledge(this.sessionManager.projectMemDb, {
           agentRole: task.role,
           category: this.pickMemoryCategory(task),
           tags: extractFilePaths(task.goal),
@@ -1386,10 +1386,10 @@ export class Orchestrator {
     if (!success) {
       task.error = resultForCheck.split('\n')[0] || result.split('\n')[0] || 'Unknown failure';
 
-      if (this.sessionManager?.sessionDb) {
-        const related = this.getTaskRelatedSigmaIds(this.sessionManager.sessionDb, activeSigmaMemoryIds, task);
+      if (this.sessionManager?.projectMemDb) {
+        const related = this.getTaskRelatedSigmaIds(this.sessionManager.projectMemDb, activeSigmaMemoryIds, task);
         if (related.length > 0) {
-          SigmaMemEngine.penalizeFailedAttempt(this.sessionManager.sessionDb, related);
+          SigmaMemEngine.penalizeFailedAttempt(this.sessionManager.projectMemDb, related);
         }
       }
 

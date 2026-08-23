@@ -136,6 +136,30 @@ export function initSessionDb(dbPath: string): Database.Database {
       last_reviewed_at INTEGER
     );
 
+    CREATE TABLE IF NOT EXISTS failure_lessons (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      task_role TEXT,
+      goal_keywords TEXT,
+      error_snippet TEXT,
+      resolution TEXT,
+      created_at INTEGER DEFAULT (strftime('%s','now')*1000),
+      used_count INTEGER DEFAULT 0
+    );
+    CREATE INDEX IF NOT EXISTS idx_failure_lessons_role ON failure_lessons(task_role);
+  `);
+
+  return db;
+}
+
+/** Initialize the project-level memory database (shared across all sessions for the same project) */
+export function initProjectMemDb(dbPath: string): Database.Database {
+  const dir = path.dirname(dbPath);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+
+  const db = new Database(dbPath);
+  db.exec(`
     CREATE TABLE IF NOT EXISTS sigma_memories (
       id TEXT PRIMARY KEY,
       agent_role TEXT NOT NULL,
@@ -152,24 +176,14 @@ export function initSessionDb(dbPath: string): Database.Database {
     );
     CREATE INDEX IF NOT EXISTS idx_sigma_score ON sigma_memories(sigma_score DESC);
     CREATE INDEX IF NOT EXISTS idx_sigma_content_hash ON sigma_memories(content_hash);
-
-    CREATE TABLE IF NOT EXISTS failure_lessons (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      task_role TEXT,
-      goal_keywords TEXT,
-      error_snippet TEXT,
-      resolution TEXT,
-      created_at INTEGER DEFAULT (strftime('%s','now')*1000),
-      used_count INTEGER DEFAULT 0
-    );
-    CREATE INDEX IF NOT EXISTS idx_failure_lessons_role ON failure_lessons(task_role);
   `);
 
-  const sigmaCols = db.prepare('PRAGMA table_info(sigma_memories)').all() as Array<{ name: string }>;
-  if (!sigmaCols.some((col) => col.name === 'content_hash')) {
+  const cols = db.prepare('PRAGMA table_info(sigma_memories)').all() as Array<{ name: string }>;
+  if (!cols.some((col) => col.name === 'content_hash')) {
     db.exec('ALTER TABLE sigma_memories ADD COLUMN content_hash TEXT');
     db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_sigma_content_hash ON sigma_memories(content_hash) WHERE content_hash IS NOT NULL');
   }
+
   return db;
 }
 

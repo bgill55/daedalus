@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import Database from 'better-sqlite3';
-import { initSessionDb, getSigmaMemories } from './sqlite.js';
+import { initProjectMemDb, getSigmaMemories } from './sqlite.js';
 import { SigmaMemEngine } from './sigma-mem.js';
 
 describe('SigmaMemEngine (Σ-Mem)', () => {
@@ -13,8 +13,8 @@ describe('SigmaMemEngine (Σ-Mem)', () => {
 
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'daedalus-sigma-test-'));
-    dbPath = path.join(tmpDir, 'session.sqlite');
-    db = initSessionDb(dbPath);
+    dbPath = path.join(tmpDir, 'project-mem.sqlite');
+    db = initProjectMemDb(dbPath);
   });
 
   afterEach(() => {

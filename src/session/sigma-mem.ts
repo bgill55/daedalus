@@ -160,8 +160,8 @@ export class SigmaMemEngine {
     return [...overlapping, ...nonOverlapping];
   }
 
-  /** Background maintenance: prunes low-sigma memories (score < 1.0) and decays stale ones */
-  public static consolidateAndPruneMemories(db: Database.Database, threshold = 1.0): number {
+  /** Background maintenance: prunes low-sigma memories and decays stale ones */
+  public static consolidateAndPruneMemories(db: Database.Database, threshold = 0.20): number {
     return pruneLowSigmaMemories(db, threshold);
   }
 }

@@ -180,8 +180,8 @@ function getSystemPromptWithMemory(userRequest?: string): string {
   if (memPrompt) {
     prompt += '\n' + memPrompt;
   }
-  if (sessionManager?.sessionDb) {
-    const sigmaRes = SigmaMemEngine.getPromptContext(sessionManager.sessionDb, config.agents?.default ?? undefined, 0.60, 5, Array.from(activeFiles.values()));
+  if (sessionManager?.projectMemDb) {
+    const sigmaRes = SigmaMemEngine.getPromptContext(sessionManager.projectMemDb, config.agents?.default ?? undefined, 0.60, 5, Array.from(activeFiles.values()));
     if (sigmaRes.prompt) {
       prompt += '\n' + sigmaRes.prompt;
     }
@@ -294,16 +294,16 @@ async function callModelWithTools(userContent: string, imageBase64?: string): Pr
   const prevStreak = maxPatchFailureStreak(toolContext.patchFailureStreak);
   const result = await rawCallModelWithTools(userContent, imageBase64);
   const memoryIds = activeSigmaMemoryIds;
-  if (sessionManager?.sessionDb) {
+  if (sessionManager?.projectMemDb) {
     try {
       const signal = evaluatePatchOutcome(
         { patches: prevPatches, maxStreak: prevStreak },
         { patches: toolContext.patchHistory?.length ?? 0, maxStreak: maxPatchFailureStreak(toolContext.patchFailureStreak) },
       );
       if (signal === 'success' && memoryIds.length > 0) {
-        SigmaMemEngine.rewardSuccessfulPass(sessionManager.sessionDb, memoryIds);
+        SigmaMemEngine.rewardSuccessfulPass(sessionManager.projectMemDb, memoryIds);
       } else if (signal === 'failure' && memoryIds.length > 0) {
-        SigmaMemEngine.penalizeFailedAttempt(sessionManager.sessionDb, memoryIds);
+        SigmaMemEngine.penalizeFailedAttempt(sessionManager.projectMemDb, memoryIds);
       }
     } catch {
       // σ-mem feedback must never break the turn flow

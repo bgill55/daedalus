@@ -183,7 +183,7 @@ export async function extractAndSave(
       sessionManager.addFact(f.key, f.value, 'agent');
     }
 
-    if (sessionManager.sessionDb) {
+    if (sessionManager.projectMemDb) {
       for (const f of newFacts) {
         try {
           const factKey = String(f.key ?? '');
@@ -192,7 +192,7 @@ export async function extractAndSave(
             .split(/[^a-zA-Z0-9]+/)
             .map(t => t.toLowerCase())
             .filter(t => t.length > 2 && !['the', 'and', 'for', 'with', 'from', 'using', 'what'].includes(t));
-          SigmaMemEngine.recordVerifiedKnowledge(sessionManager.sessionDb, {
+          SigmaMemEngine.recordVerifiedKnowledge(sessionManager.projectMemDb, {
             agentRole: 'coder',
             category: 'build_rule',
             tags,
