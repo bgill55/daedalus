@@ -1,6 +1,6 @@
 import pc from 'picocolors';
 import { loadConfig, saveConfig } from '../config/index.js';
-import { setTheme, getTheme } from '../ui/theme.js';
+import { setTheme, getTheme, ok, info } from '../ui/theme.js';
 
 import { contextCommands } from './context.js';
 import { agentCommands } from './agents.js';
@@ -120,7 +120,7 @@ const themeCommand: Command = {
   execute: async (args, _ctx) => {
     const arg = args.trim().toLowerCase();
     if (!arg) {
-      console.log(`\n  ${pc.bold('Current theme:')} ${pc.cyan(getTheme())}`);
+      console.log(`\n  ${pc.bold('Current theme:')} ${info(getTheme())}`);
       console.log(`  ${pc.dim('Available: ' + THEMES.join(', '))}`);
       console.log();
       return;
@@ -133,7 +133,7 @@ const themeCommand: Command = {
     const config = loadConfig();
     config.ui.theme = arg as typeof THEMES[number];
     saveConfig(config);
-    console.log(`\n  ${pc.green('[OK]')} Theme set to ${pc.cyan(arg)} and saved.`);
+    console.log(`\n  ${ok('[OK]')} Theme set to ${info(arg)} and saved.`);
     console.log();
   },
 };

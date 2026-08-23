@@ -2,7 +2,7 @@ import pc from 'picocolors';
 import { highlight } from 'cli-highlight';
 import type { ToolCall } from './types.js';
 import { TOOL_IMPLEMENTATIONS } from './tools/definitions.js';
-import { setTheme, brand, rule } from './ui/theme.js';
+import { setTheme, brand, rule, dim, info, ok, warn, err } from './ui/theme.js';
 import { globalSessionStats } from './session/analytics.js';
 
 export const termW = Math.max(50, (process.stdout.columns ?? 80) - 5);
@@ -44,7 +44,7 @@ export function displayWidth(str: string): number {
 }
 
 function sepLine(char = '─', len = 40): string {
-  return pc.dim(char.repeat(len));
+  return dim(char.repeat(len));
 }
 
 function wrapLine(line: string, maxW: number): string[] {
@@ -81,11 +81,11 @@ export function printUserTurn(userMessage: string): void {
 
   const lineLen = Math.max(20, Math.min(70, cols - 6));
 
-  console.log(`\n  ${pc.bold(pc.green('─ You ─'))} ${pc.dim('─'.repeat(Math.max(10, lineLen - 7)))}`);
+  console.log(`\n  ${pc.bold(ok('─ You ─'))} ${dim('─'.repeat(Math.max(10, lineLen - 7)))}`);
   for (const part of wrapped) {
     console.log(`  ${pc.whiteBright(part)}`);
   }
-  console.log(`  ${pc.dim('─'.repeat(lineLen + 2))}\n`);
+  console.log(`  ${dim('─'.repeat(lineLen + 2))}\n`);
 }
 
 // ── Tool call buffer (stored per-turn for compact display + review) ──
@@ -143,15 +143,15 @@ export function collapseCommentary(): void {
   if (_compactMode) {
     if (_toolBuffer.length > 0) {
       const allSuccess = _toolBuffer.every(t => t.success !== false);
-      const badge = allSuccess ? pc.green('✔') : pc.yellow('✗');
+      const badge = allSuccess ? ok('✔') : warn('✗');
       const summary = _toolBuffer.map(t => {
-        return t.success !== false ? pc.dim(t.name) : pc.red(t.name);
+        return t.success !== false ? dim(t.name) : err(t.name);
       }).join(', ');
-      console.log(`  ${pc.dim('┊')} ${badge} ${pc.dim('Executed tools:')} ${summary}`);
+      console.log(`  ${dim('┊')} ${badge} ${dim('Executed tools:')} ${summary}`);
 
       for (const entry of _toolBuffer) {
         if (entry.contentPreview) {
-          console.log(`  ${pc.dim('┊')}   ${pc.gray(entry.contentPreview)}`);
+          console.log(`  ${dim('┊')}   ${pc.gray(entry.contentPreview)}`);
         }
       }
     }
@@ -160,11 +160,11 @@ export function collapseCommentary(): void {
 
     if (_toolBuffer.length > 0) {
       const allSuccess = _toolBuffer.every(t => t.success !== false);
-      const badge = allSuccess ? pc.green('✔') : pc.yellow('✗');
+      const badge = allSuccess ? ok('✔') : warn('✗');
       const summary = _toolBuffer.map(t => {
-        return t.success !== false ? pc.dim(t.name) : pc.red(t.name);
+        return t.success !== false ? dim(t.name) : err(t.name);
       }).join(', ');
-      console.log(`  ${pc.dim('┊')} ${badge} ${pc.dim('Executed tools:')} ${summary}`);
+      console.log(`  ${dim('┊')} ${badge} ${dim('Executed tools:')} ${summary}`);
     }
   }
 
@@ -250,7 +250,7 @@ export function printProgressBar(ratio: number, label: string, opts?: { width?: 
   const width = opts?.width ?? 24;
   const pct = Math.max(0, Math.min(1, ratio));
   const filled = Math.round(pct * width);
-  const bar = brand('█'.repeat(filled)) + pc.dim('░'.repeat(width - filled));
+  const bar = brand('█'.repeat(filled)) + dim('░'.repeat(width - filled));
   const pctStr = `${Math.round(pct * 100)}%`.padStart(4);
   const tail = label ? ` ${pc.gray(label.slice(-36))}` : '';
   process.stdout.write(`\r  ${bar} ${pc.bold(pctStr)}${tail}${opts?.final ? '\n' : ''}`);
@@ -287,7 +287,7 @@ function emitCodeBlock(): void {
     const part = hlLines[i] ?? rawLines[i];
     const vis = displayWidth(stripAnsi(part));
     const pad = Math.max(0, innerW - lineDigits - 3 - vis);
-    console.log(`  ${pc.dim(`${lineNo} │`)} ${part}${' '.repeat(pad)}`);
+    console.log(`  ${dim(`${lineNo} │`)} ${part}${' '.repeat(pad)}`);
   }
   _inCode = false;
   _codeLang = '';
@@ -390,7 +390,7 @@ function emitAssistantLine(raw: string): void {
     _codeLang = line.slice(3).trim();
     return;
   }
-  if (_inThink) printBoxLine(pc.dim(formatMarkdownLine(line)));
+  if (_inThink) printBoxLine(dim(formatMarkdownLine(line)));
   else printBoxLine(pc.whiteBright(formatMarkdownLine(line)));
 }
 
@@ -474,15 +474,15 @@ export function closeAssistantBlock(
     while (displayWidth(s) > avail - 1) s = s.slice(0, -1);
     stats = s.trimEnd() + '…';
   }
-  printRule(pc.dim(stats));
+  printRule(dim(stats));
 }
 
 // ── Inline markdown ────────────────────────────────────────────
 
 export function formatMarkdownLine(line: string): string {
-  if (line.startsWith('### ')) return pc.bold(pc.cyan(line.slice(4)));
-  if (line.startsWith('## ')) return pc.bold(pc.cyan(line.slice(3)));
-  if (line.startsWith('# ')) return pc.bold(pc.cyan(line.slice(2)));
+  if (line.startsWith('### ')) return pc.bold(info(line.slice(4)));
+  if (line.startsWith('## ')) return pc.bold(info(line.slice(3)));
+  if (line.startsWith('# ')) return pc.bold(info(line.slice(2)));
 
   if (line.startsWith('> ')) return `${pc.gray('│')} ${pc.italic(line.slice(2))}`;
 
@@ -494,15 +494,15 @@ export function formatMarkdownLine(line: string): string {
     body = list[3];
   }
 
-  if (/^[-*_]{3,}$/.test(body.trim())) return pc.dim('─'.repeat(termW));
+  if (/^[-*_]{3,}$/.test(body.trim())) return dim('─'.repeat(termW));
 
   body = body
-    .replace(/`([^`]+)`/g, (_, p) => pc.yellow(p))
+    .replace(/`([^`]+)`/g, (_, p) => warn(p))
     .replace(/\*\*([^*]+)\*\*/g, (_, p) => pc.bold(p))
     .replace(/\*([^*]+)\*/g, (_, p) => pc.italic(p))
     .replace(/_([^_]+)_/g, (_, p) => pc.italic(p));
 
-  return indent + (list ? `${pc.dim('•')} ${body}` : body);
+  return indent + (list ? `${dim('•')} ${body}` : body);
 }
 
 // ── Separator ──────────────────────────────────────────────────
@@ -510,17 +510,17 @@ export function formatMarkdownLine(line: string): string {
 export function turnSeparator(): void {
   collapseCommentary();
   const ts = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
-  console.log(`\n  ${sepLine('─', 40)} ${pc.dim(ts)}`);
+  console.log(`\n  ${sepLine('─', 40)} ${dim(ts)}`);
 }
 
 // ── Context warning ────────────────────────────────────────────
 
 export function printContextWarning(pct: number): void {
-  console.log(`  ${pc.dim('Context')} ${pc.yellow(pct.toString().padStart(3))}% ${pc.dim('— summarizing older turns')}`);
+  console.log(`  ${dim('Context')} ${warn(pct.toString().padStart(3))}% ${dim('— summarizing older turns')}`);
 }
 
 export function printContextResult(summarized: number, savedKt: number): void {
-  console.log(`  ${pc.green('✔')} ${pc.dim(`Summarized ${summarized} older turns, saved ~${savedKt}kt`)}`);
+  console.log(`  ${ok('✔')} ${dim(`Summarized ${summarized} older turns, saved ~${savedKt}kt`)}`);
 }
 
 export function printContextPrune(pruned: number, truncated: number, savedKt: number): void {
@@ -528,7 +528,7 @@ export function printContextPrune(pruned: number, truncated: number, savedKt: nu
   if (pruned > 0) parts.push(`removed ${pruned} cycles`);
   if (truncated > 0) parts.push(`truncated ${truncated} tool outputs`);
   parts.push(`saved ~${savedKt}kt`);
-  console.log(`  ${pc.dim('┃')} ${pc.dim(`Hard pruning: ${parts.join(', ')}`)}`);
+  console.log(`  ${dim('┃')} ${dim(`Hard pruning: ${parts.join(', ')}`)}`);
 }
 
 // ── Tool execution ─────────────────────────────────────────────
@@ -536,7 +536,7 @@ export function printContextPrune(pruned: number, truncated: number, savedKt: nu
 export function printToolStart(count: number, names: string[]): void {
   if (!_compactMode) {
     const label = count === 1 ? names[0] : `${names.join(', ')}`;
-    console.log(`  ${pc.dim('▸')} ${pc.dim(label)}`);
+    console.log(`  ${dim('▸')} ${dim(label)}`);
     _commentaryLines++;
   }
 
@@ -556,9 +556,9 @@ export function printToolResult(name: string, success: boolean, error?: string):
 
   if (!_compactMode) {
     if (success) {
-      console.log(`  ${pc.green('✔')} ${pc.dim(name)}`);
+      console.log(`  ${ok('✔')} ${dim(name)}`);
     } else {
-      console.log(`  ${pc.red('✗')} ${pc.dim(name)}${error ? `  ${pc.red(error)}` : ''}`);
+      console.log(`  ${err('✗')} ${dim(name)}${error ? `  ${err(error)}` : ''}`);
     }
     _commentaryLines++;
   }
@@ -581,7 +581,7 @@ export function printToolContentPreview(content: string): void {
       last.contentPreview = preview;
     }
   } else {
-    console.log(`  ${pc.dim('  ')}${pc.gray(preview)}`);
+    console.log(`  ${dim('  ')}${pc.gray(preview)}`);
     _commentaryLines++;
   }
 }
@@ -589,7 +589,7 @@ export function printToolContentPreview(content: string): void {
 // ── Turn gate prompt ───────────────────────────────────────────
 
 export function turnGatePrompt(): string {
-  return `\n  ${pc.dim('?')} Next turn? ${pc.dim('[y/n/e]')} `;
+  return `\n  ${dim('?')} Next turn? ${dim('[y/n/e]')} `;
 }
 
 // ── Parsed tool calls ──────────────────────────────────────────

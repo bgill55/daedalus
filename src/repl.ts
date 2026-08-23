@@ -22,7 +22,7 @@ import { resetTurnAborted } from './model.js';
 import { parseAgentTag } from './agents/roles.js';
 import { SigmaMemEngine } from './session/sigma-mem.js';
 import { synthesizeSkillFromTurn } from './skills/auto-synthesis.js';
-import { brand } from './ui/theme.js';
+import { brand, dim, info, warn, err } from './ui/theme.js';
 
 export interface ReplDeps {
   config: DaedalusConfig;
@@ -193,7 +193,7 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
         if (pendingNotifications.length > 0) {
           console.log();
           while (pendingNotifications.length > 0) {
-            console.log(pc.yellow(pendingNotifications.shift()!));
+            console.log(warn(pendingNotifications.shift()!));
           }
         }
         let prompt = `\n${brand('  ›')} `;
@@ -206,7 +206,7 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
             tokenStr = total >= 1000 ? `${(total / 1000).toFixed(1)}kt` : `${total}t`;
           }
           const separator = fileStr && tokenStr ? ' · ' : '';
-          prompt += pc.dim(`[${fileStr}${separator}${tokenStr}] `);
+          prompt += dim(`[${fileStr}${separator}${tokenStr}] `);
         }
         prompt += `${pc.bold(pc.white('›'))} `;
         const input = await readMultiLineInput(prompt);
@@ -252,7 +252,7 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
         if (agentTag) {
           toolContext.agentRole = agentTag.role;
           activePrompt = agentTag.cleanInput;
-          console.log(pc.cyan(`\n  [AGENT] Targeted role: ${pc.bold(agentTag.role)}`));
+          console.log(info(`\n  [AGENT] Targeted role: ${pc.bold(agentTag.role)}`));
         } else {
           toolContext.agentRole = config.agents?.default || 'coder';
         }
@@ -284,7 +284,7 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
             const summaryStr = typeof rawContent === 'string' ? rawContent : JSON.stringify(rawContent);
             const synth = synthesizeSkillFromTurn(activePrompt, summaryStr);
             if (synth.synthesized && synth.name) {
-              console.log(pc.cyan(`\n  [SKILL SYNTHESIZED] Draft playbook "${synth.name}" saved to ~/.daedalus/skills/.drafts/ — review with /skills`));
+              console.log(info(`\n  [SKILL SYNTHESIZED] Draft playbook "${synth.name}" saved to ~/.daedalus/skills/.drafts/ — review with /skills`));
             }
           } catch { /* background housekeeping silent */ }
         } catch {
@@ -292,7 +292,7 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
             const filesContext = buildFileContext();
             const todoCtx = buildTodoContext(sessionId);
             const userContent = `${todoCtx}${filesContext}User Prompt: ${activePrompt}`;
-            console.log(pc.dim('\n  [RETRY] Trying fallback mode...'));
+            console.log(dim('\n  [RETRY] Trying fallback mode...'));
             const fallbackResult = await callModelWithFallback(userContent);
             if (fallbackResult) {
               sessionManager.saveSessionState(messages, activeFiles, getSessionTodos(sessionId));
@@ -300,8 +300,8 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
             }
           } catch (fallbackErr) {
             const firstLine = ((fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr)) || '').split('\n')[0];
-            console.log(pc.red(`\n  ${pc.bold('[ERROR]')} Fallback also failed: ${firstLine}`));
-            console.log(pc.dim('         Check that at least one local server is running or run /doctor to debug.'));
+            console.log(err(`\n  ${pc.bold('[ERROR]')} Fallback also failed: ${firstLine}`));
+            console.log(dim('         Check that at least one local server is running or run /doctor to debug.'));
           }
         }
         turnSeparator();

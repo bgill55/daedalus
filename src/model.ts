@@ -12,6 +12,7 @@ import { parseTextToolCalls, stripToolCallMarkup, openAssistantBlock, writeAssis
 import type { ToolContext, ToolCall, ChatMessage } from './types.js';
 import { messageText } from './types.js';
 import type { LocalRouter } from './router/index.js';
+import { dim, info, ok, warn, err } from './ui/theme.js';
 
 // Render the current session todo progress (completed/total + active task). Used
 // after a successful `todo` tool result AND immediately on resume from a max-turn
@@ -24,7 +25,7 @@ function printTodoProgress(sessionId: string): void {
   const done = todos.filter(t => t.status === 'completed').length;
   const active = todos.find(t => t.status === 'in_progress');
   const activeText = active ? ` | Active: ${active.content.slice(0, 50)}${active.content.length > 50 ? '...' : ''}` : '';
-  console.log(pc.cyan(`\n  [TODO] Progress: ${done}/${todos.length} completed${activeText}`));
+  console.log(info(`\n  [TODO] Progress: ${done}/${todos.length} completed${activeText}`));
 }
 import type { DaedalusConfig } from './config/index.js';
 import { maskSecrets } from './security/secret-detector.js';
@@ -199,7 +200,7 @@ export function createModelFunctions(deps: ModelDeps) {
     // weak "standard" model (see complexity.ts KEEP_ON_INTELLIGENCE_KEYWORDS).
     const complexityFloor = complexityEnabled ? floorForTask(userContent || '') : undefined;
     if (taskComplexity && process.env.DAEDALUS_DEBUG === 'true') {
-      console.log(pc.dim(`  [ROUTE] Task classified as ${taskComplexity}`));
+      console.log(dim(`  [ROUTE] Task classified as ${taskComplexity}`));
     }
 
     const fileCtx = buildFileContext();
@@ -300,13 +301,13 @@ export function createModelFunctions(deps: ModelDeps) {
     while (true) {
       if (toolTurnsRemaining <= 0) {
         closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
-        console.log(`\n  ${pc.cyan('[INFO]')} ${pc.dim(`Reached max tool turns (${MAX_TOOL_TURNS}). Pausing to checkpoint.`)}`);
+        console.log(`\n  ${info('[INFO]')} ${dim(`Reached max tool turns (${MAX_TOOL_TURNS}). Pausing to checkpoint.`)}`);
         const executedSummary = executedToolNames.size > 0 ? [...executedToolNames].join(', ') : 'none';
-        console.log(`  ${pc.dim(`[SUMMARY] ${totalToolCalls} tool call(s) executed: ${executedSummary}`)}`);
+        console.log(`  ${dim(`[SUMMARY] ${totalToolCalls} tool call(s) executed: ${executedSummary}`)}`);
         if (process.stdin.isTTY) {
           const answer = await (toolContext.askLine || askLine)(`  Continue working? [y]es / [n]o: `);
           if (answer.trim().toLowerCase().startsWith('y')) {
-            console.log(pc.green('  [OK] Continuing with a fresh turn budget.'));
+            console.log(ok('  [OK] Continuing with a fresh turn budget.'));
             // Surface immediate progress so the resume isn't a silent blank gap
             // while the model thinks (especially on slow models). Shows exactly
             // where the work resumes.
@@ -316,14 +317,14 @@ export function createModelFunctions(deps: ModelDeps) {
             continue;
           }
         }
-        console.log(pc.dim('  [INFO] Stopping. Type "continue" to resume.'));
+        console.log(dim('  [INFO] Stopping. Type "continue" to resume.'));
         messages.push({ role: 'assistant', content: lastContent });
         return { content: lastContent, toolCalls: [] };
       }
 
       if (turnAborted) {
         closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
-        console.log(pc.dim('\n  [STOP] Stopped'));
+        console.log(dim('\n  [STOP] Stopped'));
         return { content: lastContent, toolCalls: [] };
       }
       turnUsageOut = undefined;
@@ -380,7 +381,7 @@ export function createModelFunctions(deps: ModelDeps) {
             }
 
             if (detectRepetition(fullContent)) {
-              writeAssistantChunk(pc.red('\n\n[STOP] Repetition loop detected. Aborting stream.'));
+              writeAssistantChunk(err('\n\n[STOP] Repetition loop detected. Aborting stream.'));
               repetitionAborted = true;
               currentAbortController?.abort();
               break;
@@ -421,7 +422,7 @@ export function createModelFunctions(deps: ModelDeps) {
 
         if (signal.aborted) {
           closeAssistantBlock((lastContent || fullContent).length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
-          console.log(pc.dim('\n  [STOP] Stopped'));
+          console.log(dim('\n  [STOP] Stopped'));
           clearAbortController();
           return { content: fullContent, toolCalls: [] };
         }
@@ -430,14 +431,14 @@ export function createModelFunctions(deps: ModelDeps) {
         if (signal.aborted) {
           spinner.stop();
           closeAssistantBlock((lastContent || fullContent).length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
-          console.log(pc.dim('\n  [STOP] Stopped'));
+          console.log(dim('\n  [STOP] Stopped'));
           clearAbortController();
           return { content: repetitionAborted ? fullContent : '', toolCalls: [] };
         }
         spinner.stop();
         const firstLine = (error instanceof Error ? error.message : String(error)).split('\n')[0];
-        console.log(pc.yellow(`\n  ${pc.bold('[WARN]')} Error calling model: ${firstLine}`));
-        console.log(pc.dim(`         (Tip: Run /doctor to diagnose connection or loading issues)`));
+        console.log(warn(`\n  ${pc.bold('[WARN]')} Error calling model: ${firstLine}`));
+        console.log(dim(`         (Tip: Run /doctor to diagnose connection or loading issues)`));
         throw error;
       }
 
@@ -465,10 +466,10 @@ export function createModelFunctions(deps: ModelDeps) {
         const repeats = divergence.consecutiveRepeats;
         if (repeats >= 2) {
           closeAssistantBlock(cleanContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
-          console.log(pc.dim(`\n  [STOP] Runaway loop: same output re-emitted ${repeats} times with no progress. Closing turn.`));
+          console.log(dim(`\n  [STOP] Runaway loop: same output re-emitted ${repeats} times with no progress. Closing turn.`));
           return { content: `${cleanContent}\n\n[SELF-CORRECT] I repeated the same output ${repeats} times without making progress. I am stopping this turn rather than looping.`, toolCalls: [] };
         }
-        console.log(pc.dim(`\n  [CHECK] Detected near-duplicate of prior output — not making progress.`));
+        console.log(dim(`\n  [CHECK] Detected near-duplicate of prior output — not making progress.`));
         messages.push({ role: 'assistant', content: cleanContent });
         messages.push({
           role: 'user',
@@ -484,7 +485,7 @@ export function createModelFunctions(deps: ModelDeps) {
       if (toolCallArray.length === 0) {
         const ungrounded = detectUngroundedClaim(cleanContent, claimLedger);
         if (ungrounded) {
-          console.log(pc.dim(`\n  [CHECK] Claim about ${ungrounded} is ungrounded (no inspection this session).`));
+          console.log(dim(`\n  [CHECK] Claim about ${ungrounded} is ungrounded (no inspection this session).`));
           messages.push({ role: 'assistant', content: cleanContent });
           messages.push({
             role: 'user',
@@ -502,7 +503,7 @@ export function createModelFunctions(deps: ModelDeps) {
       if (toolCallArray.length === 0) {
         const projClaim = isUngroundedProjectClaim(cleanContent, claimLedger);
         if (projClaim) {
-          console.log(pc.dim(`\n  [CHECK] Project claim about "${projClaim}" is ungrounded (never observed this session).`));
+          console.log(dim(`\n  [CHECK] Project claim about "${projClaim}" is ungrounded (never observed this session).`));
           messages.push({ role: 'assistant', content: cleanContent });
           messages.push({
             role: 'user',
@@ -515,7 +516,7 @@ export function createModelFunctions(deps: ModelDeps) {
         // absence requires the same grounding as asserting presence.
         const negClaim = isNegativeExistenceClaim(cleanContent, claimLedger);
         if (negClaim) {
-          console.log(pc.dim(`\n  [CHECK] Claim that "${negClaim}" is missing is ungrounded (no search/list run this session).`));
+          console.log(dim(`\n  [CHECK] Claim that "${negClaim}" is missing is ungrounded (no search/list run this session).`));
           messages.push({ role: 'assistant', content: cleanContent });
           messages.push({
             role: 'user',
@@ -533,7 +534,7 @@ export function createModelFunctions(deps: ModelDeps) {
         // is normal narration, and forcing a retry loops on a finished report.
         const narratedToolCalls = parseTextToolCalls(fullContent);
         if (narratedToolCalls.length >= 1) {
-          console.log(pc.dim(`\n  [RETRY] Model planned tools but emitted no valid JSON. Re-issuing the request.`));
+          console.log(dim(`\n  [RETRY] Model planned tools but emitted no valid JSON. Re-issuing the request.`));
           totalCompletionTokens += turnUsageOut ?? 0;
           messages.push({
             role: 'user',
@@ -544,7 +545,7 @@ export function createModelFunctions(deps: ModelDeps) {
 
         closeAssistantBlock(cleanContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
         if (currentComplexity && process.env.DAEDALUS_DEBUG === 'true') {
-          console.log(pc.dim(`  [ROUTE] Task summary: start ${taskComplexity ?? 'n/a'} → end ${currentComplexity} | ${totalCompletionTokens + (turnUsageOut ?? 0)} output tokens | ${escalationCount} escalation(s)`));
+          console.log(dim(`  [ROUTE] Task summary: start ${taskComplexity ?? 'n/a'} → end ${currentComplexity} | ${totalCompletionTokens + (turnUsageOut ?? 0)} output tokens | ${escalationCount} escalation(s)`));
         }
 
         // Hard guard: do not let the agent end the turn claiming whole-task
@@ -553,7 +554,7 @@ export function createModelFunctions(deps: ModelDeps) {
         const closingTodos = getSessionTodos(toolContext.sessionId);
         if (closingTodos.length > 0 && detectFalseCompletion(cleanContent, closingTodos)) {
           const remaining = closingTodos.filter((t) => t.status !== 'completed').length;
-          console.log(pc.dim(`\n  [CHECK] Verifying completion claim — ${remaining} todo(s) still open.`));
+          console.log(dim(`\n  [CHECK] Verifying completion claim — ${remaining} todo(s) still open.`));
           messages.push({ role: 'assistant', content: cleanContent });
           messages.push({
             role: 'user',
@@ -568,7 +569,7 @@ export function createModelFunctions(deps: ModelDeps) {
         // reverted by the syntax guard and never actually landed on disk.
         const falselyClaimed = detectFalseCompletionOnDisk(cleanContent, toolContext);
         if (falselyClaimed) {
-          console.log(pc.dim(`\n  [CHECK] Verifying completion claim — no successful patch to ${falselyClaimed} this session (only reverts).`));
+          console.log(dim(`\n  [CHECK] Verifying completion claim — no successful patch to ${falselyClaimed} this session (only reverts).`));
           messages.push({ role: 'assistant', content: cleanContent });
           messages.push({
             role: 'user',
@@ -584,7 +585,7 @@ export function createModelFunctions(deps: ModelDeps) {
         const scopeTodos = getSessionTodos(toolContext.sessionId);
         if (scopeTodos.length > 0 && isScopeOverstatedSummary(cleanContent, scopeTodos)) {
           const remaining = scopeTodos.filter((t) => t.status !== 'completed').length;
-          console.log(pc.dim(`\n  [CHECK] Verifying completion claim — summary enumerates tasks as done but ${remaining} todo(s) still open.`));
+          console.log(dim(`\n  [CHECK] Verifying completion claim — summary enumerates tasks as done but ${remaining} todo(s) still open.`));
           messages.push({ role: 'assistant', content: cleanContent });
           messages.push({
             role: 'user',
@@ -601,7 +602,7 @@ export function createModelFunctions(deps: ModelDeps) {
         // agent to reconcile each claimed item with disk reality before concluding.
         if (isUnsubstantiatedProgressReport(cleanContent)) {
           const itemCount = countAchievementItems(cleanContent);
-          console.log(pc.dim(`\n  [CHECK] Verifying completion claim — ${itemCount} deliverables enumerated as done without a reconciling task list or per-item verification.`));
+          console.log(dim(`\n  [CHECK] Verifying completion claim — ${itemCount} deliverables enumerated as done without a reconciling task list or per-item verification.`));
           messages.push({ role: 'assistant', content: cleanContent });
           messages.push({
             role: 'user',
@@ -617,7 +618,7 @@ export function createModelFunctions(deps: ModelDeps) {
         // "fabricated review from a single passing typecheck" failure at the first deliverable.)
         if (isReviewTask(userTask) && isReviewDeliverable(cleanContent) && claimLedger.totalObservations === 0) {
           closeAssistantBlock(cleanContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
-          console.log(pc.dim(`\n  [STOP] Review produced with zero file inspections this session — halting.`));
+          console.log(dim(`\n  [STOP] Review produced with zero file inspections this session — halting.`));
           return { content: `${cleanContent}\n\n[SELF-CORRECT] I described the project's architecture/features but have not inspected a single file this session. I am stopping rather than fabricating a review. I should read the code before reviewing.`, toolCalls: [] };
         }
 
@@ -626,7 +627,7 @@ export function createModelFunctions(deps: ModelDeps) {
         // files (.ts/.js/.py/etc.) before a multi-section review deliverable is allowed.
         if (isReviewTask(userTask) && isReviewWithoutSourceInspection(cleanContent, claimLedger)) {
           const srcCount = claimLedger.sourceFileObservations;
-          console.log(pc.dim(`\n  [CHECK] Review deliverable produced after reading only ${srcCount} source file(s) — insufficient inspection.`));
+          console.log(dim(`\n  [CHECK] Review deliverable produced after reading only ${srcCount} source file(s) — insufficient inspection.`));
           messages.push({ role: 'assistant', content: cleanContent });
           messages.push({
             role: 'user',
@@ -640,7 +641,7 @@ export function createModelFunctions(deps: ModelDeps) {
         // is undefined (no real test run was observed). Prevents walkthrough-sourced count invention.
         const noRunClaimed = claimedTestCountWithoutRun(cleanContent, toolContext.lastVerifyPassCount);
         if (noRunClaimed) {
-          console.log(pc.dim(`\n  [CHECK] Test-count claim ("${noRunClaimed} passing") made with no real npm test run this session.`));
+          console.log(dim(`\n  [CHECK] Test-count claim ("${noRunClaimed} passing") made with no real npm test run this session.`));
           messages.push({ role: 'assistant', content: cleanContent });
           messages.push({
             role: 'user',
@@ -655,7 +656,7 @@ export function createModelFunctions(deps: ModelDeps) {
         // functions — the graded run built an endpoint, reported "wired in" after tests passed,
         // and it was actually broken until the user exercised it. Forces real verification.
         if (detectUngroundedWorksClaim(cleanContent, claimLedger)) {
-          console.log(pc.dim(`\n  [CHECK] "Works/verified" claim made with no live runtime probe (curl/HTTP/integration test) this session.`));
+          console.log(dim(`\n  [CHECK] "Works/verified" claim made with no live runtime probe (curl/HTTP/integration test) this session.`));
           messages.push({ role: 'assistant', content: cleanContent });
           messages.push({
             role: 'user',
@@ -669,7 +670,7 @@ export function createModelFunctions(deps: ModelDeps) {
         // blocker honestly instead of looping. Close the turn with a concise note.
         if (readStall.stalled) {
           closeAssistantBlock(cleanContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
-          console.log(pc.dim(`\n  [DONE] Idle re-read stall: same file read ${readStall.readCount} times consecutively with no edit. Closing turn.`));
+          console.log(dim(`\n  [DONE] Idle re-read stall: same file read ${readStall.readCount} times consecutively with no edit. Closing turn.`));
           toolContext.verifyBreakerTrippedLastTurn = verifyBreakerTrippedThisTurn || verifyBreakerTrippedLastTurn;
           return { content: `${cleanContent}\n\n[SELF-CORRECT] I re-read the same file ${readStall.readCount} times without making changes — the change is likely already present on disk. Report the actual on-disk state to the user rather than continuing to read.`, toolCalls: [] };
         }
@@ -678,7 +679,7 @@ export function createModelFunctions(deps: ModelDeps) {
         // command tripped the circuit breaker this turn (or last turn) and no fresh
         // successful run cleared it — forces a real re-run or an honest blocker report.
         if (isGreenBuildTestClaim(cleanContent) && (verifyBreakerTrippedThisTurn || verifyBreakerTrippedLastTurn)) {
-          console.log(pc.dim(`\n  [CHECK] Verifying completion claim — build/test command tripped the circuit breaker; no fresh successful run observed.`));
+          console.log(dim(`\n  [CHECK] Verifying completion claim — build/test command tripped the circuit breaker; no fresh successful run observed.`));
           toolContext.verifyBreakerTrippedLastTurn = true;
           messages.push({ role: 'assistant', content: cleanContent });
           messages.push({
@@ -695,7 +696,7 @@ export function createModelFunctions(deps: ModelDeps) {
         // run actually reported 9.
         const testCorrection = fabricatedTestCountCorrection(cleanContent, toolContext.lastVerifyPassCount);
         if (testCorrection) {
-          console.log(pc.dim(`\n  [CHECK] Verifying test-count claim — summary count disagrees with last real test run.`));
+          console.log(dim(`\n  [CHECK] Verifying test-count claim — summary count disagrees with last real test run.`));
           messages.push({ role: 'assistant', content: cleanContent });
           messages.push({
             role: 'user',
@@ -710,7 +711,7 @@ export function createModelFunctions(deps: ModelDeps) {
         // agent asserts tests/build pass or a clean state while the most recent actual verify
         // run this session FAILED, force a re-run or an honest report of what actually failed.
         if (isGreenStateClaim(cleanContent) && toolContext.lastVerifyPassed === false) {
-          console.log(pc.dim(`\n  [CHECK] Verifying green-state claim — last real verify run this session FAILED.`));
+          console.log(dim(`\n  [CHECK] Verifying green-state claim — last real verify run this session FAILED.`));
           messages.push({ role: 'assistant', content: cleanContent });
           messages.push({
             role: 'user',
@@ -744,11 +745,11 @@ export function createModelFunctions(deps: ModelDeps) {
       if (consecutiveCount >= 2) {
         if (consecutiveCount >= 3) {
           closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
-          console.log(`\n  ${pc.dim('[DONE]')} Concluding after 4 consecutive identical tool calls (repetitive loop).`);
+          console.log(`\n  ${dim('[DONE]')} Concluding after 4 consecutive identical tool calls (repetitive loop).`);
           return { content: lastContent, toolCalls: [] };
         }
 
-        console.log(`\n  ${pc.dim('[SELF-CORRECT]')} Same tool called repeatedly with identical arguments. Adjusting approach.`);
+        console.log(`\n  ${dim('[SELF-CORRECT]')} Same tool called repeatedly with identical arguments. Adjusting approach.`);
         messages.push({
           role: 'user',
           content: `[SYSTEM WARNING] You are stuck in a repetitive loop calling the same tools with the same arguments: "${toolCallArray.map(tc => tc.function.name).join(', ')}". Please STOP repeating yourself. If your previous tool calls did not give you the desired outcome, try a different approach (e.g., read a different file, search with a different query, run a build/test command, or summarize the blocker/findings to the user).`,
@@ -769,7 +770,7 @@ export function createModelFunctions(deps: ModelDeps) {
           if (dangerousTools.includes(tc.function.name) && !turnApproved) {
             const args = tc.function.arguments;
             const preview = args.length > 120 ? args.slice(0, 120) + '...' : args;
-            log.prompt(`\n  ⮕ ${pc.bold(tc.function.name)} ${pc.dim(preview)}\n`);
+            log.prompt(`\n  ⮕ ${pc.bold(tc.function.name)} ${dim(preview)}\n`);
             const line = await (toolContext.askLine || askLine)(pc.blue(`  Allow? [y]es / [n]o / [a]ll for this task: `));
             const char = line.trim().toLowerCase().slice(0, 1);
             if (char === 'a') {
@@ -777,7 +778,7 @@ export function createModelFunctions(deps: ModelDeps) {
               toolContext.autoApproveTools = true;
             }
             if (char === 'n') {
-              console.log(`  ${pc.red('[FAIL]')} ${tc.function.name} ${pc.red(' — rejected')}`);
+              console.log(`  ${err('[FAIL]')} ${tc.function.name} ${err(' — rejected')}`);
               rejectedCalls.push(tc);
               continue;
             }
@@ -812,7 +813,7 @@ export function createModelFunctions(deps: ModelDeps) {
         if (result.success) {
           failureCounts.set(sig, 0);
           if (priorFailures > 0) {
-            console.log(pc.green(`\n  [RECOVERED] ${result.name} succeeded after ${priorFailures} prior failure(s).`));
+            console.log(ok(`\n  [RECOVERED] ${result.name} succeeded after ${priorFailures} prior failure(s).`));
           }
         } else {
           failureCounts.set(sig, priorFailures + 1);
@@ -857,7 +858,7 @@ export function createModelFunctions(deps: ModelDeps) {
                 role: 'user',
                 content: `[AUTO-READ after stale read] Current contents of ${stale.path} (re-read automatically because your edit targeted out-of-date bytes):\n\n${typeof fresh === 'string' ? fresh : JSON.stringify(fresh)}`,
               } as ChatMessage);
-              console.log(pc.dim(`\n  [SELF-CORRECT] Stale read detected on ${stale.path} — auto-re-read current content for the next attempt.`));
+              console.log(dim(`\n  [SELF-CORRECT] Stale read detected on ${stale.path} — auto-re-read current content for the next attempt.`));
             } catch {
               // If the auto-read itself fails, the warning above already tells the agent to read manually.
             }
@@ -946,7 +947,7 @@ export function createModelFunctions(deps: ModelDeps) {
                   { type: 'image_url', image_url: { url: `data:${mime};base64,${parsed.base64}` } },
                 ],
               } as ChatMessage);
-              console.log(`  ${pc.cyan('[VISION]')} Image injected into context (${Math.round(parsed.base64.length * 0.75 / 1024)}KB)`);
+              console.log(`  ${info('[VISION]')} Image injected into context (${Math.round(parsed.base64.length * 0.75 / 1024)}KB)`);
             }
           } catch { /* ignored */ }
         }
@@ -985,10 +986,10 @@ export function createModelFunctions(deps: ModelDeps) {
           if (isCommandExit) hadCommandExit = true;
           if (isFileMissing) {
             hadFileMissing = true;
-            console.log(pc.yellow(`\n  [FILE-MISSING] ${snippet}`));
-            console.log(pc.dim('    This path does not exist. Do not re-read it — create it, pick a different path, or report the blocker to the user.'));
+            console.log(warn(`\n  [FILE-MISSING] ${snippet}`));
+            console.log(dim('    This path does not exist. Do not re-read it — create it, pick a different path, or report the blocker to the user.'));
           } else {
-            console.log(pc.dim(`\n  [RETRY] ${r.name} didn't apply — ${snippet}`));
+            console.log(dim(`\n  [RETRY] ${r.name} didn't apply — ${snippet}`));
             const tailLines = (r.content || '')
               .replace(/\u001B\[\d+(;\d+)*m/g, '')
               .split('\n')
@@ -997,7 +998,7 @@ export function createModelFunctions(deps: ModelDeps) {
               const shown = tailLines.length > 12
                 ? [...tailLines.slice(0, 3), `  ... ${tailLines.length - 12} more lines`, ...tailLines.slice(-9)]
                 : tailLines;
-              console.log(pc.dim(shown.map(l => `    ${l}`).join('\n')));
+              console.log(dim(shown.map(l => `    ${l}`).join('\n')));
             }
           }
         }
@@ -1010,9 +1011,9 @@ export function createModelFunctions(deps: ModelDeps) {
         } else if (hadCommandExit) {
           // A command ran and failed (e.g. tests/build red). This is a real result to
           // analyze, not a self-correction loop — don't imply we are retrying the approach.
-          console.log(pc.dim(`\n  [RESULT] Command exited non-zero — output shown above. Analyze the failure; do not treat it as a transient tool error.`));
+          console.log(dim(`\n  [RESULT] Command exited non-zero — output shown above. Analyze the failure; do not treat it as a transient tool error.`));
         } else {
-          console.log(pc.dim(`\n  [SELF-CORRECT] Adjusting approach and retrying...`));
+          console.log(dim(`\n  [SELF-CORRECT] Adjusting approach and retrying...`));
         }
       } else {
         consecutiveToolFailures = 0;
@@ -1062,7 +1063,7 @@ export function createModelFunctions(deps: ModelDeps) {
           escalatedThisStreak = true;
           escalationCount++;
           pinnedModel = nextModel.name;
-          console.log(pc.dim(`\n  [ROUTE] Stepping up to a more capable model ${nextModel.name} after repeated tool failures on ${currentName}.`));
+          console.log(dim(`\n  [ROUTE] Stepping up to a more capable model ${nextModel.name} after repeated tool failures on ${currentName}.`));
           messages.push({
             role: 'user',
             content: '[SYSTEM NOTICE] A stronger model is now handling this task after repeated tool failures. Re-examine the recent errors and the exact current state of the files before retrying. Do not repeat the same failing calls.',
@@ -1072,7 +1073,7 @@ export function createModelFunctions(deps: ModelDeps) {
 
       if (consecutiveToolFailures >= 5 || worstRepeatedFailures >= 5) {
         closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
-        console.log(pc.dim('\n  [DONE] Concluding after repeated tool failures — see summary above.'));
+        console.log(dim('\n  [DONE] Concluding after repeated tool failures — see summary above.'));
         messages.push({ role: 'assistant', content: lastContent });
         return { content: lastContent, toolCalls: [] };
       }
@@ -1084,7 +1085,7 @@ export function createModelFunctions(deps: ModelDeps) {
 
         if (norm === 'n' || norm === 'no') {
           closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
-          console.log(pc.yellow('\n  [INFO] Stopped agent turn loop.'));
+          console.log(warn('\n  [INFO] Stopped agent turn loop.'));
           messages.push({ role: 'assistant', content: lastContent });
           return { content: lastContent, toolCalls: [] };
         } else if (norm === 'e' || norm === 'edit') {
@@ -1094,7 +1095,7 @@ export function createModelFunctions(deps: ModelDeps) {
               role: 'user',
               content: `[User Feedback] ${feedback.trim()}`,
             } as ChatMessage);
-            console.log(pc.green(`  [OK] Feedback appended. Continuing.`));
+            console.log(ok(`  [OK] Feedback appended. Continuing.`));
           }
         }
       }
@@ -1157,8 +1158,8 @@ export function createModelFunctions(deps: ModelDeps) {
       return reply;
     } catch (error) {
       const firstLine = ((error instanceof Error ? error.message : String(error)) || '').split('\n')[0];
-      console.log(pc.yellow(`\n  ${pc.bold('[WARN]')} Fallback error: ${firstLine}`));
-      console.log(pc.dim(`         (Tip: Run /doctor to diagnose connection or loading issues)`));
+      console.log(warn(`\n  ${pc.bold('[WARN]')} Fallback error: ${firstLine}`));
+      console.log(dim(`         (Tip: Run /doctor to diagnose connection or loading issues)`));
       throw error;
     }
   }

@@ -7,7 +7,7 @@ import readline from 'readline';
 import os from 'os';
 import pc from 'picocolors';
 import { execSafe } from './utils/spawn.js';
-import { brand } from './ui/theme.js';
+import { brand, dim, info, ok, warn, err } from './ui/theme.js';
 
 import { setRouterClient } from './tools/builtin/delegation.js';
 import { setRouteRouterClient, looksMultiPhase } from './tools/builtin/route.js';
@@ -234,7 +234,7 @@ if (initialArgs.length > 0) {
     activeFiles.set(absPath, fileArg);
     toolContext.activeFiles = new Map(activeFiles);
     if (!isCi) {
-      console.log(pc.green(`✔ Added file on startup: ${pc.bold(fileArg)}`));
+      console.log(ok(`✔ Added file on startup: ${pc.bold(fileArg)}`));
     }
   });
 }
@@ -370,14 +370,14 @@ async function main() {
     const filesToCheck = ['CLAUDE.md', '.cursorrules', '.daedalusrules', 'DAEDALUS.md'];
     for (const file of filesToCheck) {
       if (fs.existsSync(path.join(sessionManager.projectRoot, file))) {
-        console.log(pc.green(`  ✔ Loaded project rules: ${pc.bold(file)}`));
+        console.log(ok(`  ✔ Loaded project rules: ${pc.bold(file)}`));
       }
     }
   }
 
   // First-run detection: if no models configured, auto-trigger onboarding
   if (enabledCount === 0 && process.stdin.isTTY && !process.env.DAEDALUS_AUTO_APPROVE) {
-    console.log(pc.yellow('\n  No models configured yet. Starting onboarding...\n'));
+    console.log(warn('\n  No models configured yet. Starting onboarding...\n'));
     const { commandsList } = await import('./commands.js');
     const onboardCmd = commandsList.find(c => c.name === '/onboard');
     if (onboardCmd) {
@@ -409,7 +409,7 @@ async function main() {
   try {
     await router.startHealthChecks();
   } catch (err) {
-    console.error(pc.yellow(`\n[WARN] Router health checks failed: ${(err as Error).message}`));
+    console.error(warn(`\n[WARN] Router health checks failed: ${(err as Error).message}`));
   }
 
   // MCP connects before chat loop starts so tools are available from turn 1
@@ -434,13 +434,13 @@ async function main() {
       if (servers.length > 0) {
         const mcpToolCount = mcpRegistry.getToolDefinitions().length;
         if (!isCi) {
-          console.log(pc.green(`\nMCP connected: ${servers.join(', ')}`));
-          console.log(pc.dim(`  ${mcpToolCount} MCP tool(s) registered`));
+          console.log(ok(`\nMCP connected: ${servers.join(', ')}`));
+          console.log(dim(`  ${mcpToolCount} MCP tool(s) registered`));
         }
       }
     }
   } catch (err: unknown) {
-    console.error(pc.yellow(`\nMCP initialization failed: ${err instanceof Error ? err.message : String(err)}`));
+    console.error(warn(`\nMCP initialization failed: ${err instanceof Error ? err.message : String(err)}`));
   }
 
   const isLoop = process.argv.includes('--loop') || process.argv.includes('--daemon');
@@ -503,10 +503,10 @@ async function main() {
             exclude: config.indexing.exclude,
           });
           if (result.indexedFiles > 0) {
-            console.log(pc.cyan(`  [INDEX] Indexed ${result.indexedFiles} file(s) (${result.skippedFiles} unchanged)`));
+            console.log(info(`  [INDEX] Indexed ${result.indexedFiles} file(s) (${result.skippedFiles} unchanged)`));
           }
           if (result.errors.length > 0) {
-            console.log(pc.yellow(`  [WARN] ${result.errors.length} file(s) had index errors`));
+            console.log(warn(`  [WARN] ${result.errors.length} file(s) had index errors`));
           }
           toolContext.indexDb = db;
 
@@ -517,7 +517,7 @@ async function main() {
             });
           }
         } catch (err: unknown) {
-          console.error(pc.yellow(`  [WARN] Auto-index failed: ${err instanceof Error ? err.message : String(err)}`));
+          console.error(warn(`  [WARN] Auto-index failed: ${err instanceof Error ? err.message : String(err)}`));
         }
       })();
     }, 100);
@@ -568,7 +568,7 @@ async function main() {
       if (err instanceof Error && err.message === 'SWITCH_MODE_CLI') {
         currentMode = 'cli';
         console.clear();
-        console.log(brand('\n  Daedalus') + pc.dim(' Returned to CLI mode... Type ? for commands.'));
+        console.log(brand('\n  Daedalus') + dim(' Returned to CLI mode... Type ? for commands.'));
         continue;
       }
       if (err instanceof Error && err.message === 'SWITCH_MODE_TUI') {
