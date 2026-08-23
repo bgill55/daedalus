@@ -1,3 +1,10 @@
+## [3.40.2](https://github.com/bgill55/daedalus/compare/v3.40.1...v3.40.2) (2026-08-23)
+
+
+### Bug Fixes
+
+* **sigma-mem:** promote to project-level persistence, fix prune threshold bug ([e666963](https://github.com/bgill55/daedalus/commit/e666963b9f0b0b53b25243ebdfe00c889ca5b5af))
+
 ## [3.40.1](https://github.com/bgill55/daedalus/compare/v3.40.0...v3.40.1) (2026-08-23)
 
 
