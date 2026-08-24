@@ -1,3 +1,10 @@
+# [3.42.0](https://github.com/bgill55/daedalus/compare/v3.41.1...v3.42.0) (2026-08-24)
+
+
+### Features
+
+* **agents:** record WHY a sub-agent (route/delegate) hit its turn budget ([c21bfcf](https://github.com/bgill55/daedalus/commit/c21bfcf098f07330b76f86ed129c1bbbb0395a96))
+
 ## [3.41.1](https://github.com/bgill55/daedalus/compare/v3.41.0...v3.41.1) (2026-08-24)
 
 
