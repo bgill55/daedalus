@@ -85,6 +85,14 @@ export interface ToolContext {
   // the terminal circuit breaker, so a later turn cannot falsely claim "build/tests pass"
   // without a fresh successful run (see loop-guards.ts verification-claim guard).
   verifyBreakerTrippedLastTurn?: boolean;
+  // Keys of completion/verification guards ([CHECK] ... ) already fired this session,
+  // so the SAME claim is not re-verified every turn (the "verify the same 5 items 4x"
+  // token waste). Mirrors claimLedger/verifyBreakerTrippedLastTurn persistence.
+  firedCompletionGuards?: Set<string>;
+  // Persisted across turns: true once we've escalated the model on a failure streak,
+  // so we don't re-escalate into a model-swap churn on the next turn (which silently
+  // resets escalatedThisStreak to false each turn).
+  escalatedStreak?: boolean;
   askLine?: (prompt: string) => Promise<string>;
   allowTestEdits?: boolean;
   // Set true when the user live-approved a test write via askLine. Once true,

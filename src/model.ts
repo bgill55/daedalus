@@ -1051,16 +1051,29 @@ export function createModelFunctions(deps: ModelDeps) {
       const syntaxLoopThisTurn = failedResults.some(r =>
         isWriteToolSyntaxLoop(r.name, `${r.error ?? ''}\n${r.content ?? ''}`)
       );
+      // A terminal circuit breaker (e.g. "command 'cd' failed 2 consecutive times") is a
+      // tool/loop guard, not a model-capability failure -- escalating to a bigger model does
+      // not fix it (the same command would just trip the breaker again) and churns context.
+      // Exclude breaker trips from escalation so the agent recovers in-place instead of
+      // bouncing through gpt-oss -> llama-4 -> deepseek on a transient blip.
+      const breakerTrippedThisTurn = failedResults.some(r =>
+        /\[CIRCUIT BREAKER\]/i.test(`${r.error ?? ''}\n${r.content ?? ''}`)
+      );
       const canEscalate = !config.modelOverride
         && routerConfig?.autoEscalate !== false
         && escalationCount < 3
         && !escalatedThisStreak
-        && !syntaxLoopThisTurn;
-      if (canEscalate && (consecutiveToolFailures >= 2 || worstRepeatedFailures >= 2)) {
+        && !syntaxLoopThisTurn
+        && !breakerTrippedThisTurn;
+      // Raise the per-turn trigger from 2 to 3 consecutive/repeated failures. A 2-failure
+      // blip (e.g. a single timeout + retry) should not yank the model; 3 is the documented
+      // breaker threshold and aligns with the >=5 hard-stop below.
+      if (canEscalate && (consecutiveToolFailures >= 3 || worstRepeatedFailures >= 3)) {
         const currentName = pinnedModel || router.lastRoutedModelName || '';
         const nextModel = currentName && typeof router.getNextModel === 'function' ? router.getNextModel(currentName) : undefined;
         if (nextModel) {
           escalatedThisStreak = true;
+          toolContext.escalatedStreak = true;
           escalationCount++;
           pinnedModel = nextModel.name;
           console.log(dim(`\n  [ROUTE] Stepping up to a more capable model ${nextModel.name} after repeated tool failures on ${currentName}.`));

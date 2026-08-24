@@ -417,6 +417,7 @@ describe('Tool failure handling', () => {
     const chatStreamMock = vi.fn()
       .mockResolvedValueOnce(toolStream('terminal', '{"command":"npm run build"}'))
       .mockResolvedValueOnce(toolStream('terminal', '{"command":"npm run build"}'))
+      .mockResolvedValueOnce(toolStream('terminal', '{"command":"npm run build"}'))
       .mockResolvedValueOnce(contentStream('done.'));
 
     const escalateRouter = {
@@ -451,14 +452,89 @@ describe('Tool failure handling', () => {
 
     expect(output).toContain('[ROUTE]');
     expect(output).toContain('Stepping up to a more capable model strong-model');
-    const thirdCallModel = chatStreamMock.mock.calls[2]?.[0]?.model;
-    expect(thirdCallModel).toBe('strong-model');
+    const fourthCallModel = chatStreamMock.mock.calls[3]?.[0]?.model;
+    expect(fourthCallModel).toBe('strong-model');
     expect(result.content).toBe('done.');
+    delete process.env.DAEDALUS_AUTO_APPROVE;
+  });
+
+  it('does NOT escalate when the only failure is a terminal circuit breaker', async () => {
+    process.env.DAEDALUS_AUTO_APPROVE = 'true';
+
+    const chatStreamMock = vi.fn()
+      .mockResolvedValueOnce(toolStream('terminal', '{"command":"cd /d/x && npx tsx src/server.ts & sleep 3"}'))
+      .mockResolvedValueOnce(toolStream('terminal', '{"command":"cd /d/x && npx tsx src/server.ts & sleep 3"}'))
+      .mockResolvedValueOnce(toolStream('terminal', '{"command":"cd /d/x && npx tsx src/server.ts & sleep 3"}'))
+      .mockResolvedValueOnce(contentStream('done.'));
+
+    const router = {
+      chatStream: chatStreamMock,
+      chat: { completions: { create: vi.fn() } },
+      lastRoutedModelName: 'auto-model',
+      lastRoutedModel: 'auto-model (auto)',
+      getConfig: () => ({ autoEscalate: true }),
+      getNextModel: () => ({ name: 'strong-model', model: 'kimi-k2.6' }),
+    } as unknown as LocalRouter;
+
+    const executorMod = await import('./tools/executor.js');
+    vi.spyOn(executorMod, 'executeToolCalls').mockResolvedValue([{
+      toolCallId: 'call_1',
+      name: 'terminal',
+      success: false,
+      content: '',
+      error: "[CIRCUIT BREAKER] command 'cd' failed 2 consecutive times.",
+    }]);
+
+    const { callModelWithTools } = createModelFunctions({
+      messages,
+      config: TEST_CONFIG,
+      router,
+      toolContext,
+      buildFileContext: () => '',
+      askLine: vi.fn().mockResolvedValue('y'),
+    });
+
+    await callModelWithTools('build the app');
+    const output = consoleOutput();
+
+    // The terminal circuit breaker must NOT trigger a model STEP-UP (the costly gpt-oss ->
+    // llama-4 -> deepseek swap churn). A complexity reclassification ([ROUTE] Reclassified ...)
+    // is fine; the stronger-model escalation message is what we forbid here.
+    expect(output).not.toContain('Stepping up to a more capable model');
+    delete process.env.DAEDALUS_AUTO_APPROVE;
+  });
+
+  it('stateful [CHECK] guard fires once then lets the turn close (no re-verify loop)', async () => {
+    process.env.DAEDALUS_AUTO_APPROVE = 'true';
+    // An unsubstantiated deliverables checklist with NO todo list and NO disk work.
+    const claim = 'Current State:\n✅ Fixed the parser\n✅ Added rate limiting\n✅ Updated README';
+    const chatStreamMock = vi.fn()
+      .mockResolvedValueOnce(contentStream(claim))
+      .mockResolvedValueOnce(contentStream(claim))
+      .mockResolvedValueOnce(contentStream(claim));
+
+    const { callModelWithTools } = createModelFunctions({
+      messages,
+      config: TEST_CONFIG,
+      router: makeRouter(chatStreamMock),
+      toolContext,
+      buildFileContext: () => '',
+      askLine: vi.fn().mockResolvedValue('y'),
+    });
+
+    const result = await callModelWithTools('make the project more outstanding');
+    const output = consoleOutput();
+    // The guard fires on the first pass, then stateful tracking prevents re-firing on the
+    // identical re-emitted claim, so the turn must close (not loop forever).
+    expect(output).toContain('[CHECK]');
+    expect(result.content).toContain('✅');
     delete process.env.DAEDALUS_AUTO_APPROVE;
   });
 
   it('classifies task complexity and passes it to the router', async () => {
     process.env.DAEDALUS_AUTO_APPROVE = 'true';
+
+
 
     const chatStreamMock = vi.fn()
       .mockResolvedValueOnce(toolStream('read_file', '{"path":"a.ts"}'))
