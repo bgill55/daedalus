@@ -332,7 +332,7 @@ export class Orchestrator {
           });
         }
 
-        const finalizeSpinner = new DaedalusSpinner({ text: 'planner finalizing plan', color: (s) => pc.cyan(s) });
+        const finalizeSpinner = new DaedalusSpinner({ text: `${roleLabel('planner')} finalizing plan`, color: (s) => pc.cyan(s) });
         finalizeSpinner.start();
         let followUp;
         try {
@@ -1553,7 +1553,7 @@ export class Orchestrator {
       if (this.toolContext.abortSignal.aborted) {
         return 'Agent execution aborted by user';
       }
-      const agentSpinner = new DaedalusSpinner({ text: `${currentRole.name} running (turn ${turns + 1})`, color: (s) => pc.cyan(s) });
+      const agentSpinner = new DaedalusSpinner({ text: `${roleLabel(currentRole.name)} running (turn ${turns + 1})`, color: (s) => pc.cyan(s) });
       agentSpinner.start();
       let completion;
       const isLastTurn = turns === maxTurns - 1;
