@@ -85,6 +85,10 @@ export interface ToolContext {
   // the terminal circuit breaker, so a later turn cannot falsely claim "build/tests pass"
   // without a fresh successful run (see loop-guards.ts verification-claim guard).
   verifyBreakerTrippedLastTurn?: boolean;
+  // Diagnosis of WHY a single-agent task hit the max-tool-turns checkpoint, captured at the
+  // checkpoint so it can be recorded into the task's sigma memory (instead of a bare
+  // "Agent reached max turns" stub). Empty/undefined means a natural checkpoint.
+  maxTurnsCause?: string;
   // Keys of completion/verification guards ([CHECK] ... ) already fired this session,
   // so the SAME claim is not re-verified every turn (the "verify the same 5 items 4x"
   // token waste). Mirrors claimLedger/verifyBreakerTrippedLastTurn persistence.

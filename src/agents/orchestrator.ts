@@ -1727,7 +1727,7 @@ export class Orchestrator {
       return responseText || 'Agent completed without response';
     }
 
-    return 'Agent reached max turns';
+    return `Agent reached max turns${this.toolContext.maxTurnsCause ? ` (cause: ${this.toolContext.maxTurnsCause})` : ''}`;
   }
 
   private async executeOpenAIToolCalls(toolCalls: ToolCall[]): Promise<ToolResult[]> {

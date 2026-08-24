@@ -789,6 +789,55 @@ describe('Tool failure handling', () => {
     }
   });
 
+  it('diagnoses WHY the max-tool-turns checkpoint was hit (records cause on toolContext)', async () => {
+    process.env.DAEDALUS_AUTO_APPROVE = 'true';
+
+    let streamCount = 0;
+    const chatStreamMock = vi.fn().mockImplementation(() => {
+      streamCount++;
+      if (streamCount <= MAX_TOOL_TURNS) {
+        // Each turn the agent tries a (varied) backgrounded server spawn and the terminal
+        // circuit breaker rejects it — the classic runaway that used to burn tokens. The
+        // command is varied per turn so it exercises the repeated-failure hard stop (not the
+        // identical-output repetition guard).
+        const cmd = `cd /d/x && npx tsx src/server.${streamCount}.ts & sleep 3`;
+        return toolStream('terminal', JSON.stringify({ command: cmd }));
+      }
+      return contentStream('done.');
+    });
+
+    const executorMod = await import('./tools/executor.js');
+    vi.spyOn(executorMod, 'executeToolCalls').mockResolvedValue([{
+      toolCallId: 'call_1',
+      name: 'terminal',
+      success: false,
+      content: '',
+      error: "[CIRCUIT BREAKER] command 'cd' failed 2 consecutive times. Inspect the terminal error output, fix the arguments, or switch approach instead of retrying the same command.",
+    }]);
+
+    const origIsTTY = (process.stdin as any).isTTY;
+    (process.stdin as any).isTTY = false;
+    try {
+      const { callModelWithTools } = createModelFunctions({
+        messages,
+        config: TEST_CONFIG,
+        router: makeRouter(chatStreamMock),
+        toolContext,
+        buildFileContext: () => '',
+        askLine: vi.fn().mockResolvedValue('y'),
+      });
+
+      await callModelWithTools('build the app');
+
+      // The checkpoint must have diagnosed the cause instead of leaving a bare stub.
+      expect(toolContext.maxTurnsCause).toBeDefined();
+      expect(toolContext.maxTurnsCause).toMatch(/circuit breaker/i);
+    } finally {
+      (process.stdin as any).isTTY = origIsTTY;
+      delete process.env.DAEDALUS_AUTO_APPROVE;
+    }
+  });
+
   it('stops with a resume hint when not a TTY at the max turn budget', async () => {
     process.env.DAEDALUS_AUTO_APPROVE = 'true';
 

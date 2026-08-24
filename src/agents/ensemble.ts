@@ -77,7 +77,7 @@ async function executeAgentRole(
     return messageText(message.content) || 'Agent completed without response';
   }
 
-  return 'Agent reached max turns';
+  return `Agent reached max turns${toolContext.maxTurnsCause ? ` (cause: ${toolContext.maxTurnsCause})` : ''}`;
 }
 
 function getGitChangesDiff(cwd: string): string {

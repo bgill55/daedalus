@@ -297,11 +297,43 @@ export function createModelFunctions(deps: ModelDeps) {
     openAssistantBlock();
     const overallStart = Date.now();
     let totalToolCalls = 0;
+    // Hoisted so the max-tool-turns checkpoint can diagnose WHY turns were exhausted
+    // (scan the last turn's failures for circuit-breaker / auth / timeout patterns).
+    let lastFailedResults: { error?: string | null; content?: string | null }[] = [];
+
+    // Diagnose WHY the budget was exhausted so the outcome can be recorded as useful
+    // knowledge (not a bare "Agent reached max turns" stub). Patterns, in priority:
+    // circuit-breaker loop, API/auth/timeout stalls, model-escalation churn, verify
+    // loop, repeated tool failures, or a natural checkpoint on a large task.
+    const computeMaxTurnsCause = (): string => {
+      const diagText = (r: { error?: string | null; content?: string | null }) =>
+        `${r.error ?? ''}\n${r.content ?? ''}`;
+      const breakerHit = lastFailedResults.find(r => /\[CIRCUIT BREAKER\]/i.test(diagText(r)));
+      const authHit = lastFailedResults.find(r =>
+        /401|403|invalid api key|unauthorized|ECONNREFUSED|ETIMEDOUT|timed out|timeout/i.test(diagText(r)));
+      if (breakerHit) {
+        return `circuit breaker on a repeated failed command (loop/retry guard) — ${String(breakerHit.error ?? '').split('\n')[0].slice(0, 120)}`;
+      }
+      if (authHit) {
+        return `API/auth or timeout stalls — ${String(authHit.error ?? '').split('\n')[0].slice(0, 120)}`;
+      }
+      if (escalatedThisStreak) {
+        return 'repeated tool failures triggered model-escalation churn (context re-primed mid-task)';
+      }
+      if (verifyBreakerTrippedThisTurn) {
+        return 'verification command tripped the terminal circuit breaker (no real build/test run this turn)';
+      }
+      if (consecutiveToolFailures >= 3) {
+        return `repeated tool failures (${consecutiveToolFailures} consecutive) without progress`;
+      }
+      return 'natural checkpoint — budget exhausted on a large or legitimate multi-step task (user continued or stopped)';
+    };
 
     while (true) {
       if (toolTurnsRemaining <= 0) {
         closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
         console.log(`\n  ${info('[INFO]')} ${dim(`Reached max tool turns (${MAX_TOOL_TURNS}). Pausing to checkpoint.`)}`);
+        toolContext.maxTurnsCause = computeMaxTurnsCause();
         const executedSummary = executedToolNames.size > 0 ? [...executedToolNames].join(', ') : 'none';
         console.log(`  ${dim(`[SUMMARY] ${totalToolCalls} tool call(s) executed: ${executedSummary}`)}`);
         if (process.stdin.isTTY) {
@@ -467,6 +499,7 @@ export function createModelFunctions(deps: ModelDeps) {
         if (repeats >= 2) {
           closeAssistantBlock(cleanContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
           console.log(dim(`\n  [STOP] Runaway loop: same output re-emitted ${repeats} times with no progress. Closing turn.`));
+          toolContext.maxTurnsCause = 'repeated identical output without progress (repetition guard tripped) — the agent emitted the same response multiple times';
           return { content: `${cleanContent}\n\n[SELF-CORRECT] I repeated the same output ${repeats} times without making progress. I am stopping this turn rather than looping.`, toolCalls: [] };
         }
         console.log(dim(`\n  [CHECK] Detected near-duplicate of prior output — not making progress.`));
@@ -618,6 +651,7 @@ export function createModelFunctions(deps: ModelDeps) {
         // "fabricated review from a single passing typecheck" failure at the first deliverable.)
         if (isReviewTask(userTask) && isReviewDeliverable(cleanContent) && claimLedger.totalObservations === 0) {
           closeAssistantBlock(cleanContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
+          toolContext.maxTurnsCause = 'produced a review deliverable with zero file inspections this session (review-without-inspection guard)';
           console.log(dim(`\n  [STOP] Review produced with zero file inspections this session — halting.`));
           return { content: `${cleanContent}\n\n[SELF-CORRECT] I described the project's architecture/features but have not inspected a single file this session. I am stopping rather than fabricating a review. I should read the code before reviewing.`, toolCalls: [] };
         }
@@ -672,6 +706,7 @@ export function createModelFunctions(deps: ModelDeps) {
           closeAssistantBlock(cleanContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
           console.log(dim(`\n  [DONE] Idle re-read stall: same file read ${readStall.readCount} times consecutively with no edit. Closing turn.`));
           toolContext.verifyBreakerTrippedLastTurn = verifyBreakerTrippedThisTurn || verifyBreakerTrippedLastTurn;
+          toolContext.maxTurnsCause = `stuck re-reading the same file without making changes (idle re-read guard, ${readStall.readCount} reads)`;
           return { content: `${cleanContent}\n\n[SELF-CORRECT] I re-read the same file ${readStall.readCount} times without making changes — the change is likely already present on disk. Report the actual on-disk state to the user rather than continuing to read.`, toolCalls: [] };
         }
 
@@ -967,6 +1002,7 @@ export function createModelFunctions(deps: ModelDeps) {
       let shouldPromptGate = hadDangerousTool && !toolContext.autoApproveTools;
 
       const failedResults = results.filter(r => !r.success);
+      lastFailedResults = failedResults;
       if (failedResults.length > 0) {
         consecutiveToolFailures++;
         shouldPromptGate = false;
@@ -1087,6 +1123,7 @@ export function createModelFunctions(deps: ModelDeps) {
       if (consecutiveToolFailures >= 5 || worstRepeatedFailures >= 5) {
         closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
         console.log(dim('\n  [DONE] Concluding after repeated tool failures — see summary above.'));
+        toolContext.maxTurnsCause = computeMaxTurnsCause();
         messages.push({ role: 'assistant', content: lastContent });
         return { content: lastContent, toolCalls: [] };
       }
