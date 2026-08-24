@@ -422,9 +422,24 @@ export class Orchestrator {
     // If explicit target files are listed in the goal, split into file-focused tasks in fallback mode.
     // Match paths like src/foo.ts, tests/foo.test.ts, public/index.html. Require a real extension and
     // stop at whitespace/punctuation so "...in src/server.ts." yields "src/server.ts", not "src/server.ts.".
+    // IMPORTANT: references inside constraint phrases ("do not modify src/server.ts", "don't touch
+    // src/server.ts", "without changing src/server.ts", "leave src/server.ts alone", "existing
+    // endpoints in src/server.ts") must NOT become create/update targets — otherwise the planner spawns
+    // a mutation task for a file the user explicitly wants left untouched, which collides with the real
+    // file and confuses the coder. Strip those negative clauses first.
+    const constraintRe = /(?:do\s+not\s+modify|don'?t\s+(?:touch|modify|change)|without\s+(?:changing|modifying)|leave\s+\S*\s+alone|existing\s+(?:endpoints?|files?|routes?)\s+(?:in|at)|keep\s+\S*\s+unchanged)[^.;]*?(?:src|tests|public|app|pages)\/[a-zA-Z0-9_\-]+\.[a-zA-Z0-9]+/gi;
+    const constraintPaths = new Set<string>(
+      (goal.match(constraintRe) || [])
+        .map((m) => (m.match(/(?:src|tests|public|app|pages)\/[a-zA-Z0-9_\-]+\.[a-zA-Z0-9]+/) || [])[0])
+        .filter((p): p is string => typeof p === 'string')
+    );
+    const strippedGoal = constraintPaths.size > 0
+      ? goal.replace(new RegExp([...constraintPaths].map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), 'gi'), ' ')
+      : goal;
+
     const explicitFiles = Array.from(
       new Set(
-        (goal.match(/(?:\b(?:src|tests|public|app|pages)\/[a-zA-Z0-9_\-]+\.[a-zA-Z0-9]+)/g) || [])
+        (strippedGoal.match(/(?:\b(?:src|tests|public|app|pages)\/[a-zA-Z0-9_\-]+\.[a-zA-Z0-9]+)/g) || [])
           .map((f) => f.replace(/[.\s]+$/, ''))
       )
     );

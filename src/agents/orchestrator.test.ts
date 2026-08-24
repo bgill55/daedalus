@@ -390,6 +390,23 @@ debugger: fix deprecations
     expect(goals.some((g: string) => g.includes('src/server.ts.'))).toBe(false);
   });
 
+  it('buildFallbackPlan excludes files named in "do not modify" constraint phrases', () => {
+    // Regression: a goal saying "Do NOT modify src/server.ts" previously spawned a
+    // create-or-update task for src/server.ts, colliding with the real file and
+    // causing the run to fail verification. Constraint phrases must be excluded.
+    const goal = 'Add a pagination parser at src/pagination.ts and a test at tests/pagination.test.ts. Do NOT modify src/server.ts or any existing route files.';
+    const { router: localRouter } = createMockRouter([]);
+    const orch = new Orchestrator(localRouter, messages, toolContext);
+    const plan = (orch as any).buildFallbackPlan(goal, undefined) as string;
+
+    expect(plan).toContain('src/pagination.ts');
+    expect(plan).toContain('tests/pagination.test.ts');
+    expect(plan).not.toContain('src/server.ts');
+    const tasks = (orch as any).parseDelegationTasks(plan, goal);
+    const goals = tasks.map((t: any) => t.goal);
+    expect(goals.some((g: string) => g.includes('src/server.ts'))).toBe(false);
+  });
+
   it('parseDelegationTasks includes active files list in task context', () => {
     toolContext.activeFiles.set('/path/foo.ts', '/path/foo.ts');
     const plan = `delegate to coder: modify foo.ts`;
