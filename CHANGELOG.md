@@ -1,3 +1,10 @@
+## [3.40.11](https://github.com/bgill55/daedalus/compare/v3.40.10...v3.40.11) (2026-08-24)
+
+
+### Bug Fixes
+
+* **terminal:** block backgrounded/dev-server commands to stop runaway token burn ([7aad2c0](https://github.com/bgill55/daedalus/commit/7aad2c0f7ac34b6fda6aba855d0aab285a940ce8))
+
 ## [3.40.10](https://github.com/bgill55/daedalus/compare/v3.40.9...v3.40.10) (2026-08-24)
 
 
