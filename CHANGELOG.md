@@ -1,3 +1,10 @@
+## [3.42.4](https://github.com/bgill55/daedalus/compare/v3.42.3...v3.42.4) (2026-08-24)
+
+
+### Bug Fixes
+
+* **autopilot:** stop forcing multi-task plans for single-feature goals ([faeb77e](https://github.com/bgill55/daedalus/commit/faeb77eca831a236fbb09722d56461f643ec5b50))
+
 ## [3.42.3](https://github.com/bgill55/daedalus/compare/v3.42.2...v3.42.3) (2026-08-24)
 
 
