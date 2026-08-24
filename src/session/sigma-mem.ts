@@ -8,9 +8,12 @@ import {
   getSigmaMemories,
   getSigmaMemoryByHash,
   updateSigmaScore,
+  markMemoriesUsed,
+  initProjectMemDb,
   pruneLowSigmaMemories,
   SqliteSigmaMemory,
 } from './sqlite.js';
+import { getProjectHash } from '../project-hash.js';
 import { maskSecrets } from '../security/secret-detector.js';
 import { roleLabel } from '../agents/roles.js';
 
@@ -130,6 +133,30 @@ export class SigmaMemEngine {
     const activeMemoryIds = selected.map((m) => m.id);
 
     return { prompt, activeMemoryIds };
+  }
+
+  /**
+   * Record that the memories returned by getPromptContext were actually
+   * injected into an agent's context (recall). Reinforces their reliability
+   * score so frequently-recalled knowledge rises and the ranking learns from
+   * usage. Safe to call with an empty id list.
+   */
+  public static markMemoriesUsed(db: Database.Database, ids: string[]): void {
+    markMemoriesUsed(db, ids);
+  }
+
+  /**
+   * Resolve the project-level Σ-Mem DB for injection, tolerating a
+   * sessionManager whose projectMemDb handle is unset (e.g. an autonomous run
+   * whose session was (re)created without opening it). Falls back to opening
+   * the project-mem DB for the given root so retrieval/injection always works
+   * for a real project. Returns undefined only when no project root is known.
+   */
+  public static resolveProjectMemDb(sessionManager: { projectMemDb?: Database.Database; projectRoot?: string } | undefined, projectRoot?: string): Database.Database | undefined {
+    if (sessionManager?.projectMemDb) return sessionManager.projectMemDb;
+    const root = projectRoot || sessionManager?.projectRoot;
+    if (!root) return undefined;
+    return initProjectMemDb(getProjectHash(root));
   }
 
   private static rankByTagOverlap(memories: SqliteSigmaMemory[], matchTags: string[]): SqliteSigmaMemory[] {

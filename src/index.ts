@@ -180,12 +180,16 @@ function getSystemPromptWithMemory(userRequest?: string): string {
   if (memPrompt) {
     prompt += '\n' + memPrompt;
   }
-  if (sessionManager?.projectMemDb) {
-    const sigmaRes = SigmaMemEngine.getPromptContext(sessionManager.projectMemDb, config.agents?.default ?? undefined, 0.60, 5, Array.from(activeFiles.values()));
-    if (sigmaRes.prompt) {
-      prompt += '\n' + sigmaRes.prompt;
+  if (sessionManager?.projectMemDb || sessionManager?.projectRoot) {
+    const sigmaDb = SigmaMemEngine.resolveProjectMemDb(sessionManager, sessionManager.projectRoot);
+    if (sigmaDb) {
+      const sigmaRes = SigmaMemEngine.getPromptContext(sigmaDb, config.agents?.default ?? undefined, 0.60, 5, Array.from(activeFiles.values()));
+      if (sigmaRes.prompt) {
+        prompt += '\n' + sigmaRes.prompt;
+      }
+      activeSigmaMemoryIds = sigmaRes.activeMemoryIds;
+      SigmaMemEngine.markMemoriesUsed(sigmaDb, activeSigmaMemoryIds);
     }
-    activeSigmaMemoryIds = sigmaRes.activeMemoryIds;
   }
   const stackPrompt = detectProjectStack(sessionManager.projectRoot);
   if (stackPrompt) {

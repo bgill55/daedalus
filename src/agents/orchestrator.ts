@@ -1158,10 +1158,12 @@ export class Orchestrator {
     
     let sigmaMemBlock = '';
     let activeSigmaMemoryIds: string[] = [];
-    if (this.sessionManager?.projectMemDb) {
-      const sigmaRes = SigmaMemEngine.getPromptContext(this.sessionManager.projectMemDb, task.role, 0.60, 5, extractFilePaths(task.goal));
+    const sigmaDb = SigmaMemEngine.resolveProjectMemDb(this.sessionManager, this.toolContext.projectRoot);
+    if (sigmaDb) {
+      const sigmaRes = SigmaMemEngine.getPromptContext(sigmaDb, task.role, 0.60, 5, extractFilePaths(task.goal));
       sigmaMemBlock = sigmaRes.prompt;
       activeSigmaMemoryIds = sigmaRes.activeMemoryIds;
+      SigmaMemEngine.markMemoriesUsed(sigmaDb, activeSigmaMemoryIds);
     }
 
     const systemExtra = `Project context:\n${projectContext || '(none discovered)'}${frameworkRules}${sigmaMemBlock}\n`;

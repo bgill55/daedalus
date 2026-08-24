@@ -395,6 +395,29 @@ export function getSigmaMemories(db: Database.Database, minScore: number = 0.60,
     .slice(0, limit);
 }
 
+/**
+ * Record that a set of memories was actually injected into an agent's context
+ * (recall). Bumps usefulness_count and lightly reinforces sigma_score so the
+ * reliability ranking learns from usage rather than staying frozen at the
+ * seeded value. Without this, retrieval writes nothing back and recall is
+ * indistinguishable from a never-used memory. No-op for an empty id list.
+ */
+export function markMemoriesUsed(db: Database.Database, ids: string[]): void {
+  if (!ids.length) return;
+  const now = Date.now();
+  const stmt = db.prepare(`
+    UPDATE sigma_memories
+    SET usefulness_count = usefulness_count + 1,
+        sigma_score = ROUND(MIN(1.0, sigma_score + 0.01), 4),
+        updated_at = ?
+    WHERE id = ?
+  `);
+  const tx = db.transaction((list: string[]) => {
+    for (const id of list) stmt.run(now, id);
+  });
+  tx(ids);
+}
+
 export function updateSigmaScore(db: Database.Database, id: string, scoreDelta: number, isSuccess: boolean): void {
   const now = Date.now();
   if (isSuccess) {

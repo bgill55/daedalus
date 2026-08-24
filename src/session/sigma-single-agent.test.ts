@@ -74,4 +74,31 @@ describe('Σ-Mem single-agent feedback proxy', () => {
     const before = { patches: 2, maxStreak: 1 };
     expect(evaluatePatchOutcome(before, { ...before })).toBe('none');
   });
+
+  it('markMemoriesUsed reinforces recalled memories (closes the recall loop)', () => {
+    const mem = SigmaMemEngine.recordVerifiedKnowledge(db, {
+      agentRole: 'coder',
+      category: 'build_rule',
+      tags: [],
+      summary: 'Flat ESLint config lives at eslint.config.cjs',
+      content: 'prompt-vault uses eslint flat config; do not add .eslintrc.',
+      initialScore: 0.70,
+    });
+
+    const before = getSigmaMemories(db, 0.0).find((m) => m.id === mem.id)!;
+    const baseline = before.usefulness_count;
+
+    const ctx = SigmaMemEngine.getPromptContext(db, 'coder', 0.60, 5, ['eslint.config.cjs']);
+    expect(ctx.activeMemoryIds).toContain(mem.id);
+
+    SigmaMemEngine.markMemoriesUsed(db, ctx.activeMemoryIds);
+    const after = getSigmaMemories(db, 0.0).find((m) => m.id === mem.id)!;
+    expect(after.usefulness_count).toBe(baseline + 1);
+    expect(after.sigma_score).toBeGreaterThan(before.sigma_score);
+
+    // No-op for empty id list — must not throw or mutate.
+    SigmaMemEngine.markMemoriesUsed(db, []);
+    const unchanged = getSigmaMemories(db, 0.0).find((m) => m.id === mem.id)!;
+    expect(unchanged.usefulness_count).toBe(baseline + 1);
+  });
 });
