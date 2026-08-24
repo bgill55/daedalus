@@ -1,3 +1,10 @@
+## [3.42.2](https://github.com/bgill55/daedalus/compare/v3.42.1...v3.42.2) (2026-08-24)
+
+
+### Bug Fixes
+
+* **autopilot:** stop scope inflation — fix broken/duplicate code in place, no parallel modules ([6e6b279](https://github.com/bgill55/daedalus/commit/6e6b27963778d175bddb30ceb350037220fdd2d7))
+
 ## [3.42.1](https://github.com/bgill55/daedalus/compare/v3.42.0...v3.42.1) (2026-08-24)
 
 
