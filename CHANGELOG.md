@@ -1,3 +1,10 @@
+## [3.40.5](https://github.com/bgill55/daedalus/compare/v3.40.4...v3.40.5) (2026-08-24)
+
+
+### Bug Fixes
+
+* **agents:** apply divine callsigns to /sigma display + injected memory context ([2ca0e86](https://github.com/bgill55/daedalus/commit/2ca0e86612fb4ef38ba07768ce05f8621c94e7f9))
+
 ## [3.40.4](https://github.com/bgill55/daedalus/compare/v3.40.3...v3.40.4) (2026-08-24)
 
 
