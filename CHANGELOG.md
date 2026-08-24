@@ -1,3 +1,10 @@
+## [3.40.10](https://github.com/bgill55/daedalus/compare/v3.40.9...v3.40.10) (2026-08-24)
+
+
+### Bug Fixes
+
+* **autopilot:** exclude 'do not modify' constraint files from fallback plan targets ([264c0f7](https://github.com/bgill55/daedalus/commit/264c0f77f56865fa8f74371ec6d3ceccd6aa3060))
+
 ## [3.40.9](https://github.com/bgill55/daedalus/compare/v3.40.8...v3.40.9) (2026-08-24)
 
 
