@@ -230,13 +230,19 @@ export function validateTasks(tasks: DelegationTask[], goal: string, projectRoot
   if (tasks.length === 0) return 'No tasks generated';
   const isSplit = goal.toLowerCase().includes('continue the remaining work');
   const coderTasks = tasks.filter(t => t.role === 'coder');
+  const isFallbackSingleTask = tasks.length === 1 && tasks[0].goal.trim() === goal.trim();
   if (!isSplit && coderTasks.length === 1 && extractFilePaths(goal).length > 3) {
     return `Expected multiple coder tasks for goal with many file paths`;
   }
-  if (!isSplit && tasks.length === 1 && isComplexGoal(goal)) {
-    return `Expected multiple tasks (one per file/component) to delegate a complex goal, but the plan only has 1 task. Please break it down into at least 2-3 focused subtasks.`;
+  // Previous behavior forced multiple tasks whenever the goal *text* looked
+  // "complex" (bullets / length > 400). That is a false-positive: a single-feature
+  // request with a detailed multi-bullet rationale (e.g. "Add endpoint X — Rationale:
+  // ...") is one cohesive change and a 1-task plan is correct. Only require splitting
+  // when the goal actually names multiple distinct target files.
+  const goalFiles = extractFilePaths(goal);
+  if (!isSplit && tasks.length === 1 && goalFiles.length > 1 && !isFallbackSingleTask) {
+    return `Expected multiple tasks (one per file) to delegate a goal that touches ${goalFiles.length} distinct files, but the plan only has 1 task. Please break it down into focused subtasks.`;
   }
-  const isFallbackSingleTask = tasks.length === 1 && tasks[0].goal.trim() === goal.trim();
   for (const t of tasks) {
     if (VAGUE_GOAL_RE.test(t.goal)) {
       return `Task "${t.goal.slice(0, 80)}" contains vague wording — be concrete`;

@@ -75,3 +75,36 @@ describe('orphanedModuleWarning (wiring check)', () => {
     expect(orphanedModuleWarning(goal, root)).toBeNull();
   });
 });
+
+import { validateTasks } from './orchestrator-validation.js';
+import type { DelegationTask } from './orchestrator-types.js';
+
+describe('validateTasks (single-feature goals accept a 1-task plan)', () => {
+  const singleTask = (goal: string, role = 'coder'): DelegationTask[] => [
+    { goal, role, context: '', dependencies: [] },
+  ];
+
+  it('accepts a 1-task plan for a single-feature goal with a multi-bullet rationale', () => {
+    // This is the exact shape that used to fail 3x and fall back: a detailed,
+    // multi-bullet, >400-char goal that is really ONE cohesive change.
+    const goal = [
+      'Add a POST /api/prompts/:id/duplicate endpoint:',
+      'The frontend has a "Copy" button that copies the template to clipboard,',
+      'but there is no API endpoint to duplicate a prompt as a new entry.',
+      'The bulk duplicate endpoint exists but not a single-prompt one.',
+      'Rationale: UX improvement — users frequently want to clone a prompt.',
+    ].join('\n');
+    const plan = singleTask('Add POST /api/prompts/:id/duplicate to src/server.ts');
+    expect(validateTasks(plan, goal)).toBeNull();
+  });
+
+  it('still rejects a 1-task plan when the goal names multiple distinct files', () => {
+    const goal = 'Refactor src/foo.ts and src/bar.ts and src/baz.ts into modules';
+    const plan = singleTask('update everything');
+    expect(validateTasks(plan, goal)).toMatch(/multiple tasks/i);
+  });
+
+  it('rejects an empty plan', () => {
+    expect(validateTasks([], 'do a thing')).toMatch(/no tasks/i);
+  });
+});
