@@ -1,3 +1,10 @@
+## [3.40.6](https://github.com/bgill55/daedalus/compare/v3.40.5...v3.40.6) (2026-08-24)
+
+
+### Bug Fixes
+
+* **autopilot:** strip leading /autopilot token from delegated task text ([d0ee480](https://github.com/bgill55/daedalus/commit/d0ee48034f3d9dfaac2744da7ee1aaa26e2c2682))
+
 ## [3.40.5](https://github.com/bgill55/daedalus/compare/v3.40.4...v3.40.5) (2026-08-24)
 
 
