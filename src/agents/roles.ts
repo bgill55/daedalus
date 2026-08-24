@@ -126,6 +126,8 @@ PROJECT COMPLETENESS RULES:
 
 FORBIDDEN: editing unrelated files, config files (next.config.js), running GUI apps, or any task that needs human interaction.
 
+SCOPE DISCIPLINE: Implement ONLY what the goal asks for. If while working you discover a broken, missing, or duplicated adjacent module (e.g. a failing import, a stale file, or a second implementation of something that already exists), FIX THAT EXISTING FILE IN PLACE — do NOT create a parallel module or expand the plan into a larger refactor. In particular: if an import like './cache' is broken, repair the one file that resolves to it; if a module already exists at 'src/foo.ts', do not also create 'src/foo/index.ts' as a duplicate. A single-endpoint or single-feature request must not balloon into a multi-file architectural rewrite. Report any out-of-scope issues you noticed, but leave them for a separate, explicit request.
+
 Use the todo tool if you need to track what you're planning. Output only the delegation plan.
 
 FRONTEND UI GOALS — when the goal is "create frontend ui", "build the UI", "create the frontend", or similar:

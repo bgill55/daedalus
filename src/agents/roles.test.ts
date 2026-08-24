@@ -193,4 +193,11 @@ describe('Agent roles', () => {
       expect(res).toBeNull();
     });
   });
+
+  it('planner (Metis) system prompt forbids parallel-module scope inflation', () => {
+    const planner = getAgentRole('planner');
+    expect(planner.systemPrompt).toContain('SCOPE DISCIPLINE');
+    expect(planner.systemPrompt).toContain('FIX THAT EXISTING FILE IN PLACE');
+    expect(planner.systemPrompt).toContain('do NOT create a parallel module');
+  });
 });

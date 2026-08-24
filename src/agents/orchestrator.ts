@@ -1188,7 +1188,7 @@ export class Orchestrator {
     // Extract explicit file paths from the goal and inject a concise scope boundary
     const scopePaths = extractFilePaths(task.goal);
     if (scopePaths.length > 0) {
-      enrichedContext += `\nSCOPE: only touch ${scopePaths.join(', ')}\n`;
+      enrichedContext += `\nSCOPE: only touch ${scopePaths.join(', ')}. Do NOT create a parallel module (e.g. a './foo/index.ts' beside an existing 'src/foo.ts') or expand into an unrelated refactor — if you find broken/duplicate adjacent code, fix the existing file in place.`;
     }
 
     enrichedContext += `\n${frameworkBlock}${task.context}`;
