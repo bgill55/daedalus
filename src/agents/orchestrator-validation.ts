@@ -69,13 +69,6 @@ export function stripToolRequestArtifacts(text: string): string {
 
 export const VAGUE_GOAL_RE = /\b(add the necessary|add the required|install the necessary|install the required|appropriate packages|suitable packages)\b/i;
 
-export function isComplexGoal(goal: string): boolean {
-  const lines = goal.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-  const hasBullets = lines.filter(l => /^[-*•\d+]/.test(l)).length >= 2;
-  const isLong = goal.length > 400;
-  return hasBullets || isLong;
-}
-
 export function cleanTaskText(text: string): string {
   const withoutBlocks = stripCodeBlocks(text);
   const withoutToolRequests = stripToolRequestArtifacts(withoutBlocks);
