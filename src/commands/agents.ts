@@ -193,14 +193,14 @@ export const agentCommands: Command[] = [
       const context = `Active files: ${Array.from(ctx.activeFiles.values()).join(', ') || 'none'}`;
 
       if (isBackground) {
-        console.log(pc.cyan(`\n[SPAWN] Spawning ${role} agent in background for: ${task.slice(0, 80)}...`));
+        console.log(pc.cyan(`\n[SPAWN] Spawning ${roleLabel(role)} agent in background for: ${task.slice(0, 80)}...`));
         const id = spawnBackgroundAgent(role, task, context, ctx.toolContext);
-        console.log(pc.green(`[OK] Spawned background task #${id} (${role}) successfully.`));
+        console.log(pc.green(`[OK] Spawned background task #${id} (${roleLabel(role)}) successfully.`));
         console.log(pc.gray(`  Check status via /tasks, view logs/results via /task ${id}, or cancel via /task kill ${id}`));
         return;
       }
 
-      console.log(pc.cyan(`\n[SPAWN] Spawning ${role} agent for: ${task.slice(0, 80)}...`));
+      console.log(pc.cyan(`\n[SPAWN] Spawning ${roleLabel(role)} agent for: ${task.slice(0, 80)}...`));
 
       const fakeToolCall: ToolCall = {
         id: `call_${Date.now()}`,

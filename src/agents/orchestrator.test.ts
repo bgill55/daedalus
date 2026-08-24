@@ -232,6 +232,21 @@ describe('Orchestrator delegateTask behavior', () => {
     expect((orch as any).results.at(-1).success).toBe(false);
     logMock.mockRestore();
   });
+
+  it('logs the divine callsign (not the machine key) in the SPAWN line', async () => {
+    const logMock = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const { router: localRouter } = createMockRouter(['Implemented the full CLI utility.']);
+    const orch = new Orchestrator(localRouter, messages, toolContext);
+    const task = { goal: 'implement a tiny CLI utility', context: '', role: 'coder' };
+    await (orch as any).delegateTask(task);
+    const spawnLine = logMock.mock.calls
+      .map((c) => c.join(' '))
+      .find((line) => line.includes('[SPAWN] Delegating to'));
+    expect(spawnLine).toBeDefined();
+    expect(spawnLine).toContain('Hephaestus');
+    expect(spawnLine).not.toContain('Delegating to coder:');
+    logMock.mockRestore();
+  });
 });
 
 describe('Orchestrator repair attempts', () => {

@@ -1117,7 +1117,7 @@ export class Orchestrator {
 
   private async delegateTask(task: DelegationTask, tasks?: DelegationTask[], goal?: string, projectContext?: string): Promise<void> {
     const role = getAgentRole(task.role);
-    console.log(`\n[SPAWN] Delegating to ${role.name}: ${task.goal}`);
+    console.log(`\n[SPAWN] Delegating to ${roleLabel(role.name)}: ${task.goal}`);
 
     const tools = filterToolsForRole([...BUILTIN_TOOLS, ...mcpRegistry.getToolDefinitions()], task.role);
     const historyStartIndex = this.toolContext.patchHistory?.length || 0;
