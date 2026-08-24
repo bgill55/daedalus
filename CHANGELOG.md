@@ -1,3 +1,10 @@
+## [3.42.1](https://github.com/bgill55/daedalus/compare/v3.42.0...v3.42.1) (2026-08-24)
+
+
+### Bug Fixes
+
+* **ux:** show divine callsigns in SPAWN lines, not machine keys ([9ceffad](https://github.com/bgill55/daedalus/commit/9ceffada414780768c77d18bf61be2af2fd873cf))
+
 # [3.42.0](https://github.com/bgill55/daedalus/compare/v3.41.1...v3.42.0) (2026-08-24)
 
 
