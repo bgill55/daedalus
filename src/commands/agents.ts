@@ -24,6 +24,16 @@ import { messageText } from '../types.js';
 import { safeGitResetHard, safeGitClean, safeBranchDelete, safeBranchSwitch, allowDestroyFromArgs } from '../git/safe-git.js';
 import type { Command } from './types.js';
 
+/**
+ * Normalize a raw /autopilot argument into a clean feature description.
+ * Strips a leading slash-command token (e.g. if the user re-pastes
+ * "/autopilot ...") so it never leaks into the orchestration goal, branch
+ * slug, or delegated sub-task text. Returns '' for empty/whitespace input.
+ */
+export function normalizeAutopilotIdea(raw: string): string {
+  return raw.trim().replace(/^\/\S+\s*/, '').trim();
+}
+
 // Secret / credential filename patterns that must never be committed by an
 // autonomous run, even if a sub-agent stages them.
 const SECRET_FILE_PATTERN = /(\.env(\..*)?|.*\.key|.*\.pem|.*\.pfx|credentials.*|secrets?.*|.*id_rsa.*)$/i;
@@ -960,7 +970,10 @@ export const agentCommands: Command[] = [
     usage: '/autopilot <feature description> [--allow-destroy]',
     helpText: 'End-to-end autonomous feature development. Creates a branch, plans and implements the feature, runs verification, commits, pushes, and opens a pull request.\\n\\nFlow:\\n  1. Interactive Q&A to refine the feature spec\\n  2. Creates a git branch (daedalus-autopilot-<slug>)\\n  3. Runs the multi-agent orchestrator to implement it\\n  4. Verifies with build/lint/tests\\n  5. Commits and pushes to GitHub\\n  6. Opens a Pull Request against main\\n\\nRequires a GitHub repository with a configured remote origin.\\n\\nSafety: in local-only mode (no remote), the working tree and branch are NEVER destroyed on failure — changes are kept for inspection. Pass --allow-destroy to override this and discard the branch on failure (only for throwaway repos).',
     execute: async (args, ctx) => {
-      const idea = args.trim();
+      // Strip a leading slash-command token (e.g. if the user re-pasted
+      // "/autopilot ...") so it never leaks into the goal, branch slug, or
+      // delegated sub-tasks.
+      const idea = normalizeAutopilotIdea(args);
       if (!idea) {
         console.log(pc.yellow('[WARN] Usage: /autopilot <feature description>'));
         return;
