@@ -322,6 +322,18 @@ export function roleLabel(roleName: string): string {
   return roleName;
 }
 
+// Resolve a role identifier (machine key OR divine callsign) to its canonical
+// machine key. Handles both "coder" and "Hephaestus"/"hephaestus". Returns the
+// input lowercased if unrecognized so callers can decide on a fallback.
+export function resolveRoleKey(name: string): string {
+  const lower = name.trim().toLowerCase();
+  if (AGENT_ROLES[lower]) return lower;
+  const byCallsign = Object.values(AGENT_ROLES).find(
+    (r) => r.callsign.toLowerCase() === lower
+  );
+  return byCallsign ? byCallsign.name : lower;
+}
+
 // Filter tools for a specific role
 export function filterToolsForRole(tools: ToolDefinition[], roleName: string): ToolDefinition[] {
   const role = getAgentRole(roleName);

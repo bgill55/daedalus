@@ -355,6 +355,19 @@ debugger: fix deprecations
     expect(tasks[3]).toEqual({ role: 'reviewer', goal: 'inspect code quality', context: 'Original goal: implement OAuth\n', status: 'pending', splitDepth: 0 });
   });
 
+  it('parseDelegationTasks resolves divine callsigns (Hephaestus) to role keys', () => {
+    // Regression: buildFallbackPlan emits callsigned roles ("delegate to Hephaestus: ...").
+    // A parser that only recognizes machine keys produced 0 tasks -> empty plan -> phantom success.
+    const plan = `delegate to Hephaestus: Add a tiny in-memory rate limiter module at src/rate-limiter.ts`;
+    const { router: localRouter } = createMockRouter([]);
+    const orch = new Orchestrator(localRouter, messages, toolContext);
+    const tasks = (orch as any).parseDelegationTasks(plan, 'add rate limiter');
+
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0].role).toBe('coder');
+    expect(tasks[0].goal).toContain('rate limiter');
+  });
+
   it('parseDelegationTasks includes active files list in task context', () => {
     toolContext.activeFiles.set('/path/foo.ts', '/path/foo.ts');
     const plan = `delegate to coder: modify foo.ts`;

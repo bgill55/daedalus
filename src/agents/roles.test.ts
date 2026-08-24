@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getAgentRole, filterToolsForRole, parseAgentTag, roleLabel, AGENT_ROLES } from './roles.js';
+import { getAgentRole, filterToolsForRole, parseAgentTag, roleLabel, resolveRoleKey, AGENT_ROLES } from './roles.js';
 import type { ToolDefinition } from '../tools/definitions.js';
 
 describe('Agent roles', () => {
@@ -33,6 +33,16 @@ describe('Agent roles', () => {
   it('roleLabel returns the divine callsign', () => {
     expect(roleLabel('coder')).toBe('Hephaestus');
     expect(roleLabel('unknown-role')).toBe('unknown-role');
+  });
+
+  it('resolveRoleKey maps machine keys and divine callsigns to the canonical key', () => {
+    expect(resolveRoleKey('coder')).toBe('coder');
+    expect(resolveRoleKey('Hephaestus')).toBe('coder');
+    expect(resolveRoleKey('hephaestus')).toBe('coder');
+    expect(resolveRoleKey('APOLLO')).toBe('reviewer');
+    expect(resolveRoleKey('themis')).toBe('spec');
+    // Unrecognized input is returned lowercased (caller decides fallback).
+    expect(resolveRoleKey('not-a-role')).toBe('not-a-role');
   });
 
   it('getAgentRole returns the correct role', () => {

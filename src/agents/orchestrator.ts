@@ -8,7 +8,7 @@ import { BUILTIN_TOOLS } from '../tools/definitions.js';
 import { getResolvedShellType } from '../tools/builtin/terminal.js';
 import { mcpRegistry } from '../tools/mcp/registry.js';
 import { executeToolCalls } from '../tools/executor.js';
-import { getAgentRole, filterToolsForRole, roleLabel, AgentRole } from './roles.js';
+import { getAgentRole, filterToolsForRole, roleLabel, resolveRoleKey, AgentRole } from './roles.js';
 import { VALID_AGENT_ROLES } from '../tools/builtin/handoff.js';
 import { ToolContext, ToolCall, ChatMessage, ToolResult, PatchEntry, messageText } from '../types.js';
 import pc from 'picocolors';
@@ -175,6 +175,10 @@ export class Orchestrator {
         }
       } else {
         tasks = filterValidTasks(tasks);
+      }
+
+      if (tasks.length === 0) {
+        return `Orchestration failed: planning produced no executable tasks for goal: ${goal}. The planner returned an empty or unparseable plan (delegate-to lines must name a known agent role, e.g. "delegate to Hephaestus: ...").`;
       }
 
       // Pre-Flight Codebase Audit: Check if workspace has pre-existing compilation/build errors
@@ -850,12 +854,13 @@ export class Orchestrator {
       const trimmedLine = line.trim();
       if (/^\s*tools?\s*used\b/i.test(trimmedLine)) continue;
       if (/^\(?tools?\s*used\b/i.test(trimmedLine)) continue;
-      const roleMatch = line.match(/^\s*(?:-|\*|\d+\.?)?\s*(?:delegate\s+to|assign\s+to|agent:)?\s*(planner|coder|reviewer|debugger|researcher)\s*:/i);
+      const roleRe = /^\s*(?:-|\*|\d+\.?)?\s*(?:delegate\s+to|assign\s+to|agent:)?\s*(planner|coder|reviewer|debugger|researcher|hephaestus|apollo|themis|metis|asclepius|mnemosyne|daedalus)\s*:/i;
+      const roleMatch = line.match(roleRe);
       if (roleMatch) {
         if (currentRole && currentGoal) {
           pushTask(currentRole, currentGoal, baseCtx, 0);
         }
-        currentRole = roleMatch[1].toLowerCase();
+        currentRole = resolveRoleKey(roleMatch[1]);
         const matchIndex = line.indexOf(roleMatch[0]);
         let goalPart = line.substring(matchIndex + roleMatch[0].length);
         goalPart = goalPart.replace(/^[:\s\-]+/, '');
