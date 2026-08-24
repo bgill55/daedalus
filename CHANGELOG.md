@@ -1,3 +1,10 @@
+## [3.40.13](https://github.com/bgill55/daedalus/compare/v3.40.12...v3.40.13) (2026-08-24)
+
+
+### Bug Fixes
+
+* **router:** /model sync targets a keyed freellmapi entry + names the model in 401 ([ad6dc49](https://github.com/bgill55/daedalus/commit/ad6dc490cfd90608f6841691ebed600fecfe2418))
+
 ## [3.40.12](https://github.com/bgill55/daedalus/compare/v3.40.11...v3.40.12) (2026-08-24)
 
 
