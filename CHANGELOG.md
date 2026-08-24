@@ -1,3 +1,10 @@
+## [3.40.12](https://github.com/bgill55/daedalus/compare/v3.40.11...v3.40.12) (2026-08-24)
+
+
+### Bug Fixes
+
+* **loop:** make guardrails stateful to stop token-wasting re-verification ([b3ac777](https://github.com/bgill55/daedalus/commit/b3ac777fd2f4840826235860a66783514036c145))
+
 ## [3.40.11](https://github.com/bgill55/daedalus/compare/v3.40.10...v3.40.11) (2026-08-24)
 
 
