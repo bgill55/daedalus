@@ -12,6 +12,7 @@ import {
   SqliteSigmaMemory,
 } from './sqlite.js';
 import { maskSecrets } from '../security/secret-detector.js';
+import { roleLabel } from '../agents/roles.js';
 
 export function computeSigmaContentHash(agentRole: string, category: string, summary: string): string {
   return crypto.createHash('sha256').update(`${agentRole}|${category}|${summary}`).digest('hex');
@@ -122,7 +123,7 @@ export class SigmaMemEngine {
 
     const lines = selected.map((m) => {
       const scorePct = Math.round(m.sigma_score * 100);
-      return `• [Σ-Score: ${scorePct}%] [${m.agent_role.toUpperCase()}] ${m.summary}\n  ${m.content.trim()}`;
+      return `• [Σ-Score: ${scorePct}%] [${roleLabel(m.agent_role).toUpperCase()}] ${m.summary}\n  ${m.content.trim()}`;
     });
 
     const prompt = `\n--- Σ-Mem Verified Team Memory (Reliability-Scored Knowledge) ---\n${lines.join('\n\n')}\n--- End Σ-Mem ---\n`;

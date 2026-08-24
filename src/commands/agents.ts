@@ -7,6 +7,7 @@ import { executeToolCalls } from '../tools/executor.js';
 import { spawnBackgroundAgent } from '../agents/background.js';
 import { handleSpecCommand, getGitRepoInfo } from '../agents/loop.js';
 import { generateSpecContract, loadSpecContract, formatSpecForPrompt } from '../agents/spec.js';
+import { roleLabel } from '../agents/roles.js';
 import { turnSeparator } from '../formatting.js';
 import { execSync } from 'child_process';
 import { loadConfig } from '../config/index.js';
@@ -1436,7 +1437,7 @@ export const agentCommands: Command[] = [
       for (const m of memories) {
         const scorePct = (m.sigma_score * 100).toFixed(0);
         const scoreColor = m.sigma_score >= 0.8 ? pc.green : m.sigma_score >= 0.6 ? pc.cyan : pc.yellow;
-        console.log(`  ${scoreColor(`[Σ-Score: ${scorePct}%]`)} ${pc.bold(`[${m.agent_role.toUpperCase()}]`)} ${m.summary}`);
+        console.log(`  ${scoreColor(`[Σ-Score: ${scorePct}%]`)} ${pc.bold(`[${roleLabel(m.agent_role).toUpperCase()}]`)} ${m.summary}`);
         console.log(pc.dim(`    Used: ${m.usefulness_count} | Decays: ${m.decay_count} | Content: ${m.content.slice(0, 100)}...`));
         console.log();
       }
