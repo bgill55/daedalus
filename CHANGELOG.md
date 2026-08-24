@@ -1,3 +1,10 @@
+## [3.40.9](https://github.com/bgill55/daedalus/compare/v3.40.8...v3.40.9) (2026-08-24)
+
+
+### Bug Fixes
+
+* **autopilot:** correct explicit-file targeting + guard phantom-success at executePlan ([eeea035](https://github.com/bgill55/daedalus/commit/eeea035c55be2bfcb28a73a789bb76e1ba49024d))
+
 ## [3.40.8](https://github.com/bgill55/daedalus/compare/v3.40.7...v3.40.8) (2026-08-24)
 
 
