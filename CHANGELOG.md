@@ -1,3 +1,10 @@
+## [3.40.7](https://github.com/bgill55/daedalus/compare/v3.40.6...v3.40.7) (2026-08-24)
+
+
+### Bug Fixes
+
+* **sigma-mem:** close the recall loop — record memory usage on injection ([6673839](https://github.com/bgill55/daedalus/commit/6673839228a2f83fb9a2ab13bd5328679796217f))
+
 ## [3.40.6](https://github.com/bgill55/daedalus/compare/v3.40.5...v3.40.6) (2026-08-24)
 
 
