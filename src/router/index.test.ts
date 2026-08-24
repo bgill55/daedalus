@@ -738,12 +738,42 @@ describe('LocalRouter', () => {
       expect(llama.available).toBe(false);
     });
 
-    it('throws a readable error when the endpoint is unreachable', async () => {
+    it('throws a readable error that names the model when the endpoint is unreachable', async () => {
       const router = makeSyncRouter();
       vi.spyOn(router as any, 'getOrCreateClient').mockReturnValue({
         models: { list: vi.fn().mockRejectedValue(new Error('connect ECONNREFUSED')) },
       });
-      await expect(router.syncCatalog()).rejects.toThrow(/Failed to read models from/);
+      await expect(router.syncCatalog()).rejects.toThrow(/Failed to read models from freellmapi \(http:\/\/localhost:3001\/v1\): connect ECONNREFUSED/);
+    });
+
+    it('syncs the first KEYED freellmapi entry by default, not a keyless top-of-chain entry', async () => {
+      // ox-alpha is keyless and first in the chain (priority 0); freellmapi-auto has a key.
+      // The default /model sync must target the keyed entry so it does not 401.
+      const router = new LocalRouter(makeConfig({
+        chain: [
+          { name: 'ox-alpha', endpoint: 'http://localhost:3001/v1', model: 'stealth/ox-alpha', priority: 0, enabled: true, provider: 'freellmapi' },
+          { name: 'freellmapi-auto', endpoint: 'http://localhost:3001/v1', model: 'auto', priority: 1, enabled: true, provider: 'freellmapi', apiKey: 'freellmapi-test-key' },
+        ],
+      }));
+      let usedEndpointName = '';
+      vi.spyOn(router as any, 'getOrCreateClient').mockImplementation((entry: any) => {
+        usedEndpointName = entry.name;
+        return { models: { list: vi.fn().mockResolvedValue({ data: [{ id: 'auto', context_window: 128000, available: 1 }] }) } };
+      });
+      await router.syncCatalog();
+      expect(usedEndpointName).toBe('freellmapi-auto');
+    });
+
+    it('falls back to a keyless freellmapi entry when no keyed one exists', async () => {
+      const router = makeSyncRouter(); // single keyless freellmapi entry
+      let usedEndpointName = '';
+      vi.spyOn(router as any, 'getOrCreateClient').mockImplementation((entry: any) => {
+        usedEndpointName = entry.name;
+        return { models: { list: vi.fn().mockResolvedValue({ data: [{ id: 'gemini-2.5-flash', context_window: 1000000, available: 1 }] }) } };
+      });
+      const rows = await router.syncCatalog();
+      expect(usedEndpointName).toBe('freellmapi');
+      expect(rows.length).toBe(1);
     });
   });
 

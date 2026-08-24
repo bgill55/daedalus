@@ -744,7 +744,11 @@ export class LocalRouter {
   }>> {
     const entry = endpointName
       ? this.config.chain.find(e => e.name.toLowerCase() === endpointName.toLowerCase())
-      : this.config.chain.find(e => e.provider === 'freellmapi') ?? this.getEnabledModels()[0];
+      // Prefer a freellmapi entry that HAS an apiKey as the default sync target: a keyless
+      // top-of-chain entry (e.g. ox-alpha) would otherwise 401 the default /model sync.
+      : (this.config.chain.find(e => e.provider === 'freellmapi' && !!e.apiKey)
+        ?? this.config.chain.find(e => e.provider === 'freellmapi')
+        ?? this.getEnabledModels()[0]);
     if (!entry) throw new Error('No model endpoint found to sync. Add one with /model add first.');
     try {
       const client = this.getOrCreateClient(entry);
@@ -780,7 +784,7 @@ export class LocalRouter {
       return rows;
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      throw new Error(`Failed to read models from ${entry.endpoint}: ${msg}`);
+      throw new Error(`Failed to read models from ${entry.name} (${entry.endpoint}): ${msg}`);
     }
   }
 
