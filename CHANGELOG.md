@@ -1,3 +1,10 @@
+## [3.42.3](https://github.com/bgill55/daedalus/compare/v3.42.2...v3.42.3) (2026-08-24)
+
+
+### Bug Fixes
+
+* **autopilot:** detect orphaned route modules so features aren't added to dead code ([4fe35b2](https://github.com/bgill55/daedalus/commit/4fe35b208a0dd239032ad4f2ce316b2b79e158e2))
+
 ## [3.42.2](https://github.com/bgill55/daedalus/compare/v3.42.1...v3.42.2) (2026-08-24)
 
 
