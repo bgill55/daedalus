@@ -8,6 +8,23 @@
 import { ToolContext, ToolResult } from '../../types.js';
 import { getAgentRole, filterToolsForRole } from '../../agents/roles.js';
 import { BUILTIN_TOOLS } from '../definitions.js';
+
+// Derive a human-readable cause for why a sub-agent (route/delegate) hit its turn
+// budget. The sub-agent loops are minimal (no consecutive-failure ledger like the
+// main loop), so we track only: the last tool names attempted, and the last tool
+// failure observed. That is enough to distinguish a runaway (same failing command
+// repeated), a stall (kept calling tools but never finished), or a natural cap.
+export function subAgentMaxTurnsCause(lastToolNames: string[], lastFailure: string | null): string {
+  if (lastFailure) {
+    const breaker = /\[CIRCUIT BREAKER\]/i.test(lastFailure);
+    const auth = /401|403|invalid api key|unauthorized|ECONNREFUSED|ETIMEDOUT|timed out|timeout/i.test(lastFailure);
+    if (breaker) return `repeated failed command tripped the terminal circuit breaker (loop/retry guard) — ${lastFailure.split('\n')[0].slice(0, 120)}`;
+    if (auth) return `API/auth or timeout stalls — ${lastFailure.split('\n')[0].slice(0, 120)}`;
+    return `last tool call failed — ${lastFailure.split('\n')[0].slice(0, 120)}`;
+  }
+  const tools = lastToolNames.length > 0 ? [...new Set(lastToolNames)].join(', ') : 'none';
+  return `budget exhausted while still emitting tool calls (${tools}) — likely a large/iterative task that needs more turns or a smaller scope`;
+}
 import { executeToolCalls } from '../executor.js';
 import { messageText } from '../../types.js';
 import type { ChatMessage, ToolCall } from '../../types.js';
@@ -52,6 +69,8 @@ async function runOneSubTask(task: SubTask, context: ToolContext): Promise<strin
 
   const tools = filterToolsForRole(BUILTIN_TOOLS, role);
   const maxTurns = agentRole.maxTurns ?? 10;
+  const lastToolNames: string[] = [];
+  let lastFailure: string | null = null;
 
   for (let turns = 0; turns < maxTurns; turns++) {
     const completion = await routerClient!.chat.completions.create({
@@ -77,6 +96,8 @@ async function runOneSubTask(task: SubTask, context: ToolContext): Promise<strin
         subContext,
       );
       for (const result of results) {
+        lastToolNames.push(result.name);
+        if (!result.success && result.error) lastFailure = `${result.error}`;
         messages.push({
           role: 'tool',
           content: result.content,
@@ -89,7 +110,7 @@ async function runOneSubTask(task: SubTask, context: ToolContext): Promise<strin
     return messageText(message.content) || 'Sub-agent completed';
   }
 
-  return 'Sub-agent reached max turns';
+  return `Sub-agent reached max turns (cause: ${subAgentMaxTurnsCause(lastToolNames, lastFailure)})`;
 }
 
 export async function routeTask(args: RouteArgs, context: ToolContext): Promise<ToolResult> {

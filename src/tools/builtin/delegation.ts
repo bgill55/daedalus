@@ -9,6 +9,7 @@ import type { ChatMessage, ToolCall } from '../../types.js';
 import type { ChatRequest, ChatResponse } from '../../router/types.js';
 import { maskSecrets } from '../../security/secret-detector.js';
 import { messageText } from '../../types.js';
+import { subAgentMaxTurnsCause } from './route.js';
 
 interface LocalRouter {
   chat: {
@@ -48,6 +49,8 @@ export async function manage(args: { goal: string; context?: string; role?: stri
     const tools = filterToolsForRole(BUILTIN_TOOLS, role);
     let turns = 0;
     const maxTurns = 10;
+    const lastToolNames: string[] = [];
+    let lastFailure: string | null = null;
 
     while (turns < maxTurns) {
       const completion = await routerClient.chat.completions.create({
@@ -77,6 +80,8 @@ export async function manage(args: { goal: string; context?: string; role?: stri
         );
 
         for (const result of results) {
+          lastToolNames.push(result.name);
+          if (!result.success && result.error) lastFailure = `${result.error}`;
           messages.push({
             role: 'tool',
             content: maskSecrets(result.content),
@@ -100,7 +105,7 @@ export async function manage(args: { goal: string; context?: string; role?: stri
       toolCallId: '',
       name: 'delegate_task',
       success: true,
-      content: 'Sub-agent reached max turns',
+      content: `Sub-agent reached max turns (cause: ${subAgentMaxTurnsCause(lastToolNames, lastFailure)})`,
     };
   } catch (err) {
     return {

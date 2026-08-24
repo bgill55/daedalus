@@ -80,6 +80,42 @@ describe('Delegation tool', () => {
     expect(result.content).toContain('max turns');
   });
 
+  it('records WHY a sub-agent hit max turns (cause in the returned stub)', async () => {
+    const mockRouterClient = {
+      chat: {
+        completions: {
+          create: vi.fn().mockResolvedValue({
+            choices: [{
+              message: {
+                content: 'working...',
+                role: 'assistant',
+                tool_calls: [
+                  { id: 'call_1', type: 'function', function: { name: 'terminal', arguments: '{"command":"cd /d/x && npx tsx src/server.ts & sleep 3"}' } },
+                ],
+              },
+            }],
+          }),
+        },
+      },
+    };
+    setRouterClient(mockRouterClient as any);
+
+    const executorMod = await import('../executor.js');
+    vi.spyOn(executorMod, 'executeToolCalls').mockResolvedValue([{
+      toolCallId: 'call_1',
+      name: 'terminal',
+      success: false,
+      content: '',
+      error: "[CIRCUIT BREAKER] command 'cd' failed 2 consecutive times. Inspect the terminal error output, fix the arguments, or switch approach instead of retrying the same command.",
+    }]);
+
+    const result = await manage({ goal: 'do something', role: 'coder' }, mockContext);
+
+    expect(result.content).toContain('Sub-agent reached max turns');
+    expect(result.content).toContain('(cause:');
+    expect(result.content).toMatch(/circuit breaker/i);
+  });
+
   it('handles router errors gracefully', async () => {
     const mockRouterClient = {
       chat: {
