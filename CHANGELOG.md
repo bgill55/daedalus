@@ -1,3 +1,10 @@
+## [3.40.8](https://github.com/bgill55/daedalus/compare/v3.40.7...v3.40.8) (2026-08-24)
+
+
+### Bug Fixes
+
+* **autopilot:** parse divine callsigns in plan + abort on empty plan (phantom-success) ([94ec646](https://github.com/bgill55/daedalus/commit/94ec646c4aac409014800b7bb4ef9610f63f02d3))
+
 ## [3.40.7](https://github.com/bgill55/daedalus/compare/v3.40.6...v3.40.7) (2026-08-24)
 
 
