@@ -1,3 +1,10 @@
+## [3.40.4](https://github.com/bgill55/daedalus/compare/v3.40.3...v3.40.4) (2026-08-24)
+
+
+### Bug Fixes
+
+* **agents:** show divine callsigns in orchestrator spinners, not machine keys ([6c58124](https://github.com/bgill55/daedalus/commit/6c581243790d4d91c5b1e168ced1da3a06d8a67d))
+
 ## [3.40.3](https://github.com/bgill55/daedalus/compare/v3.40.2...v3.40.3) (2026-08-23)
 
 
