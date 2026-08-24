@@ -23,6 +23,7 @@ import {
   validateTasks, cleanTaskText, cleanPlanOutput, truncateGoal,
   extractFilePaths, buildDependencyGraph, groupIndependent, planNamesTestFiles,
   isUnnecessaryConfigTask, extractRequirements, getFrameworkGuidance,
+  orphanedModuleWarning,
 } from './orchestrator-validation.js';
 import {
   isDeclaredError,
@@ -1189,6 +1190,15 @@ export class Orchestrator {
     const scopePaths = extractFilePaths(task.goal);
     if (scopePaths.length > 0) {
       enrichedContext += `\nSCOPE: only touch ${scopePaths.join(', ')}. Do NOT create a parallel module (e.g. a './foo/index.ts' beside an existing 'src/foo.ts') or expand into an unrelated refactor — if you find broken/duplicate adjacent code, fix the existing file in place.`;
+    }
+
+    // Warn if the task targets an existing route/module file that nothing imports.
+    // Edits to an orphaned module are silent no-ops at runtime (the app never loads it).
+    const orphanWarn = this.toolContext.projectRoot
+      ? orphanedModuleWarning(task.goal, this.toolContext.projectRoot)
+      : null;
+    if (orphanWarn) {
+      enrichedContext += `\n${orphanWarn}`;
     }
 
     enrichedContext += `\n${frameworkBlock}${task.context}`;

@@ -1,5 +1,8 @@
-import { describe, it, expect } from 'vitest';
-import { planNamesTestFiles } from './orchestrator-validation.js';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { planNamesTestFiles, orphanedModuleWarning, isFileImported } from './orchestrator-validation.js';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
 
 describe('planNamesTestFiles (spec-contract test intent)', () => {
   it('arms the lock when the goal explicitly names a test file', () => {
@@ -20,5 +23,55 @@ describe('planNamesTestFiles (spec-contract test intent)', () => {
 
   it('requires a concrete file, not just a directory name', () => {
     expect(planNamesTestFiles('refactor the tests directory')).toBe(false);
+  });
+});
+
+describe('orphanedModuleWarning (wiring check)', () => {
+  let root: string;
+  beforeEach(() => {
+    root = fs.mkdtempSync(path.join(os.tmpdir(), 'daedalus-orphan-'));
+  });
+  afterEach(() => {
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+
+  it('warns when a task targets an existing route module that nothing imports', () => {
+    // Orphaned module: exists but unreferenced.
+    fs.mkdirSync(path.join(root, 'src', 'routes'), { recursive: true });
+    fs.writeFileSync(path.join(root, 'src', 'routes', 'prompts.ts'), 'export const x = 1;');
+    // Live entry that does NOT import it.
+    fs.writeFileSync(path.join(root, 'src', 'server.ts'), "import express from 'express';");
+
+    const goal = 'Add POST /api/prompts/:id/duplicate in src/routes/prompts.ts';
+    expect(orphanedModuleWarning(goal, root)).toMatch(/orphaned\/dead code/i);
+    expect(isFileImported('src/routes/prompts.ts', root)).toBe(false);
+  });
+
+  it('does NOT warn when the module is actually imported by the app', () => {
+    fs.mkdirSync(path.join(root, 'src', 'routes'), { recursive: true });
+    fs.writeFileSync(path.join(root, 'src', 'routes', 'prompts.ts'), 'export const x = 1;');
+    fs.writeFileSync(
+      path.join(root, 'src', 'server.ts'),
+      "import { promptsRouter } from './routes/prompts';\napp.use(promptsRouter);",
+    );
+
+    const goal = 'Add POST /api/prompts/:id/duplicate in src/routes/prompts.ts';
+    expect(orphanedModuleWarning(goal, root)).toBeNull();
+    expect(isFileImported('src/routes/prompts.ts', root)).toBe(true);
+  });
+
+  it('does NOT warn for a non-module file (e.g. a source module that is imported)', () => {
+    fs.mkdirSync(path.join(root, 'src'), { recursive: true });
+    fs.writeFileSync(path.join(root, 'src', 'util.ts'), 'export const y = 2;');
+    fs.writeFileSync(path.join(root, 'src', 'server.ts'), "import './util';");
+    const goal = 'update src/util.ts validation';
+    expect(orphanedModuleWarning(goal, root)).toBeNull();
+  });
+
+  it('ignores files that do not exist yet (legitimate new modules)', () => {
+    fs.mkdirSync(path.join(root, 'src'), { recursive: true });
+    fs.writeFileSync(path.join(root, 'src', 'server.ts'), "import express from 'express';");
+    const goal = 'create src/routes/new-feature.ts with a handler';
+    expect(orphanedModuleWarning(goal, root)).toBeNull();
   });
 });

@@ -101,6 +101,69 @@ export function extractFilePaths(text: string): string[] {
   return Array.from(matches);
 }
 
+// Returns true if any .ts/.js/.tsx/.jsx file under projectRoot imports the given
+// target module. Used to detect "orphaned" modules — files that exist but are not
+// wired into the app, so edits to them are silent no-ops at runtime. Import
+// specifiers are relative to the importing file (not the project root), so we
+// resolve each specifier against the importer's directory and compare to the
+// resolved target path (extension-insensitive).
+export function isFileImported(targetRelPath: string, projectRoot: string): boolean {
+  const absTarget = path.resolve(projectRoot, targetRelPath);
+  const norm = (p: string) => p.replace(/(\.(ts|tsx|js|jsx|mjs|cjs)|[/\\]index)$/i, '');
+  const targetNorm = norm(absTarget);
+  const exts = ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs'];
+  const importRe = /(?:from|import\s*\(\s*)\s*['"]([^'"]+)['"]|require\(\s*['"]([^'"]+)['"]\s*\)/g;
+  const walk = (current: string): boolean => {
+    let entries: fs.Dirent[];
+    try {
+      entries = fs.readdirSync(current, { withFileTypes: true });
+    } catch {
+      return false;
+    }
+    for (const entry of entries) {
+      const full = path.join(current, entry.name);
+      if (entry.isDirectory()) {
+        if (entry.name === 'node_modules' || entry.name === '.git') continue;
+        if (walk(full)) return true;
+      } else if (exts.includes(path.extname(entry.name))) {
+        if (path.resolve(full) === absTarget) continue; // skip the target itself
+        let content: string;
+        try {
+          content = fs.readFileSync(full, 'utf8');
+        } catch {
+          continue;
+        }
+        let m: RegExpExecArray | null;
+        importRe.lastIndex = 0;
+        while ((m = importRe.exec(content)) !== null) {
+          const spec = m[1] || m[2];
+          if (!spec || !spec.startsWith('.')) continue; // skip bare/aliased imports
+          const resolved = norm(path.resolve(path.dirname(full), spec));
+          if (resolved === targetNorm) return true;
+        }
+      }
+    }
+    return false;
+  };
+  return walk(projectRoot);
+}
+
+// If a task targets an existing module-like file (route/controller/middleware) that
+// nothing imports, warn the agent: it's orphaned dead code, edit the live router.
+export function orphanedModuleWarning(taskGoal: string, projectRoot: string): string | null {
+  const files = extractFilePaths(taskGoal);
+  const moduleRe = /(^|[\\/])(routes?|controllers?|middleware|handlers?|routers?)[\\/][^\\/\s]+\.(ts|tsx|js|jsx)$/i;
+  for (const f of files) {
+    if (!moduleRe.test(f)) continue;
+    const abs = path.resolve(projectRoot, f);
+    if (!fs.existsSync(abs)) continue; // only flag existing files
+    if (!isFileImported(f, projectRoot)) {
+      return `WARNING: ${f} exists but is NOT imported by any module in this project — it is orphaned/dead code. Do NOT add features to it; edit the LIVE router (typically src/server.ts or the file that mounts app routes) instead.`;
+    }
+  }
+  return null;
+}
+
 // Spec-contract test intent: the planner must EXPLICITLY name a test file as a
 // deliverable for this task, not just mention the word "tests". A goal like
 // "implement the feature and add tests" must NOT disarm the test-suite lock;
