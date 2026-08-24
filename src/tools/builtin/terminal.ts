@@ -31,6 +31,15 @@ const INSTALL_COMMAND_RE = /(?:^|\s)(?:npm\s+(?:install|i|ci|add)|npx\s|pip\d?\s
 // Commands that open GUI / interactive apps that should not run unattended
 const GUI_LAUNCH_RE = /(?:^|\s)(?:cypress\s+open|cypress\s+run\s+--headed|playwright\s+test\s+--headed)(?:\s|$)/i;
 
+// Block runaway backgrounded/dev-server commands. An agent will frequently try to
+// "verify" a server by spawning `npx tsx src/server.ts & sleep 3` (or `npm run dev &`);
+// the spawn times out, the model retries with a varied command, and the detached server
+// process is never reaped — producing dozens of orphaned servers and burning huge token
+// counts. Proactively refuse these and steer the agent to a one-shot verification command.
+const DEV_SERVER_RE = /(?:^|\s)(?:npx\s+tsx(?:\s+watch)?\s+[\w./\-]+\.(?:ts|js|mjs)|npx\s+ts-node\s+[\w./\-]+\.(?:ts|js)|node\s+[\w./\-]+\.(?:ts|js|mjs)(?:\s|&)|npm\s+run\s+(?:dev|start|watch|serve)|yarn\s+(?:dev|start|watch|serve)|pnpm\s+(?:dev|start|watch|serve)|bun\s+(?:dev|start|watch|serve)|tsx\s+watch\s+[\w./\-]+|nodemon\s+[\w./\-]+)(?:\s|$)/i;
+// A trailing `&` / `nohup` / `&>` backgrounds the process — always refuse.
+const BACKGROUND_SPAWN_RE = /(?:^|\s)(?:nohup\s|&\s*(?:\d*>\s*\S+\s*)?$|\s+&\s*$)/;
+
 // Captures the package name of a bare `npx <pkg>` invocation
 const NPX_RE = /(?:^|\s)npx(?:\s|@)([A-Za-z0-9@._/+-]+)/;
 
@@ -412,6 +421,25 @@ export async function execute(args: { command: string; timeout?: number; workdir
       success: false,
       content: '',
       error: `GUI launch blocked: ${command.slice(0, 200)}`,
+    });
+  }
+
+  // Gate: backgrounded / dev-server commands are blocked. Spawning `npx tsx src/server.ts &`
+  // (or `npm run dev &`, `node app.js &`, `nohup ...`) backgrounds a long-running process the
+  // agent cannot observe; the spawn times out, the model retries, and the detached process is
+  // never reaped — dozens of orphaned servers and a token-burning loop. Refuse and steer to a
+  // one-shot verification command (tsc --noEmit, npm test, or read the file).
+  if (DEV_SERVER_RE.test(command) || BACKGROUND_SPAWN_RE.test(command)) {
+    return Promise.resolve({
+      toolCallId: '',
+      name: 'terminal',
+      success: false,
+      content: '',
+      error: `[BLOCKED] Backgrounded/dev-server command refused: ${command.trim().slice(0, 160)}. ` +
+        `Do NOT spawn a long-running server to verify code — it backgrounds a process that times out ` +
+        `and loops. Use a one-shot check instead: 'npx tsc --noEmit', 'npm test', or read the file.` +
+        `If you must run the server, start it ONCE via the shell (not this tool) and probe it with a ` +
+        `separate curl/health check — never re-issue this command in a loop.`,
     });
   }
 

@@ -547,10 +547,13 @@ describe('terminal execute', () => {
     const ctx = makeContext();
     ctx.terminalRepeatStreak = new Map<string, number>();
 
+    // Use a safe, non-dev-server command so the dev-server gate does not preempt the
+    // no-progress breaker under test.
+    const cmd = 'node -e "console.log(1)"';
     for (let i = 0; i < 2; i++) {
       const mockProc = makeMockProcess();
       (spawn as any).mockReturnValue(mockProc);
-      const p = execute({ command: 'cd D:\\prompt-vault && npm run dev & sleep 3' }, ctx);
+      const p = execute({ command: cmd }, ctx);
       mockProc.emit('close', 0);
       const r = await p;
       expect(r.success).toBe(true);
@@ -559,7 +562,7 @@ describe('terminal execute', () => {
     // Third identical run: breaker trips BEFORE spawning (note it exits 0, so the
     // failure breaker would never catch this).
     (spawn as any).mockClear();
-    const r3 = await execute({ command: 'cd D:\\prompt-vault && npm run dev & sleep 3' }, ctx);
+    const r3 = await execute({ command: cmd }, ctx);
     expect(spawn).not.toHaveBeenCalled();
     expect(r3.success).toBe(false);
     expect(r3.error).toContain('[CIRCUIT BREAKER]');
@@ -578,9 +581,10 @@ describe('terminal execute', () => {
     };
 
     // edit -> test -> edit: commands differ between runs, so no no-progress loop.
-    await runCmd('npm run dev & sleep 3');
+    // (Avoid dev-server patterns here — the dev-server gate preempts them now.)
+    await runCmd('node -e "console.log(1)"');
     await runCmd('npm run build');
-    await runCmd('npm run dev & sleep 3');
+    await runCmd('node -e "console.log(2)"');
 
     expect(spawn).toHaveBeenCalledTimes(3);
   });
@@ -690,4 +694,43 @@ describe('getResolvedShellType', () => {
     const mod = await import('./terminal.js');
     expect(mod.getResolvedShellType()).toBe('powershell');
   });
+
+  describe('dev-server / backgrounded command gate', () => {
+    it('blocks backgrounded dev-server spawn (npx tsx src/server.ts &)', async () => {
+      const result = await execute({ command: 'cd /d/prompt-vault && npx tsx src/server.ts & sleep 3' }, makeContext());
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('[BLOCKED]');
+      expect(spawn).not.toHaveBeenCalled();
+    });
+
+    it('blocks npm run dev &', async () => {
+      const result = await execute({ command: 'npm run dev &' }, makeContext());
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('[BLOCKED]');
+      expect(spawn).not.toHaveBeenCalled();
+    });
+
+    it('blocks a trailing & background redirect', async () => {
+      const result = await execute({ command: 'node app.js &' }, makeContext());
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('[BLOCKED]');
+    });
+
+    it('blocks nohup backgrounding', async () => {
+      const result = await execute({ command: 'nohup npm run start' }, makeContext());
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('[BLOCKED]');
+    });
+
+    it('still allows one-shot verification commands (tsc --noEmit)', async () => {
+      const mockProc = makeMockProcess();
+      (spawn as any).mockReturnValue(mockProc);
+      const resultPromise = execute({ command: 'npx tsc --noEmit' }, makeContext());
+      mockProc.emit('close', 0);
+      const result = await resultPromise;
+      expect(result.success).toBe(true);
+      expect(spawn).toHaveBeenCalled();
+    });
+  });
+
 });
