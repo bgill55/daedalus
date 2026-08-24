@@ -1,3 +1,10 @@
+# [3.41.0](https://github.com/bgill55/daedalus/compare/v3.40.13...v3.41.0) (2026-08-24)
+
+
+### Features
+
+* **model:** record WHY a task hit the max-turns/guard checkpoint into sigma memory ([cb615ce](https://github.com/bgill55/daedalus/commit/cb615ce810aa1a85a137130a06660daa9e1b4673))
+
 ## [3.40.13](https://github.com/bgill55/daedalus/compare/v3.40.12...v3.40.13) (2026-08-24)
 
 
