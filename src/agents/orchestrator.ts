@@ -419,9 +419,16 @@ export class Orchestrator {
       }
     }
 
-    // If explicit target files are listed in the goal, split into file-focused tasks in fallback mode
-    const explicitFiles = goal.match(/(?:src|public|app|pages)\/[a-zA-Z0-9_\-\.\/]+/g);
-    if (explicitFiles && explicitFiles.length > 1) {
+    // If explicit target files are listed in the goal, split into file-focused tasks in fallback mode.
+    // Match paths like src/foo.ts, tests/foo.test.ts, public/index.html. Require a real extension and
+    // stop at whitespace/punctuation so "...in src/server.ts." yields "src/server.ts", not "src/server.ts.".
+    const explicitFiles = Array.from(
+      new Set(
+        (goal.match(/(?:\b(?:src|tests|public|app|pages)\/[a-zA-Z0-9_\-]+\.[a-zA-Z0-9]+)/g) || [])
+          .map((f) => f.replace(/[.\s]+$/, ''))
+      )
+    );
+    if (explicitFiles.length > 1) {
       const uniqueFiles = Array.from(new Set(explicitFiles));
       return uniqueFiles.map(f => `- delegate to ${roleLabel('coder')}: create or update ${f} to support: ${goal.slice(0, 100)}`).join('\n');
     }
@@ -739,6 +746,17 @@ export class Orchestrator {
           }
         }
       }
+    }
+
+    // Guard against phantom success: if no task was ever delegated/executed
+    // (all skipped, or the plan collapsed to zero runnable tasks), surface a
+    // failure instead of letting run() print "Orchestration Complete" with no
+    // artifacts. Observed in the wild: a fallback plan parsed to tasks but the
+    // execution loop produced nothing, yet the run reported success.
+    const executed = tasks.filter(t => t.status === 'completed' || t.status === 'in_progress').length;
+    const anyDelegated = (this.results?.length ?? 0) > 0;
+    if (executed === 0 && !anyDelegated) {
+      throw new Error('Orchestration produced no executed tasks — plan collapsed to zero runnable work. No artifacts were generated.');
     }
   }
 

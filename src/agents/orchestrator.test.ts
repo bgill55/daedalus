@@ -368,6 +368,28 @@ debugger: fix deprecations
     expect(tasks[0].goal).toContain('rate limiter');
   });
 
+  it('buildFallbackPlan splits explicit src/ and tests/ paths without grabbing a trailing period', () => {
+    // Regression: the explicitFiles regex captured "src/server.ts." (trailing period
+    // from "...in src/server.ts.") and dropped "tests/rate-limiter.test.ts" (tests/ not
+    // in the prefix list). The goal says "Do NOT modify src/server.ts" yet the old regex
+    // spawned a task for a nonexistent "src/server.ts." file.
+    const goal = 'Add a tiny rate limiter at src/rate-limiter.ts and a test at tests/rate-limiter.test.ts. Do NOT touch src/server.ts.';
+    const { router: localRouter } = createMockRouter([]);
+    const orch = new Orchestrator(localRouter, messages, toolContext);
+    const plan = (orch as any).buildFallbackPlan(goal, undefined) as string;
+
+    expect(plan).toContain('src/rate-limiter.ts');
+    expect(plan).toContain('tests/rate-limiter.test.ts');
+    expect(plan).not.toContain('src/server.ts.');
+    // Should produce two file-focused tasks, not a bogus src/server.ts. task.
+    const tasks = (orch as any).parseDelegationTasks(plan, goal);
+    const goals = tasks.map((t: any) => t.goal);
+    expect(tasks.length).toBeGreaterThanOrEqual(2);
+    expect(goals.some((g: string) => g.includes('src/rate-limiter.ts'))).toBe(true);
+    expect(goals.some((g: string) => g.includes('tests/rate-limiter.test.ts'))).toBe(true);
+    expect(goals.some((g: string) => g.includes('src/server.ts.'))).toBe(false);
+  });
+
   it('parseDelegationTasks includes active files list in task context', () => {
     toolContext.activeFiles.set('/path/foo.ts', '/path/foo.ts');
     const plan = `delegate to coder: modify foo.ts`;
@@ -531,7 +553,7 @@ debugger: fix deprecations
       { goal: 'task 1', context: '', role: 'coder', status: 'pending' as const }
     ];
 
-    await (orch as any).executePlan('plan', tasks, 0);
+    await expect((orch as any).executePlan('plan', tasks, 0)).rejects.toThrow(/no executed tasks/);
 
     expect(callCount).toBe(2);
     expect(askLineMock).toHaveBeenCalledTimes(2);
