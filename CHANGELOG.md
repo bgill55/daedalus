@@ -1,3 +1,10 @@
+## [3.41.1](https://github.com/bgill55/daedalus/compare/v3.41.0...v3.41.1) (2026-08-24)
+
+
+### Bug Fixes
+
+* **skills:** don't synthesize a skill draft from praise / verification-summary turns ([8b777fe](https://github.com/bgill55/daedalus/commit/8b777fe3ebb7073ca01b7633f60c0b2444c1efa3))
+
 # [3.41.0](https://github.com/bgill55/daedalus/compare/v3.40.13...v3.41.0) (2026-08-24)
 
 
