@@ -43,7 +43,7 @@ describe('Auto Skill Synthesis', () => {
 
   it('prevents duplicate skill synthesis if a draft already exists', () => {
     const prompt = 'Configure Helmet CSP headers for Express production app';
-    const summary = 'Installed helmet and updated contentSecurityPolicy settings.';
+    const summary = 'Installed helmet and updated contentSecurityPolicy settings in src/app.ts. Ran `npm run build`.';
     const first = synthesizeSkillFromTurn(prompt, summary);
     expect(first.synthesized).toBe(true);
     expect(listSkillDrafts().length).toBe(1);
@@ -95,5 +95,29 @@ describe('Auto Skill Synthesis', () => {
     const summary = 'The user pointed out the guardrails were too strict and we made fixes. The banter keeps it fresh for end users.';
     const res = synthesizeSkillFromTurn(prompt, summary);
     expect(res.synthesized).toBe(false);
+  });
+
+  it('skips synthesis for a praise / verification-summary turn with no reusable recipe', () => {
+    // Regression: a "good job" praise turn whose summary only restates verified work
+    // ("60 tests pass / verified on disk / changes made") has work verbs but NO procedure.
+    // It is a status report, not a playbook, so it must not synthesize a draft. Note the
+    // summary deliberately avoids naming any command/file (e.g. "npm run lint") so it is a
+    // pure status report, not a recipe.
+    const prompt = 'well done Daedalus, i just checked the work you did 10/10';
+    const summary =
+      'All 60 tests passed and typecheck is clean. The changes are verified on disk. ' +
+      'The changes are real and on disk and the suite is green.';
+    const res = synthesizeSkillFromTurn(prompt, summary);
+    expect(res.synthesized).toBe(false);
+  });
+
+  it('still synthesizes when the summary carries a real procedural recipe', () => {
+    // The gate must NOT block turns that actually contain a reusable how-to (commands,
+    // file refs, or step lists) alongside the work verbs.
+    const prompt = 'Fix typescript module resolution error in Express router';
+    const summary =
+      'Installed @types/express and ran `npm run build`. Updated tsconfig.json moduleResolution to bundler. Steps:\n1. add @types/express\n2. set moduleResolution';
+    const res = synthesizeSkillFromTurn(prompt, summary);
+    expect(res.synthesized).toBe(true);
   });
 });

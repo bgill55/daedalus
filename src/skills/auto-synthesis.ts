@@ -62,6 +62,16 @@ export function synthesizeSkillFromTurn(
   // happens to exceed the length floor would synthesize a spurious draft.
   if (!DID_WORK_SUMMARY_RE.test(turnSummary)) return { synthesized: false };
 
+  // A skill playbook must contain a REUSABLE RECIPE, not just a status report. A turn
+  // that says "all 60 tests pass / verified on disk / changes made" has a work verb but
+  // no procedure — it is a verification summary, not a how-to. Synthesizing a draft from
+  // it (e.g. from a "good job" praise turn) pollutes the .drafts store with junk. Require
+  // at least one procedural signal: a shell command, a code/file block, an ordered step
+  // list, or an explicit patched-file reference, before proposing a skill.
+  const PROCEDURAL_SUMMARY_RE =
+    /(^|\n)\s*(?:[*-]|\d+[.)])\s|npm |npx |git |pnpm |yarn |bun |cd \/|patch |read_file|write_file|(src\/|tests?\/\.ts|\.js|\.json)|diff --git|@@ -\d/i;
+  if (!PROCEDURAL_SUMMARY_RE.test(turnSummary)) return { synthesized: false };
+
   const slug = slugify(userPrompt);
   if (!slug || slug.length < 3) return { synthesized: false };
 
