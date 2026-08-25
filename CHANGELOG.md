@@ -1,3 +1,10 @@
+# [3.43.0](https://github.com/bgill55/daedalus/compare/v3.42.4...v3.43.0) (2026-08-25)
+
+
+### Features
+
+* **autopilot:** branch from detected base and auto-merge back on success ([b76d98e](https://github.com/bgill55/daedalus/commit/b76d98ed66333f4f2317c0d51d5a0fa857683a8d))
+
 ## [3.42.4](https://github.com/bgill55/daedalus/compare/v3.42.3...v3.42.4) (2026-08-24)
 
 
