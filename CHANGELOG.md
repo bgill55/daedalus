@@ -1,3 +1,10 @@
+# [3.44.0](https://github.com/bgill55/daedalus/compare/v3.43.2...v3.44.0) (2026-08-25)
+
+
+### Features
+
+* **ux:** hint in /models pointing to /model sync for discovery ([bc0df3f](https://github.com/bgill55/daedalus/commit/bc0df3f5e7e04bb9f4976d173153778de4120aa9))
+
 ## [3.43.2](https://github.com/bgill55/daedalus/compare/v3.43.1...v3.43.2) (2026-08-25)
 
 
