@@ -1,3 +1,10 @@
+# [3.46.0](https://github.com/bgill55/daedalus/compare/v3.45.1...v3.46.0) (2026-08-25)
+
+
+### Features
+
+* **mcp:** auto-grant filesystem server read/write to the launch folder ([a0078a8](https://github.com/bgill55/daedalus/commit/a0078a80ab2afb6468a19ea1b568be11f5038ebb))
+
 ## [3.45.1](https://github.com/bgill55/daedalus/compare/v3.45.0...v3.45.1) (2026-08-25)
 
 
