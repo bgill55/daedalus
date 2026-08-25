@@ -1,3 +1,10 @@
+## [3.43.1](https://github.com/bgill55/daedalus/compare/v3.43.0...v3.43.1) (2026-08-25)
+
+
+### Bug Fixes
+
+* **router:** dedupe /models catalog by endpoint to stop 12x repetition ([bebf935](https://github.com/bgill55/daedalus/commit/bebf9358981b0a22049436a246ff41baf127b3a2))
+
 # [3.43.0](https://github.com/bgill55/daedalus/compare/v3.42.4...v3.43.0) (2026-08-25)
 
 
