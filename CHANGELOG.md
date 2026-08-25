@@ -1,3 +1,10 @@
+## [3.43.2](https://github.com/bgill55/daedalus/compare/v3.43.1...v3.43.2) (2026-08-25)
+
+
+### Bug Fixes
+
+* **router:** /models lists configured chain, not the upstream catalog ([013820f](https://github.com/bgill55/daedalus/commit/013820ff0c5c508f520266c9f43dbd47961cb9ad))
+
 ## [3.43.1](https://github.com/bgill55/daedalus/compare/v3.43.0...v3.43.1) (2026-08-25)
 
 
