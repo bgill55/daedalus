@@ -1,3 +1,10 @@
+# [3.45.0](https://github.com/bgill55/daedalus/compare/v3.44.1...v3.45.0) (2026-08-25)
+
+
+### Features
+
+* **git:** /gitautobranch toggle for automatic branch-from-base in single-agent mode ([a95235c](https://github.com/bgill55/daedalus/commit/a95235cf4db83fa8c0b09e0c9b3b055a050ecb06))
+
 ## [3.44.1](https://github.com/bgill55/daedalus/compare/v3.44.0...v3.44.1) (2026-08-25)
 
 
