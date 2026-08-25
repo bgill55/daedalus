@@ -518,6 +518,9 @@ export function createModelFunctions(deps: ModelDeps) {
       if (toolCallArray.length === 0) {
         const ungrounded = detectUngroundedClaim(cleanContent, claimLedger);
         if (ungrounded) {
+          const key = `claim:${ungrounded}`;
+          if (toolContext.firedCompletionGuards?.has(key)) continue;
+          (toolContext.firedCompletionGuards ??= new Set<string>()).add(key);
           console.log(dim(`\n  [CHECK] Claim about ${ungrounded} is ungrounded (no inspection this session).`));
           messages.push({ role: 'assistant', content: cleanContent });
           messages.push({
@@ -536,6 +539,9 @@ export function createModelFunctions(deps: ModelDeps) {
       if (toolCallArray.length === 0) {
         const projClaim = isUngroundedProjectClaim(cleanContent, claimLedger);
         if (projClaim) {
+          const key = `proj:${projClaim}`;
+          if (toolContext.firedCompletionGuards?.has(key)) continue;
+          (toolContext.firedCompletionGuards ??= new Set<string>()).add(key);
           console.log(dim(`\n  [CHECK] Project claim about "${projClaim}" is ungrounded (never observed this session).`));
           messages.push({ role: 'assistant', content: cleanContent });
           messages.push({
@@ -690,6 +696,15 @@ export function createModelFunctions(deps: ModelDeps) {
         // functions — the graded run built an endpoint, reported "wired in" after tests passed,
         // and it was actually broken until the user exercised it. Forces real verification.
         if (detectUngroundedWorksClaim(cleanContent, claimLedger)) {
+          // Debounce: the same "works/verified without a probe" claim must not be
+          // re-flagged every turn — that trains the user/model to ignore the guard.
+          // Fire once per session (recorded in firedCompletionGuards), then stop; the
+          // divergence/repetition guard closes any remaining loop.
+          const worksKey = 'works-claim';
+          if (toolContext.firedCompletionGuards?.has(worksKey)) {
+            continue;
+          }
+          (toolContext.firedCompletionGuards ??= new Set<string>()).add(worksKey);
           console.log(dim(`\n  [CHECK] "Works/verified" claim made with no live runtime probe (curl/HTTP/integration test) this session.`));
           messages.push({ role: 'assistant', content: cleanContent });
           messages.push({

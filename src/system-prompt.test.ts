@@ -19,4 +19,10 @@ describe('systemPrompt', () => {
     expect(systemPrompt).toMatch(/npx tsc --noEmit/);
     expect(systemPrompt).toMatch(/do NOT re-derive the same/i);
   });
+
+  it('should tell the agent to verify static assets on disk (not assert) and fall back to a disk check when a server probe is blocked', () => {
+    expect(systemPrompt).toMatch(/Verify a static asset \(image, favicon, CSS, HTML, JSON\) by INSPECTING IT ON DISK/);
+    expect(systemPrompt).toMatch(/fall back to the disk check/);
+    expect(systemPrompt).toMatch(/never after the write alone/);
+  });
 });
