@@ -718,7 +718,10 @@ export class LocalRouter {
 
   async listModels(): Promise<string[]> {
     const models: string[] = [];
+    const seenEndpoints = new Set<string>();
     for (const entry of this.getEnabledModels()) {
+      if (seenEndpoints.has(entry.endpoint)) continue;
+      seenEndpoints.add(entry.endpoint);
       try {
         const client = this.getOrCreateClient(entry);
         const list = await client.models.list();
