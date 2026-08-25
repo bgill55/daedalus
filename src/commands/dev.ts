@@ -832,6 +832,7 @@ Once you have finished making changes, I will automatically re-run the command t
         }
         console.log(pc.dim('  Run /blacklist clear to allow them again.'));
       }
+      console.log(pc.dim('  These are the models Daedalus is configured to route to. To browse and add more models from an endpoint, run /model sync.'));
       console.log(pc.bold('----------------------\n'));
     }
   },
