@@ -35,7 +35,7 @@ export class MCPRegistry {
     let transport: MCPTransport;
 
     if (config.transport === 'stdio') {
-      transport = new StdioTransport(config);
+      transport = new StdioTransport(applyLaunchFolderRoot(config));
     } else if (config.transport === 'http') {
       transport = new HttpTransport(config);
     } else {
@@ -119,3 +119,30 @@ export class MCPRegistry {
 }
 
 export const mcpRegistry = new MCPRegistry();
+
+/**
+ * Auto-grant the filesystem MCP server read/write access to the folder Daedalus
+ * was launched in (process.cwd()), so a user who opens Daedalus inside a project
+ * can work there without editing config. This is the "open in a folder => work in
+ * that folder" expectation; forcing a per-project config edit is a workflow killer
+ * for new users. Returns a config with the launch folder appended to the filesystem
+ * server's allowed roots (deduped, case-insensitive on Windows). Does NOT mutate the
+ * stored config — the grant is per-session and ephemeral.
+ *
+ * The launch folder is always covered recursively by the filesystem server, so
+ * subfolders the agent creates (e.g. a new project dir) are included automatically.
+ */
+export function applyLaunchFolderRoot(config: MCPServerConfig, cwd: string = process.cwd()): MCPServerConfig {
+  if (config.transport !== 'stdio') return config;
+  const isFilesystemServer =
+    (config.command?.includes('server-filesystem') ?? false) ||
+    (config.args?.some((a) => a.includes('server-filesystem')) ?? false);
+  if (!isFilesystemServer) return config;
+
+  const existing = config.args ?? [];
+  const norm = (p: string): string => p.replace(/\\/g, '/').toLowerCase();
+  const normalizedCwd = norm(cwd);
+  if (existing.some((a) => norm(a) === normalizedCwd)) return config;
+
+  return { ...config, args: [...existing, cwd] };
+}
