@@ -1,3 +1,10 @@
+## [3.44.1](https://github.com/bgill55/daedalus/compare/v3.44.0...v3.44.1) (2026-08-25)
+
+
+### Bug Fixes
+
+* **formatting:** collapse runs of blank assistant lines to kill dead space ([e1d4a53](https://github.com/bgill55/daedalus/commit/e1d4a53a0f1ed6dda3e9a6383734d68f69e0160c))
+
 # [3.44.0](https://github.com/bgill55/daedalus/compare/v3.43.2...v3.44.0) (2026-08-25)
 
 
