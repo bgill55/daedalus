@@ -28,6 +28,7 @@ Run these commands inside the active Daedalus REPL shell to configure models, tr
 * **`/session checkout <name>`** – Switches the active REPL session to an alternative branch to explore different implementation paths.
 * **`/session branches`** – Renders a hierarchical tree visualization of your active and archived chat session branches.
 * **`/session merge <name>`** – Automatically extracts code diffs from step \(K+1\) of an experimental branch, applies them to the workspace via git, and appends the chat history back to the parent session.
+* **`/gitautobranch [on|off]`** – Toggle automatic branch-from-base for single-agent tasks. When ON, Daedalus branches from the detected base branch (main/master) at the start of a task (clean tree only), so work never piles onto a stale branch. No auto-merge in interactive mode — merge the work branch back when ready (or use `/autopilot`, which merges automatically).
 * **`/sigma` / `/memory`** – View active SQLite-backed session memories, usefulness scores, and decay counts in real-time.
 
 ####  Playbooks & Task Delegation
