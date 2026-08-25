@@ -14,6 +14,7 @@ import { enhanceCommand } from './enhance.js';
 import { cheatsheetCommand } from './cheatsheet.js';
 import { faqCommand } from './faq.js';
 import { recipeCommand } from './recipe.js';
+import { gitAutoBranchCommand } from './gitautobranch.js';
 import type { Command, CommandContext } from './types.js';
 
 export type { Command, CommandContext } from './types.js';
@@ -74,7 +75,7 @@ const helpCommand: Command = {
         categories.Context.push(cmd);
       } else if (['spawn', 'delegate', 'tasks', 'task', 'orchestrate', 'orc', 'run', 'o', 'ensemble', 'spec', 'mcp', 'onboard', 'feedback'].includes(name)) {
         categories.Agents.push(cmd);
-      } else if (['tui', 'image', 'autopilot', 'preview', 'branch', 'pr', 'debug', 'commit', 'project', 'test', 'watch', 'index', 'find', 'refs', 'def', 'callgraph', 'impact', 'ci', 'badge', 'changelog', 'models', 'model', 'preset', 'config', 'doctor', 'stats', 'health', 'shortcut', 'sc', 'blacklist', 'providers', 'routing'].includes(name)) {
+      } else if (['tui', 'image', 'autopilot', 'preview', 'branch', 'pr', 'debug', 'commit', 'project', 'test', 'watch', 'index', 'find', 'refs', 'def', 'callgraph', 'impact', 'ci', 'badge', 'changelog', 'models', 'model', 'preset', 'config', 'doctor', 'stats', 'health', 'shortcut', 'sc', 'blacklist', 'providers', 'routing', 'gitautobranch'].includes(name)) {
         categories.Development.push(cmd);
       } else if (['session', 'undo', 'history', 'h', 'exit', 'quit', 'bye'].includes(name)) {
         categories.Session.push(cmd);
@@ -153,6 +154,7 @@ export const commandsList: Command[] = [
   cheatsheetCommand,
   faqCommand,
   recipeCommand,
+  gitAutoBranchCommand,
   helpCommand,
 ];
 

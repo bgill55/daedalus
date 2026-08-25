@@ -213,6 +213,7 @@ describe('Documentation Sync Verification', () => {
       { prefix: 'ui.', title: 'UI Settings' },
       { prefix: 'safety.', title: 'Safety Settings' },
       { prefix: 'security.', title: 'Security Settings' },
+      { prefix: 'git.', title: 'Git Settings' },
       { prefix: 'updateCheck', title: 'Update Settings' },
     ];
 

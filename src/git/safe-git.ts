@@ -112,3 +112,31 @@ export function safeMergeToBase(branch: string, base: string, cwd: string): bool
     return false;
   }
 }
+
+// Ensures a single-agent task starts on a fresh branch off the detected base
+// branch, so work never piles onto a stale branch (the chaining bug). Only acts
+// when the repo is clean and the user is currently sitting on the base branch;
+// if they're already on a non-base branch (deliberate) it leaves them there.
+// Returns the branch name switched to, or null if no action was taken.
+export function ensureBranchFromBase(cwd: string): string | null {
+  try {
+    const base = detectBaseBranch(cwd);
+    const current = execSync('git rev-parse --abbrev-ref HEAD', { cwd, stdio: 'pipe' }).toString().trim();
+    if (current === base) {
+      const clean = execSync('git status --porcelain', { cwd, stdio: 'pipe' }).toString().trim();
+      if (clean) {
+        console.log(pc.yellow(`[INFO] Working tree has uncommitted changes; staying on '${current}'.`));
+        return null;
+      }
+      const stamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '');
+      const branch = `daedalus-task-${stamp}`;
+      safeBranchSwitch(branch, { cwd, allowDestroy: false, branch });
+      return branch;
+    }
+    return null;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.log(pc.yellow(`[INFO] Could not branch from base: ${msg}`));
+    return null;
+  }
+}

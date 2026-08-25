@@ -114,6 +114,12 @@ This guide describes all configuration options available in Daedalus. You can vi
 
 ---
 
+## Git Settings
+
+*   **`git.autoBranchFromBase`**: When true, single-agent coding tasks start on a fresh branch off the detected base branch (main/master), so work never piles onto a stale branch. Only acts on a clean tree while on the base branch; if already on a deliberate feature branch it leaves you there. No auto-merge in interactive mode — merge the work branch back when ready (or use /autopilot, which merges automatically). Toggle with /gitautobranch. Default: false.
+
+---
+
 ## Update Settings
 
 *   **`updateCheck`**: When true, checks for new Daedalus CLI versions on startup and notifies you. Default: true.

@@ -9,6 +9,7 @@ import {
   safeBranchDelete,
   safeBranchSwitch,
   allowDestroyFromArgs,
+  ensureBranchFromBase,
 } from './safe-git.js';
 
 let dir: string;
@@ -143,5 +144,64 @@ describe('autopilot branch-from-base + merge-back helpers', () => {
     const merged = safeMergeToBase('daedalus-autopilot-feat', 'main', dir);
     expect(merged).toBe(true);
     expect(execSync('git rev-parse --abbrev-ref HEAD', { cwd: dir }).toString().trim()).toBe('main');
+  });
+
+  it('ensureBranchFromBase branches off base on a clean tree', () => {
+    const td = mkdtempSync(join(tmpdir(), 'daedalus-ebb1-'));
+    try {
+      execSync('git init -q', { cwd: td, stdio: 'ignore' });
+      execSync('git config user.email t@t.com', { cwd: td, stdio: 'ignore' });
+      execSync('git config user.name t', { cwd: td, stdio: 'ignore' });
+      execSync('git checkout -q -b main', { cwd: td, stdio: 'ignore' });
+      writeFileSync(join(td, 'keep.txt'), 'precious');
+      execSync('git add -A', { cwd: td, stdio: 'ignore' });
+      execSync('git commit -qm init', { cwd: td, stdio: 'ignore' });
+      const branched = ensureBranchFromBase(td);
+      expect(branched).not.toBeNull();
+      expect(branched!.startsWith('daedalus-task-')).toBe(true);
+      expect(execSync('git rev-parse --abbrev-ref HEAD', { cwd: td }).toString().trim()).toBe(branched);
+      expect(existsSync(join(td, 'keep.txt'))).toBe(true);
+    } finally {
+      rmSync(td, { recursive: true, force: true });
+    }
+  });
+
+  it('ensureBranchFromBase is a no-op when already on a non-base branch', () => {
+    const td = mkdtempSync(join(tmpdir(), 'daedalus-ebb2-'));
+    try {
+      execSync('git init -q', { cwd: td, stdio: 'ignore' });
+      execSync('git config user.email t@t.com', { cwd: td, stdio: 'ignore' });
+      execSync('git config user.name t', { cwd: td, stdio: 'ignore' });
+      execSync('git checkout -q -b main', { cwd: td, stdio: 'ignore' });
+      writeFileSync(join(td, 'keep.txt'), 'precious');
+      execSync('git add -A', { cwd: td, stdio: 'ignore' });
+      execSync('git commit -qm init', { cwd: td, stdio: 'ignore' });
+      execSync('git checkout -q -b my-feature', { cwd: td, stdio: 'ignore' });
+      const branched = ensureBranchFromBase(td);
+      expect(branched).toBeNull();
+      expect(execSync('git rev-parse --abbrev-ref HEAD', { cwd: td }).toString().trim()).toBe('my-feature');
+    } finally {
+      rmSync(td, { recursive: true, force: true });
+    }
+  });
+
+  it('ensureBranchFromBase does not clobber a dirty working tree on base', () => {
+    const td = mkdtempSync(join(tmpdir(), 'daedalus-ebb3-'));
+    try {
+      execSync('git init -q', { cwd: td, stdio: 'ignore' });
+      execSync('git config user.email t@t.com', { cwd: td, stdio: 'ignore' });
+      execSync('git config user.name t', { cwd: td, stdio: 'ignore' });
+      execSync('git checkout -q -b main', { cwd: td, stdio: 'ignore' });
+      writeFileSync(join(td, 'keep.txt'), 'precious');
+      execSync('git add -A', { cwd: td, stdio: 'ignore' });
+      execSync('git commit -qm init', { cwd: td, stdio: 'ignore' });
+      writeFileSync(join(td, 'keep.txt'), 'edited but uncommitted');
+      const branched = ensureBranchFromBase(td);
+      expect(branched).toBeNull();
+      expect(execSync('git rev-parse --abbrev-ref HEAD', { cwd: td }).toString().trim()).toBe('main');
+      expect(readFileSync(join(td, 'keep.txt'), 'utf8')).toBe('edited but uncommitted');
+    } finally {
+      rmSync(td, { recursive: true, force: true });
+    }
   });
 });

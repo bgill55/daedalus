@@ -211,6 +211,15 @@ export const ConfigSchema = z.object({
     protectGit: true,
     autoApprove: false,
   }),
+  git: z.object({
+    // When true, single-agent mode branches from the detected base branch
+    // (main/master) at the start of a task, so work never piles onto a stale
+    // branch. Toggle via /gitautobranch. No auto-merge in interactive mode —
+    // the user merges the work branch back when ready.
+    autoBranchFromBase: z.boolean().default(false),
+  }).default({
+    autoBranchFromBase: false,
+  }),
   security: z.object({
     // Mask detected credentials in terminal output, model context, JSONL
     // export, and session memory.
@@ -310,6 +319,9 @@ export const DEFAULT_CONFIG: DaedalusConfig = {
   safety: {
     protectGit: true,
     autoApprove: false,
+  },
+  git: {
+    autoBranchFromBase: false,
   },
   security: {
     redactSecrets: true,

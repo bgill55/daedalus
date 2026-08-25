@@ -296,6 +296,19 @@ const { callModelWithTools: rawCallModelWithTools, callModelWithFallback } = cre
 async function callModelWithTools(userContent: string, imageBase64?: string): Promise<{ content: string; toolCalls: ToolCall[] }> {
   const prevPatches = toolContext.patchHistory?.length ?? 0;
   const prevStreak = maxPatchFailureStreak(toolContext.patchFailureStreak);
+  // Branch from base at the start of a single-agent task when the user opted in.
+  // Only acts when sitting on the base branch with a clean tree, so it never
+  // clobbers a branch the user deliberately checked out. Idempotent: once on a
+  // work branch, subsequent turns are no-ops.
+  if (config.git?.autoBranchFromBase) {
+    try {
+      const { ensureBranchFromBase } = await import('./git/safe-git.js');
+      const branched = ensureBranchFromBase(toolContext.projectRoot);
+      if (branched) {
+        console.log(pc.green(`\n  ${ok('[OK]')} Branched from base into '${branched}' for this task.`));
+      }
+    } catch { /* branching must never break the turn */ }
+  }
   const result = await rawCallModelWithTools(userContent, imageBase64);
   const memoryIds = activeSigmaMemoryIds;
   if (sessionManager?.projectMemDb) {

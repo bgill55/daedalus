@@ -165,6 +165,7 @@ const SECTIONS = [
   { prefix: 'ui.', title: 'UI Settings' },
   { prefix: 'safety.', title: 'Safety Settings' },
   { prefix: 'security.', title: 'Security Settings' },
+  { prefix: 'git.', title: 'Git Settings' },
   { prefix: 'updateCheck', title: 'Update Settings' },
 ];
 
@@ -223,6 +224,7 @@ function syncConfigReference() {
     'safety.autoApprove': 'When true, automatically approves terminal command execution without user prompt. Default: false.',
     'security.redactSecrets': 'When true, detected credentials (API keys, tokens) are masked in terminal output, model context, JSONL export, and session memory. Default: true.',
     'security.preCommitGuard': 'When true, commits that would introduce a credential into the staged diff are blocked (configurable via /config). Default: true.',
+    'git.autoBranchFromBase': 'When true, single-agent coding tasks start on a fresh branch off the detected base branch (main/master), so work never piles onto a stale branch. Only acts on a clean tree while on the base branch; if already on a deliberate feature branch it leaves you there. No auto-merge in interactive mode — merge the work branch back when ready (or use /autopilot, which merges automatically). Toggle with /gitautobranch. Default: false.',
     'router.proxyUrl': 'Optional outbound proxy URL (e.g. an OneCLI gateway or corporate proxy) applied to model requests. Explicit opt-in; falls back to HTTPS_PROXY/HTTP_PROXY when unset. Default: unset.',
     'updateCheck': 'When true, checks for new Daedalus CLI versions on startup and notifies you. Default: true.',
   };

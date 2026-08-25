@@ -227,6 +227,7 @@ AI assistance without:
 | `/cheatsheet` / `cheat` / `guide` | Display the Daedalus local-first onboarding cheat sheet |
 | `/faq` / `questions` / `faqs` | Display the Daedalus local-first FAQ (setup, architecture, troubleshooting) |
 | `/recipe` | Manage and run portable YAML recipes (/recipe [list \| run <name> \| create <name>]) |
+| `/gitautobranch` / `gitautobranch` | Toggle automatic branch-from-base for single-agent tasks |
 
 <!-- END_COMMANDS_TABLE -->
 
