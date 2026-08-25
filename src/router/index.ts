@@ -717,20 +717,9 @@ export class LocalRouter {
   }
 
   async listModels(): Promise<string[]> {
-    const models: string[] = [];
-    const seenEndpoints = new Set<string>();
-    for (const entry of this.getEnabledModels()) {
-      if (seenEndpoints.has(entry.endpoint)) continue;
-      seenEndpoints.add(entry.endpoint);
-      try {
-        const client = this.getOrCreateClient(entry);
-        const list = await client.models.list();
-        for (const m of list.data) {
-          models.push(`${entry.name}:${m.id}`);
-        }
-      } catch { /* ignore */ }
-    }
-    return models;
+    return this.getEnabledModels()
+      .sort((a, b) => a.priority - b.priority)
+      .map(entry => `${entry.name}:${entry.model}`);
   }
 
   // Rich catalog metadata for a single endpoint, used by `/model sync` to expand

@@ -245,7 +245,7 @@ describe('LocalRouter', () => {
     expect(Array.isArray(models)).toBe(true);
   });
 
-  it('listModels dedupes by endpoint so the catalog is not repeated per chain entry', async () => {
+  it('listModels returns one entry per configured model, not the upstream catalog', async () => {
     const router = createRouter({
       chain: [
         { name: 'ox-alpha', endpoint: 'http://localhost:3001/v1', model: 'stealth/ox-alpha', priority: 0, enabled: true, provider: 'freellmapi' },
@@ -253,11 +253,9 @@ describe('LocalRouter', () => {
       ],
     });
     const models = await router.listModels();
-    // Catalog is fetched once per unique endpoint, not once per entry, so each
-    // upstream model id appears a single time even when multiple entries share the endpoint.
-    const ids = models.map(m => m.split(':').slice(1).join(':'));
-    const uniqueIds = new Set(ids);
-    expect(uniqueIds.size).toBe(ids.length);
+    // A single-model entry like ox-alpha must NOT expand into the upstream
+    // catalog's sub-models — listModels reports exactly the configured chain.
+    expect(models).toEqual(['ox-alpha:stealth/ox-alpha', 'freellmapi-gemini:gemini-3.5-flash']);
   });
 
   it('getConfig returns a copy of the config', () => {
