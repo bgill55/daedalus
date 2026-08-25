@@ -102,6 +102,7 @@ let _commentaryLines = 0;
 let _collapseEnabled = true;
 let _compactMode = true;
 let _showCost = false;
+let _lastEmittedBlank = false;
 
 export function setFormattingConfig(config: { ui?: { collapseCommentary?: boolean; compactMode?: boolean; showCost?: boolean; diffStyle?: string; theme?: string } & Record<string, unknown> }): void {
   if (config?.ui?.collapseCommentary === false) _collapseEnabled = false;
@@ -379,6 +380,14 @@ function flushThinkBuffer(): void {
 
 function emitAssistantLine(raw: string): void {
   const line = raw.trimEnd();
+  // Collapse runs of blank lines (models routinely pad output with several empty
+  // lines) into a single separator so the terminal doesn't render dead space.
+  if (line.trim() === '') {
+    if (_lastEmittedBlank) return;
+    _lastEmittedBlank = true;
+  } else {
+    _lastEmittedBlank = false;
+  }
   if (_inCode) {
     _codeLines.push(line);
     return;
@@ -434,6 +443,7 @@ export function closeAssistantBlock(
   _inThink = false;
   _buf = '';
   _thinkBuf = '';
+  _lastEmittedBlank = false;
 
   const parts: string[] = [];
   if (tier) parts.push(tier);

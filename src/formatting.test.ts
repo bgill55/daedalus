@@ -183,4 +183,20 @@ describe('writeAssistantChunk (thinking renderer)', () => {
     // Actual answer rendered bright (white), not as a leaked tag.
     expect(text).toContain('\x1b[97m');
   });
+
+  it('collapses runs of blank lines into a single separator (no dead space)', () => {
+    openAssistantBlock();
+    writeAssistantChunk('Line one.\n\n\n\n\n\nLine two.');
+    closeAssistantBlock(10, 500, 0, 'model-x');
+    const text = output();
+    expect(text).toContain('Line one.');
+    expect(text).toContain('Line two.');
+    // No more than one blank rendered line may sit between two content lines.
+    const lines = text.split('\n').map(l => l.replace(/\x1b\[[0-9;]*m/g, '').trim());
+    const i1 = lines.indexOf('Line one.');
+    const i2 = lines.indexOf('Line two.');
+    const between = lines.slice(i1 + 1, i2);
+    expect(between.filter(l => l === '').length).toBeLessThanOrEqual(1);
+  });
+
 });
