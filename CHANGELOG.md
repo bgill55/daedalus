@@ -1,3 +1,10 @@
+## [3.45.1](https://github.com/bgill55/daedalus/compare/v3.45.0...v3.45.1) (2026-08-25)
+
+
+### Bug Fixes
+
+* **guards:** debounce repeated claim-guard [CHECK] + teach disk-based asset verification ([cb30335](https://github.com/bgill55/daedalus/commit/cb3033562357abbbe48ee8a55b77764dbdb48cca))
+
 # [3.45.0](https://github.com/bgill55/daedalus/compare/v3.44.1...v3.45.0) (2026-08-25)
 
 
