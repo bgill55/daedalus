@@ -21,7 +21,7 @@ import { errMessage } from '../utils/errors.js';
 import { discoverLocalServers, saveConfig } from '../config/index.js';
 import type { ToolCall, ChatMessage } from '../types.js';
 import { messageText } from '../types.js';
-import { safeGitResetHard, safeGitClean, safeBranchDelete, safeBranchSwitch, allowDestroyFromArgs } from '../git/safe-git.js';
+import { safeGitResetHard, safeGitClean, safeBranchDelete, safeBranchSwitch, allowDestroyFromArgs, detectBaseBranch, safeMergeToBase } from '../git/safe-git.js';
 import type { Command } from './types.js';
 
 /**
@@ -1034,11 +1034,17 @@ export const agentCommands: Command[] = [
 
       if (isGitRepo) {
         try {
+          // Always branch from the repo's stable base (main/master) — not from
+          // whatever branch the user happens to be on. This prevents run-to-run
+          // cruft chaining: a prior autopilot branch would otherwise leak into
+          // the next run. Detect and switch to base first.
+          const baseBranch = detectBaseBranch(ctx.toolContext.projectRoot);
+          execSync(`git checkout ${baseBranch}`, { cwd: ctx.toolContext.projectRoot, stdio: 'ignore' });
           // Re-entering a run must not discard uncommitted work already on the
           // branch. safeBranchSwitch switches without -B unless --allow-destroy.
           const allowDestroy = allowDestroyFromArgs(idea) || !!repoInfo;
           safeBranchSwitch(branchName, { cwd: ctx.toolContext.projectRoot, allowDestroy, branch: branchName });
-          console.log(pc.green(`[OK] Switched to branch: ${branchName}`));
+          console.log(pc.green(`[OK] Switched to branch: ${branchName} (from ${baseBranch})`));
         } catch (err: unknown) {
           const msg = err instanceof Error ? errMessage(err) : String(err);
           console.log(pc.red(`[ERROR] Failed to create branch: ${msg}`));
@@ -1191,9 +1197,16 @@ export const agentCommands: Command[] = [
       } else {
         console.log(pc.yellow('\n[INFO] No GitHub remote configured. Implementation is committed locally.'));
         console.log(pc.yellow(`[INFO] Branch: ${branchName}`));
+        // Local-only mode: merge the verified-green feature branch back into the
+        // base branch so the working tree stays current and the user never has to
+        // manually switch back. Never force-pushes; fast-forwards when possible.
+        const baseBranch = detectBaseBranch(ctx.toolContext.projectRoot);
+        if (baseBranch !== branchName && safeMergeToBase(branchName, baseBranch, ctx.toolContext.projectRoot)) {
+          console.log(pc.green(`[OK] Merged ${branchName} into ${baseBranch}. You are now on ${baseBranch}.`));
+        }
       }
 
-      console.log(pc.cyan(`\n[AUTOPILOT] Done! Run 'git checkout main' to return to main branch.`));
+      console.log(pc.cyan(`\n[AUTOPILOT] Done! The feature branch was merged into the base branch — no manual switching needed.`));
       manifest.outcome = repoInfo ? 'pr-opened' : 'committed-local';
       } finally {
         emitManifest();

@@ -72,3 +72,43 @@ export function safeBranchSwitch(branch: string, opts: SafeGitOptions): void {
 export function allowDestroyFromArgs(args: string): boolean {
   return /\s--allow-destroy\b/.test(args) || /\s--allow-destroy\b/.test(' ' + args);
 }
+
+// Detect the repo's base branch: prefer 'main', fall back to 'master', then HEAD.
+// Used so autonomous runs always branch from a clean, stable base instead of
+// whatever branch the user happens to be on (which prevents run-to-run cruft
+// chaining — a prior autopilot branch leaking into the next run).
+export function detectBaseBranch(cwd: string): string {
+  const has = (b: string): boolean => {
+    try {
+      execSync(`git rev-parse --verify refs/heads/${b}`, { cwd, stdio: 'ignore' });
+      return true;
+    } catch {
+      return false;
+    }
+  };
+  if (has('main')) return 'main';
+  if (has('master')) return 'master';
+  try {
+    return execSync('git rev-parse --abbrev-ref HEAD', { cwd, stdio: 'ignore' }).toString().trim() || 'main';
+  } catch {
+    return 'main';
+  }
+}
+
+// Non-destructive merge of an autonomous feature branch back into the base branch
+// after a verified-green run. Fast-forwards when possible; otherwise creates a
+// merge commit. Never force-pushes or rewrites the base history. Keeps the
+// working tree on the base branch so the user never has to manually switch back.
+// Returns true on success.
+export function safeMergeToBase(branch: string, base: string, cwd: string): boolean {
+  try {
+    execSync(`git checkout ${base}`, { cwd, stdio: 'ignore' });
+    execSync(`git merge --no-edit ${branch}`, { cwd, stdio: 'ignore' });
+    return true;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.log(pc.red(`[ERROR] Could not merge ${branch} into ${base}: ${msg}`));
+    console.log(pc.yellow(`[INFO] Feature branch '${branch}' is kept locally for manual merge.`));
+    return false;
+  }
+}
