@@ -1,3 +1,10 @@
+## [3.46.7](https://github.com/bgill55/daedalus/compare/v3.46.6...v3.46.7) (2026-08-26)
+
+
+### Bug Fixes
+
+* **tools:** treat missing type-definition files (TS2688/TS2503) as environment noise in the patch type gate ([1d24354](https://github.com/bgill55/daedalus/commit/1d243542eb3933ac2850d81656516bdfc134b29c))
+
 ## [3.46.6](https://github.com/bgill55/daedalus/compare/v3.46.5...v3.46.6) (2026-08-26)
 
 
