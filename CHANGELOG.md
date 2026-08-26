@@ -1,3 +1,10 @@
+## [3.47.3](https://github.com/bgill55/daedalus/compare/v3.47.2...v3.47.3) (2026-08-26)
+
+
+### Bug Fixes
+
+* **agent:** parse bare-JSON tool calls so models can execute tools in single-agent mode ([bc6af94](https://github.com/bgill55/daedalus/commit/bc6af94a0bd4743fc234db42eb5082ef30694076))
+
 ## [3.47.2](https://github.com/bgill55/daedalus/compare/v3.47.1...v3.47.2) (2026-08-26)
 
 
