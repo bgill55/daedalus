@@ -1,3 +1,10 @@
+## [3.46.4](https://github.com/bgill55/daedalus/compare/v3.46.3...v3.46.4) (2026-08-26)
+
+
+### Bug Fixes
+
+* **tools:** prevent write_file feedback loop and detect TS syntax in JS files ([562c81a](https://github.com/bgill55/daedalus/commit/562c81acb132ff9f99da698bb5254780334e2ec3))
+
 ## [3.46.3](https://github.com/bgill55/daedalus/compare/v3.46.2...v3.46.3) (2026-08-26)
 
 
