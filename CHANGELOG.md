@@ -1,3 +1,10 @@
+## [3.46.3](https://github.com/bgill55/daedalus/compare/v3.46.2...v3.46.3) (2026-08-26)
+
+
+### Bug Fixes
+
+* **tools:** allow first-time test-file creation; keep terminal test-write bypass blocked ([550e356](https://github.com/bgill55/daedalus/commit/550e35680f7ee2532f72e96a1bc37877b6878c10))
+
 ## [3.46.2](https://github.com/bgill55/daedalus/compare/v3.46.1...v3.46.2) (2026-08-26)
 
 
