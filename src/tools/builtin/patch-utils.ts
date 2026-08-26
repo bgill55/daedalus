@@ -297,7 +297,7 @@ const NODE_GLOBALS = new Set([
   'TextEncoder', 'TextDecoder', 'URL', 'URLSearchParams', 'performance', 'process',
 ]);
 function isMissingNodeGlobal(d: ts.Diagnostic): boolean {
-  if (d.code !== 2304) return false;
+  if (d.code !== 2304 && d.code !== 2580) return false;
   const msg = ts.flattenDiagnosticMessageText(d.messageText, '\n');
   const m = msg.match(/Cannot find name '([^']+)'/);
   return !!m && NODE_GLOBALS.has(m[1]);
@@ -622,7 +622,15 @@ export async function syntaxCheck(
     // together instead of retrying.
     const removedSymbolHint = buildRemovedSymbolHint(introduced, proposedContent, originalContent);
 
-    return `Type error introduced by patch — reverted.\n${allErrors.join('\n')}${misplacedHint}${removedSymbolHint}`;
+    const hasRequireMain = introduced.some(d => {
+      const msg = ts.flattenDiagnosticMessageText(d.messageText, '\n');
+      return (d.code === 2304 || d.code === 2580) && /Cannot find name '(require|module)'/.test(msg);
+    });
+    const requireMainHint = hasRequireMain
+      ? "\n\nHint: 'require' and 'module' do not exist in ES modules (\"type\": \"module\"). Do not use 'if (require.main === module)'. Call your entrypoint function directly at the top level: 'main().catch(...)', or 'export { main };'."
+      : '';
+
+    return `Type error introduced by patch — reverted.\n${allErrors.join('\n')}${misplacedHint}${removedSymbolHint}${requireMainHint}`;
   }
 
   if (ext === '.js' || ext === '.mjs' || ext === '.cjs') {

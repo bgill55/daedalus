@@ -270,7 +270,7 @@ export async function patchFile(args: { path: string; old_string: string; new_st
       return formatError("Missing required parameter: old_string");
     }
     if (args.new_string === undefined || args.new_string === null) {
-      return formatError("Missing required parameter: new_string");
+      args.new_string = '';
     }
     if (detectPlaceholders(args.new_string) && !detectPlaceholders(args.old_string)) {
       return formatError(`Code placeholders like '// ...' or '/* ... */' detected in new_string. You must write the complete, fully realized code. Do NOT abbreviate code.`);

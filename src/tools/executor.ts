@@ -41,6 +41,12 @@ export function normalizeToolArgs(toolName: string, args: Record<string, unknown
       const altContent = normalized.new_content ?? normalized.file_content ?? normalized.code_content ?? normalized.code ?? normalized.newcontent;
       if (typeof altContent === 'string') normalized.content = altContent;
     }
+    if (toolName === 'patch') {
+      if (normalized.new_string === undefined || normalized.new_string === null) {
+        const altNew = normalized.new_content ?? normalized.replacement ?? normalized.new_text ?? normalized.text;
+        normalized.new_string = typeof altNew === 'string' ? altNew : '';
+      }
+    }
   }
   return normalized;
 }
@@ -58,7 +64,7 @@ function validateArgs(toolName: string, args: Record<string, unknown>): string |
 
   for (const req of required) {
     const value = args[req];
-    if (value === undefined || value === null || value === '') {
+    if (value === undefined || value === null || (value === '' && req !== 'new_string' && req !== 'content')) {
       missing.push(req);
     }
   }

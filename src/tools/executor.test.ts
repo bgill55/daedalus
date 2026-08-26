@@ -157,6 +157,17 @@ describe('Tool executor', () => {
     expect(results[1].error ?? '').not.toContain('[SKIPPED]');
   }, 30_000);
 
+  it('normalizes omitted or empty new_string for deletion in patch tool call', async () => {
+    const tc: ToolCall = {
+      id: 'p1',
+      type: 'function',
+      function: { name: 'patch', arguments: '{"path":"nonexistent.ts","old_string":"foo"}' },
+    };
+    const result = await executeToolCall(tc, mockContext);
+    expect(result.error).not.toContain('missing required parameter');
+    expect(result.error).toContain('File not found');
+  });
+
   describe('tool-permission policy enforcement', () => {
     const HOME = process.env.USERPROFILE || process.env.HOME || '';
     const configDir = path.join(HOME, '.daedalus');
