@@ -1,3 +1,10 @@
+## [3.47.4](https://github.com/bgill55/daedalus/compare/v3.47.3...v3.47.4) (2026-08-26)
+
+
+### Bug Fixes
+
+* **terminal:** distinguish local module paths from missing npm packages in diagnostic hint ([d27e4c7](https://github.com/bgill55/daedalus/commit/d27e4c7837470296aaef8c86e4bb8602a1bbef88))
+
 ## [3.47.3](https://github.com/bgill55/daedalus/compare/v3.47.2...v3.47.3) (2026-08-26)
 
 
