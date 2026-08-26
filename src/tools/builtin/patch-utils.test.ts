@@ -546,9 +546,23 @@ describe('isTestFile and checkTestFileLock', () => {
     expect(isTestFile('src/app.ts')).toBe(false);
   });
 
-  it('blocks test file modifications when allowTestEdits is not true', () => {
+  it('allows creating a brand-new test file (does not exist on disk yet)', () => {
+    // Regression: greenfield scaffold must be able to WRITE a first test
+    // (GOAL.md requires >= 1 vitest test). The lock exists to block weakening an
+    // EXISTING assertion, not to block first-time creation. A test path that does
+    // not exist on disk is allowed; only an existing test file is locked.
     const mockCtx: any = {};
-    const res = checkTestFileLock('src/app.test.ts', mockCtx);
+    const res = checkTestFileLock('/tmp/does-not-exist/scanner.test.ts', mockCtx);
+    expect(res).toBeNull();
+  });
+
+  it('blocks modifying an EXISTING test file when allowTestEdits is not true', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'daedalus-lock-'));
+    const file = path.join(dir, 'app.test.ts');
+    fs.writeFileSync(file, 'export const x = 1;\n');
+    const mockCtx: any = {};
+    const res = checkTestFileLock(file, mockCtx);
+    fs.rmSync(dir, { recursive: true, force: true });
     expect(res).not.toBeNull();
     expect(res).toContain('[TEST SUITE LOCK]');
   });
@@ -560,42 +574,57 @@ describe('isTestFile and checkTestFileLock', () => {
   });
 
   it('allows test file modifications when allowTestEdits is true', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'daedalus-lock-'));
+    const file = path.join(dir, 'app.test.ts');
+    fs.writeFileSync(file, 'export const x = 1;\n');
     const mockCtx: any = { allowTestEdits: true };
-    const res = checkTestFileLock('src/app.test.ts', mockCtx);
+    const res = checkTestFileLock(file, mockCtx);
+    fs.rmSync(dir, { recursive: true, force: true });
     expect(res).toBeNull();
   });
 
   it('hardens the lock message to forbid routing around via terminal/another tool', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'daedalus-lock-'));
+    const file = path.join(dir, 'app.test.ts');
+    fs.writeFileSync(file, 'export const x = 1;\n');
     const mockCtx: any = {};
-    const res = checkTestFileLock('src/app.test.ts', mockCtx);
+    const res = checkTestFileLock(file, mockCtx);
+    fs.rmSync(dir, { recursive: true, force: true });
     expect(res).toContain('[TEST SUITE LOCK]');
     expect(res).toContain('Do NOT attempt the write via the terminal or another tool');
   });
 
   it('records the blocked path and returns a stronger "already refused" message on retry', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'daedalus-lock-'));
+    const file = path.join(dir, 'app.test.ts');
+    fs.writeFileSync(file, 'export const x = 1;\n');
     const mockCtx: any = {};
-    const first = checkTestFileLock('src/app.test.ts', mockCtx);
+    const first = checkTestFileLock(file, mockCtx);
     expect(first).toContain('refused');
     expect(first).not.toContain('already refused');
 
-    const second = checkTestFileLock('src/app.test.ts', mockCtx);
+    const second = checkTestFileLock(file, mockCtx);
     expect(second).toContain('already refused earlier this session');
     expect(second).toContain('Do NOT re-attempt it via another tool or the terminal');
-    // The path is tracked so a retry via a different tool is recognized.
-    expect(mockCtx.blockedTestWrites.has('src/app.test.ts')).toBe(true);
+    expect(mockCtx.blockedTestWrites.has(file)).toBe(true);
+    fs.rmSync(dir, { recursive: true, force: true });
   });
 
   it('treats a second tool attempt in the same session as a bypass (cross-tool detection)', () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'daedalus-lock-'));
+    const file = path.join(dir, 'db.test.ts');
+    fs.writeFileSync(file, 'export const x = 1;\n');
     // Simulate: write_file is blocked, then the agent retries via the terminal.
     // Both calls share the same context, so blockedTestWrites carries over.
     const mockCtx: any = {};
-    const fileToolResult = checkTestFileLock('tests/db.test.ts', mockCtx);
+    const fileToolResult = checkTestFileLock(file, mockCtx);
     expect(fileToolResult).toContain('[TEST SUITE LOCK]');
 
     // Terminal-style retry hits the same lock with the same context.
-    const terminalRetry = checkTestFileLock('tests/db.test.ts', mockCtx);
+    const terminalRetry = checkTestFileLock(file, mockCtx);
     expect(terminalRetry).toContain('already refused earlier this session');
     expect(terminalRetry).toContain('bypassing the lock');
+    fs.rmSync(dir, { recursive: true, force: true });
   });
 });
 
@@ -607,24 +636,36 @@ describe('guardTestWrite (live user authorization)', () => {
   });
 
   it('blocks (no askLine) when the user cannot be prompted', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'daedalus-lock-'));
+    const file = path.join(dir, 'app.test.ts');
+    fs.writeFileSync(file, 'export const x = 1;\n');
     const mockCtx: any = {};
-    const res = await guardTestWrite('src/app.test.ts', mockCtx);
+    const res = await guardTestWrite(file, mockCtx);
+    fs.rmSync(dir, { recursive: true, force: true });
     expect(res).toContain('[TEST SUITE LOCK]');
     expect(mockCtx.allowTestEdits).toBeUndefined();
   });
 
   it('blocks when the user declines the authorization prompt', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'daedalus-lock-'));
+    const file = path.join(dir, 'app.test.ts');
+    fs.writeFileSync(file, 'export const x = 1;\n');
     const askLine = async (_p: string) => 'no';
     const mockCtx: any = { askLine };
-    const res = await guardTestWrite('src/app.test.ts', mockCtx);
+    const res = await guardTestWrite(file, mockCtx);
+    fs.rmSync(dir, { recursive: true, force: true });
     expect(res).toContain('[TEST SUITE LOCK]');
     expect(mockCtx.allowTestEdits).toBeUndefined();
   });
 
   it('allows and sets allowTestEdits when the user approves the prompt', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'daedalus-lock-'));
+    const file = path.join(dir, 'app.test.ts');
+    fs.writeFileSync(file, 'export const x = 1;\n');
     const askLine = async (_p: string) => 'yes';
     const mockCtx: any = { askLine };
-    const res = await guardTestWrite('src/app.test.ts', mockCtx);
+    const res = await guardTestWrite(file, mockCtx);
+    fs.rmSync(dir, { recursive: true, force: true });
     expect(res).toBeNull();
     expect(mockCtx.allowTestEdits).toBe(true);
   });
@@ -633,7 +674,7 @@ describe('guardTestWrite (live user authorization)', () => {
     let calls = 0;
     const askLine = async (_p: string) => { calls++; return 'yes'; };
     const mockCtx: any = { askLine, allowTestEdits: true };
-    const res = await guardTestWrite('src/app.test.ts', mockCtx);
+    const res = await guardTestWrite('/tmp/does-not-exist/app.test.ts', mockCtx);
     expect(res).toBeNull();
     expect(calls).toBe(0);
   });

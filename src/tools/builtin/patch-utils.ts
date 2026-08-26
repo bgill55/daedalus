@@ -352,6 +352,12 @@ export function checkTestFileLock(filePath: string, context: ToolContext): strin
   if (!isTestFile(filePath)) return null;
   if (context.allowTestEdits) return null;
 
+  // Scaffold-aware: a test file that does not exist yet on disk is a brand-new file
+  // being created (e.g. GOAL.md requires `>= 1 vitest test`), not an existing
+  // assertion being weakened. Allow first-time creation; only lock MODIFYING an
+  // existing test file (the assertion-weakening case the lock exists for).
+  if (!fs.existsSync(filePath)) return null;
+
   // Record the blocked attempt so a retry via a different tool (e.g. terminal
   // `cat >`) is recognized as a repeated bypass attempt, not a fresh request.
   if (!context.blockedTestWrites) context.blockedTestWrites = new Set<string>();

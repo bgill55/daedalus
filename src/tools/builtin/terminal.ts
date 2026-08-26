@@ -98,9 +98,13 @@ function extractTestFilePath(command: string): string | null {
   return null;
 }
 
-// Blocks shell commands that write to a test-file path unless the run explicitly
-// signals test intent (context.allowTestEdits). Returns the same [TEST SUITE LOCK]
-// message as the write_file/patchFile gate so the agent gets one consistent signal.
+// Blocks shell commands that write to a test-file path. Terminal `cat >` / `tee` /
+// `touch` / `sed -i` / `cp` / `mv` are the known bypass vectors around the write_file/
+// patchFile test-suite lock, so this gate blocks them unconditionally for any test
+// path (there is no legitimate "scaffold a test via the shell" need — the agent should
+// use the write_file tool, which allows first-time test creation but still locks
+// MODIFYING an existing test file). Returns the same [TEST SUITE LOCK] message as the
+// write_file/patchFile gate so the agent gets one consistent signal.
 function checkTerminalTestWrite(command: string, context: ToolContext): string | null {
   const testPath = extractTestFilePath(command);
   if (!testPath) return null;
@@ -108,7 +112,13 @@ function checkTerminalTestWrite(command: string, context: ToolContext): string |
     TERMINAL_TEST_WRITE_OP_RE.test(command) ||
     /\b(?:cp|mv)\b[^;|&]*(?:test|spec)[^;|&]*/i.test(command);
   if (!hasWriteOp) return null;
-  return checkTestFileLock(testPath, context);
+  if (context.allowTestEdits) return null;
+  return (
+    `[TEST SUITE LOCK] Writing to test file "${path.basename(testPath)}" via the terminal ` +
+    `is blocked by default to prevent test-assertion weakening. Use the write_file tool to ` +
+    `create the test, or include "update test" in your request. Do NOT attempt the write ` +
+    `via cat > / tee / touch / sed -i / cp / mv to bypass this lock.`
+  );
 }
 
 interface ShellConfig {
