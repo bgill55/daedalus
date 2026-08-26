@@ -1,3 +1,10 @@
+## [3.47.1](https://github.com/bgill55/daedalus/compare/v3.47.0...v3.47.1) (2026-08-26)
+
+
+### Bug Fixes
+
+* **tools:** allow empty new_string in patch schema and add ESM entrypoint hints ([19f092c](https://github.com/bgill55/daedalus/commit/19f092c187f0ae01ab563f41bcd5c57ac895c052))
+
 # [3.47.0](https://github.com/bgill55/daedalus/compare/v3.46.7...v3.47.0) (2026-08-26)
 
 
