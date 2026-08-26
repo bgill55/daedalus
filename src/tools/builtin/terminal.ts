@@ -704,7 +704,13 @@ export async function execute(args: { command: string; timeout?: number; workdir
         if (code !== 0 && (fullOutput.includes('ERR_MODULE_NOT_FOUND') || fullOutput.includes('Cannot find package') || fullOutput.includes('Cannot find module'))) {
           const match = fullOutput.match(/Cannot find package ['"]([^'"]+)['"]/) || fullOutput.match(/Cannot find module ['"]([^'"]+)['"]/);
           if (match && match[1]) {
-            diagHint = ` — DIAGNOSTIC HINT: Missing npm package '${match[1]}'. Run 'npm install ${match[1]}' or check package.json dependencies. Do NOT attempt source file string patches to fix missing npm packages.`;
+            const pkgOrFile = match[1];
+            const isLocal = pkgOrFile.startsWith('.') || pkgOrFile.startsWith('/') || pkgOrFile.startsWith('\\') || /^[A-Za-z]:/.test(pkgOrFile);
+            if (isLocal) {
+              diagHint = ` — DIAGNOSTIC HINT: Local module file '${pkgOrFile}' was not found on disk. Ensure the file is created with a .ts/.js extension in the correct directory.`;
+            } else {
+              diagHint = ` — DIAGNOSTIC HINT: Missing npm package '${pkgOrFile}'. Run 'npm install ${pkgOrFile}' or check package.json dependencies. Do NOT attempt source file string patches to fix missing npm packages.`;
+            }
           }
         } else if (code !== 0 && command.includes('zip') && (fullOutput.includes('is not recognized') || fullOutput.includes('command not found') || code === 127)) {
           diagHint = ` — DIAGNOSTIC HINT: Linux 'zip' command is unavailable on Windows cmd/powershell. Use PowerShell 'Compress-Archive -Path .\\* -DestinationPath archive.zip -Force' instead.`;
