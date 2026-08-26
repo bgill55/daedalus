@@ -729,6 +729,23 @@ export async function execute(args: { command: string; timeout?: number; workdir
             }
           }
         }
+        // Runtime-failure capture: remember a FAILED run of the built artifact (node dist/cli.js,
+        // npm run start, a runtime probe, etc.) so the completion guard can reject a later
+        // "project works / CLI executed / verified" claim that is contradicted by the agent's
+        // OWN failed run. Only records genuine failures (non-zero exit WITH a hard error signature),
+        // never benign non-zero exits (grep no-match, `test -f` false). Cleared by any success.
+        if (succeeded) {
+          context.lastRuntimeFailure = null;
+        } else if (fullOutput.trim()) {
+          const looksLikeRun = /\b(node\s|npm\s+run|npx\s|deno\s|bun\s|python\s|dist[/\\]|build[/\\]|java\s|dotnet\s|go\s+run|cargo\s+run)\b/i.test(command);
+          const hardErr = /(ERR_[A-Z_]+|Cannot find|MODULE_NOT_FOUND|ENOENT|SyntaxError|TypeError|ReferenceError|Exception|Error:|throw new|exit code \d|Command failed)/i.test(fullOutput);
+          if (looksLikeRun && hardErr) {
+            context.lastRuntimeFailure = {
+              command: command.trim().slice(0, 200),
+              error: fullOutput.replace(/\s*\n+\s*/g, ' ').trim().slice(0, 400),
+            };
+          }
+        }
         // Wrong-shell nudge: a PowerShell/cmd command rejected by the bash shell. Point
         // the model at the correct syntax instead of letting it loop more wrong-shell cmds.
         if (!succeeded && isWrongShellFailure(errorOutput, command)) {

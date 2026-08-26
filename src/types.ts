@@ -81,6 +81,11 @@ export interface ToolContext {
   verifyFailStreak?: number; // consecutive FAILING build/test/lint runs; resets only on a PASSING verify run (catches patch→test→patch→test loops where patches reset terminalConsecutiveFails)
   lastVerifyPassCount?: number; // last actual passing-test count observed from a verify run's output (used to catch fabricated "N tests passing" summary claims)
   lastVerifyPassed?: boolean; // whether the most recent build/test/lint verify run was GREEN (true) or RED (false). Lets the completion guard catch "tests passing / clean state" claims that omit a failing overall suite.
+  // Set when a terminal run of the BUILT ARTIFACT (node dist/cli.js, npm run start, a runtime
+  // probe) exited non-zero with a hard error this session. Lets the completion guard reject a
+  // "project works / CLI executed / verified" claim that is contradicted by the agent's own
+  // failed run. Cleared by any later successful run; null until the first failure.
+  lastRuntimeFailure?: { command: string; error: string } | null;
   // Set true for the rest of the session once a build/test/lint verify command trips
   // the terminal circuit breaker, so a later turn cannot falsely claim "build/tests pass"
   // without a fresh successful run (see loop-guards.ts verification-claim guard).

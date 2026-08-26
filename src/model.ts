@@ -714,6 +714,31 @@ export function createModelFunctions(deps: ModelDeps) {
           continue;
         }
 
+        // Layer A2: runtime-failure-aware completion block. The agent's OWN terminal run of the
+        // built artifact (node dist/cli.js, npm run start, a runtime probe) exited non-zero with a
+        // hard error this session, yet it still claims the project "works" / "CLI executed" /
+        // "verified" / "build+tests pass". A failed run cannot be reported as success. Block once
+        // per session and force a real re-run or an honest blocker report. This is the gap that
+        // let the greenfield run declare "Project Complete ✅" from a crashed CLI.
+        if (toolContext.lastRuntimeFailure && (detectUngroundedWorksClaim(cleanContent, claimLedger) || isGreenBuildTestClaim(cleanContent))) {
+          const rfKey = 'runtime-failure';
+          if (!toolContext.firedCompletionGuards?.has(rfKey)) {
+            (toolContext.firedCompletionGuards ??= new Set<string>()).add(rfKey);
+            const rf = toolContext.lastRuntimeFailure;
+            console.log(dim(`\n  [CHECK] Completion claim conflicts with a FAILED run this session — \`${rf.command}\` exited non-zero.`));
+            messages.push({ role: 'assistant', content: cleanContent });
+            messages.push({
+              role: 'user',
+              content:
+                `[SYSTEM WARNING] You reported the project works / the CLI ran / build+tests pass, but a terminal run you executed THIS session FAILED: ` +
+                `\`${rf.command}\` exited non-zero with: ${rf.error}. A failed run cannot be reported as a success. ` +
+                `Either (1) actually re-run the command and confirm a clean exit (code 0) before claiming it works, ` +
+                `or (2) report the blocker honestly (paste the error). Do NOT claim green/working from a run that errored.`,
+            } as ChatMessage);
+            continue;
+          }
+        }
+
         // Layer B: idle re-read breaker. If the turn spent its budget re-reading the same
         // file (the "fix was already present" spin) with no edit, force it to report the
         // blocker honestly instead of looping. Close the turn with a concise note.
