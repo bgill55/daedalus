@@ -1,3 +1,10 @@
+# [3.47.0](https://github.com/bgill55/daedalus/compare/v3.46.7...v3.47.0) (2026-08-26)
+
+
+### Features
+
+* **router:** add provider-neutral `minModel` capability floor + harden terminal Windows `cd` paths ([e8a08cc](https://github.com/bgill55/daedalus/commit/e8a08ccd6ba6d6c4229b75f5a17d2bad40a8c6d1))
+
 ## [3.46.7](https://github.com/bgill55/daedalus/compare/v3.46.6...v3.46.7) (2026-08-26)
 
 
