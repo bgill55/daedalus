@@ -20,7 +20,7 @@ vi.mock('../../config/index.js', () => ({
 }));
 
 import { spawn, execSync } from 'child_process';
-import { execute, resetCachedShell } from './terminal.js';
+import { execute, resetCachedShell, stripLeadingCd } from './terminal.js';
 import { loadConfig } from '../../config/index.js';
 import type { ToolContext } from '../../types.js';
 
@@ -73,6 +73,24 @@ afterEach(() => {
   delete process.env.DAEDALUS_AUTO_APPROVE;
   (execSync as any).mockReset();
   (fs as any).existsSync.mockReset();
+});
+
+
+describe('stripLeadingCd', () => {
+  it('strips a single leading `cd <dir> &&` so the breaker keys on the real command', () => {
+    expect(stripLeadingCd('cd proj && npm install')).toBe('npm install');
+    expect(stripLeadingCd('cd "my proj" && npm test')).toBe('npm test');
+    expect(stripLeadingCd('cd proj ; npm run build')).toBe('npm run build');
+  });
+  it('strips chained leading cd switches', () => {
+    expect(stripLeadingCd('cd a && cd b && npm run build')).toBe('npm run build');
+  });
+  it('leaves a bare `cd` (no chained command) untouched', () => {
+    expect(stripLeadingCd('cd non_existent_dir')).toBe('cd non_existent_dir');
+  });
+  it('leaves a non-cd command untouched', () => {
+    expect(stripLeadingCd('npm run build')).toBe('npm run build');
+  });
 });
 
 describe('terminal execute', () => {
@@ -731,6 +749,30 @@ describe('getResolvedShellType', () => {
       expect(result.success).toBe(true);
       expect(spawn).toHaveBeenCalled();
     });
+  });
+
+
+
+  it('treats `cd dir && npm run build` as a verification command (exempt from the breaker)', async () => {
+    // A failing `cd proj && npm run build` is a verify-loop signal, not a runaway. After the
+    // stripLeadingCd fix it is recognized as a verification command and never breaker-tripped.
+    const ctx = makeContext();
+    ctx.terminalFailureStreak = new Map<string, number>();
+
+    const mock1 = makeMockProcess();
+    (spawn as any).mockReturnValue(mock1);
+    const p1 = execute({ command: 'cd proj && npm run build' }, ctx);
+    mock1.emit('close', 1);
+    await p1;
+
+    (spawn as any).mockClear();
+    const mock2 = makeMockProcess();
+    (spawn as any).mockReturnValue(mock2);
+    const p2 = execute({ command: 'cd proj && npm run build' }, ctx);
+    mock2.emit('close', 1);
+    await p2;
+    // Verification commands are exempt from the prefix breaker — must still spawn.
+    expect(spawn).toHaveBeenCalled();
   });
 
 });

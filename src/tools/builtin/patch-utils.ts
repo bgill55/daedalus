@@ -282,6 +282,26 @@ function isModuleResolutionError(d: ts.Diagnostic): boolean {
   ].includes(d.code);
 }
 
+// A missing `@types/node` makes Node globals (process, Buffer, __dirname, etc.)
+// surface as TS2304 "Cannot find name 'X'". That is environmental — the agent
+// cannot patch it away (it's a missing dev dependency during greenfield setup,
+// not a code defect) — so it must never revert a write. Without this, scaffolding
+// a fresh project (which references `process`/`Buffer` before `npm install
+// @types/node` runs) gets its perfectly valid files reverted, stalling the run.
+const NODE_GLOBALS = new Set([
+  'process', 'Buffer', '__dirname', '__filename', 'global', 'module', 'require',
+  'exports', 'console', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval',
+  'setImmediate', 'clearImmediate', 'queueMicrotask', 'structuredClone', 'fetch',
+  'TextEncoder', 'TextDecoder', 'URL', 'URLSearchParams', 'performance', 'process',
+]);
+function isMissingNodeGlobal(d: ts.Diagnostic): boolean {
+  if (d.code !== 2304) return false;
+  const msg = ts.flattenDiagnosticMessageText(d.messageText, '\n');
+  const m = msg.match(/Cannot find name '([^']+)'/);
+  return !!m && NODE_GLOBALS.has(m[1]);
+}
+export { isMissingNodeGlobal };
+
 // Transpile a single file in isolation to catch genuine syntax errors. This is
 // independent of the rest of the project, so unrelated type errors or missing
 // dependencies never cause a false "syntax error introduced by patch".
@@ -557,7 +577,7 @@ export async function syntaxCheck(
     if (!allDiags) return null;
 
     const proposedDiags = diagnosticsForFile(allDiags, targetAbs)
-      .filter(d => !isDeprecation(d) && !isModuleResolutionError(d));
+      .filter(d => !isDeprecation(d) && !isModuleResolutionError(d) && !isMissingNodeGlobal(d));
 
     const originalKeys = originalContent !== undefined
       ? baselineKeysFromOriginal(tsconfigRoot, targetAbs, originalContent)
@@ -771,7 +791,7 @@ function baselineKeysFromOriginal(tsconfigRoot: string, targetAbs: string, origi
     if (!all) return new Set();
     return new Set(
       diagnosticsForFile(all, targetAbs)
-        .filter(d => !isDeprecation(d) && !isModuleResolutionError(d))
+        .filter(d => !isDeprecation(d) && !isModuleResolutionError(d) && !isMissingNodeGlobal(d))
         .map(diagKey),
     );
   } catch {

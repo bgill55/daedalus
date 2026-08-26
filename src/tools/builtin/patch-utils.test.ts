@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { extractErrorLines, normalizeErrorLine, syntaxCheck, preflightDependencyCheck, recordRevert, recordWriteSuccess, checkGlobalPatchBreaker, checkCircuitBreaker, patchBreakerLevel, getPatchRepeatCount, buildRemovedSymbolHint, isTestFile, checkTestFileLock, guardTestWrite } from './patch-utils.js';
+import { extractErrorLines, normalizeErrorLine, syntaxCheck, preflightDependencyCheck, recordRevert, recordWriteSuccess, checkGlobalPatchBreaker, checkCircuitBreaker, patchBreakerLevel, getPatchRepeatCount, buildRemovedSymbolHint, isTestFile, checkTestFileLock, guardTestWrite, isMissingNodeGlobal } from './patch-utils.js';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
@@ -614,6 +614,33 @@ describe('guardTestWrite (live user authorization)', () => {
     expect(res).toBeNull();
     expect(calls).toBe(0);
   });
+
+describe('isMissingNodeGlobal', () => {
+  function diagOf(code: number, name: string): any {
+    return {
+      code,
+      category: 1,
+      messageText: "Cannot find name '" + name + "'.",
+      file: null,
+      start: undefined,
+      length: undefined,
+    };
+  }
+
+  it('flags a TS2304 on a Node global (missing @types/node) as env noise', () => {
+    expect(isMissingNodeGlobal(diagOf(2304, 'process'))).toBe(true);
+    expect(isMissingNodeGlobal(diagOf(2304, 'Buffer'))).toBe(true);
+    expect(isMissingNodeGlobal(diagOf(2304, '__dirname'))).toBe(true);
+  });
+
+  it('does NOT flag a TS2304 on a real undefined symbol', () => {
+    expect(isMissingNodeGlobal(diagOf(2304, 'someUntypedThing'))).toBe(false);
+  });
+
+  it('does NOT flag non-2304 codes', () => {
+    expect(isMissingNodeGlobal(diagOf(2322, 'process'))).toBe(false);
+  });
+});
 });
 
 

@@ -205,6 +205,23 @@ function normalizeCommandFull(command: string): string {
   // `cd x && npm run dev & sleep 3` repeated hundreds of times).
   return command.trim().replace(/\s+/g, ' ');
 }
+function stripLeadingCd(command: string): string {
+  // A leading `cd <dir>` is a directory switch, not an operation whose success
+  // matters — and `cd dir && realcmd` must breaker-track `realcmd`, not `cd`.
+  // Otherwise `cd daedalus-scan && npm install` and `cd daedalus-scan && npm test`
+  // both key to prefix `cd`, so a failing chained command trips
+  // `command 'cd' failed` and blocks every `cd ... && ...` afterward (a hard stall
+  // during greenfield setup). Strip leading `cd <dir> &&` / `cd <dir> ;` so the
+  // breaker keys on the substantive command. Also lets `cd x && npm test` be seen
+  // as a verification command (exempt from the breaker). The dir may be quoted
+  // (e.g. `cd "my proj" && npm test`), so allow a quoted segment as the argument.
+  let out = command.trim();
+  const re = /^cd\s+(?:"[^"]*"|'[^']*'|[^\s&;|]+)\s*(?:&&|;)\s*/;
+  while (re.test(out)) out = out.replace(re, '');
+  return out;
+}
+export { stripLeadingCd };
+
 
 // Verification commands (build / test / lint / type-check) are legitimately
 // re-run after an edit to confirm a fix. The circuit breakers must NOT suppress
@@ -300,8 +317,9 @@ export async function execute(args: { command: string; timeout?: number; workdir
   // instead of burning the global 5-failure budget on an identical failing command.
   // Verification commands (build/test/lint) are exempt: they are meant to be
   // re-run after a fix, and a failing one is the signal the agent acts on.
-  const prefix = normalizeCommandPrefix(command);
-  if (!isVerificationCommand(command)) {
+  const effectiveCommand = stripLeadingCd(command);
+  const prefix = normalizeCommandPrefix(effectiveCommand);
+  if (!isVerificationCommand(effectiveCommand)) {
     const streakMap = getTerminalStreakMap(context);
     if ((streakMap.get(prefix) ?? 0) >= 2) {
       return Promise.resolve({
@@ -322,9 +340,9 @@ export async function execute(args: { command: string; timeout?: number; workdir
   // changes the command between runs, so it never false-trips. Verification
   // commands (build/test/lint) are exempt — re-running them after a fix is the
   // intended verify loop, not a runaway.
-  const full = normalizeCommandFull(command);
+  const full = normalizeCommandFull(effectiveCommand);
   const repeatMap = getTerminalRepeatMap(context);
-  if (!isVerificationCommand(command)) {
+  if (!isVerificationCommand(effectiveCommand)) {
     if ((repeatMap.get(full) ?? 0) >= 2) {
       return Promise.resolve({
         toolCallId: '',
