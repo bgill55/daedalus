@@ -335,7 +335,6 @@ function formatDiagnostic(d: ts.Diagnostic): string {
 
 export function isTestFile(filePath: string): boolean {
   const norm = filePath.replace(/\\/g, '/').toLowerCase();
-  const base = path.basename(norm);
   return (
     norm.includes('.test.') ||
     norm.includes('.spec.') ||
@@ -344,10 +343,6 @@ export function isTestFile(filePath: string): boolean {
     norm.includes('/test/') ||
     norm.startsWith('tests/') ||
     norm.startsWith('test/') ||
-    base.startsWith('vitest.config.') ||
-    base.startsWith('jest.config.') ||
-    base.startsWith('playwright.config.') ||
-    base.startsWith('cypress.config.') ||
     norm.includes('.github/workflows/') ||
     norm.includes('.gitlab-ci')
   );
@@ -441,6 +436,13 @@ export function preflightDependencyCheck(
   const tsconfigPath = findTsconfig(filePath, projectRoot);
   if (!tsconfigPath) return null;
   const tsconfigRoot = path.dirname(tsconfigPath);
+
+  // Scaffold-aware: a fresh project has no node_modules yet, so every third-party
+  // import is "missing type declarations" until `npm install` runs. Blocking the
+  // write then just churns the agent (write -> revert -> install -> re-write). Treat
+  // the absence of node_modules as environment noise and let the write through; tsc
+  // will still surface real errors after install. Established projects keep the gate.
+  if (!fs.existsSync(path.join(tsconfigRoot, 'node_modules'))) return null;
 
   const specifiers = new Set<string>();
   const importRe = /(?:import\s+(?:[^'"]*?\s+from\s+)?|require\(\s*)['"]([^'"]+)['"]/g;

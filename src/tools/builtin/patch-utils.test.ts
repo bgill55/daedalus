@@ -431,6 +431,25 @@ describe('preflightDependencyCheck (pre-write prevention gate)', () => {
     expect(res).toBeNull();
   });
 
+  it('does NOT block a write in a fresh scaffold (no node_modules yet) for an uninstalled import', () => {
+    // Regression: greenfield setup writes source files in a batch BEFORE running
+    // `npm install`, so every third-party import (e.g. `config`) is "missing type
+    // declarations" until deps install. Blocking the write then churns the agent
+    // (write -> revert -> install -> re-write) and wastes model escalations. When
+    // node_modules is absent, treat missing deps as environment noise and let the
+    // write through; tsc surfaces real errors after install.
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'daedalus-preflight-fresh-'));
+    fs.writeFileSync(path.join(dir, 'tsconfig.json'), JSON.stringify({
+      compilerOptions: { strict: true, noEmit: true, skipLibCheck: true, esModuleInterop: true },
+    }));
+    // Intentionally do NOT create node_modules.
+    const file = path.join(dir, 'app.ts');
+    const content = "import { load } from 'config';\nexport const x = load();\n";
+    const res = preflightDependencyCheck(file, dir, content);
+    fs.rmSync(dir, { recursive: true, force: true });
+    expect(res).toBeNull();
+  });
+
   it('falls back to bare built-in name when node: prefix is absent', () => {
     const dir = makeProject(true);
     const file = path.join(dir, 'server.ts');
@@ -517,9 +536,13 @@ describe('isTestFile and checkTestFileLock', () => {
     expect(isTestFile('src/app.spec.ts')).toBe(true);
     expect(isTestFile('tests/app.ts')).toBe(true);
     expect(isTestFile('src/__tests__/app.ts')).toBe(true);
-    expect(isTestFile('vitest.config.ts')).toBe(true);
-    expect(isTestFile('jest.config.js')).toBe(true);
     expect(isTestFile('.github/workflows/ci.yml')).toBe(true);
+    // Runner config files are NOT test-assertion files — blocking them would stall
+    // greenfield test setup (you cannot run tests without creating vitest.config.ts).
+    expect(isTestFile('vitest.config.ts')).toBe(false);
+    expect(isTestFile('jest.config.js')).toBe(false);
+    expect(isTestFile('playwright.config.ts')).toBe(false);
+    expect(isTestFile('cypress.config.ts')).toBe(false);
     expect(isTestFile('src/app.ts')).toBe(false);
   });
 
