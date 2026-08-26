@@ -1,3 +1,10 @@
+## [3.46.5](https://github.com/bgill55/daedalus/compare/v3.46.4...v3.46.5) (2026-08-26)
+
+
+### Bug Fixes
+
+* **tools:** support ESM .js-to-.ts import validation and normalize cd /d in terminal ([aace526](https://github.com/bgill55/daedalus/commit/aace526cdbad81455ef3ea56bd5f7c6a61248713))
+
 ## [3.46.4](https://github.com/bgill55/daedalus/compare/v3.46.3...v3.46.4) (2026-08-26)
 
 
