@@ -331,7 +331,7 @@ export function createModelFunctions(deps: ModelDeps) {
 
     while (true) {
       if (toolTurnsRemaining <= 0) {
-        closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
+        closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier, { showCost: config.ui?.showCost, selfCorrections: toolContext.selfCorrectionCount });
         console.log(`\n  ${info('[INFO]')} ${dim(`Reached max tool turns (${MAX_TOOL_TURNS}). Pausing to checkpoint.`)}`);
         toolContext.maxTurnsCause = computeMaxTurnsCause();
         const executedSummary = executedToolNames.size > 0 ? [...executedToolNames].join(', ') : 'none';
@@ -355,12 +355,11 @@ export function createModelFunctions(deps: ModelDeps) {
       }
 
       if (turnAborted) {
-        closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
+        closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier, { showCost: config.ui?.showCost, selfCorrections: toolContext.selfCorrectionCount });
         console.log(dim('\n  [STOP] Stopped'));
         return { content: lastContent, toolCalls: [] };
       }
       turnUsageOut = undefined;
-      const useStreaming = config.ui?.streaming !== false;
       const thinkingStyle = DaedalusSpinner.getThinkingStyle(config.ui?.spinner);
       const spinner = new DaedalusSpinner({
         text: 'Daedalus thinking',
@@ -407,12 +406,9 @@ export function createModelFunctions(deps: ModelDeps) {
 
           if (delta.content) {
             fullContent += delta.content;
-            if (useStreaming) {
-              openBlock();
-              writeAssistantChunk(delta.content);
-            }
 
             if (detectRepetition(fullContent)) {
+              openBlock();
               writeAssistantChunk(err('\n\n[STOP] Repetition loop detected. Aborting stream.'));
               repetitionAborted = true;
               currentAbortController?.abort();
@@ -444,16 +440,9 @@ export function createModelFunctions(deps: ModelDeps) {
 
         if (!blockOpened) spinner.stop();
 
-        // Buffered mode: the spinner ran for the whole turn; now dump the
-        // accumulated reply in one block so it renders as a finished message.
-        if (!useStreaming && fullContent) {
-          openBlock();
-          writeAssistantChunk(fullContent);
-          spinner.stop();
-        }
-
         if (signal.aborted) {
-          closeAssistantBlock((lastContent || fullContent).length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
+          openBlock();
+          closeAssistantBlock((lastContent || fullContent).length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier, { showCost: config.ui?.showCost, selfCorrections: toolContext.selfCorrectionCount });
           console.log(dim('\n  [STOP] Stopped'));
           clearAbortController();
           return { content: fullContent, toolCalls: [] };
@@ -497,12 +486,14 @@ export function createModelFunctions(deps: ModelDeps) {
       if (toolCallArray.length === 0 && divergence.register(cleanContent)) {
         const repeats = divergence.consecutiveRepeats;
         if (repeats >= 2) {
-          closeAssistantBlock(cleanContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
+          openBlock();
+          closeAssistantBlock(cleanContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier, { showCost: config.ui?.showCost, selfCorrections: toolContext.selfCorrectionCount });
           console.log(dim(`\n  [STOP] Runaway loop: same output re-emitted ${repeats} times with no progress. Closing turn.`));
           toolContext.maxTurnsCause = 'repeated identical output without progress (repetition guard tripped) — the agent emitted the same response multiple times';
           return { content: `${cleanContent}\n\n[SELF-CORRECT] I repeated the same output ${repeats} times without making progress. I am stopping this turn rather than looping.`, toolCalls: [] };
         }
         console.log(dim(`\n  [CHECK] Detected near-duplicate of prior output — not making progress.`));
+        toolContext.selfCorrectionCount = (toolContext.selfCorrectionCount ?? 0) + 1;
         messages.push({ role: 'assistant', content: cleanContent });
         messages.push({
           role: 'user',
@@ -522,6 +513,7 @@ export function createModelFunctions(deps: ModelDeps) {
           if (toolContext.firedCompletionGuards?.has(key)) continue;
           (toolContext.firedCompletionGuards ??= new Set<string>()).add(key);
           console.log(dim(`\n  [CHECK] Claim about ${ungrounded} is ungrounded (no inspection this session).`));
+          toolContext.selfCorrectionCount = (toolContext.selfCorrectionCount ?? 0) + 1;
           messages.push({ role: 'assistant', content: cleanContent });
           messages.push({
             role: 'user',
@@ -543,6 +535,7 @@ export function createModelFunctions(deps: ModelDeps) {
           if (toolContext.firedCompletionGuards?.has(key)) continue;
           (toolContext.firedCompletionGuards ??= new Set<string>()).add(key);
           console.log(dim(`\n  [CHECK] Project claim about "${projClaim}" is ungrounded (never observed this session).`));
+          toolContext.selfCorrectionCount = (toolContext.selfCorrectionCount ?? 0) + 1;
           messages.push({ role: 'assistant', content: cleanContent });
           messages.push({
             role: 'user',
@@ -556,6 +549,7 @@ export function createModelFunctions(deps: ModelDeps) {
         const negClaim = isNegativeExistenceClaim(cleanContent, claimLedger);
         if (negClaim) {
           console.log(dim(`\n  [CHECK] Claim that "${negClaim}" is missing is ungrounded (no search/list run this session).`));
+          toolContext.selfCorrectionCount = (toolContext.selfCorrectionCount ?? 0) + 1;
           messages.push({ role: 'assistant', content: cleanContent });
           messages.push({
             role: 'user',
@@ -582,7 +576,6 @@ export function createModelFunctions(deps: ModelDeps) {
           continue;
         }
 
-        closeAssistantBlock(cleanContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
         if (currentComplexity && process.env.DAEDALUS_DEBUG === 'true') {
           console.log(dim(`  [ROUTE] Task summary: start ${taskComplexity ?? 'n/a'} → end ${currentComplexity} | ${totalCompletionTokens + (turnUsageOut ?? 0)} output tokens | ${escalationCount} escalation(s)`));
         }
@@ -594,6 +587,7 @@ export function createModelFunctions(deps: ModelDeps) {
         if (closingTodos.length > 0 && detectFalseCompletion(cleanContent, closingTodos)) {
           const remaining = closingTodos.filter((t) => t.status !== 'completed').length;
           console.log(dim(`\n  [CHECK] Verifying completion claim — ${remaining} todo(s) still open.`));
+          toolContext.selfCorrectionCount = (toolContext.selfCorrectionCount ?? 0) + 1;
           messages.push({ role: 'assistant', content: cleanContent });
           messages.push({
             role: 'user',
@@ -609,6 +603,7 @@ export function createModelFunctions(deps: ModelDeps) {
         const falselyClaimed = detectFalseCompletionOnDisk(cleanContent, toolContext);
         if (falselyClaimed) {
           console.log(dim(`\n  [CHECK] Verifying completion claim — no successful patch to ${falselyClaimed} this session (only reverts).`));
+          toolContext.selfCorrectionCount = (toolContext.selfCorrectionCount ?? 0) + 1;
           messages.push({ role: 'assistant', content: cleanContent });
           messages.push({
             role: 'user',
@@ -625,6 +620,7 @@ export function createModelFunctions(deps: ModelDeps) {
         if (scopeTodos.length > 0 && isScopeOverstatedSummary(cleanContent, scopeTodos)) {
           const remaining = scopeTodos.filter((t) => t.status !== 'completed').length;
           console.log(dim(`\n  [CHECK] Verifying completion claim — summary enumerates tasks as done but ${remaining} todo(s) still open.`));
+          toolContext.selfCorrectionCount = (toolContext.selfCorrectionCount ?? 0) + 1;
           messages.push({ role: 'assistant', content: cleanContent });
           messages.push({
             role: 'user',
@@ -642,6 +638,7 @@ export function createModelFunctions(deps: ModelDeps) {
         if (isUnsubstantiatedProgressReport(cleanContent)) {
           const itemCount = countAchievementItems(cleanContent);
           console.log(dim(`\n  [CHECK] Verifying completion claim — ${itemCount} deliverables enumerated as done without a reconciling task list or per-item verification.`));
+          toolContext.selfCorrectionCount = (toolContext.selfCorrectionCount ?? 0) + 1;
           messages.push({ role: 'assistant', content: cleanContent });
           messages.push({
             role: 'user',
@@ -656,7 +653,8 @@ export function createModelFunctions(deps: ModelDeps) {
         // real inspection instead of letting a fabricated review loop. (Catches the runaway
         // "fabricated review from a single passing typecheck" failure at the first deliverable.)
         if (isReviewTask(userTask) && isReviewDeliverable(cleanContent) && claimLedger.totalObservations === 0) {
-          closeAssistantBlock(cleanContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
+          openBlock();
+          closeAssistantBlock(cleanContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier, { showCost: config.ui?.showCost, selfCorrections: toolContext.selfCorrectionCount });
           toolContext.maxTurnsCause = 'produced a review deliverable with zero file inspections this session (review-without-inspection guard)';
           console.log(dim(`\n  [STOP] Review produced with zero file inspections this session — halting.`));
           return { content: `${cleanContent}\n\n[SELF-CORRECT] I described the project's architecture/features but have not inspected a single file this session. I am stopping rather than fabricating a review. I should read the code before reviewing.`, toolCalls: [] };
@@ -668,6 +666,7 @@ export function createModelFunctions(deps: ModelDeps) {
         if (isReviewTask(userTask) && isReviewWithoutSourceInspection(cleanContent, claimLedger)) {
           const srcCount = claimLedger.sourceFileObservations;
           console.log(dim(`\n  [CHECK] Review deliverable produced after reading only ${srcCount} source file(s) — insufficient inspection.`));
+          toolContext.selfCorrectionCount = (toolContext.selfCorrectionCount ?? 0) + 1;
           messages.push({ role: 'assistant', content: cleanContent });
           messages.push({
             role: 'user',
@@ -682,6 +681,7 @@ export function createModelFunctions(deps: ModelDeps) {
         const noRunClaimed = claimedTestCountWithoutRun(cleanContent, toolContext.lastVerifyPassCount);
         if (noRunClaimed) {
           console.log(dim(`\n  [CHECK] Test-count claim ("${noRunClaimed} passing") made with no real npm test run this session.`));
+          toolContext.selfCorrectionCount = (toolContext.selfCorrectionCount ?? 0) + 1;
           messages.push({ role: 'assistant', content: cleanContent });
           messages.push({
             role: 'user',
@@ -706,6 +706,7 @@ export function createModelFunctions(deps: ModelDeps) {
           }
           (toolContext.firedCompletionGuards ??= new Set<string>()).add(worksKey);
           console.log(dim(`\n  [CHECK] "Works/verified" claim made with no live runtime probe (curl/HTTP/integration test) this session.`));
+          toolContext.selfCorrectionCount = (toolContext.selfCorrectionCount ?? 0) + 1;
           messages.push({ role: 'assistant', content: cleanContent });
           messages.push({
             role: 'user',
@@ -726,6 +727,7 @@ export function createModelFunctions(deps: ModelDeps) {
             (toolContext.firedCompletionGuards ??= new Set<string>()).add(rfKey);
             const rf = toolContext.lastRuntimeFailure;
             console.log(dim(`\n  [CHECK] Completion claim conflicts with a FAILED run this session — \`${rf.command}\` exited non-zero.`));
+            toolContext.selfCorrectionCount = (toolContext.selfCorrectionCount ?? 0) + 1;
             messages.push({ role: 'assistant', content: cleanContent });
             messages.push({
               role: 'user',
@@ -743,7 +745,8 @@ export function createModelFunctions(deps: ModelDeps) {
         // file (the "fix was already present" spin) with no edit, force it to report the
         // blocker honestly instead of looping. Close the turn with a concise note.
         if (readStall.stalled) {
-          closeAssistantBlock(cleanContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
+          openBlock();
+          closeAssistantBlock(cleanContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier, { showCost: config.ui?.showCost, selfCorrections: toolContext.selfCorrectionCount });
           console.log(dim(`\n  [DONE] Idle re-read stall: same file read ${readStall.readCount} times consecutively with no edit. Closing turn.`));
           toolContext.verifyBreakerTrippedLastTurn = verifyBreakerTrippedThisTurn || verifyBreakerTrippedLastTurn;
           toolContext.maxTurnsCause = `stuck re-reading the same file without making changes (idle re-read guard, ${readStall.readCount} reads)`;
@@ -755,6 +758,7 @@ export function createModelFunctions(deps: ModelDeps) {
         // successful run cleared it — forces a real re-run or an honest blocker report.
         if (isGreenBuildTestClaim(cleanContent) && (verifyBreakerTrippedThisTurn || verifyBreakerTrippedLastTurn)) {
           console.log(dim(`\n  [CHECK] Verifying completion claim — build/test command tripped the circuit breaker; no fresh successful run observed.`));
+          toolContext.selfCorrectionCount = (toolContext.selfCorrectionCount ?? 0) + 1;
           toolContext.verifyBreakerTrippedLastTurn = true;
           messages.push({ role: 'assistant', content: cleanContent });
           messages.push({
@@ -772,6 +776,7 @@ export function createModelFunctions(deps: ModelDeps) {
         const testCorrection = fabricatedTestCountCorrection(cleanContent, toolContext.lastVerifyPassCount);
         if (testCorrection) {
           console.log(dim(`\n  [CHECK] Verifying test-count claim — summary count disagrees with last real test run.`));
+          toolContext.selfCorrectionCount = (toolContext.selfCorrectionCount ?? 0) + 1;
           messages.push({ role: 'assistant', content: cleanContent });
           messages.push({
             role: 'user',
@@ -787,6 +792,7 @@ export function createModelFunctions(deps: ModelDeps) {
         // run this session FAILED, force a re-run or an honest report of what actually failed.
         if (isGreenStateClaim(cleanContent) && toolContext.lastVerifyPassed === false) {
           console.log(dim(`\n  [CHECK] Verifying green-state claim — last real verify run this session FAILED.`));
+          toolContext.selfCorrectionCount = (toolContext.selfCorrectionCount ?? 0) + 1;
           messages.push({ role: 'assistant', content: cleanContent });
           messages.push({
             role: 'user',
@@ -795,6 +801,9 @@ export function createModelFunctions(deps: ModelDeps) {
           continue;
         }
 
+        openBlock();
+        writeAssistantChunk(cleanContent);
+        closeAssistantBlock(cleanContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier, { showCost: config.ui?.showCost, selfCorrections: toolContext.selfCorrectionCount });
         messages.push({ role: 'assistant', content: cleanContent });
         return { content: cleanContent, toolCalls: [] };
       }
@@ -1125,7 +1134,7 @@ export function createModelFunctions(deps: ModelDeps) {
       // patch-attempt budget and must not keep retrying or escalating models — force the
       // turn to close so it reports the blocker to the user instead of looping.
       if (failedResults.some(r => `${r.error ?? ''}\n${r.content ?? ''}`.includes('[PAUSED]'))) {
-        closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
+        closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier, { showCost: config.ui?.showCost, selfCorrections: toolContext.selfCorrectionCount });
         return { content: `${lastContent}\n\n[PAUSED] Patch circuit breaker tripped — too many reverted patches this session. Pausing to avoid a loop. Report the blocker to the user.`, toolCalls: [] };
       }
 
@@ -1167,7 +1176,7 @@ export function createModelFunctions(deps: ModelDeps) {
       }
 
       if (consecutiveToolFailures >= 5 || worstRepeatedFailures >= 5) {
-        closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
+        closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier, { showCost: config.ui?.showCost, selfCorrections: toolContext.selfCorrectionCount });
         console.log(dim('\n  [DONE] Concluding after repeated tool failures — see summary above.'));
         toolContext.maxTurnsCause = computeMaxTurnsCause();
         messages.push({ role: 'assistant', content: lastContent });
@@ -1180,7 +1189,7 @@ export function createModelFunctions(deps: ModelDeps) {
         const norm = answer.trim().toLowerCase();
 
         if (norm === 'n' || norm === 'no') {
-          closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
+          closeAssistantBlock(lastContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier, { showCost: config.ui?.showCost, selfCorrections: toolContext.selfCorrectionCount });
           console.log(warn('\n  [INFO] Stopped agent turn loop.'));
           messages.push({ role: 'assistant', content: lastContent });
           return { content: lastContent, toolCalls: [] };

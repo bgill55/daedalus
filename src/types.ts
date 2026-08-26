@@ -98,6 +98,8 @@ export interface ToolContext {
   // so the SAME claim is not re-verified every turn (the "verify the same 5 items 4x"
   // token waste). Mirrors claimLedger/verifyBreakerTrippedLastTurn persistence.
   firedCompletionGuards?: Set<string>;
+  // Count of automatic self-corrections / auto-heals performed this turn/session
+  selfCorrectionCount?: number;
   // Persisted across turns: true once we've escalated the model on a failure streak,
   // so we don't re-escalate into a model-swap churn on the next turn (which silently
   // resets escalatedThisStreak to false each turn).

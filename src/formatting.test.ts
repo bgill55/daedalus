@@ -30,6 +30,19 @@ describe('closeAssistantBlock', () => {
     expect(text).toContain('120 out');
   });
 
+  it('renders selfCorrections count in footer stats when passed', () => {
+    closeAssistantBlock(100, 1000, 2, 'model-x', 120, undefined, { selfCorrections: 2 });
+    const text = output();
+    expect(text).toContain('2 auto-heals');
+  });
+
+  it('renders singular auto-heal when count is 1', () => {
+    closeAssistantBlock(100, 1000, 1, 'model-x', 120, undefined, { selfCorrections: 1 });
+    const text = output();
+    expect(text).toContain('1 auto-heal');
+    expect(text).not.toContain('1 auto-heals');
+  });
+
   it('keeps the char-based estimate when realOutTokens is omitted', () => {
     closeAssistantBlock(4000, 2000, 2, 'model-x');
     const text = output();

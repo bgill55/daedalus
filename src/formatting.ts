@@ -410,7 +410,7 @@ export function closeAssistantBlock(
   modelName?: string,
   realOutTokens?: number,
   tier?: string,
-  opts?: { showCost?: boolean },
+  opts?: { showCost?: boolean; selfCorrections?: number },
 ): void {
   if (modelName) globalSessionStats.setLastModel(modelName, tier);
   const showCost = opts?.showCost === true || _showCost;
@@ -460,6 +460,9 @@ export function closeAssistantBlock(
   if (elapsedMs > 0 && outTokens > 0) {
     const tps = (outTokens / (elapsedMs / 1000)).toFixed(1);
     parts.push(`${tps} tok/s`);
+  }
+  if (opts?.selfCorrections && opts.selfCorrections > 0) {
+    parts.push(`${opts.selfCorrections} auto-heal${opts.selfCorrections === 1 ? '' : 's'}`);
   }
 
   // Cost estimate (opt-in via ui.showCost). Local models cost $0; cloud families
