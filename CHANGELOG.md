@@ -1,3 +1,10 @@
+## [3.47.2](https://github.com/bgill55/daedalus/compare/v3.47.1...v3.47.2) (2026-08-26)
+
+
+### Bug Fixes
+
+* **autopilot:** actually verify the scaffolded project before commit/merge ([8c6e186](https://github.com/bgill55/daedalus/commit/8c6e18643c856e03f65e6005fc9700e69e11d560))
+
 ## [3.47.1](https://github.com/bgill55/daedalus/compare/v3.47.0...v3.47.1) (2026-08-26)
 
 
