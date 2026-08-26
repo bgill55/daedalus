@@ -1,3 +1,10 @@
+## [3.46.6](https://github.com/bgill55/daedalus/compare/v3.46.5...v3.46.6) (2026-08-26)
+
+
+### Bug Fixes
+
+* **completion:** block "works/verified" claims contradicted by the agent's own failed run ([ad5cc18](https://github.com/bgill55/daedalus/commit/ad5cc18100ad7e8c7f2b355007275814045725eb))
+
 ## [3.46.5](https://github.com/bgill55/daedalus/compare/v3.46.4...v3.46.5) (2026-08-26)
 
 
