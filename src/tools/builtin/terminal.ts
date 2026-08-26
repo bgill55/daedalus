@@ -473,6 +473,8 @@ export async function execute(args: { command: string; timeout?: number; workdir
 
   // Best-effort checkpoint before install, plus an npx footgun warning
   let execCommand = command;
+  // Normalize Windows cmd-style `cd /d <path>` to `cd <path>` so bash/PowerShell subshells don't error
+  execCommand = execCommand.replace(/\bcd\s+\/d\s+/gi, 'cd ');
   if (process.platform === 'win32' && /^rm\s+/i.test(execCommand.trim())) {
     const rmMatch = execCommand.trim().match(/^rm\s+(?:-[a-z]+\s+)?(.+)$/i);
     if (rmMatch && rmMatch[1]) {

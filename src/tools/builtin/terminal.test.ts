@@ -775,4 +775,18 @@ describe('getResolvedShellType', () => {
     expect(spawn).toHaveBeenCalled();
   });
 
+  it('normalizes Windows cmd cd /d syntax to plain cd', async () => {
+    const ctx = makeContext();
+    const mock = makeMockProcess();
+    (spawn as any).mockReturnValue(mock);
+
+    const p = execute({ command: 'cd /d D:\\some\\path && ls' }, ctx);
+    mock.emit('close', 0);
+    await p;
+
+    expect(spawn).toHaveBeenCalled();
+    const spawnArgs = (spawn as any).mock.calls[0][1];
+    expect(spawnArgs.join(' ')).toContain('cd D:\\some\\path && ls');
+  });
+
 });

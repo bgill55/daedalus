@@ -982,7 +982,20 @@ export function validateImports(filePath: string, projectRoot: string): string[]
   while ((match = importRe.exec(content)) !== null) {
     const spec = match[1];
     if (spec.startsWith('.') || spec.startsWith('/')) {
-      const candidates = [spec, `${spec}.ts`, `${spec}.js`, `${spec}/index.ts`, `${spec}/index.js`];
+      const baseSpec = spec.replace(/\.[mc]?[jt]sx?$/, '');
+      const candidates = [
+        spec,
+        `${baseSpec}.ts`,
+        `${baseSpec}.tsx`,
+        `${baseSpec}.d.ts`,
+        `${baseSpec}.js`,
+        `${baseSpec}.mjs`,
+        `${baseSpec}.cjs`,
+        `${baseSpec}/index.ts`,
+        `${baseSpec}/index.tsx`,
+        `${baseSpec}/index.d.ts`,
+        `${baseSpec}/index.js`,
+      ];
       const resolved = candidates.map(c => path.resolve(path.dirname(filePath), c));
       if (!resolved.some(r => fs.existsSync(r))) {
         warnings.push(`Local import not found: '${spec}'`);

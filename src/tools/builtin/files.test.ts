@@ -371,6 +371,20 @@ describe('writeFile — import existence validation', () => {
 
     expect(result.content).not.toMatch(/Local import not found/);
   });
+
+  it('does not warn when ESM .js import resolves to a .ts file', async () => {
+    const dep = path.join(tmpDir, 'types.ts');
+    fs.writeFileSync(dep, 'export interface Foo { bar: string; }\n');
+    const file = path.join(tmpDir, 'consumer.ts');
+    const ctx = makeContext(tmpDir);
+
+    const result = await writeFile(
+      { path: file, content: "import type { Foo } from './types.js';\nexport const x: Foo = { bar: '1' };\n" },
+      ctx,
+    );
+
+    expect(result.content).not.toMatch(/Local import not found/);
+  });
 });
 
 describe('writeFile — export consistency check', () => {
