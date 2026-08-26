@@ -245,6 +245,7 @@ Daedalus stores config at `~/.daedalus/config.json`. Key sections:
     "strategy": "priority",
     "autoEscalate": true,
     "complexityRouting": true,
+    "minModel": "your-strong-model",
     "chain": [
       { 
         "name": "local", 

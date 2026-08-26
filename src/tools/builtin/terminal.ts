@@ -475,6 +475,10 @@ export async function execute(args: { command: string; timeout?: number; workdir
   let execCommand = command;
   // Normalize Windows cmd-style `cd /d <path>` to `cd <path>` so bash/PowerShell subshells don't error
   execCommand = execCommand.replace(/\bcd\s+\/d\s+/gi, 'cd ');
+  // Normalize unquoted Windows drive paths in `cd` so bash (MSYS/git-bash) doesn't mangle
+  // backslashes. `cd D:\foo\bar` -> `cd "D:/foo/bar"`. Quoted paths (which already work in
+  // this shell) are left untouched. Stops the recurring "npm install failed" from a bad `cd`.
+  execCommand = execCommand.replace(/\bcd\s+([A-Za-z]:[\\/][^"'\s&|;]*)/g, (_m, p) => `cd "${p.replace(/\\/g, '/')}"`);
   if (process.platform === 'win32' && /^rm\s+/i.test(execCommand.trim())) {
     const rmMatch = execCommand.trim().match(/^rm\s+(?:-[a-z]+\s+)?(.+)$/i);
     if (rmMatch && rmMatch[1]) {

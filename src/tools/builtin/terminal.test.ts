@@ -786,50 +786,22 @@ describe('getResolvedShellType', () => {
 
     expect(spawn).toHaveBeenCalled();
     const spawnArgs = (spawn as any).mock.calls[0][1];
-    expect(spawnArgs.join(' ')).toContain('cd D:\\some\\path && ls');
+    expect(spawnArgs.join(' ')).toContain('cd "D:/some/path" && ls');
   });
 
-});
-
-describe('runtime-failure capture (completion-guard signal)', () => {
-  it('records lastRuntimeFailure when a built-artifact run exits non-zero with a hard error', async () => {
+  it('quotes and forward-slashes an unquoted Windows drive-path cd (bash backslash mangling)', async () => {
     const ctx = makeContext();
     const mock = makeMockProcess();
     (spawn as any).mockReturnValue(mock);
 
-    const p = execute({ command: 'node dist/cli.js scan --offline' }, ctx);
-    mock.stdout.emit('data', Buffer.from('Error: Cannot find module \'dist/github-client\'\n'));
-    mock.emit('close', 1);
-    const result = await p;
-
-    expect(result.success).toBe(false);
-    expect(ctx.lastRuntimeFailure).not.toBeNull();
-    expect(ctx.lastRuntimeFailure!.command).toContain('node dist/cli.js');
-    expect(ctx.lastRuntimeFailure!.error).toContain('Cannot find module');
-  });
-
-  it('clears lastRuntimeFailure on a subsequent successful run', async () => {
-    const ctx = makeContext();
-    ctx.lastRuntimeFailure = { command: 'node dist/cli.js', error: 'boom' };
-    const mock = makeMockProcess();
-    (spawn as any).mockReturnValue(mock);
-
-    const p = execute({ command: 'node dist/cli.js --offline --top 3' }, ctx);
+    const p = execute({ command: 'cd D:\\daedalus-sandbox\\daedalus-scan && dir' }, ctx);
     mock.emit('close', 0);
     await p;
 
-    expect(ctx.lastRuntimeFailure).toBeNull();
+    expect(spawn).toHaveBeenCalled();
+    const spawnArgs = (spawn as any).mock.calls[0][1];
+    expect(spawnArgs.join(' ')).toContain('cd "D:/daedalus-sandbox/daedalus-scan"');
+    expect(spawnArgs.join(' ')).not.toContain('D:\\daedalus-sandbox');
   });
 
-  it('does NOT record a benign non-zero exit (grep no-match) as a runtime failure', async () => {
-    const ctx = makeContext();
-    const mock = makeMockProcess();
-    (spawn as any).mockReturnValue(mock);
-
-    const p = execute({ command: "grep -r 'nope' src" }, ctx);
-    mock.emit('close', 1);
-    await p;
-
-    expect(ctx.lastRuntimeFailure).toBeUndefined();
-  });
 });

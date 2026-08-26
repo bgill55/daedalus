@@ -811,5 +811,59 @@ describe('LocalRouter', () => {
   });
 });
 
+describe('minModel capability floor', () => {
+  it('excludes a weaker top-priority model when the floor is a stronger one', async () => {
+    // weak is at priority 5 (weaker than the floor), strong at priority 1 (the floor).
+    // The floor must exclude the weaker top model, forcing the strong one.
+    const router = new LocalRouter(makeConfig({
+      chain: [
+        { name: 'strong', endpoint: 'http://localhost:1/v1', model: 'm1', priority: 1, enabled: true },
+        { name: 'weak', endpoint: 'http://localhost:5/v1', model: 'm5', priority: 5, enabled: true },
+      ],
+      minModel: 'strong',
+    }));
+    const res = await router.route({ messages: [] });
+    expect(res.model.name).toBe('strong');
+  });
+
+  it('still prefers a STRONGER model than the floor (floor only blocks weaker ones)', async () => {
+    const router = new LocalRouter(makeConfig({
+      chain: [
+        { name: 'weak', endpoint: 'http://localhost:1/v1', model: 'm1', priority: 1, enabled: true },
+        { name: 'mid', endpoint: 'http://localhost:2/v1', model: 'm2', priority: 2, enabled: true },
+        { name: 'strong', endpoint: 'http://localhost:3/v1', model: 'm3', priority: 3, enabled: true },
+      ],
+      minModel: 'mid',
+    }));
+    const res = await router.route({ messages: [] });
+    // weak (priority 1) is stronger than the floor and selected first; strong (priority 3) is weaker and excluded.
+    expect(res.model.name).toBe('weak');
+  });
+
+  it('getNextModel never escalates to a model below the floor', () => {
+    const router = new LocalRouter(makeConfig({
+      chain: [
+        { name: 'weak', endpoint: 'http://localhost:1/v1', model: 'm1', priority: 1, enabled: true },
+        { name: 'mid', endpoint: 'http://localhost:2/v1', model: 'm2', priority: 2, enabled: true },
+        { name: 'strong', endpoint: 'http://localhost:3/v1', model: 'm3', priority: 3, enabled: true },
+      ],
+      minModel: 'mid',
+    }));
+    const next = router.getNextModel('weak');
+    expect(next?.name).toBe('mid');
+  });
+
+  it('ignores an unknown minModel name (no floor applied)', async () => {
+    const router = new LocalRouter(makeConfig({
+      chain: [
+        { name: 'weak', endpoint: 'http://localhost:1/v1', model: 'm1', priority: 1, enabled: true },
+        { name: 'strong', endpoint: 'http://localhost:3/v1', model: 'm3', priority: 3, enabled: true },
+      ],
+      minModel: 'nonexistent',
+    }));
+    const res = await router.route({ messages: [] });
+    expect(res.model.name).toBe('weak');
+  });
+});
 
 

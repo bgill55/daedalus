@@ -24,6 +24,7 @@ This guide describes all configuration options available in Daedalus. You can vi
 *   **`router.defaultRateLimit`**: Default rate limit settings (rpm and tpm) applied when an endpoint does not advertise its own limits.
 *   **`router.autoEscalate`**: When true, automatically switches to the next chain model after repeated tool failures. Default: true.
 *   **`router.complexityRouting`**: When true, routes each task by complexity tier: simple tasks use the fast tier, complex tasks use the intelligence tier, with on-the-fly reclassification mid-task. Default: true.
+*   **`router.minModel`**: Capability floor — the WEAKEST model Daedalus is allowed to use. Set to a model `name` from your `router.chain`; any model ranked weaker (higher `priority` number) is excluded from selection and escalation. This prevents the weak-tier thrash (e.g. a chain full of 120b models) without hardcoding a provider — the floor references a model you already configured. Provider-neutral.
 
 ---
 

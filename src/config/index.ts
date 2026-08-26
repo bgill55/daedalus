@@ -60,6 +60,12 @@ export const RouterConfigSchema = z.object({
   }).default({ rpm: 60, tpm: 100000 }),
   autoEscalate: z.boolean().default(true),
   complexityRouting: z.boolean().default(true),
+  // Capability floor: the WEAKEST model Daedalus is allowed to use. When set to a
+  // model name from the chain, the router never selects or escalates DOWN to any
+  // model ranked below it (higher priority number = lower priority). This stops
+  // the weak-tier thrash (e.g. a chain full of 120b models) without hardcoding a
+  // provider — the floor references a model the user already configured. Provider-neutral.
+  minModel: z.string().optional(),
 });
 
 export const AgentRoleSchema = z.object({

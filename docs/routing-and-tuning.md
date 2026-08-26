@@ -99,6 +99,7 @@ Models are classified into **tiers** in the router chain: `"fast"`, `"standard"`
 |---|---|---|
 | `router.complexityRouting` | `true` | Enable/disable dynamic complexity-based routing entirely. |
 | `router.autoEscalate` | `true` | Enable escalation to the next chain model after repeated tool failures. |
+| `router.minModel` | — | Capability floor: the weakest model Daedalus may use (a `name` from `router.chain`). Any model ranked weaker is excluded from selection and escalation — stops weak-tier thrash without favoring a provider. |
 | `modelOverride` | — | Pin a single model and bypass routing, classification, and escalation. Set via `/config set modelOverride = <model>` or `/model`. |
 
 While working, Daedalus prints a `[ROUTE]` line whenever the router reclassifies a task mid-turn, so you can see it move between tiers as the work evolves:

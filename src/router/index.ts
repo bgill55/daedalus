@@ -268,6 +268,8 @@ export class LocalRouter {
   getNextModel(currentName: string): ModelEntry | undefined {
     const enabled = this.getEnabledModels();
     if (enabled.length < 2) return undefined;
+    // Capability floor (minModel): never escalate to a model weaker than the floor.
+    const floor = this.config.minModel ? enabled.find(m => m.name === this.config.minModel) : undefined;
     const idx = enabled.findIndex(m => m.name === currentName || m.model === currentName);
     const start = idx === -1 ? 0 : idx + 1;
     for (let i = 0; i < enabled.length - 1; i++) {
@@ -275,6 +277,7 @@ export class LocalRouter {
       if (candidate.name === currentName || candidate.model === currentName) continue;
       if (candidate.supportsTools === false) continue;
       if (this.isBlacklisted(candidate)) continue;
+      if (floor && candidate.priority > floor.priority) continue;
       const health = getCachedHealth(candidate);
       if (health?.healthy === false) continue;
       return candidate;
@@ -450,6 +453,18 @@ export class LocalRouter {
         rankedCandidates = tierFilteredModels;
     }
 
+    // Capability floor (minModel): never select or escalate to a model weaker than
+    // the configured floor. The floor is a model NAME from the chain; its priority
+    // is the cutoff — any candidate ranked below it (higher priority number) is
+    // excluded. This prevents the weak-tier thrash without favoring any provider.
+    if (this.config.minModel) {
+      const floor = this.config.chain.find(m => m.name === this.config.minModel);
+      if (floor) {
+        const floorPriority = floor.priority;
+        const aboveFloor = rankedCandidates.filter(m => m.priority <= floorPriority);
+        if (aboveFloor.length > 0) rankedCandidates = aboveFloor;
+      }
+    }
     let rateLimitError: Error | undefined;
 
     for (const m of rankedCandidates) {
