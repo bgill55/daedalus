@@ -463,6 +463,25 @@ describe('preflightDependencyCheck (pre-write prevention gate)', () => {
     expect(res).toBeNull();
   });
 
+  it('does NOT revert a file that only references Node globals (e.g. cli.ts using process), even before @types/node installs', async () => {
+    // Regression: a greenfield cli.ts that only references Node globals (process,
+    // Buffer, __dirname) is valid. A weak model would thrash re-proposing it as a
+    // "type error", but the type-error gate must exempt node-global TS2304/TS2688
+    // as environment noise (the dependency installs later). The write is allowed.
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'daedalus-syntax-nodeglobal-'));
+    fs.writeFileSync(path.join(dir, 'tsconfig.json'), JSON.stringify({
+      compilerOptions: { strict: true, noEmit: true, skipLibCheck: true, types: ['node'] },
+    }));
+    // Realistic project state: node_modules present but @types/node not yet installed.
+    fs.mkdirSync(path.join(dir, 'node_modules'), { recursive: true });
+    const file = path.join(dir, 'cli.ts');
+    const content = "const port = Number(process.env.PORT ?? 3000);\nexport const x = port;\n";
+    // syntaxCheck is called BEFORE the file exists on disk (new-file write).
+    const res = await syntaxCheck(file, dir, content, undefined);
+    fs.rmSync(dir, { recursive: true, force: true });
+    expect(res).toBeNull();
+  });
+
   it('falls back to bare built-in name when node: prefix is absent', () => {
     const dir = makeProject(true);
     const file = path.join(dir, 'server.ts');

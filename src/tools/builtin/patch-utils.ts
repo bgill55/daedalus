@@ -265,11 +265,11 @@ function isDeprecation(d: ts.Diagnostic): boolean {
   return d.code >= 5000 && d.code <= 5999;
 }
 
-// Module-resolution failures (missing/!unresolved imports, missing types) are
-// environment issues, not patch syntax errors. Blocking a correct edit because a
-// freshly-installed package's types aren't resolvable by the in-process tsc would
-// cause the agent to loop on a valid change — so we never treat these as
-// "introduced" by a patch.
+// Module-resolution + missing type-definition failures are environment issues, not
+// patch syntax errors. Blocking a correct edit because a freshly-installed package's
+// types aren't resolvable by the in-process tsc (or because types:["node"] is set but
+// @types/node isn't installed yet during scaffold) would cause the agent to loop on a
+// valid change — so we never treat these as "introduced" by a patch.
 function isModuleResolutionError(d: ts.Diagnostic): boolean {
   return [
     2307, // Cannot find module 'X' or its corresponding type declarations.
@@ -279,6 +279,8 @@ function isModuleResolutionError(d: ts.Diagnostic): boolean {
     2503, // Cannot find namespace 'X'.
     7016, // Could not find a declaration file for module 'X'.
     1259, // Module 'X' can only be default-imported using esModuleInterop.
+    2688, // Cannot find type definition file for 'X' (e.g. types:["node"] but @types/node missing).
+    2689, // Cannot find module or type definitions for 'X' (composite/references).
   ].includes(d.code);
 }
 
@@ -578,9 +580,10 @@ export async function syntaxCheck(
 
     // 2) Type-error gate: compile the proposed content in memory and diff its
     // (code:line) diagnostics against the original content. Only NEWLY INTRODUCED
-    // errors block. Module-resolution failures (TS2307 etc.) and deprecations are
-    // environment noise the agent cannot patch away, so they never block — that
-    // was the false-revert class (e.g. installing helmet then importing it).
+    // errors block. Module-resolution failures (TS2307 etc.), missing type-definition
+    // files (TS2688/TS2503 — e.g. types:["node"] set but @types/node not installed),
+    // and deprecations are environment noise the agent cannot patch away, so they
+    // never block — that was the false-revert class (e.g. installing helmet then importing it).
     const allDiags = runTscDiagnostics(tsconfigRoot);
     if (!allDiags) return null;
 
