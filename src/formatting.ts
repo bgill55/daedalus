@@ -638,6 +638,23 @@ function parseBracketToolItem(item: string, idx: number): ToolCall | null {
   };
 }
 
+export function extractBalancedObject(text: string, openIdx: number): string | null {
+  if (text[openIdx] !== '{') return null;
+  let depth = 0;
+  let inStr = false;
+  let esc = false;
+  for (let i = openIdx; i < text.length; i++) {
+    const c = text[i];
+    if (esc) { esc = false; continue; }
+    if (c === '\\') { esc = true; continue; }
+    if (c === '"') { inStr = !inStr; continue; }
+    if (inStr) continue;
+    if (c === '{') depth++;
+    else if (c === '}') { depth--; if (depth === 0) return text.slice(openIdx, i + 1); }
+  }
+  return null;
+}
+
 export function parseTextToolCalls(text: string): ToolCall[] {
   const toolCalls: ToolCall[] = [];
   const regex = /<(longcat_)?tool_call>([\s\S]*?)<\/(longcat_)?tool_call>/g;
@@ -808,6 +825,57 @@ export function parseTextToolCalls(text: string): ToolCall[] {
         toolCalls.push(...calls);
         break;
       }
+    }
+  }
+
+  if (toolCalls.length === 0) {
+    // Branch 4: bare JSON tool calls, e.g. {"name": "write_file", "arguments": {...}}
+    // or OpenAI shape {"function": {"name": "...", "arguments": "..."}}.
+    // Models emitting tool calls as plain JSON (no native function-calling / no markup
+    // wrapper) produce exactly this — extract and validate against the known tool set.
+    const jsonCallRe = /"name"\s*:\s*"([\w-]+)"\s*,\s*"arguments"\s*:/g;
+    let jm;
+    while ((jm = jsonCallRe.exec(text)) !== null) {
+      const name = jm[1];
+      const resolved = resolveToolName(name);
+      if (!resolved) continue;
+      // Walk back to the opening brace of the enclosing JSON object.
+      let start = jm.index;
+      while (start > 0 && text[start - 1] !== '{') start--;
+      const braceIdx = start - 1;
+      if (braceIdx < 0 || text[braceIdx] !== '{') continue;
+      const objStr = extractBalancedObject(text, braceIdx);
+      if (!objStr) continue;
+      let parsed: { arguments?: unknown };
+      try { parsed = JSON.parse(objStr); } catch { continue; }
+      const rawArgs = parsed.arguments;
+      const argsObj = typeof rawArgs === 'string' ? (() => { try { return JSON.parse(rawArgs); } catch { return null; } })() : (rawArgs ?? null);
+      if (typeof argsObj !== 'object' || argsObj === null) continue;
+      toolCalls.push({
+        id: `call_json_${Date.now()}_${toolCalls.length}`,
+        type: 'function',
+        function: { name: resolved, arguments: JSON.stringify(argsObj) },
+      });
+    }
+  }
+
+  if (toolCalls.length === 0) {
+    // OpenAI-style: {"function": {"name": "...", "arguments": "..."}}
+    const fnRe = /"function"\s*:\s*\{\s*"name"\s*:\s*"([\w-]+)"\s*,\s*"arguments"\s*:\s*("[\s\S]*?(?:"\s*\})|"\{[\s\S]*?\}")/g;
+    let fm;
+    while ((fm = fnRe.exec(text)) !== null) {
+      const name = fm[1];
+      const resolved = resolveToolName(name);
+      if (!resolved) continue;
+      const rawArgs = fm[2].replace(/^"|"$/g, '');
+      let argsObj: unknown;
+      try { argsObj = JSON.parse(rawArgs); } catch { continue; }
+      if (typeof argsObj !== 'object' || argsObj === null) continue;
+      toolCalls.push({
+        id: `call_jsonfn_${Date.now()}_${toolCalls.length}`,
+        type: 'function',
+        function: { name: resolved, arguments: JSON.stringify(argsObj) },
+      });
     }
   }
 
