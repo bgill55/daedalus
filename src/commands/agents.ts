@@ -90,22 +90,51 @@ function safeGitAdd(cwd: string): void {
 // that a sub-agent may have left behind. If the project declares no
 // build/test scripts (e.g. a bare repo), the gate is skipped — the
 // orchestrator already verified during the run.
-async function runAutopilotVerify(cwd: string): Promise<{ ok: boolean; detail: string }> {
-  const pkgPath = path.join(cwd, 'package.json');
-  let scripts: Record<string, string> = {};
-  try {
-    scripts = JSON.parse(fs.readFileSync(pkgPath, 'utf8')).scripts ?? {};
-  } catch {
-    // No package.json — nothing to verify against.
+export async function runAutopilotVerify(cwd: string): Promise<{ ok: boolean; detail: string }> {
+  // Locate the project(s) to verify. A greenfield scaffold may live in a subdirectory
+  // (e.g. ./daedalus-scan), not at the repo root — so if there's no package.json at
+  // cwd, scan immediate subdirectories for one. Checking only the repo root is a false
+  // negative: it returns "ok" with nothing verified, which let autopilot merge broken
+  // code (see sandbox run where the project lived in ./daedalus-scan).
+  const projects: string[] = [];
+  const rootPkg = path.join(cwd, 'package.json');
+  if (fs.existsSync(rootPkg)) {
+    projects.push(cwd);
+  } else {
+    let entries: fs.Dirent[] = [];
+    try { entries = fs.readdirSync(cwd, { withFileTypes: true }); } catch { /* ignore */ }
+    for (const e of entries) {
+      if (!e.isDirectory() || e.name === 'node_modules' || e.name.startsWith('.')) continue;
+      if (fs.existsSync(path.join(cwd, e.name, 'package.json'))) projects.push(path.join(cwd, e.name));
+    }
+  }
+  if (projects.length === 0) {
+    // No package.json anywhere — nothing to verify against.
     return { ok: true, detail: '' };
   }
-  for (const script of ['build', 'test']) {
-    if (!scripts[script]) continue;
+  for (const proj of projects) {
+    let scripts: Record<string, string> = {};
     try {
-      execSync(`npm run ${script}`, { cwd, stdio: 'ignore' });
-    } catch (e) {
-      const msg = e instanceof Error ? errMessage(e) : String(e);
-      return { ok: false, detail: `npm run ${script} failed: ${msg.split('\n')[0]}` };
+      scripts = JSON.parse(fs.readFileSync(path.join(proj, 'package.json'), 'utf8')).scripts ?? {};
+    } catch { continue; }
+    // Ensure deps are installed so build/test tooling (tsc, vitest) exists. Skipping this
+    // means even a correct project fails verification because the binaries aren't on disk.
+    if (!fs.existsSync(path.join(proj, 'node_modules'))) {
+      try {
+        execSync('npm install', { cwd: proj, stdio: 'ignore' });
+      } catch (e) {
+        const msg = e instanceof Error ? errMessage(e) : String(e);
+        return { ok: false, detail: `npm install failed in ${path.relative(cwd, proj) || '.'}: ${msg.split('\n')[0]}` };
+      }
+    }
+    for (const script of ['build', 'test']) {
+      if (!scripts[script]) continue;
+      try {
+        execSync(`npm run ${script}`, { cwd: proj, stdio: 'ignore' });
+      } catch (e) {
+        const msg = e instanceof Error ? errMessage(e) : String(e);
+        return { ok: false, detail: `npm run ${script} failed in ${path.relative(cwd, proj) || '.'}: ${msg.split('\n')[0]}` };
+      }
     }
   }
   return { ok: true, detail: '' };
