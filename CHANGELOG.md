@@ -1,3 +1,10 @@
+## [3.46.2](https://github.com/bgill55/daedalus/compare/v3.46.1...v3.46.2) (2026-08-26)
+
+
+### Bug Fixes
+
+* **tools:** allow runner config files + fresh-scaffold writes through the test/pre-flight gates ([7477d1b](https://github.com/bgill55/daedalus/commit/7477d1b9b60f5f6532ac18e036b71aa91e0d00e2))
+
 ## [3.46.1](https://github.com/bgill55/daedalus/compare/v3.46.0...v3.46.1) (2026-08-26)
 
 
