@@ -632,7 +632,11 @@ export async function syntaxCheck(
     });
     if (result.status !== 0) {
       const output = (result.stderr ?? result.stdout ?? '').split('\n')[0];
-      return `Syntax error introduced by patch — reverted.\n${output || 'Syntax error detected'}`;
+      const hasTsSyntax = /(?:^|\s)(?:interface\s+\w+|type\s+\w+\s*=|private\s+|protected\s+|public\s+|readonly\s+|enum\s+\w+|implements\s+\w+|:\s*(?:string|number|boolean|any|unknown|never|void|Promise<|Record<|Array<|[A-Z][a-zA-Z0-9_]*<))/m.test(text);
+      const tsHint = hasTsSyntax
+        ? `\n\nHint: TypeScript syntax detected in a ${ext} file. For TypeScript projects, name your source file with a .ts extension (e.g. '${filePath.replace(/\.[mc]?js$/, '.ts')}') instead of ${ext}.`
+        : '';
+      return `Syntax error introduced by patch — reverted.\n${output || 'Syntax error detected'}${tsHint}`;
     }
   }
 

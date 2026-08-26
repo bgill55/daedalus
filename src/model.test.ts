@@ -640,7 +640,7 @@ describe('Tool failure handling', () => {
     // Does NOT escalate to a stronger model for a syntax loop
     expect(output).not.toContain('[ROUTE]');
     // Injects the targeted syntax-loop guidance
-    const warning = messages.find(m => m.role === 'tool' && typeof m.content === 'string' && m.content.includes('STOP rewriting the whole file'));
+    const warning = messages.find(m => m.role === 'tool' && typeof m.content === 'string' && m.content.includes('Your write_file failed validation'));
     expect(warning).toBeDefined();
     // Still halts rather than looping forever
     expect(output).toContain('[DONE] Concluding after repeated tool failures — see summary above.');

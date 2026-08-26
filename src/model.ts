@@ -882,12 +882,18 @@ export function createModelFunctions(deps: ModelDeps) {
               // (e.g. a stray quote/backtick/bracket). This is almost never whitespace
               // or the diff/side-by-side tool. Tell the agent to fix the one character
               // so it stops re-proposing the same edit or a cosmetic reindent.
-              content += `\n\n[SYSTEM WARNING] Your ${result.name} was reverted: the message above names the EXACT unbalanced delimiter and its line. Fix that single character (likely a stray quote, backtick, or bracket) — this is almost never whitespace or the diff/side-by-side tool. Do NOT re-propose the same edit or a cosmetic reindent. Read the named line, correct the one offending character, and re-patch ONLY that. If you cannot see the typo, call read_file on the file and inspect the reported line before retrying.`;
+              content += `\n\n[SYSTEM WARNING] Your ${result.name} failed validation: the message above names the EXACT unbalanced delimiter and its line. Fix that single character (likely a stray quote, backtick, or bracket) — this is almost never whitespace or the diff/side-by-side tool. Do NOT re-propose the same edit or a cosmetic reindent. Correct the one offending character and retry.`;
+            } else if (result.name === 'write_file') {
+              content += `\n\n[SYSTEM WARNING] Your write_file failed validation and was not applied. Fix the syntax/type error in the file content you provided and re-issue write_file with valid code. (If this is a TypeScript project, ensure source files are saved with .ts/.tsx extensions, not .js.)`;
             } else {
-              content += `\n\n[SYSTEM WARNING] Your ${result.name} on this file keeps failing validation and the change was reverted to the last-good state. STOP rewriting the whole file — that is what keeps producing invalid syntax. Instead: (1) call read_file on the current file to get its exact content, then (2) call patch with mode='replace' on the SMALLEST unique region that needs to change. Do not emit a full-file rewrite. If you cannot make a clean minimal edit, stop and summarize the blocker to the user.`;
+              content += `\n\n[SYSTEM WARNING] Your patch on this file keeps failing validation and the change was reverted to the last-good state. STOP rewriting the whole file — that is what keeps producing invalid syntax. Instead: (1) call read_file on the current file to get its exact content, then (2) call patch with mode='replace' on the SMALLEST unique region that needs to change. Do not emit a full-file rewrite. If you cannot make a clean minimal edit, stop and summarize the blocker to the user.`;
             }
           } else if (repeated >= 2) {
-            content += `\n\n[SYSTEM WARNING] You have repeatedly failed to apply this change (${repeated} attempts). STOP attempting the same patch. Read the exact current file content and construct a patch that matches it exactly, or switch strategy (e.g. write_file with full content), or move on and summarize the blocker to the user.`;
+            if (result.name === 'write_file') {
+              content += `\n\n[SYSTEM WARNING] You have repeatedly failed to create or write this file (${repeated} attempts). Verify the file path, module type (.ts vs .js), and fix syntax/type errors before retrying, or move on and summarize the blocker to the user.`;
+            } else {
+              content += `\n\n[SYSTEM WARNING] You have repeatedly failed to apply this change (${repeated} attempts). STOP attempting the same patch. Read the exact current file content and construct a patch that matches it exactly, or switch strategy (e.g. write_file with full content), or move on and summarize the blocker to the user.`;
+            }
           } else {
             content += `\n\n[SYSTEM WARNING] The changes to the file were NOT applied due to the error above. You MUST first resolve this error (e.g. by using "read_file" to get the current content if it was a stale read, or correcting code syntax/types) and successfully apply the file change before moving on to other tasks or files. Do not skip or ignore this file.`;
           }

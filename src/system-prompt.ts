@@ -87,6 +87,10 @@ an actionable fix — it never hits the disk and never gets reverted. To avoid t
 - Always handle spawn failures with \`vscode.window.showErrorMessage\`.
 - Always wrap long-running operations in \`vscode.window.withProgress\`.
 
+#### TypeScript ESM file naming
+- Source files in TypeScript projects MUST always be saved with \`.ts\` (or \`.tsx\`) extensions on disk (e.g. \`src/github-client.ts\`, \`src/ranking.ts\`).
+- Do NOT name TypeScript source files \`.js\`. In ESM (\`"type": "module"\`), relative import specifiers in code reference \`.js\` (e.g. \`import { foo } from './foo.js'\`), but the physical files on disk MUST be named \`.ts\`.
+
 #### npm/node packages
 - Never add \`daedalus\` or \`daedalus-cli\` as a dependency inside the Daedalus project itself.
 - Use \`vscode\` setting \`publisher\` in package.json only when publishing — use a placeholder during development.

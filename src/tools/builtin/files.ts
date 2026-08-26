@@ -228,11 +228,12 @@ export async function writeFile(args: { path: string; content: string }, context
       if (previousContent !== null) {
         fs.writeFileSync(targetPath, previousContent, 'utf8');
         recordRevert(targetPath, context, finalContent);
+        return formatError(`${syntaxError}\n\nFile reverted: ${args.path}. Fix the error and retry.`);
       } else {
         fs.unlinkSync(targetPath);
         context.sessionReadCache?.delete(targetPath);
+        return formatError(`${syntaxError}\n\nFile NOT created: ${args.path} (write rejected due to syntax error). Fix the error in the content and retry write_file.`);
       }
-      return formatError(`${syntaxError}\n\nFile reverted: ${args.path}. Fix the error and retry.`);
     }
 
     if (context.patchHistory) {

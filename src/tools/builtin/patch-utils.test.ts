@@ -222,6 +222,19 @@ describe('syntaxCheck file-scoping', () => {
     expect(err).not.toBeNull();
     expect(err).toContain('imports must be at the TOP LEVEL');
   });
+
+  it('hints when TypeScript syntax is written into a .js file', async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'daedalus-syntax-js-ts-'));
+    fs.writeFileSync(path.join(dir, 'package.json'), JSON.stringify({ type: 'module' }));
+    const file = path.join(dir, 'client.js');
+    const tsContent = 'export class Client {\n  private readonly baseUrl: string = "https://api.example.com";\n}\n';
+    fs.writeFileSync(file, tsContent);
+    const err = await syntaxCheck(file, dir, tsContent);
+    fs.rmSync(dir, { recursive: true, force: true });
+    expect(err).not.toBeNull();
+    expect(err).toContain('TypeScript syntax detected in a .js file');
+    expect(err).toContain('.ts');
+  });
 });
 
 describe('global patch-failure loop breaker', () => {
