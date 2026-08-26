@@ -1,3 +1,10 @@
+# [3.48.0](https://github.com/bgill55/daedalus/compare/v3.47.4...v3.48.0) (2026-08-26)
+
+
+### Features
+
+* **ui:** stream-buffer rejected drafts, eliminate duplicate blocks, and add auto-heal badge ([d59dd6b](https://github.com/bgill55/daedalus/commit/d59dd6b88a9598f116497cee91c135f71d3d0f45))
+
 ## [3.47.4](https://github.com/bgill55/daedalus/compare/v3.47.3...v3.47.4) (2026-08-26)
 
 
