@@ -1,3 +1,10 @@
+## [3.46.1](https://github.com/bgill55/daedalus/compare/v3.46.0...v3.46.1) (2026-08-26)
+
+
+### Bug Fixes
+
+* **tools:** stop circuit breaker keying on cd + do not revert Node-global typecheck noise ([03c1257](https://github.com/bgill55/daedalus/commit/03c12579d97bb87210fa4f3ea2ffa91c332d93a1))
+
 # [3.46.0](https://github.com/bgill55/daedalus/compare/v3.45.1...v3.46.0) (2026-08-25)
 
 
