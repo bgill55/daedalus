@@ -117,13 +117,13 @@ describe('FTS5 codebase index', () => {
 
   it('clearFileIndex removes data for a specific file', () => {
     insertSymbols(db, [
-      { name: 'F1', kind: 'function', file_path: 'file1.ts', line_start: 1, line_end: 2, signature: '', project_hash: projectHash },
-      { name: 'F2', kind: 'function', file_path: 'file2.ts', line_start: 1, line_end: 2, signature: '', project_hash: projectHash },
+      { name: 'Func1', kind: 'function', file_path: 'file1.ts', line_start: 1, line_end: 2, signature: '', project_hash: projectHash },
+      { name: 'Func2', kind: 'function', file_path: 'file2.ts', line_start: 1, line_end: 2, signature: '', project_hash: projectHash },
     ]);
 
     clearFileIndex(db, 'file1.ts', projectHash);
-    expect(searchSymbols(db, 'F1', projectHash)).toEqual([]);
-    expect(searchSymbols(db, 'F2', projectHash)).toHaveLength(1);
+    expect(searchSymbols(db, 'Func1', projectHash)).toEqual([]);
+    expect(searchSymbols(db, 'Func2', projectHash)).toHaveLength(1);
   });
 
   it('saveFileHash and getFileHash round-trip', () => {

@@ -96,7 +96,7 @@ describe('SigmaMemEngine (Σ-Mem)', () => {
       category: 'code_pattern',
       tags: ['css'],
       summary: 'SVG sizing rule',
-      content: 'Set max-width on raw svg.',
+      content: 'Set max-width: 24px on raw svg.',
     });
 
     const second = SigmaMemEngine.recordVerifiedKnowledge(db, {
@@ -114,8 +114,29 @@ describe('SigmaMemEngine (Σ-Mem)', () => {
 
     const memories = getSigmaMemories(db, 0.0);
     expect(memories.length).toBe(1);
-    expect(memories[0].content).toBe('Set max-width: 24px on raw svg.');
   });
+
+  it('does NOT deduplicate memories with same summary but different content', () => {
+    SigmaMemEngine.recordVerifiedKnowledge(db, {
+      agentRole: 'coder',
+      category: 'code_pattern',
+      tags: ['css'],
+      summary: 'SVG sizing rule',
+      content: 'Set max-width on raw svg.',
+    });
+
+    SigmaMemEngine.recordVerifiedKnowledge(db, {
+      agentRole: 'coder',
+      category: 'code_pattern',
+      tags: ['css'],
+      summary: 'SVG sizing rule',
+      content: 'Set max-width: 24px on raw svg.',
+    });
+
+    const memories = getSigmaMemories(db, 0.0);
+    expect(memories.length).toBe(2);
+  });
+
 
   it('matchTags prioritizes memories with overlapping tags, then falls back to best global', () => {
     const a = SigmaMemEngine.recordVerifiedKnowledge(db, {

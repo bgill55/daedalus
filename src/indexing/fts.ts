@@ -131,18 +131,15 @@ export function getIndexedFileCount(db: Database.Database, projectHash: string):
 
 /** Search symbols by fuzzy query */
 export function searchSymbols(db: Database.Database, query: string, projectHash: string, limit: number = 30): SymbolRow[] {
-  // SQLite FTS5 uses MATCH query
-  // Escape search query for FTS5 (surround search terms with quotes or clean up special chars)
   const escapedQuery = query.replace(/[^\w\s]/g, ' ').trim();
   if (!escapedQuery) return [];
 
-  // Match against name and signature columns
   return db.prepare(`
     SELECT name, kind, file_path, line_start, line_end, signature, project_hash
     FROM symbols
     WHERE project_hash = ? AND symbols MATCH ?
     LIMIT ?
-  `).all(projectHash, `${escapedQuery}*`, limit) as SymbolRow[];
+  `).all(projectHash, escapedQuery, limit) as SymbolRow[];
 }
 
 /** Bulk insert references */
