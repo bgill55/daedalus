@@ -1,3 +1,13 @@
+## [3.49.1](https://github.com/bgill55/daedalus/compare/v3.49.0...v3.49.1) (2026-08-27)
+
+
+### Bug Fixes
+
+* **model:** honor safety.autoApprovePlans for tool-execution approval gate ([5b13669](https://github.com/bgill55/daedalus/commit/5b136697bb03c5dc8ba709194ceb0959bd582fa0))
+* **model:** resilient tool-call parsing + non-streaming retry for agentic endpoints ([b3a715c](https://github.com/bgill55/daedalus/commit/b3a715c8d416c48581c209afcd293ff72a0a2bf5))
+* **tools/repl:** headless Windows end-to-end run robustness ([7bd7ded](https://github.com/bgill55/daedalus/commit/7bd7deda425779b9df0d745b81d14b705987a3fc))
+* **tools:** allow runner config files + fresh-scaffold writes through the test/pre-flight gates ([2c8c00e](https://github.com/bgill55/daedalus/commit/2c8c00ec6a0a59fce8bee60401709a7a58a952fa))
+
 # [3.49.0](https://github.com/bgill55/daedalus/compare/v3.48.2...v3.49.0) (2026-08-27)
 
 
