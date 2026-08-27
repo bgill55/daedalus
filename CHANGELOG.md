@@ -1,3 +1,10 @@
+## [3.48.1](https://github.com/bgill55/daedalus/compare/v3.48.0...v3.48.1) (2026-08-27)
+
+
+### Bug Fixes
+
+* **guard:** prevent deliverable completion claims when open todos remain without disclaimer ([87d3f6d](https://github.com/bgill55/daedalus/commit/87d3f6d30aed6932efba6ca20dd1684cfba93571))
+
 # [3.48.0](https://github.com/bgill55/daedalus/compare/v3.47.4...v3.48.0) (2026-08-26)
 
 
