@@ -1,3 +1,10 @@
+## [3.49.2](https://github.com/bgill55/daedalus/compare/v3.49.1...v3.49.2) (2026-08-27)
+
+
+### Bug Fixes
+
+* **git:** run git diff/status via execFileSync, not the terminal pipeline ([d75f484](https://github.com/bgill55/daedalus/commit/d75f484de240f3c40038e71f5e7307d29bc21022))
+
 ## [3.49.1](https://github.com/bgill55/daedalus/compare/v3.49.0...v3.49.1) (2026-08-27)
 
 
