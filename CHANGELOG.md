@@ -1,3 +1,10 @@
+# [3.50.0](https://github.com/bgill55/daedalus/compare/v3.49.5...v3.50.0) (2026-08-27)
+
+
+### Features
+
+* **prompt:** add explicit deliverable completion contract to ensure models output full closing reports/findings after scans ([8d1e37a](https://github.com/bgill55/daedalus/commit/8d1e37ab407875694ffe326152c2776c6ef90816))
+
 ## [3.49.5](https://github.com/bgill55/daedalus/compare/v3.49.4...v3.49.5) (2026-08-27)
 
 
