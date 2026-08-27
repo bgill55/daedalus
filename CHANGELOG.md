@@ -1,3 +1,10 @@
+## [3.49.3](https://github.com/bgill55/daedalus/compare/v3.49.2...v3.49.3) (2026-08-27)
+
+
+### Bug Fixes
+
+* **prompt:** replace misleading Docker/WSL terminal note with accurate OS/shell guidance to prevent bash commands on Windows ([0c11f57](https://github.com/bgill55/daedalus/commit/0c11f57f85b8cd2d2c45f147db46fffd398f81f1))
+
 ## [3.49.2](https://github.com/bgill55/daedalus/compare/v3.49.1...v3.49.2) (2026-08-27)
 
 
