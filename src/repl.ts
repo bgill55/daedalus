@@ -146,9 +146,12 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
       };
 
       rl.on('line', onLine);
-      process.stdout.write(prompt);
-      process.stdin.resume();
-      rl.resume();
+      // Let readline own the prompt (rl.prompt) so its arrow-key -> rl.history
+      // navigation is engaged. Writing the prompt via process.stdout.write +
+      // rl.resume() instead leaves readline in passive line-emitting mode and
+      // breaks Up/Down command recall across sessions.
+      rl.setPrompt(prompt);
+      rl.prompt();
     });
   }
 
