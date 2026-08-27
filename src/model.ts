@@ -912,7 +912,10 @@ export function createModelFunctions(deps: ModelDeps) {
         } as ChatMessage);
       }
 
-      const dangerousTools = process.env.DAEDALUS_AUTO_APPROVE === 'true' ? [] : ['terminal', 'write_file'];
+      // No tool-execution approval gate in fully headless/autonomous mode:
+      // DAEDALUS_AUTO_APPROVE env OR safety.autoApprovePlans config (the headless flag).
+      const autonomous = process.env.DAEDALUS_AUTO_APPROVE === 'true' || config.safety?.autoApprovePlans === true;
+      const dangerousTools = autonomous ? [] : ['terminal', 'write_file'];
       let turnApproved = false;
       const approvedCallIndices = new Set<number>();
       const rejectedCalls: ToolCall[] = [];
