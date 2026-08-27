@@ -1,3 +1,10 @@
+## [3.49.5](https://github.com/bgill55/daedalus/compare/v3.49.4...v3.49.5) (2026-08-27)
+
+
+### Bug Fixes
+
+* **router/guard:** provider-level rate limit bucket sharing and natural progress disclaimer support ([9483678](https://github.com/bgill55/daedalus/commit/9483678f19c2a33b3163fea8101da3125687e446))
+
 ## [3.49.4](https://github.com/bgill55/daedalus/compare/v3.49.3...v3.49.4) (2026-08-27)
 
 
