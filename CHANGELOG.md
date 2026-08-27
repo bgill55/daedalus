@@ -1,3 +1,10 @@
+## [3.48.2](https://github.com/bgill55/daedalus/compare/v3.48.1...v3.48.2) (2026-08-27)
+
+
+### Bug Fixes
+
+* **router:** warn when a pinned modelOverride is unreachable instead of silent fallback ([5206de0](https://github.com/bgill55/daedalus/commit/5206de05726fd26a2cf046bb5b78eb14103ce5a8))
+
 ## [3.48.1](https://github.com/bgill55/daedalus/compare/v3.48.0...v3.48.1) (2026-08-27)
 
 
