@@ -38,6 +38,20 @@ describe('Tool executor', () => {
     expect(args.path).toBe('D:/daedalus-sandbox/ai-scanner/src/index.ts');
   });
 
+  it('normalizes terminal tool aliases (cmd, script, exec)', async () => {
+    const { normalizeToolArgs } = await import('./executor.js');
+    const args1 = normalizeToolArgs('shell', { cmd: 'npm test' });
+    expect(args1.command).toBe('npm test');
+    const args2 = normalizeToolArgs('run_command', { script: 'npm run build' });
+    expect(args2.command).toBe('npm run build');
+  });
+
+  it('normalizes read_files aliases (paths array)', async () => {
+    const { normalizeToolArgs } = await import('./executor.js');
+    const args = normalizeToolArgs('read_files', { paths: ['src/index.ts'] });
+    expect(args.path).toBe('src/index.ts');
+  });
+
   it('returns error for unknown tool', async () => {
     const tc: ToolCall = {
       id: 'call_1', type: 'function',

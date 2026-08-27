@@ -619,11 +619,18 @@ export const POWER_TOOLS: ToolDefinition[] = [
 // Tool name to implementation function mapping
 export const TOOL_IMPLEMENTATIONS: Record<string, string> = {
   read_file: 'tools/builtin/files.readFile',
+  read_files: 'tools/builtin/files.readFile',
   write_file: 'tools/builtin/files.writeFile',
   patch: 'tools/builtin/files.patchFile',
+  edit_file: 'tools/builtin/files.patchFile',
   search_files: 'tools/builtin/files.searchFiles',
   list_files: 'tools/builtin/files.listFiles',
   terminal: 'tools/builtin/terminal.execute',
+  shell: 'tools/builtin/terminal.execute',
+  bash: 'tools/builtin/terminal.execute',
+  cmd: 'tools/builtin/terminal.execute',
+  run_command: 'tools/builtin/terminal.execute',
+  exec_command: 'tools/builtin/terminal.execute',
   git_diff: 'tools/builtin/git.diff',
   git_status: 'tools/builtin/git.status',
   todo: 'tools/builtin/todo.manage',

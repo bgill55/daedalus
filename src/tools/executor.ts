@@ -32,10 +32,11 @@ interface JsonSchemaProperty {
 
 export function normalizeToolArgs(toolName: string, args: Record<string, unknown>): Record<string, unknown> {
   const normalized = { ...args };
-  if (['write_file', 'patch', 'edit_file', 'read_file'].includes(toolName)) {
+  if (['write_file', 'patch', 'edit_file', 'read_file', 'read_files'].includes(toolName)) {
     if (!normalized.path) {
-      const altPath = normalized.filepath ?? normalized.file_path ?? normalized.file ?? normalized.target_file ?? normalized.filename;
+      const altPath = normalized.filepath ?? normalized.file_path ?? normalized.file ?? normalized.target_file ?? normalized.filename ?? normalized.paths;
       if (typeof altPath === 'string' && altPath.trim()) normalized.path = altPath.trim();
+      else if (Array.isArray(altPath) && altPath.length > 0 && typeof altPath[0] === 'string') normalized.path = altPath[0].trim();
     }
     if (typeof normalized.path === 'string' && normalized.path.trim()) {
       // Recover Windows drive-letter paths whose separator was dropped (e.g. by JSON
@@ -47,11 +48,17 @@ export function normalizeToolArgs(toolName: string, args: Record<string, unknown
       const altContent = normalized.new_content ?? normalized.file_content ?? normalized.code_content ?? normalized.code ?? normalized.newcontent;
       if (typeof altContent === 'string') normalized.content = altContent;
     }
-    if (toolName === 'patch') {
+    if (toolName === 'patch' || toolName === 'edit_file') {
       if (normalized.new_string === undefined || normalized.new_string === null) {
         const altNew = normalized.new_content ?? normalized.replacement ?? normalized.new_text ?? normalized.text;
         normalized.new_string = typeof altNew === 'string' ? altNew : '';
       }
+    }
+  }
+  if (['terminal', 'shell', 'bash', 'cmd', 'run_command', 'exec_command'].includes(toolName)) {
+    if (!normalized.command) {
+      const altCmd = normalized.cmd ?? normalized.script ?? normalized.exec ?? normalized.action;
+      if (typeof altCmd === 'string' && altCmd.trim()) normalized.command = altCmd.trim();
     }
   }
   return normalized;

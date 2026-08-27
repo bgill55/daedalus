@@ -20,7 +20,7 @@ vi.mock('../../config/index.js', () => ({
 }));
 
 import { spawn, execSync } from 'child_process';
-import { execute, resetCachedShell, stripLeadingCd } from './terminal.js';
+import { execute, resetCachedShell, stripLeadingCd, translateUnixToCmd } from './terminal.js';
 import { loadConfig } from '../../config/index.js';
 import type { ToolContext } from '../../types.js';
 
@@ -821,4 +821,19 @@ describe('getResolvedShellType', () => {
     expect(spawnArgs.join(' ')).not.toContain('D:\\daedalus-sandbox');
   });
 
+  describe('translateUnixToCmd', () => {
+    it('converts single quotes to double quotes for cmd.exe', () => {
+      expect(translateUnixToCmd("cat 'src/file.ts'")).toBe('type "src/file.ts"');
+    });
+
+    it('translates /dev/null to NUL', () => {
+      expect(translateUnixToCmd('npm test > /dev/null 2>&1')).toBe('npm test > NUL 2>&1');
+    });
+
+    it('translates export to set and which to where', () => {
+      expect(translateUnixToCmd('export NODE_ENV=test && which vitest')).toBe('set NODE_ENV=test && where vitest');
+    });
+  });
+
 });
+

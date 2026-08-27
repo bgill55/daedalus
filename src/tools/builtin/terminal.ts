@@ -158,12 +158,20 @@ function isBashShell(): boolean {
 // a Unix assumption: ls, pwd, cat, cp, mv, mkdir -p, touch, grep, head, tail, rm (rm is
 // handled separately via PowerShell). Pipeline-friendly: a leading Unix command in a chained
 // command is translated; nested shells/quoted scripts are left alone.
-function translateUnixToCmd(command: string): string {
+export function translateUnixToCmd(command: string): string {
   let cmd = command;
+  // /dev/null -> NUL
+  cmd = cmd.replace(/\/dev\/null/g, 'NUL');
+  // Convert single-quoted arguments/paths to double-quotes (cmd.exe treats ' as literal filename char)
+  cmd = cmd.replace(/'([^']*)'/g, '"$1"');
+  // export FOO=bar -> set FOO=bar
+  cmd = cmd.replace(/\bexport\s+([A-Za-z_][A-Za-z0-9_]*)=/g, 'set $1=');
+  // which <cmd> -> where <cmd>
+  cmd = cmd.replace(/\bwhich\s+/g, 'where ');
   // mkdir -p -> mkdir (cmd mkdir is already recursive)
   cmd = cmd.replace(/\bmkdir\s+-p\b/gi, 'mkdir');
   // touch <file> -> create empty file
-  cmd = cmd.replace(/\btouch\s+(\S+)/gi, (_m, f) => `type nul > "${f}"`);
+  cmd = cmd.replace(/\btouch\s+(\S+)/gi, (_m, f) => `type nul > "${f.replace(/"/g, '')}"`);
   // cat <file> -> type <file>
   cmd = cmd.replace(/\bcat\s+/gi, 'type ');
   // pwd -> cd (prints current dir)
