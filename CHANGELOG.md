@@ -1,3 +1,10 @@
+## [3.50.1](https://github.com/bgill55/daedalus/compare/v3.50.0...v3.50.1) (2026-08-27)
+
+
+### Bug Fixes
+
+* **repl:** engage readline history navigation by letting readline own the prompt ([aba2235](https://github.com/bgill55/daedalus/commit/aba22356196eb68c91d90ed36c3cc9545fdc0455))
+
 # [3.50.0](https://github.com/bgill55/daedalus/compare/v3.49.5...v3.50.0) (2026-08-27)
 
 
