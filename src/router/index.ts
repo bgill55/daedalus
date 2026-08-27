@@ -19,6 +19,8 @@ import { createTokenBucket, consumeTokens, getWaitTime } from './rate-limiter.js
 import { checkModelHealth, getCachedHealth, getEndpointCatalog, markHealthy, markUnhealthy } from './health.js';
 import { logRouteDecision } from './routing-logger.js';
 import { BlacklistStore } from './blacklist-store.js';
+import { warn } from '../ui/theme.js';
+import pc from 'picocolors';
 
 function isHardFailure(err: unknown): boolean {
   const msg = err instanceof Error ? err.message : String(err);
@@ -42,6 +44,16 @@ export function isModelUnavailableError(err: unknown): boolean {
   const msg = err instanceof Error ? err.message : String(err);
   return /(model|models?).{0,40}(disabled|not (found|available|in the catalog)|does not exist|no longer available|deprecated|unknown model)/i.test(msg)
     || /(disabled|not (found|available)|does not exist|no longer available|deprecated|unknown model)/i.test(msg);
+}
+
+// The pinned modelOverride's endpoint is down / not serving (connection refused,
+// DNS failure, fetch failed). Distinct from a 4xx "model unavailable" — this means
+// the local server (e.g. LM Studio) isn't running or the model isn't loaded, so the
+// router is about to silently fall back to a weaker remote. Callers surface a warning.
+export function isUnreachableError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err);
+  return /ECONNREFUSED|ENOTFOUND|ECONNRESET|ETIMEDOUT|fetch failed|network (error|request failed)|connection (refused|reset|error)|getaddrinfo|undici|socket (closed|hang)/i.test(msg)
+    || (err instanceof Error && (err.name === 'APIConnectionError' || err.name === 'APIConnectionTimeoutError'));
 }
 
 export class LocalRouter {
@@ -550,6 +562,7 @@ export class LocalRouter {
     const maxAttempts = 3;
     let lastError: unknown;
     const excludedModels = new Set<string>();
+    let warnedPinnedUnreachable = false;
 
     while (attempts < maxAttempts) {
       attempts++;
@@ -617,6 +630,15 @@ export class LocalRouter {
           if (request.model && request.model !== 'auto' && isModelUnavailableError(err)) {
             request.model = 'auto';
           }
+          // The pinned modelOverride's endpoint is unreachable (local server down /
+          // model not loaded). Warn once so the user isn't silently routed to a
+          // weaker remote — this is the "I thought I was on my fast local model"
+          // footgun. Only fires on the first such failure per call.
+          if (request.model && request.model !== 'auto' && isUnreachableError(err) && !warnedPinnedUnreachable) {
+            warnedPinnedUnreachable = true;
+            const firstLine = (err instanceof Error ? err.message : String(err)).split('\n')[0];
+            console.log(warn(`\n  ${pc.bold('[WARN]')} Pinned model '${selectedModel.name}' is unreachable (${firstLine}). Falling back to router — output may use a different/weaker model. Start the local server or load the model to use it.`));
+          }
         }
       }
     }
@@ -629,6 +651,7 @@ export class LocalRouter {
     const maxAttempts = 3;
     let lastError: unknown;
     const excludedModels = new Set<string>();
+    let warnedPinnedUnreachable = false;
 
     while (attempts < maxAttempts) {
       attempts++;
@@ -704,6 +727,15 @@ export class LocalRouter {
           // dead model, so drop the pin and let the router fall back to others.
           if (request.model && request.model !== 'auto' && isModelUnavailableError(err)) {
             request.model = 'auto';
+          }
+          // The pinned modelOverride's endpoint is unreachable (local server down /
+          // model not loaded). Warn once so the user isn't silently routed to a
+          // weaker remote — this is the "I thought I was on my fast local model"
+          // footgun. Only fires on the first such failure per call.
+          if (request.model && request.model !== 'auto' && isUnreachableError(err) && !warnedPinnedUnreachable) {
+            warnedPinnedUnreachable = true;
+            const firstLine = (err instanceof Error ? err.message : String(err)).split('\n')[0];
+            console.log(warn(`\n  ${pc.bold('[WARN]')} Pinned model '${selectedModel.name}' is unreachable (${firstLine}). Falling back to router — output may use a different/weaker model. Start the local server or load the model to use it.`));
           }
         }
       }

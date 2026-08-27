@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach, afterAll } from 'vites
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { LocalRouter, createRouter, sanitizeMessagesForModel, isModelUnavailableError } from './index.js';
+import { LocalRouter, createRouter, sanitizeMessagesForModel, isModelUnavailableError, isUnreachableError } from './index.js';
 import type { RouterConfig, StreamChunk } from './types.js';
 import * as health from './health.js';
 import * as rateLimiter from './rate-limiter.js';
@@ -807,6 +807,42 @@ describe('LocalRouter', () => {
       const err = new Error('429 Too Many Requests') as Error & { status: number };
       err.status = 429;
       expect(isModelUnavailableError(err)).toBe(false);
+    });
+  });
+
+  describe('isUnreachableError', () => {
+    it('detects ECONNREFUSED / fetch failed (local server down)', () => {
+      expect(isUnreachableError(new Error('request to http://localhost:1234/v1 failed, reason: ECONNREFUSED'))).toBe(true);
+      expect(isUnreachableError(new Error('fetch failed'))).toBe(true);
+    });
+    it('detects DNS / connection reset errors', () => {
+      expect(isUnreachableError(new Error('getaddrinfo ENOTFOUND localhost'))).toBe(true);
+      expect(isUnreachableError(new Error('socket hang up'))).toBe(true);
+    });
+    it('does not flag 4xx model-unavailable errors (those are isModelUnavailableError)', () => {
+      expect(isUnreachableError(new Error('400 Model gemini-x is disabled.'))).toBe(false);
+    });
+  });
+
+  describe('pinned modelOverride unreachable warning', () => {
+    it('warns once when the pinned endpoint is down, then falls back', async () => {
+      const deadEndpoint = 'http://127.0.0.1:9/v1'; // port 9 = discard, will refuse
+      const config = makeConfig({
+        chain: [
+          { name: 'pinned-local', endpoint: deadEndpoint, model: 'local-model', priority: 1, enabled: true },
+          { name: 'fallback', endpoint: 'https://api.fallback.ai/v1', model: 'auto', priority: 2, enabled: true },
+        ],
+      });
+      const router = new LocalRouter(config);
+      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      await expect(router.chatCompletion({
+        model: 'pinned-local',
+        messages: [{ role: 'user', content: 'hi' }],
+      })).rejects.toBeTruthy();
+      const warns = logSpy.mock.calls.filter((c) => String(c[0]).includes('[WARN]') && String(c[0]).includes('unreachable'));
+      expect(warns.length).toBeGreaterThanOrEqual(1);
+      expect(warns.length).toBeLessThanOrEqual(1); // only once per call
+      logSpy.mockRestore();
     });
   });
 });
