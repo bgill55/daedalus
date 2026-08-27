@@ -26,6 +26,18 @@ describe('Tool executor', () => {
     expect(args.content).toBe('# PromptVault');
   });
 
+  it('recovers Windows drive paths whose separator was JSON-mangled (D:foo -> D:\\foo)', async () => {
+    const { normalizeToolArgs } = await import('./executor.js');
+    const args = normalizeToolArgs('write_file', { path: 'D:daedalus-sandboxai-scanner', content: 'x' });
+    expect(args.path).toBe('D:\\daedalus-sandboxai-scanner');
+  });
+
+  it('leaves forward-slash Windows paths intact', async () => {
+    const { normalizeToolArgs } = await import('./executor.js');
+    const args = normalizeToolArgs('write_file', { path: 'D:/daedalus-sandbox/ai-scanner/src/index.ts', content: 'x' });
+    expect(args.path).toBe('D:/daedalus-sandbox/ai-scanner/src/index.ts');
+  });
+
   it('returns error for unknown tool', async () => {
     const tc: ToolCall = {
       id: 'call_1', type: 'function',

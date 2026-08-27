@@ -37,6 +37,12 @@ export function normalizeToolArgs(toolName: string, args: Record<string, unknown
       const altPath = normalized.filepath ?? normalized.file_path ?? normalized.file ?? normalized.target_file ?? normalized.filename;
       if (typeof altPath === 'string' && altPath.trim()) normalized.path = altPath.trim();
     }
+    if (typeof normalized.path === 'string' && normalized.path.trim()) {
+      // Recover Windows drive-letter paths whose separator was dropped (e.g. by JSON
+      // backslash mangling): "D:foo" -> "D:\foo". Forward-slash paths are left intact
+      // (resolvePath converts them to backslashes on Windows).
+      normalized.path = normalized.path.replace(/^([A-Za-z]):([^\\/])/, '$1:\\$2');
+    }
     if (!normalized.content && toolName === 'write_file') {
       const altContent = normalized.new_content ?? normalized.file_content ?? normalized.code_content ?? normalized.code ?? normalized.newcontent;
       if (typeof altContent === 'string') normalized.content = altContent;

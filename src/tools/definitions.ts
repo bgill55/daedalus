@@ -33,7 +33,7 @@ export const BUILTIN_TOOLS: ToolDefinition[] = [
       parameters: {
         type: 'object',
         properties: {
-          path: { type: 'string', description: 'Absolute or relative file path' },
+          path: { type: 'string', description: 'Absolute or relative file path. Use FORWARD slashes (e.g. "D:/project/src/file.ts" or "./src/file.ts") — backslashes get mangled by JSON encoding on Windows.' },
           offset: { type: 'integer', description: 'Starting line number (1-indexed)', minimum: 1, default: 1 },
           limit: { type: 'integer', description: 'Maximum lines to read', minimum: 1, maximum: 2000, default: 1000 },
         },
@@ -50,7 +50,7 @@ export const BUILTIN_TOOLS: ToolDefinition[] = [
       parameters: {
         type: 'object',
         properties: {
-          path: { type: 'string', description: 'Absolute or relative file path' },
+          path: { type: 'string', description: 'Absolute or relative file path. Use FORWARD slashes (e.g. "D:/project/src/file.ts" or "./src/file.ts") — backslashes get mangled by JSON encoding on Windows.' },
           content: { type: 'string', description: 'Complete file content to write' },
         },
         required: ['path', 'content'],

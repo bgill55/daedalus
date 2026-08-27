@@ -204,6 +204,23 @@ describe('terminal execute', () => {
     expect(shell).toBe('cmd.exe');
   });
 
+  it('translates common Unix commands to cmd.exe equivalents on Windows', async () => {
+    Object.defineProperty(process, 'platform', { value: 'win32', configurable: true });
+    (execSync as any).mockImplementation(() => { throw new Error('not found'); });
+    const mockProc = makeMockProcess();
+    (spawn as any).mockReturnValue(mockProc);
+
+    const resultPromise = execute({ command: 'ls -la ./src && cat package.json' }, makeContext());
+    mockProc.emit('close', 0);
+    await resultPromise;
+
+    const args = (spawn as any).mock.calls[0][1] as string[];
+    const translated = args[args.length - 1];
+    expect(translated).toContain('dir');
+    expect(translated).not.toContain('ls -la');
+    expect(translated).toContain('type package.json');
+  });
+
   it('prefers shell specified in DAEDALUS_SHELL environment variable', async () => {
     process.env.DAEDALUS_SHELL = 'powershell.exe';
     const mockProc = makeMockProcess();

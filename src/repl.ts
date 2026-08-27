@@ -107,7 +107,14 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
     },
   });
 
-  toolContext.askLine = (prompt: string) => new Promise((resolve) => rl.question(prompt, resolve));
+  // In fully headless/auto-approve mode (safety.autoApprovePlans or DAEDALUS_AUTO_APPROVE),
+  // stdin is a closed pipe, so rl.question() throws "readline was closed". Auto-resolve
+  // prompts (Continue working? / Allow?) with "y" instead of blocking on the dead readline.
+  const headlessAutoApprove =
+    config.safety?.autoApprovePlans === true || process.env.DAEDALUS_AUTO_APPROVE === 'true';
+  toolContext.askLine = headlessAutoApprove
+    ? () => Promise.resolve('y')
+    : (prompt: string) => new Promise((resolve) => rl.question(prompt, resolve));
 
   function askLine(prompt: string): Promise<string> {
     return new Promise((resolve) => rl.question(prompt, resolve));

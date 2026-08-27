@@ -137,6 +137,53 @@ function getShellType(shellPath: string): 'bash' | 'cmd' | 'powershell' {
   return 'bash';
 }
 
+// Whether the resolved/active shell is a bash (Unix-compatible) interpreter. When true,
+// Unix-style commands are passed through untouched; when false (cmd.exe on Windows), the
+// caller should translate Unix-isms via translateUnixToCmd().
+function isBashShell(): boolean {
+  if (process.platform !== 'win32') return true;
+  const envShell = process.env.DAEDALUS_SHELL || process.env.SHELL || '';
+  let configShell: string | undefined;
+  try {
+    const config = loadConfig();
+    configShell = config.tools?.shell;
+  } catch { /* ignore */ }
+  const shellRef = configShell || envShell;
+  if (shellRef && /bash/i.test(shellRef)) return true;
+  return false;
+}
+
+// Translate common Unix command-isms to Windows cmd.exe equivalents. Applied only when the
+// active shell is cmd (not bash/git-bash). Handles the commands agents most often emit on
+// a Unix assumption: ls, pwd, cat, cp, mv, mkdir -p, touch, grep, head, tail, rm (rm is
+// handled separately via PowerShell). Pipeline-friendly: a leading Unix command in a chained
+// command is translated; nested shells/quoted scripts are left alone.
+function translateUnixToCmd(command: string): string {
+  let cmd = command;
+  // mkdir -p -> mkdir (cmd mkdir is already recursive)
+  cmd = cmd.replace(/\bmkdir\s+-p\b/gi, 'mkdir');
+  // touch <file> -> create empty file
+  cmd = cmd.replace(/\btouch\s+(\S+)/gi, (_m, f) => `type nul > "${f}"`);
+  // cat <file> -> type <file>
+  cmd = cmd.replace(/\bcat\s+/gi, 'type ');
+  // pwd -> cd (prints current dir)
+  cmd = cmd.replace(/\bpwd\b/gi, 'cd');
+  // ls [opts] [path] -> dir [path]
+  cmd = cmd.replace(/\bls\b([\s\S]*)/i, (_m, rest) => {
+    // Drop Unix ls flags (-l, -a, -la, --color, etc.) and keep any path argument.
+    const stripped = rest.replace(/\s+-+[a-zA-Z]+/g, ' ').trim();
+    return `dir ${stripped}`.trim();
+  });
+  // cp -> copy, mv -> move
+  cmd = cmd.replace(/\bcp\b/g, 'copy');
+  cmd = cmd.replace(/\bmv\b/g, 'move');
+  // grep -> findstr
+  cmd = cmd.replace(/\bgrep\b/g, 'findstr');
+  // head -n N -> more +N (approximation)
+  cmd = cmd.replace(/\bhead\s+-n\s+(\d+)/gi, 'more +$1');
+  return cmd;
+}
+
 function getShellArgs(type: 'bash' | 'cmd' | 'powershell', command: string): string[] {
   switch (type) {
     case 'powershell':
@@ -485,6 +532,12 @@ export async function execute(args: { command: string; timeout?: number; workdir
       const targetPath = rmMatch[1].trim().replace(/'/g, '');
       execCommand = `powershell -Command "Remove-Item -Recurse -Force '${targetPath}'"`;
     }
+  }
+  // Agents routinely emit Unix-style commands (ls, cat, mkdir -p, cp, mv, grep, ...)
+  // even on Windows. When the active shell is cmd.exe (not bash/git-bash), translate the
+  // common Unix-isms to cmd equivalents so headless Windows runs don't die on `ls`.
+  if (process.platform === 'win32' && !isBashShell()) {
+    execCommand = translateUnixToCmd(execCommand);
   }
 
   let notes = '';
