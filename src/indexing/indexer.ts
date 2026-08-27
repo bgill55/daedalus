@@ -19,7 +19,7 @@ interface IndexerOptions {
 }
 
 const DEFAULT_EXCLUDE = ['node_modules', 'dist', 'build', '.git', 'target', 'coverage', 'venv', '.venv', 'env', '.env', '__pycache__', '.pytest_cache', '.mypy_cache', '.next', 'out', '.cache'];
-const DEFAULT_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.py', '.go', '.rs', '.java', '.c', '.cpp', '.h', '.hpp', '.cs', '.php', '.rb', '.ex', '.exs'];
+const DEFAULT_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.py', '.go', '.rs', '.java', '.c', '.cc', '.cpp', '.cxx', '.h', '.hpp', '.cs', '.php', '.rb', '.ex', '.exs'];
 
 /** Compute SHA256 of string content */
 export function hashContent(content: string): string {
@@ -1059,17 +1059,15 @@ export async function indexCodebase(
       // Parse file
       const { symbols, references } = parseFile(content, relPath, projectHash);
 
-      if (symbols.length > 0 || references.length > 0) {
-        // Clear old index for this file
-        clearFileIndex(db, relPath, projectHash);
-        
-        // Insert new data
-        if (symbols.length > 0) insertSymbols(db, symbols);
-        if (references.length > 0) insertReferences(db, references);
-        
-        // Save hash
-        saveFileHash(db, relPath, hash);
-      }
+      // Clear old index for this file unconditionally (handles emptied files)
+      clearFileIndex(db, relPath, projectHash);
+
+      // Insert new data if any
+      if (symbols.length > 0) insertSymbols(db, symbols);
+      if (references.length > 0) insertReferences(db, references);
+
+      // Save hash unconditionally so stale hashes never persist
+      saveFileHash(db, relPath, hash);
 
       indexedFiles++;
     } catch (err) {

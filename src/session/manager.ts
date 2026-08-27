@@ -85,8 +85,17 @@ export class SessionManager {
     const projectSessionDir = path.join(this.sessionsDir, this.projectHash);
     if (!fs.existsSync(projectSessionDir)) fs.mkdirSync(projectSessionDir, { recursive: true });
 
+    if (this.indexDb) {
+      this.indexDb.close();
+      this.indexDb = null as unknown as Database.Database;
+    }
     this.indexDb = initIndexDb(this.indexDbPath);
+
     const projectMemDbPath = path.join(this.sessionsDir, this.projectHash, 'project-mem.sqlite');
+    if (this.projectMemDb) {
+      this.projectMemDb.close();
+      this.projectMemDb = null as unknown as Database.Database;
+    }
     this.projectMemDb = initProjectMemDb(projectMemDbPath);
   }
 

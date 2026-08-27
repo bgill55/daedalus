@@ -22,6 +22,8 @@ export interface ReferenceRow {
   project_hash: string;
 }
 
+const INDEX_SCHEMA_VERSION = 1;
+
 /** Initialize the codebase index database */
 export function initIndexDb(dbPath: string): Database.Database {
   const dir = path.dirname(dbPath);
@@ -30,8 +32,16 @@ export function initIndexDb(dbPath: string): Database.Database {
   }
 
   const db = new Database(dbPath);
-  
-  // Create virtual FTS5 tables for fast symbol & reference search
+
+  const currentVersion = (db.pragma('user_version', { simple: true }) as number) ?? 0;
+  if (currentVersion < INDEX_SCHEMA_VERSION) {
+    db.exec(`
+      DROP TABLE IF EXISTS file_hashes;
+      DROP TABLE IF EXISTS symbols;
+      DROP TABLE IF EXISTS "references";
+    `);
+  }
+
   db.exec(`
     CREATE TABLE IF NOT EXISTS file_hashes (
       file_path TEXT PRIMARY KEY,
@@ -46,7 +56,8 @@ export function initIndexDb(dbPath: string): Database.Database {
       line_start UNINDEXED,
       line_end UNINDEXED,
       signature,
-      project_hash UNINDEXED
+      project_hash UNINDEXED,
+      tokenize="trigram"
     );
 
     CREATE VIRTUAL TABLE IF NOT EXISTS "references" USING fts5(
@@ -56,9 +67,15 @@ export function initIndexDb(dbPath: string): Database.Database {
       callee_name,
       callee_file UNINDEXED,
       callee_line UNINDEXED,
-      project_hash UNINDEXED
+      project_hash UNINDEXED,
+      tokenize="trigram"
     );
   `);
+
+  if (currentVersion < INDEX_SCHEMA_VERSION) {
+    db.pragma(`user_version = ${INDEX_SCHEMA_VERSION}`);
+  }
+
   return db;
 }
 

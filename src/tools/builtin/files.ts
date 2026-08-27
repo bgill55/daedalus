@@ -206,6 +206,15 @@ export async function writeFile(args: { path: string; content: string }, context
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
+
+    const MAX_WRITE_BYTES = 1_048_576;
+    if (Buffer.byteLength(args.content, 'utf8') > MAX_WRITE_BYTES) {
+      return formatError(
+        `write_file payload exceeds 1 MB (${(Buffer.byteLength(args.content, 'utf8') / 1024).toFixed(0)} KB). ` +
+        `Use the patch tool for large edits, or break the write into smaller files.`
+      );
+    }
+
     const previousContent = fs.existsSync(targetPath) ? fs.readFileSync(targetPath, 'utf8') : null;
     const hasCRLF = previousContent ? previousContent.includes('\r\n') : false;
     const finalContent = hasCRLF ? args.content.replace(/\r\n/g, '\n').replace(/\n/g, '\r\n') : args.content;

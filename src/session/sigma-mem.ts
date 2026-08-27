@@ -17,8 +17,8 @@ import { getProjectHash } from '../project-hash.js';
 import { maskSecrets } from '../security/secret-detector.js';
 import { roleLabel } from '../agents/roles.js';
 
-export function computeSigmaContentHash(agentRole: string, category: string, summary: string): string {
-  return crypto.createHash('sha256').update(`${agentRole}|${category}|${summary}`).digest('hex');
+export function computeSigmaContentHash(agentRole: string, category: string, summary: string, content: string): string {
+  return crypto.createHash('sha256').update(`${agentRole}|${category}|${summary}|${content}`).digest('hex');
 }
 
 function parseTags(tags: string): string[] {
@@ -46,7 +46,7 @@ export class SigmaMemEngine {
     opts: SigmaRecordOptions
   ): SqliteSigmaMemory {
     const now = Date.now();
-    const contentHash = computeSigmaContentHash(opts.agentRole, opts.category, opts.summary);
+    const contentHash = computeSigmaContentHash(opts.agentRole, opts.category, opts.summary, opts.content);
     const safeContent = maskSecrets(opts.content);
     const safeSummary = maskSecrets(opts.summary);
     const existing = getSigmaMemoryByHash(db, contentHash);
