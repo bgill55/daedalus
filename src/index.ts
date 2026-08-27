@@ -225,6 +225,14 @@ function getSystemPromptWithMemory(userRequest?: string): string {
     prompt += '\n\n## ROUTING NUDGE\nThis request looks like a multi-phase task. Remember you can propose routing independent pieces to helper agents (researcher / planner / reviewer / debugger) via `route_task` — but you MUST ask the user for approval with `ask_user` first, then call it with `confirmed: true`. Only route genuinely independent sub-tasks.';
   }
 
+  // Non-interactive / autonomous mode: when autoApprovePlans is on (headless
+  // test runs, CI), the agent must not stop to ask "Would you like me to proceed
+  // with this plan?". It proceeds directly with implementation so a piped-stdin
+  // session completes without stalling on an approval prompt it can't answer.
+  if (config.safety?.autoApprovePlans) {
+    prompt += '\n\n## AUTONOMOUS MODE (plans auto-approved)\nYou are running in non-interactive mode. Do NOT ask "Would you like me to proceed with this plan?" — proceed directly with implementation after presenting a brief plan. Treat every plan as pre-approved. Do not wait for user confirmation at any step.';
+  }
+
   return prompt;
 }
 

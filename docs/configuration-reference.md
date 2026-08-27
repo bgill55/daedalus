@@ -105,6 +105,7 @@ This guide describes all configuration options available in Daedalus. You can vi
 
 *   **`safety.protectGit`**: When true, requires explicit user confirmation before running git operations. Default: true.
 *   **`safety.autoApprove`**: When true, automatically approves terminal command execution without user prompt. Default: false.
+*   **`safety.autoApprovePlans`**: When true, the agent does not pause to ask "Would you like me to proceed with this plan?" — it proceeds directly with implementation. Designed for headless/CI runs where no one answers the prompt. Default: false.
 
 ---
 

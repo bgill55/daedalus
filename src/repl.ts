@@ -176,6 +176,7 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
   }
 
   let isFirstTurn = true;
+  let syntheticInput: string | null = null;
 
   async function chatLoop(): Promise<void> {
     try {
@@ -209,8 +210,18 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
           prompt += dim(`[${fileStr}${separator}${tokenStr}] `);
         }
         prompt += `${pc.bold(pc.white('›'))} `;
-        const input = await readMultiLineInput(prompt);
-        const trimmedInput = input.trim();
+        // autoApprovePlans: when a synthetic "Yes" was queued (the assistant asked
+        // to proceed with a plan), consume it instead of blocking on stdin — this is
+        // what makes headless/CI runs complete without stalling on an approval prompt.
+        let trimmedInput: string;
+        if (syntheticInput !== null) {
+          trimmedInput = syntheticInput;
+          syntheticInput = null;
+          console.log(pc.gray(`  [AUTO-APPROVE] Plan approved (autoApprovePlans) — proceeding.`));
+        } else {
+          const input = await readMultiLineInput(prompt);
+          trimmedInput = input.trim();
+        }
         if (!trimmedInput) continue;
         appendHistory(trimmedInput);
 
@@ -271,6 +282,17 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
             messages[0] = { role: 'system', content: getSystemPromptWithMemory(activePrompt) };
           }
           await callModelWithTools(userContent);
+
+          // autoApprovePlans: if the assistant just proposed a plan and asked for
+          // approval, queue a synthetic "Yes" so the next loop iteration proceeds
+          // without waiting for stdin. Headless/CI runs complete autonomously.
+          if (config.safety?.autoApprovePlans) {
+            const lastAssistant = messages.filter(m => m.role === 'assistant').pop()?.content;
+            const lastText = typeof lastAssistant === 'string' ? lastAssistant : JSON.stringify(lastAssistant ?? '');
+            if (/Would you like me to proceed with this plan\?|proceed with (the|this) plan/i.test(lastText)) {
+              syntheticInput = 'Yes';
+            }
+          }
 
           sessionManager.saveSessionState(messages, activeFiles, getSessionTodos(sessionId));
           await extractAndSave(router, sessionManager, messages);
