@@ -515,26 +515,25 @@ export async function execute(args: { command: string; timeout?: number; workdir
           if (configShell) {
             state.cachedShell = { shell: configShell, type: getShellType(configShell) };
           } else if (process.platform === 'win32') {
+            // Native Windows shell is cmd.exe: node/npm are cmd-native, and it avoids the
+            // MSYS/Git-bash path-translation gotcha (a Unix-style "/foo" gets rewritten to
+            // Git's root, causing spurious "Permission denied"). Only use bash when the user
+            // explicitly configures it (tools.shell or SHELL env), since bash implies a
+            // deliberate Unix-like workflow.
             let detected = 'cmd.exe';
             let type: 'bash' | 'cmd' | 'powershell' = 'cmd';
-            try {
-              execSync('where bash.exe', { stdio: 'ignore' });
-              detected = 'bash.exe';
+            if (configShell && /bash/i.test(configShell)) {
+              detected = configShell;
               type = 'bash';
-            } catch {
-              const fallbacks = [
-                'C:\\Program Files\\Git\\bin\\bash.exe',
-                'C:\\Program Files (x86)\\Git\\bin\\bash.exe',
-                path.join(process.env.LOCALAPPDATA || '', 'Programs', 'Git', 'bin', 'bash.exe'),
-                path.join(process.env.SYSTEMDRIVE || 'C:', 'tools', 'git', 'bin', 'bash.exe'),
-              ];
-              for (const fp of fallbacks) {
-                if (fs.existsSync(fp)) {
-                  detected = fp;
+            } else {
+              try {
+                const whereOut = execSync('where bash.exe', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+                const resolved = whereOut.split(/\r?\n/)[0]?.trim();
+                if (resolved && fs.existsSync(resolved) && process.env.SHELL && /bash/i.test(process.env.SHELL)) {
+                  detected = resolved;
                   type = 'bash';
-                  break;
                 }
-              }
+              } catch { /* keep cmd.exe */ }
             }
             state.cachedShell = { shell: detected, type };
           } else {
