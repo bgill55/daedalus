@@ -82,6 +82,12 @@ describe('completion-guard', () => {
     expect(detectFalseCompletion(text, todos)).toBe(false);
   });
 
+  it('detectFalseCompletion: false with natural intermediate status phrases like moving on to', () => {
+    const todos = [todo('completed'), todo('pending')];
+    const text = 'Progress update:\n1. Fixed bug in suggestions.ts\n2. Updated ranking.ts\nMoving on to remaining tasks.';
+    expect(detectFalseCompletion(text, todos)).toBe(false);
+  });
+
   it('warning names the remaining count', () => {
     expect(falseCompletionWarning(3)).toContain('3 todo item(s)');
   });

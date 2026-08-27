@@ -162,13 +162,25 @@ export class LocalRouter {
     }
   }
 
+  private getRateLimiterKey(model: ModelEntry): string {
+    if (model.apiKey) {
+      return `${model.endpoint}|${model.apiKey}`;
+    }
+    if (model.provider) {
+      return `${model.endpoint}|${model.provider}`;
+    }
+    return `${model.endpoint}|${model.model}`;
+  }
+
   private initializeRateLimiters(): void {
     for (const model of this.config.chain) {
       if (model.enabled) {
-        const key = `${model.endpoint}|${model.model}`;
-        // Use TPM as capacity if configured, otherwise estimate from RPM (~4K tokens per request)
-        const tpm = this.config.defaultRateLimit.tpm || model.maxTokens || this.config.defaultRateLimit.rpm * 4000;
-        this.rateLimiters.set(key, createTokenBucket(tpm, tpm / 60));
+        const key = this.getRateLimiterKey(model);
+        if (!this.rateLimiters.has(key)) {
+          // Use TPM as capacity if configured, otherwise estimate from RPM (~4K tokens per request)
+          const tpm = this.config.defaultRateLimit.tpm || model.maxTokens || this.config.defaultRateLimit.rpm * 4000;
+          this.rateLimiters.set(key, createTokenBucket(tpm, tpm / 60));
+        }
       }
     }
   }
@@ -373,7 +385,7 @@ export class LocalRouter {
         if (!pinnedExcluded) {
           selectedModel = pinned;
           if (!isLocalEndpoint(selectedModel.endpoint)) {
-            const rateLimiter = this.rateLimiters.get(`${selectedModel.endpoint}|${selectedModel.model}`);
+            const rateLimiter = this.rateLimiters.get(this.getRateLimiterKey(selectedModel));
             if (rateLimiter) {
               const estimatedTokens = this.estimateTokens(request);
               if (!consumeTokens(rateLimiter, estimatedTokens)) {
@@ -489,7 +501,7 @@ export class LocalRouter {
         break;
       }
 
-      const rateLimiter = this.rateLimiters.get(`${m.endpoint}|${m.model}`);
+      const rateLimiter = this.rateLimiters.get(this.getRateLimiterKey(m));
       if (rateLimiter) {
         const est = this.estimateTokens(request);
         if (consumeTokens(rateLimiter, est)) {

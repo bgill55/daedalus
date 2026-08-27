@@ -902,4 +902,19 @@ describe('minModel capability floor', () => {
   });
 });
 
+describe('rate limit bucket keying', () => {
+  it('shares rate limiter bucket for models with the same API key on the same endpoint', () => {
+    const router = new LocalRouter(makeConfig({
+      chain: [
+        { name: 'm1', endpoint: 'https://api.openai.com/v1', model: 'gpt-4o', priority: 1, enabled: true, apiKey: 'sk-test-key' },
+        { name: 'm2', endpoint: 'https://api.openai.com/v1', model: 'gpt-4o-mini', priority: 2, enabled: true, apiKey: 'sk-test-key' },
+      ],
+    }));
+    const limiters = (router as any).rateLimiters as Map<string, any>;
+    expect(limiters.size).toBe(1);
+    expect(limiters.has('https://api.openai.com/v1|sk-test-key')).toBe(true);
+  });
+});
+
+
 

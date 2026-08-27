@@ -24,7 +24,7 @@ const COMPLETION_CLAIM_RE =
 // (claimSegments). Centralised here so every closing-turn guard shares the same
 // notion of "this message is an honest 'not done yet, here's where we are' update."
 export const HONESTY_DISCLAIMER_RE =
-  /\b(i (?:can'?t|cannot|can not)|not (?:all )?(?:done|complete|finished|yet)|not (?:yet )?(?:done|complete)|still (?:in progress|pending|open|remaining|to do|needs? (?:work|doing))|hasn'?t (?:been )?(?:done|completed|finished)|have ?n'?t (?:been )?(?:done|completed|finished)|remain(?:s|ing)? (?:to be done|incomplete|open)|only (?:partially )?(?:done|complete)|what (?:was )?(?:actually )?(?:done|completed)|what (?:is )?left|not (?:actually )?completed|did not (?:complete|finish)|incomplete|not (?:yet )?verified|not (?:properly )?implemented|was (?:not|never) (?:actually )?(?:completed|done|implemented))\b/i;
+  /\b(i (?:can'?t|cannot|can not)|not (?:all )?(?:done|complete|finished|yet)|not (?:yet )?(?:done|complete)|still (?:in progress|pending|open|remaining|to do|needs? (?:work|doing)|working|have to)|hasn'?t (?:been )?(?:done|completed|finished)|have ?n'?t (?:been )?(?:done|completed|finished)|remain(?:s|ing)? (?:to be done|incomplete|open|items?|tasks?|steps?)|only (?:partially )?(?:done|complete)|what (?:was )?(?:actually )?(?:done|completed)|what (?:is )?left|not (?:actually )?completed|did not (?:complete|finish)|incomplete|not (?:yet )?verified|not (?:properly )?implemented|was (?:not|never) (?:actually )?(?:completed|done|implemented)|moving (?:on )?to|proceeding to|(?:currently )?working on|work in progress|partial (?:progress|update)|status update|progress update)\b/i;
 
 export function isHonestDisclaimer(text: string): boolean {
   if (!text) return false;
