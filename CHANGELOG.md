@@ -1,3 +1,10 @@
+## [3.50.2](https://github.com/bgill55/daedalus/compare/v3.50.1...v3.50.2) (2026-08-27)
+
+
+### Bug Fixes
+
+* **terminal/executor:** Windows cmd shell translation & tool alias routing ([97a1385](https://github.com/bgill55/daedalus/commit/97a13856d989216f83148c0a9a1553a9b950be66))
+
 ## [3.50.1](https://github.com/bgill55/daedalus/compare/v3.50.0...v3.50.1) (2026-08-27)
 
 
