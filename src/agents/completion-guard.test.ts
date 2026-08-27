@@ -70,12 +70,16 @@ describe('completion-guard', () => {
     expect(detectFalseCompletion('Here is a summary of what I changed.', todos)).toBe(false);
   });
 
-  it('detectFalseCompletion: false on an honest "not done, here is what remains" update (regression)', () => {
-    // The model stated remaining todos and disclosed it cannot claim completion.
-    // This must NOT force-loop the guard — it is a truthful status update.
-    const todos = [todo('completed'), todo('pending'), todo('pending')];
-    const honest = 'I cannot claim completion of work that hasn\'t been verified. The syntax errors mean none of the sprints were actually completed. Next steps: fix server.ts, then re-run tests.';
-    expect(detectFalseCompletion(honest, todos)).toBe(false);
+  it('detectFalseCompletion: true when concluding with an achievement enumeration while todos remain open', () => {
+    const todos = [todo('completed'), todo('pending')];
+    const text = 'Here is a summary of the bugs I found and fixed:\n1. Fixed bug in suggestions.ts\n2. Updated ranking.ts\nVerification:\n• npm test passed';
+    expect(detectFalseCompletion(text, todos)).toBe(true);
+  });
+
+  it('detectFalseCompletion: false when concluding with achievement enumeration but with an honest disclaimer about remaining work', () => {
+    const todos = [todo('completed'), todo('pending')];
+    const text = 'Here is a summary of the bugs I found and fixed:\n1. Fixed bug in suggestions.ts\n2. Updated ranking.ts\nNote: Adding tests for suggestions is still in progress.';
+    expect(detectFalseCompletion(text, todos)).toBe(false);
   });
 
   it('warning names the remaining count', () => {

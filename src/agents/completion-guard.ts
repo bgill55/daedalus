@@ -43,23 +43,41 @@ export function countIncompleteTodos(todos: SqliteTodo[]): number {
   return todos.filter((t) => t.status !== 'completed').length;
 }
 
+export const SUMMARY_TASK_ENUM_RE =
+  /(task\s*\d+|step\s*\d+|issue\s*#?\d+|#\d+)\s*[:—-]|✅\s*(task|step|issue)|all \d+ (tasks|sprints|issues)/i;
+export const SUMMARY_DONE_VERB_RE =
+  /\b(complete|completed|done|delivered|finished|shipped|resolved|implemented|all (tasks|sprints|issues) (are )?(complete|done))\b/i;
+
+export const ACHIEVEMENT_ITEM_RE =
+  /(?:^|\n)\s*(?:✅\s*|[•\-*]\s*|(?:\d+)[.)]\s*)[^\n]*?\b(?:fixed|removed|added|updated|changed|cleaned\s*up|refactored|resolved|implemented|completed|done|enhanced|deleted|optimized|improved)\b/i;
+
+export function countAchievementItems(text: string): number {
+  const lines = text.split('\n');
+  let count = 0;
+  for (const line of lines) {
+    if (ACHIEVEMENT_ITEM_RE.test(line)) count++;
+  }
+  return count;
+}
+
 /**
- * True when the agent is concluding a turn claiming whole-task completion but the
- * todo list still has open items. That is a false completion report.
+ * True when the agent is concluding a turn claiming whole-task completion or
+ * enumerating deliverables as done while the todo list still has open items.
  */
 export function detectFalseCompletion(text: string, todos: SqliteTodo[]): boolean {
   if (todos.length === 0) return false;
-  if (!isCompletionClaim(text)) return false;
-  return countIncompleteTodos(todos) > 0;
+  if (countIncompleteTodos(todos) === 0) return false;
+  if (isHonestDisclaimer(text)) return false;
+  return isCompletionClaim(text) || countAchievementItems(text) >= 2 || SUMMARY_TASK_ENUM_RE.test(text);
 }
 
 export function falseCompletionWarning(remaining: number): string {
   return (
-    `[SYSTEM WARNING] You reported the task as complete, but ${remaining} todo item(s) are still ` +
+    `[SYSTEM WARNING] You reported deliverables/fixes as completed, but ${remaining} todo item(s) are still ` +
     `pending or in progress. Do NOT report completion while todos are open. Either (1) continue the ` +
-    `work and finish the remaining items, or (2) if they are genuinely done, update the todo list to ` +
-    `mark them completed via the todo tool BEFORE claiming completion. Reconcile the todo list with ` +
-    `reality, then report accurately.`
+    `work and finish the remaining items (updating the todo list to mark them completed via the todo tool), or ` +
+    `(2) explicitly mention in your summary what remains incomplete or unverified. Reconcile with the todo list, ` +
+    `then report accurately.`
   );
 }
 
@@ -144,11 +162,6 @@ export function detectFalseCompletionOnDisk(text: string, context: ToolContext |
 // agent relabels a partially-shipped feature (e.g. "Refine workflow" reduced to "editable
 // textarea") as fully delivered in the summary. We only fire on a closing summary (the turn
 // is ending) that contains a "Task N:" deliverable enumeration AND a completion-ish verb.
-const SUMMARY_TASK_ENUM_RE =
-  /(task\s*\d+|step\s*\d+|issue\s*#?\d+|#\d+)\s*[:—-]|✅\s*(task|step|issue)|all \d+ (tasks|sprints|issues)/i;
-const SUMMARY_DONE_VERB_RE =
-  /\b(complete|completed|done|delivered|finished|shipped|resolved|implemented|all (tasks|sprints|issues) (are )?(complete|done))\b/i;
-
 export function isScopeOverstatedSummary(text: string, todos: SqliteTodo[]): boolean {
   if (!text || !SUMMARY_TASK_ENUM_RE.test(text)) return false;
   // An honest "not all done / here's what remains" update must not be flagged as a
@@ -185,18 +198,6 @@ export function scopeOverstatementWarning(remaining: number): string {
 // achievement lists, "• <DoneVerb> ..." bullet achievement lists). A plain sentence like
 // "I fixed the bug" or a read-only audit that names files is NOT an enumeration and will
 // not trip this guard — we only challenge claims that present a checklist of completed work.
-const ACHIEVEMENT_ITEM_RE =
-  /(?:^|\n)\s*(?:✅\s*|[•\-*]\s*|(?:\d+)[.)]\s*)[^\n]*?\b(?:fixed|removed|added|updated|changed|cleaned\s*up|refactored|resolved|implemented|completed|done|enhanced|deleted|optimized|improved)\b/i;
-
-export function countAchievementItems(text: string): number {
-  const lines = text.split('\n');
-  let count = 0;
-  for (const line of lines) {
-    if (ACHIEVEMENT_ITEM_RE.test(line)) count++;
-  }
-  return count;
-}
-
 export function isUnsubstantiatedProgressReport(text: string): boolean {
   if (!text) return false;
   // An honest "not done yet / here's what's left" update must NOT be challenged as
