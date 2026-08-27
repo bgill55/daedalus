@@ -1,3 +1,10 @@
+## [3.49.4](https://github.com/bgill55/daedalus/compare/v3.49.3...v3.49.4) (2026-08-27)
+
+
+### Bug Fixes
+
+* **audit:** address 5 findings from codebase audit ([3b5700c](https://github.com/bgill55/daedalus/commit/3b5700c6a3748fbc34c95313a6ccb05f658f2e35))
+
 ## [3.49.3](https://github.com/bgill55/daedalus/compare/v3.49.2...v3.49.3) (2026-08-27)
 
 
