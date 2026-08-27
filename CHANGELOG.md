@@ -1,3 +1,10 @@
+# [3.49.0](https://github.com/bgill55/daedalus/compare/v3.48.2...v3.49.0) (2026-08-27)
+
+
+### Features
+
+* **config:** add safety.autoApprovePlans for fully headless/automated runs ([9019ad0](https://github.com/bgill55/daedalus/commit/9019ad0db083a2570b9b4d765156a3839b2f147f))
+
 ## [3.48.2](https://github.com/bgill55/daedalus/compare/v3.48.1...v3.48.2) (2026-08-27)
 
 
