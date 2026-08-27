@@ -660,35 +660,53 @@ export function extractBalancedObject(text: string, openIdx: number): string | n
 
 export function parseTextToolCalls(text: string): ToolCall[] {
   const toolCalls: ToolCall[] = [];
-  const regex = /<(longcat_)?tool_call>([\s\S]*?)<\/(longcat_)?tool_call>/g;
+  // Match outer tool-call wrappers across dialects: <tool_call>, <toolcall>,
+  // <longcat_tool_call>, and the <|tool_call|> pipe form (handled below).
+  const regex = /<(longcat_)?tool_?call>([\s\S]*?)<\/(longcat_)?tool_?call>/gi;
   let match;
   while ((match = regex.exec(text)) !== null) {
     const blockContent = match[2].trim();
+    // Tool name: <function=NAME> / <name>NAME</name>, else first non-empty line (tags stripped).
+    const fnMatch = blockContent.match(/<function=([^>]+)>/i) || blockContent.match(/<name>\s*([^<]+?)\s*<\/name>/i);
     const lines = blockContent.split('\n').map(l => l.trim()).filter(Boolean);
-    if (lines.length === 0) continue;
-    const toolName = lines[0].replace(/<[^>]+>/g, '').trim();
+    const toolName = fnMatch ? fnMatch[1].trim() : (lines[0] ? lines[0].replace(/<[^>]+>/g, '').trim() : '');
+    if (!toolName) continue;
 
     const args: Record<string, unknown> = {};
-    const keyRegex = /<(longcat_)?arg_key>([\s\S]*?)<\/(longcat_)?arg_key>/g;
-    const valRegex = /<(longcat_)?arg_value>([\s\S]*?)<\/(longcat_)?arg_value>/g;
-
+    // Arg dialects seen across providers:
+    //   zipped key/value siblings: <arg_key>K</arg_key><arg_value>V</arg_value>
+    //                             <argname>K</argname><argvalue>V</argvalue>
+    //   embedded key in tag:      <parameter=NAME>V</parameter>
+    //                             <parameter name="NAME">V</parameter>
+    //                             <arg value="NAME">V</arg>
     const keys: string[] = [];
     const values: string[] = [];
-
-    let keyMatch;
-    while ((keyMatch = keyRegex.exec(blockContent)) !== null) {
-      keys.push(keyMatch[2].trim());
-    }
-
-    let valMatch;
-    while ((valMatch = valRegex.exec(blockContent)) !== null) {
-      values.push(valMatch[2].trim());
-    }
-
+    const keyRe = /<(longcat_)?arg_?key>\s*([\s\S]*?)<\/(longcat_)?arg_?key>/gi;
+    const valRe = /<(longcat_)?arg_?value>\s*([\s\S]*?)<\/(longcat_)?arg_?value>/gi;
+    const argnameRe = /<argname>\s*([\s\S]*?)<\/argname>/gi;
+    const argvalueRe = /<argvalue>\s*([\s\S]*?)<\/argvalue>/gi;
+    let km; while ((km = keyRe.exec(blockContent)) !== null) keys.push(km[2].trim());
+    let vm; while ((vm = valRe.exec(blockContent)) !== null) values.push(vm[2].trim());
+    let an; while ((an = argnameRe.exec(blockContent)) !== null) keys.push(an[1].trim());
+    let av; while ((av = argvalueRe.exec(blockContent)) !== null) values.push(av[1].trim());
     for (let i = 0; i < Math.min(keys.length, values.length); i++) {
-      const k = keys[i];
-      const v = values[i];
+      const k = keys[i]; const v = values[i];
+      if (!k) continue;
       try { args[k] = JSON.parse(v); } catch { args[k] = v; }
+    }
+    const embeddedRe = [
+      /<parameter=([^>]+)>([\s\S]*?)<\/parameter>/gi,
+      /<parameter\s+name=["']?([^"'>\s]+)["']?\s*>([\s\S]*?)<\/parameter>/gi,
+      /<arg\s+value=["']?([^"'>\s]+)["']?\s*>([\s\S]*?)<\/arg>/gi,
+    ];
+    for (const re of embeddedRe) {
+      let em;
+      while ((em = re.exec(blockContent)) !== null) {
+        const k = (em[1] ?? '').trim();
+        const v = (em[2] ?? '').trim();
+        if (!k) continue;
+        try { args[k] = JSON.parse(v); } catch { args[k] = v; }
+      }
     }
 
     toolCalls.push({
@@ -698,12 +716,46 @@ export function parseTextToolCalls(text: string): ToolCall[] {
     });
   }
 
+  // Claude/Anthropic-style dialect: <functioncall><invoke name="TOOL"><parameter name="K">V</parameter></invoke></functioncall>
+  const invokeRe = /<functioncall>([\s\S]*?)<\/functioncall>/gi;
+  let invMatch;
+  while ((invMatch = invokeRe.exec(text)) !== null) {
+    const body = invMatch[1];
+    const invokeRe2 = /<invoke\s+name=["']?([^"'>\s]+)["']?\s*>([\s\S]*?)<\/invoke>/gi;
+    let im;
+    while ((im = invokeRe2.exec(body)) !== null) {
+      const name = (im[1] ?? '').trim();
+      const invokeBody = im[2] ?? '';
+      if (!name) continue;
+      const args: Record<string, unknown> = {};
+      const paramRe = /<parameter\s+name=["']?([^"'>\s]+)["']?\s*>([\s\S]*?)<\/parameter>/gi;
+      let pm;
+      while ((pm = paramRe.exec(invokeBody)) !== null) {
+        const k = (pm[1] ?? '').trim();
+        const v = (pm[2] ?? '').trim();
+        if (!k) continue;
+        try { args[k] = JSON.parse(v); } catch { args[k] = v; }
+      }
+      toolCalls.push({
+        id: `call_parsed_${Date.now()}_${toolCalls.length}`,
+        type: 'function',
+        function: { name, arguments: JSON.stringify(args) },
+      });
+    }
+  }
+
   if (toolCalls.length === 0) {
-    const pipeToolCallRe = /<\|?tool_?call\|?>\s*(?:call:)?([a-zA-Z0-9_-]+)\s*(\{[\s\S]*?\}|\([\s\S]*?\))\s*<\|?tool_?call\|?>?/g;
+    // Pipe dialects, both:
+    //   <|toolcall>call:mcpfilesystemwritefile{filepath: 'X'}<|tool_call|>   (open <|toolcall>, close <tool_call|>)
+    //   <|toolcallstart|>[terminal(command='...')]<|toolcallend|>
+    const pipeToolCallRe = new RegExp(
+      String.raw`<\|?tool_?call\s*(?:start|end)?\|?>\s*(?:call:)?([a-zA-Z0-9_-]+)\s*(?:\(([\s\S]*?)\)|\[([\s\S]*?)\]|\{([\s\S]*?)\})\s*<\|?tool_?call\s*(?:start|end)?\|?>`,
+      'gi',
+    );
     let pipeMatch;
     while ((pipeMatch = pipeToolCallRe.exec(text)) !== null) {
       const rawName = pipeMatch[1].toLowerCase();
-      const rawBody = pipeMatch[2].trim();
+      const rawBody = (pipeMatch[2] ?? pipeMatch[3] ?? pipeMatch[4] ?? '').trim();
       
       let toolName = rawName;
       if (rawName.includes('writefile') || rawName.includes('write_file')) toolName = 'write_file';
@@ -715,15 +767,15 @@ export function parseTextToolCalls(text: string): ToolCall[] {
       }
 
       const args: Record<string, unknown> = {};
-      if (rawBody.startsWith('{') && rawBody.endsWith('}')) {
-        const kvRe = /([a-zA-Z0-9_-]+)\s*:\s*(?:"([\s\S]*?)"|'([\s\S]*?)'|([^\s,}]+))/g;
-        let kvm;
-        while ((kvm = kvRe.exec(rawBody)) !== null) {
-          const k = kvm[1];
-          let v = kvm[2] ?? kvm[3] ?? kvm[4];
-          if (v.startsWith("'") && v.endsWith("'")) v = v.slice(1, -1);
-          args[k] = v;
-        }
+      // key: value | key="value" | key='value' (value may itself contain = or |)
+      const kvRe = /([a-zA-Z0-9_-]+)\s*(?::|=)\s*(?:"([\s\S]*?)"|'([\s\S]*?)'|([^,)\]]+))/g;
+      let kvm;
+      while ((kvm = kvRe.exec(rawBody)) !== null) {
+        const k = kvm[1];
+        let v = kvm[2] ?? kvm[3] ?? kvm[4] ?? '';
+        v = v.trim();
+        if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) v = v.slice(1, -1);
+        args[k] = v;
       }
 
       if (toolName === 'write_file' || toolName === 'patch') {

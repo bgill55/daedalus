@@ -100,11 +100,62 @@ describe('parseTextToolCalls', () => {
     expect(args.content).toBe('# PromptVault');
   });
 
-  it('strips pipe-style tool call tags from assistant response text', async () => {
-    const { stripToolCallMarkup } = await import('./formatting.js');
-    const raw = `<|toolcall>call:mcpfilesystemreadtextfile{path: "public/script.js"}<toolcall|>The collection dropdown should now update.`;
-    const cleaned = stripToolCallMarkup(raw);
-    expect(cleaned).toBe('The collection dropdown should now update.');
+  it('parses Gemini/Freellmapi <toolcall> dialect with <argname>/<argvalue> arg tags', async () => {
+    const { parseTextToolCalls } = await import('./formatting.js');
+    const raw = `<toolcall>
+<function=write_file>
+<argname>path</argname>
+<argvalue>D:\\daedalus-sandbox\\ai-scanner\\package.json</argvalue>
+<argname>content</argname>
+<argvalue>{"name":"ai-scanner"}</argvalue>
+</toolcall>`;
+    const calls = parseTextToolCalls(raw);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].function.name).toBe('write_file');
+    const args = JSON.parse(calls[0].function.arguments);
+    expect(args.path).toContain('ai-scanner');
+    expect(args.content).toEqual({ name: 'ai-scanner' });
+  });
+
+  it('parses <toolcall> with <parameter=NAME> arg dialect', async () => {
+    const { parseTextToolCalls } = await import('./formatting.js');
+    const raw = `<toolcall>
+<function=write_file>
+<parameter=path>D:\\daedalus-sandbox\\ai-scanner\\package.json</parameter>
+<parameter=content>{"name":"ai-scanner"}</parameter>
+</toolcall>`;
+    const calls = parseTextToolCalls(raw);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].function.name).toBe('write_file');
+    const args = JSON.parse(calls[0].function.arguments);
+    expect(args.path).toContain('ai-scanner');
+    expect(args.content).toEqual({ name: 'ai-scanner' });
+  });
+
+  it('parses Claude-style <functioncall><invoke name=...> dialect', async () => {
+    const { parseTextToolCalls } = await import('./formatting.js');
+    const raw = `<functioncall>
+<invoke name="write_file">
+<parameter name="path">D:\\daedalus-sandbox\\ai-scanner\\package.json</parameter>
+<parameter name="content">{"name":"ai-scanner"}</parameter>
+</invoke>
+</functioncall>`;
+    const calls = parseTextToolCalls(raw);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].function.name).toBe('write_file');
+    const args = JSON.parse(calls[0].function.arguments);
+    expect(args.path).toContain('ai-scanner');
+    expect(args.content).toEqual({ name: 'ai-scanner' });
+  });
+
+  it('parses <|toolcallstart|>[tool(key=\'value\')]<|toolcallend|> pipe dialect', async () => {
+    const { parseTextToolCalls } = await import('./formatting.js');
+    const raw = `<|toolcallstart|>[terminal(command='ls -la ./ai-scanner/ 2>&1 | head -30')]<|toolcallend|>`;
+    const calls = parseTextToolCalls(raw);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].function.name).toBe('terminal');
+    const args = JSON.parse(calls[0].function.arguments);
+    expect(args.command).toContain('ls -la ./ai-scanner/');
   });
 });
 

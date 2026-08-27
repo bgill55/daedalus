@@ -58,6 +58,11 @@ export function getTurnStartTime(): number {
 export let currentAbortController: AbortController | null = null;
 let turnAborted = false;
 
+// Max idle time waiting for the next streamed chunk before treating the upstream
+// connection as hung and retrying the turn non-streaming. Prevents a stalled SSE
+// stream (no error, no [DONE]) from blocking the agentic loop forever.
+const STREAM_READ_TIMEOUT_MS = 90_000;
+
 export function abortTurn(): void {
   turnAborted = true;
   if (currentAbortController) {
@@ -381,6 +386,16 @@ export function createModelFunctions(deps: ModelDeps) {
       };
 
       const signal = ensureAbortController().signal;
+      let streamTimedOut = false;
+      let streamReadTimer: ReturnType<typeof setTimeout> | null = null;
+      const resetStreamReadTimer = () => {
+        if (streamReadTimer) clearTimeout(streamReadTimer);
+        streamReadTimer = setTimeout(() => {
+          streamTimedOut = true;
+          currentAbortController?.abort();
+        }, STREAM_READ_TIMEOUT_MS);
+      };
+      resetStreamReadTimer();
 
       try {
         const stream = await router.chatStream({
@@ -396,6 +411,7 @@ export function createModelFunctions(deps: ModelDeps) {
         });
 
         for await (const chunk of stream) {
+          resetStreamReadTimer();
           if (signal.aborted) break;
           const u = (chunk as { usage?: { completion_tokens?: number } } | undefined)?.usage;
           if (u && typeof u.completion_tokens === 'number') turnUsageOut = u.completion_tokens;
@@ -438,6 +454,8 @@ export function createModelFunctions(deps: ModelDeps) {
           }
         }
 
+        if (streamReadTimer) clearTimeout(streamReadTimer);
+
         if (!blockOpened) spinner.stop();
 
         if (signal.aborted) {
@@ -449,18 +467,72 @@ export function createModelFunctions(deps: ModelDeps) {
         }
 
       } catch (error) {
-        if (signal.aborted) {
+        if (streamReadTimer) clearTimeout(streamReadTimer);
+        // A stream-read timeout is retryable (treat like a dropped stream), not a user stop.
+        if (signal.aborted && !streamTimedOut) {
           spinner.stop();
           closeAssistantBlock((lastContent || fullContent).length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier);
           console.log(dim('\n  [STOP] Stopped'));
           clearAbortController();
           return { content: repetitionAborted ? fullContent : '', toolCalls: [] };
         }
+        if (streamTimedOut) {
+          console.log(warn(`\n  ${pc.bold('[WARN]')} Stream read timed out after ${STREAM_READ_TIMEOUT_MS}ms — retrying non-streaming`));
+        }
         spinner.stop();
         const firstLine = (error instanceof Error ? error.message : String(error)).split('\n')[0];
         console.log(warn(`\n  ${pc.bold('[WARN]')} Error calling model: ${firstLine}`));
         console.log(dim(`         (Tip: Run /doctor to diagnose connection or loading issues)`));
-        throw error;
+        // Streaming call failed (e.g. upstream connection dropped mid-stream). Rather than
+        // degrade to the one-shot text-only fallback (which cannot execute tools and stalls
+        // agentic work), retry this turn ONCE with a non-streaming, tool-enabled call so the
+        // agentic loop stays alive. Provider-neutral: works for any OpenAI-compatible endpoint.
+        try {
+          console.log(dim('         Retrying turn non-streaming with tools enabled...'));
+          const retrySignal = new AbortController();
+          const retry = await router.chat.completions.create({
+            model: pinnedModel || config.modelOverride || 'auto',
+            complexity: pinnedModel ? undefined : currentComplexity,
+            messages,
+            temperature: 0.1,
+            tools: allTools,
+            tool_choice: 'auto',
+            max_tokens: 4096,
+            signal: retrySignal.signal,
+          });
+          const msg = retry.choices?.[0]?.message;
+          const retryContent = messageText(msg?.content ?? '');
+          let retryCalls: ToolCall[] = [];
+          if (msg?.tool_calls && msg.tool_calls.length > 0) {
+            retryCalls = msg.tool_calls.map((tc: { id?: string; function?: { name?: string; arguments?: string } }, i: number) => ({
+              id: tc.id ?? `retry_${Date.now()}_${i}`,
+              type: 'function',
+              function: { name: tc.function?.name ?? '', arguments: tc.function?.arguments ?? '' },
+            }));
+          } else {
+            const parsed = parseTextToolCalls(retryContent);
+            if (parsed.length > 0) retryCalls = parsed;
+          }
+          if (retryCalls.length > 0) {
+            messages.push({ role: 'assistant', content: retryContent || `[tool calls: ${retryCalls.map(c => c.function.name).join(', ')}]` });
+            const results = await executeToolCalls(retryCalls, toolContext);
+            for (let i = 0; i < retryCalls.length; i++) {
+              const rc = retryCalls[i];
+              const res = results[i];
+              const resText = typeof res === 'string' ? res : JSON.stringify(res ?? {});
+              messages.push({ role: 'tool', tool_call_id: rc.id, content: resText });
+            }
+            totalToolCalls += retryCalls.length;
+            continue;
+          }
+          // No tool calls on retry: fall through to the normal text handling below.
+          fullContent = retryContent;
+          lastContent = stripToolCallMarkup(retryContent);
+        } catch (retryErr) {
+          const retryLine = (retryErr instanceof Error ? retryErr.message : String(retryErr)).split('\n')[0];
+          console.log(warn(`\n  ${pc.bold('[WARN]')} Non-streaming retry also failed: ${retryLine}`));
+          throw error;
+        }
       }
 
       clearAbortController();
@@ -1248,13 +1320,44 @@ export function createModelFunctions(deps: ModelDeps) {
     console.log(pc.gray('  [THINK] Thinking (fallback mode)...'));
 
     try {
+      // Send tools so a compliant endpoint returns OpenAI tool_calls; non-compliant
+      // endpoints that emit tool calls as text are recovered via parseTextToolCalls below.
+      const fbTools = [...BUILTIN_TOOLS, ...POWER_TOOLS, ...mcpRegistry.getToolDefinitions()];
       const response = await router.chat.completions.create({
         model: config.modelOverride || 'auto',
         messages,
         temperature: 0.1,
+        tools: fbTools,
+        tool_choice: 'auto',
+        max_tokens: 4096,
       });
 
-      const reply = messageText(response.choices[0]?.message?.content ?? '');
+      const msg = response.choices[0]?.message;
+      const reply = messageText(msg?.content ?? '');
+      let parsed: ToolCall[] = [];
+      if (msg?.tool_calls && msg.tool_calls.length > 0) {
+        parsed = msg.tool_calls.map((tc: { id?: string; function?: { name?: string; arguments?: string } }, i: number) => ({
+          id: tc.id ?? `fb_${Date.now()}_${i}`,
+          type: 'function',
+          function: { name: tc.function?.name ?? '', arguments: tc.function?.arguments ?? '' },
+        }));
+      } else {
+        parsed = parseTextToolCalls(reply);
+      }
+
+      if (parsed.length > 0) {
+        messages.push({ role: 'assistant', content: reply || `[tool calls: ${parsed.map(c => c.function.name).join(', ')}]` });
+        const results = await executeToolCalls(parsed, toolContext);
+        for (let i = 0; i < parsed.length; i++) {
+          const rc = parsed[i];
+          const res = results[i];
+          const resText = typeof res === 'string' ? res : JSON.stringify(res ?? {});
+          messages.push({ role: 'tool', tool_call_id: rc.id, content: resText });
+        }
+        // Surface the tool outcome so the caller's loop can continue if needed.
+        return `[fallback executed ${parsed.length} tool call(s)]\n${reply}`;
+      }
+
       messages.push({ role: 'assistant', content: reply });
       openAssistantBlock();
       writeAssistantChunk(reply);
