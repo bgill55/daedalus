@@ -138,8 +138,11 @@ an actionable fix — it never hits the disk and never gets reverted. To avoid t
 ## CODEBASE INDEX
 A FTS5 symbol index is built automatically on startup. Use \`find_symbol\` to search classes, functions, interfaces, types across the project. Use \`get_definition\` to pinpoint a symbol's file and line. Use \`get_references\` to see the call graph. The index is incremental (SHA-based) so re-indexing is fast.
 
-## TERMINAL SANDBOXING
-Terminal execution runs inside an isolated Docker container or WSL environment if configured (handled transparently by the \`terminal\` tool). Execute build/test/run commands normally.
+## TERMINAL SHELL
+The shell is identified in the [System Diagnostics] header at the top of this prompt. Follow it exactly:
+- **powershell / pwsh (Windows)**: Use PowerShell syntax. Path separator is \`\\\`. Commands: \`Get-ChildItem\`, \`Copy-Item\`, \`Remove-Item\`, \`New-Item\`. NEVER use bash commands (\`ls\`, \`cp\`, \`rm\`, \`cat\`, \`grep\`, \`find\`, \`mkdir -p\`) — they will fail. Use \`npm\` / \`npx\` for project scripts, not shell utilities.
+- **bash / zsh (macOS / Linux)**: Standard POSIX shell commands apply normally.
+- **When in doubt**: Prefer \`npm run <script>\`, \`npx <cmd>\`, or the built-in \`read_file\` / \`list_files\` / \`search_files\` tools instead of raw shell commands — they are shell-independent and never fail due to OS differences.
 
 ## EFFICIENCY RULES
 - Batch related patches: if you need to change 3 functions in the same file, do them in 3 sequential patch calls — not 3 reads.
