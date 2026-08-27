@@ -44,6 +44,36 @@ describe('FTS5 codebase index', () => {
     expect(tables).toContain('references');
   });
 
+  it('migrates legacy user_version 0 database: drops stale tables, recreates file_hashes and trigram tables, sets user_version 1', () => {
+    db.close();
+    // Simulate legacy DB without user_version
+    const rawDb = new Database(dbPath);
+    rawDb.pragma('user_version = 0');
+    rawDb.exec(`
+      CREATE TABLE IF NOT EXISTS file_hashes (file_path TEXT PRIMARY KEY, hash TEXT NOT NULL, updated_at INTEGER NOT NULL);
+      CREATE VIRTUAL TABLE IF NOT EXISTS symbols USING fts5(name, kind, file_path UNINDEXED, line_start UNINDEXED, line_end UNINDEXED, signature, project_hash UNINDEXED);
+      INSERT INTO file_hashes (file_path, hash, updated_at) VALUES ('legacy.ts', 'old_hash', 100);
+    `);
+    rawDb.close();
+
+    // Reopen via initIndexDb
+    db = initIndexDb(dbPath);
+    const version = db.pragma('user_version', { simple: true });
+    expect(version).toBe(1);
+
+    const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map((r: any) => r.name);
+    expect(tables).toContain('file_hashes');
+    expect(tables).toContain('symbols');
+    expect(tables).toContain('references');
+
+    // file_hashes is recreated empty, so old hash is wiped and triggers full re-index
+    expect(getFileHash(db, 'legacy.ts')).toBeNull();
+
+    // file_hashes is fully functional for new saves
+    saveFileHash(db, 'legacy.ts', 'new_hash');
+    expect(getFileHash(db, 'legacy.ts')).toBe('new_hash');
+  });
+
   it('insertSymbols stores and searchSymbols finds them', () => {
     const symbols: SymbolRow[] = [
       { name: 'FooBar', kind: 'function', file_path: 'src/index.ts', line_start: 10, line_end: 20, signature: 'function FooBar()', project_hash: projectHash },
