@@ -1,3 +1,10 @@
+## [3.53.4](https://github.com/bgill55/daedalus/compare/v3.53.3...v3.53.4) (2026-08-28)
+
+
+### Bug Fixes
+
+* **orchestrator:** pass untruncated error line and full compilation logs to pre-flight debugger subagent ([88cfeaa](https://github.com/bgill55/daedalus/commit/88cfeaa97c0b47121b2d25bcae406246b6a74010))
+
 ## [3.53.3](https://github.com/bgill55/daedalus/compare/v3.53.2...v3.53.3) (2026-08-28)
 
 
