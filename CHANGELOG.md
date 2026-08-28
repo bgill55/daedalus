@@ -1,3 +1,10 @@
+## [3.50.4](https://github.com/bgill55/daedalus/compare/v3.50.3...v3.50.4) (2026-08-28)
+
+
+### Bug Fixes
+
+* **system-prompt:** instruct models never to mutate .js import extensions to .ts in Node ESM and enforce incremental verification ([283349c](https://github.com/bgill55/daedalus/commit/283349c0db6a2722568d3c41db5d8c61c2d301ad))
+
 ## [3.50.3](https://github.com/bgill55/daedalus/compare/v3.50.2...v3.50.3) (2026-08-28)
 
 
