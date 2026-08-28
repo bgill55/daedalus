@@ -697,7 +697,7 @@ export function claimedTestCountWithoutRunWarning(claimed: string): string {
 // Asserts a feature/integration is functional / wired / verified working. Excludes
 // recommendations and hypotheticals ("we could verify", "to wire it in, do X").
 const WORKS_CLAIM_RE =
-  /\b(wired in|wired up|is (?:now )?(?:working|functional|verified|live)|works (?:now|correctly|as expected|end[ -]?to[ -]?end)|verified (?:end[ -]?to[ -]?end|and working|working)|functional|end[ -]?to[ -]?end|is complete and (?:working|functional)|confirmed working|successfully (?:wired|integrated|connected)|integration (?:works|is working|complete))\b/i;
+  /\b(wired in|wired up|is (?:now )?(?:working|verified working|live)|works (?:now|correctly|as expected|end[ -]?to[ -]?end)|verified (?:end[ -]?to[ -]?end|and working)|is complete and (?:working|functional)|confirmed working|successfully (?:wired|integrated)|integration is (?:working|functional|complete)|tested end[ -]?to[ -]?end and working)\b/i;
 
 // A live integration probe: a real request against the thing under test, not a build/typecheck.
 // Covers curl/httpie to a localhost/remote endpoint, a Node http/fetch probe, a server run that

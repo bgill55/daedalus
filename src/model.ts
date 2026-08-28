@@ -555,7 +555,12 @@ export function createModelFunctions(deps: ModelDeps) {
       // this turn (and it produced no new tool calls — i.e. it's just re-stating work), force
       // the agent to either change the repo or report the blocker honestly. The FIRST repeat
       // is a soft warning; a SECOND consecutive repeat is a runaway loop — halt the turn.
-      if (toolCallArray.length === 0 && divergence.register(cleanContent)) {
+      // NOTE: We exempt rewrites that are direct responses to a [SYSTEM WARNING] guard prompt
+      // (e.g. ungrounded claim correction), because the model was explicitly asked to rewrite its
+      // draft and the corrected text is naturally similar to the rejected draft.
+      const lastUserMsg = messages[messages.length - 1];
+      const isRespondingToGuardWarning = lastUserMsg && typeof lastUserMsg.content === 'string' && lastUserMsg.content.startsWith('[SYSTEM WARNING]');
+      if (!isRespondingToGuardWarning && toolCallArray.length === 0 && divergence.register(cleanContent)) {
         const repeats = divergence.consecutiveRepeats;
         if (repeats >= 2) {
           openBlock();
@@ -620,6 +625,9 @@ export function createModelFunctions(deps: ModelDeps) {
         // absence requires the same grounding as asserting presence.
         const negClaim = isNegativeExistenceClaim(cleanContent, claimLedger);
         if (negClaim) {
+          const key = `neg:${negClaim}`;
+          if (toolContext.firedCompletionGuards?.has(key)) continue;
+          (toolContext.firedCompletionGuards ??= new Set<string>()).add(key);
           console.log(dim(`\n  [CHECK] Claim that "${negClaim}" is missing is ungrounded (no search/list run this session).`));
           toolContext.selfCorrectionCount = (toolContext.selfCorrectionCount ?? 0) + 1;
           messages.push({ role: 'assistant', content: cleanContent });
@@ -708,15 +716,19 @@ export function createModelFunctions(deps: ModelDeps) {
         // slips past the todo-gated guards whenever the agent didn't use the todo tool. Force the
         // agent to reconcile each claimed item with disk reality before concluding.
         if (isUnsubstantiatedProgressReport(cleanContent)) {
-          const itemCount = countAchievementItems(cleanContent);
-          console.log(dim(`\n  [CHECK] Verifying completion claim — ${itemCount} deliverables enumerated as done without a reconciling task list or per-item verification.`));
-          toolContext.selfCorrectionCount = (toolContext.selfCorrectionCount ?? 0) + 1;
-          messages.push({ role: 'assistant', content: cleanContent });
-          messages.push({
-            role: 'user',
-            content: unsubstantiatedProgressWarning(itemCount),
-          } as ChatMessage);
-          continue;
+          const key = 'unsubstantiated-progress';
+          if (!toolContext.firedCompletionGuards?.has(key)) {
+            (toolContext.firedCompletionGuards ??= new Set<string>()).add(key);
+            const itemCount = countAchievementItems(cleanContent);
+            console.log(dim(`\n  [CHECK] Verifying completion claim — ${itemCount} deliverables enumerated as done without a reconciling task list or per-item verification.`));
+            toolContext.selfCorrectionCount = (toolContext.selfCorrectionCount ?? 0) + 1;
+            messages.push({ role: 'assistant', content: cleanContent });
+            messages.push({
+              role: 'user',
+              content: unsubstantiatedProgressWarning(itemCount),
+            } as ChatMessage);
+            continue;
+          }
         }
 
         // Inspection-before-review gate: when the session is a "review the project" request
