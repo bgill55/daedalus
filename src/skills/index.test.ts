@@ -149,4 +149,29 @@ describe('Skills module (beta, load-only)', () => {
     expect(matched[0].name).toBe('audit-first');
     expect(matched[1].name).toBe('refactor-code');
   });
+
+  it('matches a paraphrase that shares the skill vocabulary but not the literal trigger', async () => {
+    vi.resetModules();
+    const mod = await import('./index.js');
+    // No trigger phrase is a substring here ('build is broken' / 'type errors' absent),
+    // but the tokens overlap enough to clear the threshold.
+    const matched = mod.matchSkills('my build keeps failing with type issues');
+    expect(matched.some((s) => s.name === 'fix-typescript-build')).toBe(true);
+  });
+
+  it('returns no skills for an unrelated request (threshold guard)', async () => {
+    vi.resetModules();
+    const mod = await import('./index.js');
+    expect(mod.matchSkills('summarize this README for me').length).toBe(0);
+    expect(mod.matchSkills('random chat').length).toBe(0);
+  });
+
+  it('scores an exact trigger match above any fuzzy overlap', async () => {
+    vi.resetModules();
+    const mod = await import('./index.js');
+    // 'add a command' is a demo trigger substring; demo must be among the matches
+    // (exact trigger tier fires, not merely fuzzy token overlap).
+    const matched = mod.matchSkills('how do i add a command for this?');
+    expect(matched.some((s) => s.name === 'demo')).toBe(true);
+  });
 });

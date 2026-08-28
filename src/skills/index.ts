@@ -110,23 +110,73 @@ export function discoverSkills(): Skill[] {
   return out;
 }
 
+// ── Intent-based seed matching (replaces naive trigger-substring gate) ──
+// Exact trigger phrase = strongest signal (score 1.0). Failing that, a weighted
+// token-overlap score lets paraphrases within a skill's own vocabulary still
+// activate the dependency graph. Offline, dependency-free.
+
+const STOPWORDS = new Set([
+  'the', 'a', 'an', 'to', 'for', 'of', 'and', 'or', 'in', 'on', 'with', 'please',
+  'can', 'you', 'my', 'i', 'is', 'are', 'be', 'do', 'does', 'how', 'what', 'why',
+  'fix', 'make', 'add', 'use', 'me', 'we', 'it', 'this', 'that', 'from', 'at', 'by',
+  'as', 'so', 'if', 'then', 'your', 'our', 'them', 'they',
+]);
+
+function tokenize(s: string): string[] {
+  return (s.toLowerCase().match(/[a-z0-9]+/g) ?? [])
+    .filter((w) => w.length > 1 && !STOPWORDS.has(w));
+}
+
+// Score a skill against the request. Exact trigger substring => 1.0 (tier 1).
+// Otherwise weighted token overlap (trigger words double-weighted over
+// description words), normalized so short requests don't over-match.
+function scoreSkill(req: string, reqTokens: Set<string>, skill: Skill): number {
+  const trig = (skill.trigger || '').toLowerCase();
+
+  // Tier 1: exact trigger substring — strongest possible signal.
+  if (trig && trig.split('|').some((t) => {
+    const term = t.trim();
+    return term.length > 0 && req.includes(term);
+  })) {
+    return 1.0;
+  }
+
+  const trigTokens = tokenize(trig);
+  const descTokens = tokenize(skill.description || '');
+  const total = trigTokens.length + descTokens.length;
+  if (total === 0 || reqTokens.size === 0) return 0;
+
+  let weight = 0;
+  for (const t of reqTokens) {
+    if (trigTokens.includes(t)) weight += 2;        // trigger word = double weight
+    else if (descTokens.includes(t)) weight += 1;   // description word = single
+  }
+  if (weight === 0) return 0;
+
+  // Normalize against the smaller side so a short request can't over-match.
+  const denom = Math.min(reqTokens.size, total) * 2;
+  return weight / denom;
+}
+
+const MATCH_THRESHOLD = 0.34;
+
 export function matchSkills(request: string): Skill[] {
   const req = (request || '').toLowerCase();
   if (!req) return [];
   const allSkills = discoverSkills();
-  const directMatches = allSkills.filter((s) => {
-    if (s.safety !== 'instructions') return false; // beta: instructions-only
-    const trig = (s.trigger || '').toLowerCase();
-    if (!trig) return false;
-    return trig.split('|').some((t) => {
-      const term = t.trim();
-      return term.length > 0 && req.includes(term);
-    });
-  });
+  const reqTokens = new Set(tokenize(req));
+  if (reqTokens.size === 0) return [];
 
-  if (directMatches.length === 0) return [];
+  const scored = allSkills
+    .filter((s) => s.safety === 'instructions')
+    .map((s) => ({ skill: s, score: scoreSkill(req, reqTokens, s) }))
+    .filter((x) => x.score >= MATCH_THRESHOLD)
+    .sort((a, b) => b.score - a.score);
+
+  if (scored.length === 0) return [];
+  // Seed with the top few intent matches; the graph expands prereqs/leadsTo.
   const graph = skillGraphCache ?? new SkillGraph(allSkills);
-  return graph.getSkillBundle(directMatches);
+  return graph.getSkillBundle(scored.slice(0, 3).map((x) => x.skill));
 }
 
 // Returns the injected prompt section for matched skills, or '' if none.
