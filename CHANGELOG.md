@@ -1,3 +1,11 @@
+## [3.53.2](https://github.com/bgill55/daedalus/compare/v3.53.1...v3.53.2) (2026-08-28)
+
+
+### Bug Fixes
+
+* **repl:** proxy terminal size to readline output so Up/Down history recall works ([e097fd9](https://github.com/bgill55/daedalus/commit/e097fd9cfff2b6f635dfd4ec2e7951f4ae4220c6))
+* **windows:** eliminate popup console windows by disabling detached creation and enforcing windowsHide across all process spawns ([624b303](https://github.com/bgill55/daedalus/commit/624b303e108e2e8b06b9e2d2e82e03a17823bf94))
+
 ## [3.53.1](https://github.com/bgill55/daedalus/compare/v3.53.0...v3.53.1) (2026-08-28)
 
 
