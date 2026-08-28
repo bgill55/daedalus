@@ -823,7 +823,7 @@ describe('getResolvedShellType', () => {
 
   describe('translateUnixToCmd', () => {
     it('converts single quotes to double quotes for cmd.exe', () => {
-      expect(translateUnixToCmd("cat 'src/file.ts'")).toBe('type "src/file.ts"');
+      expect(translateUnixToCmd("cat 'src/file.ts'")).toBe('type "src\\file.ts"');
     });
 
     it('translates /dev/null to NUL', () => {
@@ -832,6 +832,11 @@ describe('getResolvedShellType', () => {
 
     it('translates export to set and which to where', () => {
       expect(translateUnixToCmd('export NODE_ENV=test && which vitest')).toBe('set NODE_ENV=test && where vitest');
+    });
+
+    it('translates ls and cat forward slashes to backslashes for cmd built-ins', () => {
+      expect(translateUnixToCmd('ls node_modules/vitest/package.json')).toBe('dir node_modules\\vitest\\package.json');
+      expect(translateUnixToCmd('cat src/cli.ts')).toBe('type src\\cli.ts');
     });
   });
 

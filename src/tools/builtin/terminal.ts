@@ -171,18 +171,22 @@ export function translateUnixToCmd(command: string): string {
   // mkdir -p -> mkdir (cmd mkdir is already recursive)
   cmd = cmd.replace(/\bmkdir\s+-p\b/gi, 'mkdir');
   // touch <file> -> create empty file
-  cmd = cmd.replace(/\btouch\s+(\S+)/gi, (_m, f) => `type nul > "${f.replace(/"/g, '')}"`);
-  // cat <file> -> type <file>
+  cmd = cmd.replace(/\btouch\s+(\S+)/gi, (_m, f) => `type nul > "${f.replace(/"/g, '').replace(/\//g, '\\')}"`);
+  // cat <file> -> type <file> (cmd type requires backslashes for relative paths)
+  cmd = cmd.replace(/\bcat\s+([^\s;&|]+)/gi, (_m, p) => `type ${p.replace(/\//g, '\\')}`);
   cmd = cmd.replace(/\bcat\s+/gi, 'type ');
   // pwd -> cd (prints current dir)
   cmd = cmd.replace(/\bpwd\b/gi, 'cd');
-  // ls [opts] [path] -> dir [path]
+  // ls [opts] [path] -> dir [path] (cmd dir parses / as switch, so paths must use \)
   cmd = cmd.replace(/\bls\b([\s\S]*)/i, (_m, rest) => {
-    // Drop Unix ls flags (-l, -a, -la, --color, etc.) and keep any path argument.
+    // Drop Unix ls flags (-l, -a, -la, --color, etc.) and convert forward slashes in path arguments
     const stripped = rest.replace(/\s+-+[a-zA-Z]+/g, ' ').trim();
-    return `dir ${stripped}`.trim();
+    const converted = stripped.replace(/([A-Za-z0-9_.\-~]+)\/([A-Za-z0-9_.\-\/\\]*)/g, (match: string) => match.replace(/\//g, '\\'));
+    return `dir ${converted}`.trim();
   });
-  // cp -> copy, mv -> move
+  // cp -> copy, mv -> move with backslash paths
+  cmd = cmd.replace(/\bcp\s+([^\s;&|]+)\s+([^\s;&|]+)/gi, (_m, s, d) => `copy ${s.replace(/\//g, '\\')} ${d.replace(/\//g, '\\')}`);
+  cmd = cmd.replace(/\bmv\s+([^\s;&|]+)\s+([^\s;&|]+)/gi, (_m, s, d) => `move ${s.replace(/\//g, '\\')} ${d.replace(/\//g, '\\')}`);
   cmd = cmd.replace(/\bcp\b/g, 'copy');
   cmd = cmd.replace(/\bmv\b/g, 'move');
   // grep -> findstr
