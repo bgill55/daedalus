@@ -17,6 +17,9 @@ of instructions:
 name: fix-typescript-build
 description: How to fix a failing tsc / npm run build run, batching fixes into sprints.
 trigger: fix the build|type errors|typescript errors|tsc errors|build is broken|build fails|npm run build|fix the type errors
+prerequisites: audit-first
+leadsTo: test-verification
+stage: code
 safety: instructions
 ---
 
@@ -28,12 +31,34 @@ safety: instructions
 - `description` — what the skill is for.
 - `trigger` — `|`-separated phrases. The skill activates when **any** phrase appears
   in the user request (substring match, case-insensitive).
+- `prerequisites` (or `dependsOn`) — comma or pipe-separated list of skill names that
+  **must** execute before this skill.
+- `leadsTo` (or `followUp`) — comma or pipe-separated list of recommended downstream
+  skills that follow this execution.
+- `stage` — lifecycle stage (`spec`, `plan`, `code`, `test`, `review`).
 - `safety` — `instructions` (default, surfaced to the agent) or `executable` (ignored
   in the current load-only implementation).
 
-When a skill matches, Daedalus prepends an `## ACTIVE SKILLS` section to the system
-prompt containing the matched playbook(s). The agent then follows them with its
-normal tools.
+When a skill matches, Daedalus's **CaSKG Graph Engine** resolves the full dependency
+chain and prepends an `## ACTIVE SKILLS` section to the system prompt containing the
+topologically ordered bundle of playbooks.
+
+---
+
+## CaSKG: Counterfactual-Causal Skill Dependency Graphs
+
+Daedalus features an embedded **CaSKG** (Counterfactual-Causal Skill Graph) engine (`src/skills/graph.ts`).
+
+Traditional agent systems perform naive keyword or embedding retrieval, pulling isolated snippets that lack procedural context. Daedalus models skills as nodes in a directed dependency graph:
+
+```
+[Spec Design] ──(prerequisite)──> [TDD Implementation] ──(leadsTo)──> [Test Verification]
+```
+
+### Key Benefits:
+1. **Procedural Bundles**: Matching `TDD Implementation` automatically pulls `Spec Design` (prerequisite) and `Test Verification` (downstream validation) into a single execution bundle.
+2. **Topological Execution Order**: Skills in the bundle are sorted chronologically so prerequisites are always evaluated and presented before downstream code edits.
+3. **Cycle-Safe Resolution**: Built-in topological sorting with cycle detection ensures graceful fallback without infinite loops.
 
 ---
 
@@ -208,13 +233,16 @@ collapses that to one release per batch.
 
 ## How it's wired (implementation notes)
 
+- `src/skills/graph.ts` — `SkillGraph` manages the directed procedural dependency
+  graph across discovered skills, expanding matches along `prerequisites` and `leadsTo`
+  edges and topologically sorting the resulting active bundle.
 - `src/skills/index.ts` — `discoverSkills()` scans the two trusted dirs;
-  `matchSkills(request)` does case-insensitive substring trigger matching (only
-  `instructions` skills); `getSkillsSection(request)` returns the `## ACTIVE SKILLS`
-  block (or `''` when nothing matches).
+  `matchSkills(request)` uses `SkillGraph` to return topologically sorted,
+  dependency-expanded skill bundles; `getSkillsSection(request)` returns the
+  `## ACTIVE SKILLS` block (or `''` when nothing matches).
 - The section is injected per turn: `src/repl.ts` rebuilds `messages[0]` with
   `getSystemPromptWithMemory(activePrompt)` before each model call, so the right
-  skill is active for the current request.
+  skill bundle is active for the current request.
 - Discovery result is cached; restart the session after adding/changing skills.
 
 See the [Bug Fix Report: Windows Terminal Crashes & Build-Fix Robustness](windows-terminal-crash-fix.md)
