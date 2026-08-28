@@ -1,3 +1,10 @@
+## [3.53.3](https://github.com/bgill55/daedalus/compare/v3.53.2...v3.53.3) (2026-08-28)
+
+
+### Bug Fixes
+
+* **guard:** prevent divergence repetition guard and claim-grounding from suppressing full audit and review deliverables ([689bed7](https://github.com/bgill55/daedalus/commit/689bed7ad4522c4277f7191feedafac561c2bf04))
+
 ## [3.53.2](https://github.com/bgill55/daedalus/compare/v3.53.1...v3.53.2) (2026-08-28)
 
 
