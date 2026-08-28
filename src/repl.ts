@@ -77,7 +77,10 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
     if (!trimmed) return;
     if (history[history.length - 1] === trimmed) return;
     history.push(trimmed);
-    if (history.length > HISTORY_LIMIT) history = history.slice(history.length - HISTORY_LIMIT);
+    // Mutate in place (don't reassign) so the `rl.history` reference created by
+    // readline.createInterface stays valid; then resync it explicitly.
+    if (history.length > HISTORY_LIMIT) history.splice(0, history.length - HISTORY_LIMIT);
+    if (rl) (rl as unknown as { history: string[] }).history = history;
     try {
       fs.mkdirSync(path.dirname(historyPath), { recursive: true });
       fs.writeFileSync(historyPath, history.join('\n') + '\n', 'utf8');
@@ -85,13 +88,28 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
   }
 
   // Wrapper stream so rl.close() doesn't call process.stdout.end(),
-  // which would break TUI rendering on mode switch
+  // which would break TUI rendering on mode switch.
+  // IMPORTANT: readline uses output.columns / output.isTTY to redraw the line
+  // on arrow-key (history) navigation. A bare Writable has neither, so on a
+  // Windows/MSYS TTY readline can't compute cursor moves and Up/Down recall
+  // silently fails (Enter still works because line emission needs no redraw).
+  // Proxy those terminal properties from the real stdout so arrow recall works.
   const rlOutput = new Writable({
     write(chunk, encoding, callback) {
       process.stdout.write(chunk, encoding);
       callback();
     },
   });
+  for (const prop of ['columns', 'rows', 'isTTY'] as const) {
+    Object.defineProperty(rlOutput, prop, {
+      get: () => (process.stdout as unknown as Record<string, unknown>)[prop],
+      configurable: true,
+    });
+  }
+  if (typeof (process.stdout as unknown as { getWindowSize?: () => [number, number] }).getWindowSize === 'function') {
+    (rlOutput as unknown as { getWindowSize: () => [number, number] }).getWindowSize = () =>
+      (process.stdout as unknown as { getWindowSize: () => [number, number] }).getWindowSize!();
+  }
 
   const rl = readline.createInterface({
     input: process.stdin,
