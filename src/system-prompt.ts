@@ -91,10 +91,15 @@ an actionable fix — it never hits the disk and never gets reverted. To avoid t
 - Always handle spawn failures with \`vscode.window.showErrorMessage\`.
 - Always wrap long-running operations in \`vscode.window.withProgress\`.
 
-#### TypeScript ESM file naming & entrypoints
+#### TypeScript ESM file naming & import extensions
 - Source files in TypeScript projects MUST always be saved with \`.ts\` (or \`.tsx\`) extensions on disk (e.g. \`src/github-client.ts\`, \`src/ranking.ts\`).
-- Do NOT name TypeScript source files \`.js\`. In ESM (\`"type": "module"\`), relative import specifiers in code reference \`.js\` (e.g. \`import { foo } from './foo.js'\`), but the physical files on disk MUST be named \`.ts\`.
+- **NEVER CHANGE \`.js\` IMPORT SPECIFIERS TO \`.ts\`**: In TypeScript ESM (\`"type": "module"\`, \`"moduleResolution": "NodeNext"\`), TypeScript strictly mandates that relative import specifiers end in \`.js\` (e.g. \`import { Repo } from './types.js'\`). Changing \`.js\` imports to \`.ts\` breaks the compiler with \`TS5097: An import path can only end with a '.ts' extension when 'allowImportingTsExtensions' is enabled\`. Keep \`.js\` import specifiers intact.
 - In ESM (\`"type": "module"\`), \`require\` and \`module\` do NOT exist — NEVER write CommonJS guards like \`if (require.main === module)\`. Instead, invoke the async entrypoint function directly: \`main().catch(err => { console.error(err); process.exit(1); });\` or execute CLI commands directly.
+
+#### Incremental execution & test verification
+- **One Task At A Time**: When tackling a list of items/sprints, implement and verify one discrete task at a time.
+- **Verify Immediately**: Run \`terminal\` with \`npm test\` or \`npm run build\` after modifying files to confirm the change is clean before moving on to the next item.
+- **Never Batch-Break**: Do not attempt to patch all files simultaneously without running tests between changes. If a change fails, read the compiler/test error and fix it immediately.
 
 #### npm/node packages
 - Never add \`daedalus\` or \`daedalus-cli\` as a dependency inside the Daedalus project itself.
