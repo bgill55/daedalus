@@ -1,3 +1,10 @@
+## [3.50.3](https://github.com/bgill55/daedalus/compare/v3.50.2...v3.50.3) (2026-08-28)
+
+
+### Bug Fixes
+
+* **guards:** exempt system warning rewrites from divergence checks and refine works-claim regex ([6b706ee](https://github.com/bgill55/daedalus/commit/6b706eecfe9d6b568f036eb693060abed622f287))
+
 ## [3.50.2](https://github.com/bgill55/daedalus/compare/v3.50.1...v3.50.2) (2026-08-27)
 
 
