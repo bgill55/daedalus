@@ -1,3 +1,10 @@
+# [3.51.0](https://github.com/bgill55/daedalus/compare/v3.50.6...v3.51.0) (2026-08-28)
+
+
+### Features
+
+* **skills:** implement CaSKG procedural dependency graph & bundle retrieval ([3caffc3](https://github.com/bgill55/daedalus/commit/3caffc3576b1046ff38d6d87c50520164baf7c0c))
+
 ## [3.50.6](https://github.com/bgill55/daedalus/compare/v3.50.5...v3.50.6) (2026-08-28)
 
 
