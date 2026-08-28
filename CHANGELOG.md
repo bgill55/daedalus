@@ -1,3 +1,10 @@
+# [3.52.0](https://github.com/bgill55/daedalus/compare/v3.51.0...v3.52.0) (2026-08-28)
+
+
+### Features
+
+* **skills:** intent-based seed matching so paraphrases activate the CaSKG bundle ([2c8c45f](https://github.com/bgill55/daedalus/commit/2c8c45f341be659c5bed9b3dfdccc24f057856ba))
+
 # [3.51.0](https://github.com/bgill55/daedalus/compare/v3.50.6...v3.51.0) (2026-08-28)
 
 
