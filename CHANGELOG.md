@@ -1,3 +1,10 @@
+## [3.50.6](https://github.com/bgill55/daedalus/compare/v3.50.5...v3.50.6) (2026-08-28)
+
+
+### Bug Fixes
+
+* **windows:** hide flashing child process console windows via windowsHide: true ([8023ef3](https://github.com/bgill55/daedalus/commit/8023ef37e2a5927e3807eec94d5228ab80b62eb8))
+
 ## [3.50.5](https://github.com/bgill55/daedalus/compare/v3.50.4...v3.50.5) (2026-08-28)
 
 
