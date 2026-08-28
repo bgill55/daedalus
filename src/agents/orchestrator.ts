@@ -187,10 +187,10 @@ export class Orchestrator {
       const isNoInputsErr = preFlight.errorLogs && (preFlight.errorLogs.includes('TS18003') || preFlight.errorLogs.includes('No inputs were found'));
       if (!preFlight.success && preFlight.errorLogs && !isNoInputsErr) {
         console.log(pc.yellow(`\n[Pre-Flight] Pre-existing build errors detected in workspace. Prepending Task 0 to repair existing code first...`));
-        const firstErrorLine = preFlight.errorLogs.split('\n')[0].slice(0, 120);
+        const firstErrorLine = preFlight.errorLogs.split('\n')[0].trim().slice(0, 300);
         tasks.unshift({
           goal: `Fix pre-existing compilation/build error in codebase before implementing feature: ${firstErrorLine}`,
-          context: projectContext || '',
+          context: `${projectContext || ''}\n\n[COMPILATION ERROR DETAILS]\n${preFlight.errorLogs}`,
           role: 'debugger',
           status: 'pending',
           splitDepth: 0,
