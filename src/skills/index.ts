@@ -16,6 +16,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { homedir } from 'os';
 import { writeSkillDraft, type SkillDraft } from './draft.js';
+import { SkillGraph } from './graph.js';
 
 export interface Skill {
   name: string;
@@ -24,9 +25,20 @@ export interface Skill {
   safety: 'instructions' | 'executable';
   body: string;
   source: string;
+  prerequisites?: string[];
+  leadsTo?: string[];
+  stage?: 'spec' | 'plan' | 'code' | 'test' | 'review';
 }
 
 const FRONTMATTER_RE = /^---\n([\s\S]*?)\n---\n?([\s\S]*)$/;
+
+function parseStringList(val?: string): string[] {
+  if (!val) return [];
+  return val
+    .split(/[,|]/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
 
 function parseFrontmatter(raw: string): { meta: Record<string, string>; body: string } {
   const m = raw.match(FRONTMATTER_RE);
@@ -53,6 +65,7 @@ function userSkillsDir(): string {
 }
 
 let cache: Skill[] | null = null;
+let skillGraphCache: SkillGraph | null = null;
 
 export function discoverSkills(): Skill[] {
   if (cache) return cache;
@@ -83,6 +96,9 @@ export function discoverSkills(): Skill[] {
           safety: meta.safety === 'executable' ? 'executable' : 'instructions',
           body,
           source: skillFile,
+          prerequisites: parseStringList(meta.prerequisites || meta.dependson),
+          leadsTo: parseStringList(meta.leadsto || meta.followup),
+          stage: meta.stage as Skill['stage'],
         });
       } catch {
         // Skip unreadable/unparseable skill files.
@@ -90,13 +106,15 @@ export function discoverSkills(): Skill[] {
     }
   }
   cache = out;
+  skillGraphCache = new SkillGraph(out);
   return out;
 }
 
 export function matchSkills(request: string): Skill[] {
   const req = (request || '').toLowerCase();
   if (!req) return [];
-  return discoverSkills().filter((s) => {
+  const allSkills = discoverSkills();
+  const directMatches = allSkills.filter((s) => {
     if (s.safety !== 'instructions') return false; // beta: instructions-only
     const trig = (s.trigger || '').toLowerCase();
     if (!trig) return false;
@@ -105,6 +123,10 @@ export function matchSkills(request: string): Skill[] {
       return term.length > 0 && req.includes(term);
     });
   });
+
+  if (directMatches.length === 0) return [];
+  const graph = skillGraphCache ?? new SkillGraph(allSkills);
+  return graph.getSkillBundle(directMatches);
 }
 
 // Returns the injected prompt section for matched skills, or '' if none.
@@ -125,6 +147,7 @@ export function listSkills(): Skill[] {
 // Test/debug helper to invalidate the discovery cache (e.g. after adding skills).
 export function clearSkillsCache(): void {
   cache = null;
+  skillGraphCache = null;
 }
 
 // Bidirectional hook: the agent can propose a learned skill (e.g. a problem it

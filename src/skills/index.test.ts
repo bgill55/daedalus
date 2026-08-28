@@ -112,4 +112,41 @@ describe('Skills module (beta, load-only)', () => {
     expect(mod.getSkillsSection('the build is broken, fix the typescript errors'))
       .toContain('Fixing a TypeScript Build');
   });
+
+  it('expands prerequisite skills into a causal bundle upon match', async () => {
+    const prereqDir = path.join(userSkills, 'audit-first');
+    fs.mkdirSync(prereqDir, { recursive: true });
+    fs.writeFileSync(path.join(prereqDir, 'SKILL.md'), [
+      '---',
+      'name: audit-first',
+      'description: Audit before refactoring',
+      'trigger: audit code',
+      'safety: instructions',
+      '---',
+      '# Audit First',
+      'Inspect before modifying.',
+    ].join('\n'));
+
+    const refactorDir = path.join(userSkills, 'refactor-code');
+    fs.mkdirSync(refactorDir, { recursive: true });
+    fs.writeFileSync(path.join(refactorDir, 'SKILL.md'), [
+      '---',
+      'name: refactor-code',
+      'description: Refactor code cleanly',
+      'trigger: refactor the codebase',
+      'prerequisites: audit-first',
+      'safety: instructions',
+      '---',
+      '# Refactor Code',
+      'Apply safe refactoring.',
+    ].join('\n'));
+
+    vi.resetModules();
+    const mod = await import('./index.js');
+    const matched = mod.matchSkills('please refactor the codebase');
+    expect(matched.length).toBe(2);
+    // Prerequisite comes first
+    expect(matched[0].name).toBe('audit-first');
+    expect(matched[1].name).toBe('refactor-code');
+  });
 });
