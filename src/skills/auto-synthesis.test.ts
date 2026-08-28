@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { synthesizeSkillFromTurn, slugify, isTrivialPrompt } from './auto-synthesis.js';
+import { synthesizeSkillFromTurn, slugify, isTrivialPrompt, isInformationalPrompt } from './auto-synthesis.js';
 import { setSkillsBaseDir, listSkillDrafts } from './draft.js';
 import fs from 'fs';
 import os from 'os';
@@ -75,6 +75,22 @@ describe('Auto Skill Synthesis', () => {
     });
   });
 
+  describe('isInformationalPrompt', () => {
+    it('flags overview, explanation, and how-to-test queries as informational', () => {
+      expect(isInformationalPrompt('hey i dont need any coding right now, but can you break down how this project works and how I can test it.')).toBe(true);
+      expect(isInformationalPrompt('explain how this project works')).toBe(true);
+      expect(isInformationalPrompt('what is this repository?')).toBe(true);
+      expect(isInformationalPrompt('how do I test this project?')).toBe(true);
+      expect(isInformationalPrompt('walk me through the codebase')).toBe(true);
+    });
+
+    it('does NOT flag actionable bug fixes or feature requests as informational', () => {
+      expect(isInformationalPrompt('Fix typescript module resolution error in Express router')).toBe(false);
+      expect(isInformationalPrompt('Add GitHub API Token Authentication support')).toBe(false);
+      expect(isInformationalPrompt('Refactor the suggestion rules into a modular pipeline')).toBe(false);
+    });
+  });
+
   it('skips synthesis for trivial acknowledgement turns', () => {
     const res = synthesizeSkillFromTurn('yes', 'The fix is already in place on disk.');
     expect(res.synthesized).toBe(false);
@@ -119,5 +135,12 @@ describe('Auto Skill Synthesis', () => {
       'Installed @types/express and ran `npm run build`. Updated tsconfig.json moduleResolution to bundler. Steps:\n1. add @types/express\n2. set moduleResolution';
     const res = synthesizeSkillFromTurn(prompt, summary);
     expect(res.synthesized).toBe(true);
+  });
+
+  it('skips synthesis for informational overview and how-to-test queries', () => {
+    const prompt = 'hey i dont need any coding right now, but can you break down how this project works and how I can test it.';
+    const summary = '1. Project Overview\n2. How to Test:\n   npm test\n   npm run build\n3. Development Workflow';
+    const res = synthesizeSkillFromTurn(prompt, summary);
+    expect(res.synthesized).toBe(false);
   });
 });

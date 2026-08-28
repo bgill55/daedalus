@@ -33,6 +33,16 @@ export function isTrivialPrompt(prompt: string): boolean {
   return TRIVIAL_PROMPT_RE.test(prompt.trim());
 }
 
+// Informational, instructional, and Q&A prompts ("explain how X works", "break down the project",
+// "how do I test this", "no coding needed") are exploratory queries, not problem-solving execution
+// runs. They should not synthesize procedural skill drafts.
+const INFORMATIONAL_PROMPT_RE =
+  /\b(break down|how (this|the) (project|app|code|repo) works|explain|how (can|do) i (test|run|use|build) (this|it)|what is this|overview of|walk me through|tell me about|dont need any coding|don't need any coding|no coding|explain how|what does this (do|mean)|what are the steps)\b/i;
+
+export function isInformationalPrompt(prompt: string): boolean {
+  return INFORMATIONAL_PROMPT_RE.test(prompt.trim());
+}
+
 // A turn summary that shows no actual work performed (no edit/run confirmation, no
 // file change) is not a reusable playbook. We require at least one "did work" signal
 // before proposing a skill, so read-only summaries and "nothing to do" turns don't synth.
@@ -56,6 +66,7 @@ export function synthesizeSkillFromTurn(
   if (!turnSummary || turnSummary.length < 30) return { synthesized: false };
 
   if (isTrivialPrompt(userPrompt)) return { synthesized: false };
+  if (isInformationalPrompt(userPrompt)) return { synthesized: false };
   if (NO_WORK_SUMMARY_RE.test(turnSummary)) return { synthesized: false };
   // Require proof of actual work before proposing a skill. Without this, a casual
   // chat / meta turn (e.g. the user joking about the guardrails) whose summary
