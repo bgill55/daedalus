@@ -20,6 +20,7 @@ export function createGitCheckpoint(projectRoot: string): GitCheckpoint {
         encoding: 'utf8',
         stdio: ['ignore', 'pipe', 'pipe'],
         timeout: GIT_TIMEOUT,
+        windowsHide: true,
       }).trim();
     } catch {
       return { ok: false, reason: 'not a git repo' };
@@ -44,6 +45,7 @@ export function createGitCheckpoint(projectRoot: string): GitCheckpoint {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
       timeout: GIT_TIMEOUT,
+      windowsHide: true,
     }).trim();
 
     if (!out) {
@@ -63,6 +65,7 @@ export function restoreGitCheckpoint(projectRoot: string, hash: string): boolean
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
       timeout: GIT_TIMEOUT,
+      windowsHide: true,
     });
     return true;
   } catch {

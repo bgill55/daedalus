@@ -58,6 +58,7 @@ export class StdioTransport implements MCPTransport {
       env: sanitizeEnv(),
       stdio: ['pipe', 'pipe', 'pipe'],
       shell: os.platform() === 'win32',
+      windowsHide: true,
     });
 
     this.process.stdout?.on('data', (data: Buffer) => {

@@ -46,6 +46,7 @@ export async function watchProcess(
       cwd,
       stdio: ['ignore', 'pipe', 'pipe'],
       detached: false,
+      windowsHide: true,
     });
 
     const wp: WatchedProcess = {

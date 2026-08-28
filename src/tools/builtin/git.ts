@@ -21,6 +21,7 @@ function runGit(args: string[], context: ToolContext): ToolResult {
       // git exits 1 when there are differences (normal for `diff`); that is not
       // an error for our purposes, so don't throw on non-zero status.
       stdio: ['ignore', 'pipe', 'pipe'],
+      windowsHide: true,
     });
     return {
       toolCallId: '',

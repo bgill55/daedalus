@@ -102,6 +102,7 @@ export function scanStagedDiffForSecrets(cwd: string): string[] {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],
       timeout: 10000,
+      windowsHide: true,
     });
     return scanDiffForSecrets(diff);
   } catch {

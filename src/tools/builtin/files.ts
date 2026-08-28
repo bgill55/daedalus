@@ -488,7 +488,7 @@ export async function patchFile(args: { path: string; old_string: string; new_st
 }
 
 function rgAvailable(): boolean {
-  try { execSync('rg --version', { stdio: 'ignore' }); return true; } catch { return false; }
+  try { execSync('rg --version', { stdio: 'ignore', windowsHide: true }); return true; } catch { return false; }
 }
 
 function nativeGrep(dir: string, pattern: string, fileGlob?: string, limit = 50): string[] {

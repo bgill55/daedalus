@@ -24,7 +24,7 @@ export async function applyCodeDiffs(diffs: string[], cwd: string): Promise<Merg
 
   try {
     await fs.writeFile(patchFile, combinedDiff, 'utf8');
-    await execAsync(`git apply "${patchFile}"`, { cwd });
+    await execAsync(`git apply "${patchFile}"`, { cwd, windowsHide: true });
     return { success: true, appliedPatches: validDiffs.length };
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : String(err);

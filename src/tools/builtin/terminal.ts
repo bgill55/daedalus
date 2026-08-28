@@ -684,7 +684,7 @@ export async function execute(args: { command: string; timeout?: number; workdir
       // 0xC0000142 / STATUS_CONTROL_C_EXIT crash. This is the root cause of
       // intermittent terminal failures when Daedalus is launched non-interactively.
       stdio: ['ignore', 'pipe', 'pipe'],
-      detached: process.platform === 'win32',
+      detached: false,
       windowsHide: true,
     });
 

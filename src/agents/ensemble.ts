@@ -83,9 +83,9 @@ async function executeAgentRole(
 function getGitChangesDiff(cwd: string): string {
   try {
     try {
-      execSync('git add -N .', { cwd, stdio: 'ignore' });
+      execSync('git add -N .', { cwd, stdio: 'ignore', windowsHide: true });
     } catch { /* ignored */ }
-    return execSync('git diff', { cwd, encoding: 'utf8' });
+    return execSync('git diff', { cwd, encoding: 'utf8', windowsHide: true });
   } catch (err) {
     return `Error getting git diff: ${(err instanceof Error ? err.message : String(err))}`;
   }
@@ -128,8 +128,8 @@ export async function runEnsembleWorkflow(
 
   try {
     try {
-      execSync('git add -A', { cwd, stdio: 'ignore' });
-      execSync('git commit -m "daedalus-ensemble-baseline" --allow-empty', { cwd, stdio: 'ignore' });
+      execSync('git add -A', { cwd, stdio: 'ignore', windowsHide: true });
+      execSync('git commit -m "daedalus-ensemble-baseline" --allow-empty', { cwd, stdio: 'ignore', windowsHide: true });
       baselineCreated = true;
     } catch (err) {
       console.warn(pc.yellow(`[WARN] Failed to establish git baseline: ${(err instanceof Error ? err.message : String(err))}`));
@@ -157,8 +157,8 @@ export async function runEnsembleWorkflow(
         const diff = getGitChangesDiff(cwd);
 
         try {
-          execSync('git reset --hard HEAD', { cwd, stdio: 'ignore' });
-          execSync('git clean -fd', { cwd, stdio: 'ignore' });
+          execSync('git reset --hard HEAD', { cwd, stdio: 'ignore', windowsHide: true });
+          execSync('git clean -fd', { cwd, stdio: 'ignore', windowsHide: true });
         } catch { /* ignored */ }
 
         if (!diff.trim()) {
@@ -186,10 +186,10 @@ export async function runEnsembleWorkflow(
         console.log(pc.blue(`[ENSEMBLE] Evaluating candidate ${idx + 1}/${candidates.length}...`));
 
         try {
-          execSync('git apply', { input: cand.diff, cwd, stdio: 'ignore' });
+          execSync('git apply', { input: cand.diff, cwd, stdio: 'ignore', windowsHide: true });
         } catch {
           try {
-            execSync('git apply --whitespace=fix', { input: cand.diff, cwd, stdio: 'ignore' });
+            execSync('git apply --whitespace=fix', { input: cand.diff, cwd, stdio: 'ignore', windowsHide: true });
           } catch {
             continue;
           }
@@ -198,7 +198,7 @@ export async function runEnsembleWorkflow(
         let compiles = true;
         if (fs.existsSync(path.join(cwd, 'tsconfig.json'))) {
           try {
-            execSync('npx tsc --noEmit', { cwd, stdio: 'ignore' });
+            execSync('npx tsc --noEmit', { cwd, stdio: 'ignore', windowsHide: true });
           } catch {
             compiles = false;
           }
@@ -207,7 +207,7 @@ export async function runEnsembleWorkflow(
 
         let testsPass = true;
         try {
-          execSync('npm test -- --run', { cwd, stdio: 'ignore', timeout: 15000 });
+          execSync('npm test -- --run', { cwd, stdio: 'ignore', windowsHide: true, timeout: 15000 });
         } catch {
           testsPass = false;
         }
@@ -248,8 +248,8 @@ If the changes are perfect and ready to merge, also include the word "APPROVED" 
         console.log(pc.gray(`Candidate ${idx + 1} (${cand.model}): Compiles=${compiles}, TestsPass=${testsPass}, Score=${totalScore} (Critic: ${criticScore})`));
 
         try {
-          execSync('git reset --hard HEAD', { cwd, stdio: 'ignore' });
-          execSync('git clean -fd', { cwd, stdio: 'ignore' });
+          execSync('git reset --hard HEAD', { cwd, stdio: 'ignore', windowsHide: true });
+          execSync('git clean -fd', { cwd, stdio: 'ignore', windowsHide: true });
         } catch { /* ignored */ }
       }
 
@@ -265,10 +265,10 @@ If the changes are perfect and ready to merge, also include the word "APPROVED" 
       console.log(pc.green(`[ENSEMBLE] Selected best candidate (Score: ${bestCandidate.score}/20, Model: ${bestCandidate.model})`));
 
       try {
-        execSync('git apply', { input: bestCandidate.diff, cwd, stdio: 'ignore' });
+        execSync('git apply', { input: bestCandidate.diff, cwd, stdio: 'ignore', windowsHide: true });
       } catch {
         try {
-          execSync('git apply --whitespace=fix', { input: bestCandidate.diff, cwd, stdio: 'ignore' });
+          execSync('git apply --whitespace=fix', { input: bestCandidate.diff, cwd, stdio: 'ignore', windowsHide: true });
         } catch { /* ignored */ }
       }
 
@@ -285,7 +285,7 @@ If the changes are perfect and ready to merge, also include the word "APPROVED" 
   } finally {
     if (baselineCreated) {
       try {
-        execSync('git reset --soft HEAD~1', { cwd, stdio: 'ignore' });
+        execSync('git reset --soft HEAD~1', { cwd, stdio: 'ignore', windowsHide: true });
       } catch { /* ignored */ }
     }
   }

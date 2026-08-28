@@ -12,7 +12,7 @@ vi.mock('child_process', () => {
 });
 
 describe('spawnDetached', () => {
-  it('ignores stdin and detaches on win32 by default', () => {
+  it('ignores stdin and hides windows by default', () => {
     (spawn as any).mockReturnValue({} as any);
     spawnDetached('node', ['-v']);
     expect(spawn).toHaveBeenCalledWith(
@@ -20,7 +20,8 @@ describe('spawnDetached', () => {
       ['-v'],
       expect.objectContaining({
         stdio: ['ignore', 'pipe', 'pipe'],
-        detached: process.platform === 'win32',
+        detached: false,
+        windowsHide: true,
       }),
     );
   });

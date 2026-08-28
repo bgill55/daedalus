@@ -6,7 +6,7 @@ import crypto from 'crypto';
 export function getClipboardText(): string {
   try {
     if (process.platform === 'win32') {
-      return execSync('powershell -noprofile -command "Get-Clipboard"', { timeout: 5000, encoding: 'utf8' }).trim().slice(0, 100_000);
+      return execSync('powershell -noprofile -command "Get-Clipboard"', { timeout: 5000, encoding: 'utf8', windowsHide: true }).trim().slice(0, 100_000);
     } else if (process.platform === 'darwin') {
       return execSync('pbpaste', { timeout: 5000, encoding: 'utf8' }).trim().slice(0, 100_000);
     } else {
@@ -33,7 +33,7 @@ if ($img) {
 }`;
       const scriptPath = path.join(tempDir, `clip-img-${timestamp}-${random}.ps1`);
       fs.writeFileSync(scriptPath, psScript, 'utf8');
-      const result = execSync(`powershell -noprofile -ExecutionPolicy Bypass -File "${scriptPath}"`, { timeout: 8000, encoding: 'utf8' }).trim();
+      const result = execSync(`powershell -noprofile -ExecutionPolicy Bypass -File "${scriptPath}"`, { timeout: 8000, encoding: 'utf8', windowsHide: true }).trim();
       try { fs.unlinkSync(scriptPath); } catch { /* ignored */ }
       if (result === 'ok' && fs.existsSync(outPath)) return outPath;
     } else if (process.platform === 'darwin') {

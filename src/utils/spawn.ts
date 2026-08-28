@@ -25,7 +25,7 @@ export function spawnDetached(
   return spawn(command, args, {
     ...options,
     stdio: options.stdio ?? ['ignore', 'pipe', 'pipe'],
-    detached: options.detached ?? (process.platform === 'win32'),
+    detached: options.detached ?? false,
     windowsHide: options.windowsHide ?? true,
   });
 }

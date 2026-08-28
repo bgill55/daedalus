@@ -126,7 +126,8 @@ describe('terminal execute', () => {
     expect(opts.stdio[0]).toBe('ignore');
     expect(opts.stdio[1]).toBe('pipe');
     expect(opts.stdio[2]).toBe('pipe');
-    expect(opts.detached).toBe(process.platform === 'win32');
+    expect(opts.detached).toBe(false);
+    expect(opts.windowsHide).toBe(true);
     expect(opts.shell).toBe(false);
   });
 

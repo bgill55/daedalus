@@ -33,7 +33,7 @@ export function safeGitResetHard(opts: SafeGitOptions): boolean {
     refuse('git reset --hard', opts);
     return false;
   }
-  execSync('git reset --hard', { cwd: opts.cwd, stdio: 'ignore' });
+  execSync('git reset --hard', { cwd: opts.cwd, stdio: 'ignore', windowsHide: true });
   return true;
 }
 
@@ -42,7 +42,7 @@ export function safeGitClean(opts: SafeGitOptions): boolean {
     refuse('git clean -fd', opts);
     return false;
   }
-  execSync('git clean -fd', { cwd: opts.cwd, stdio: 'ignore' });
+  execSync('git clean -fd', { cwd: opts.cwd, stdio: 'ignore', windowsHide: true });
   return true;
 }
 
@@ -51,7 +51,7 @@ export function safeBranchDelete(branch: string, opts: SafeGitOptions): boolean 
     refuse(`git branch -D ${branch}`, opts);
     return false;
   }
-  execSync(`git branch -D ${branch}`, { cwd: opts.cwd, stdio: 'ignore' });
+  execSync(`git branch -D ${branch}`, { cwd: opts.cwd, stdio: 'ignore', windowsHide: true });
   return true;
 }
 
@@ -60,12 +60,12 @@ export function safeBranchDelete(branch: string, opts: SafeGitOptions): boolean 
 // Only force-resets the branch (checkout -B) when allowDestroy is explicitly set.
 export function safeBranchSwitch(branch: string, opts: SafeGitOptions): void {
   const exists = fs.existsSync(`${opts.cwd}/.git/refs/heads/${branch}`) ||
-    (() => { try { return execSync('git rev-parse --verify ' + branch, { cwd: opts.cwd, stdio: 'ignore' }).toString().trim().length > 0; } catch { return false; } })();
+    (() => { try { return execSync('git rev-parse --verify ' + branch, { cwd: opts.cwd, stdio: 'ignore', windowsHide: true }).toString().trim().length > 0; } catch { return false; } })();
   if (exists && !opts.allowDestroy) {
     // Switch without destroying local edits on the branch.
-    execSync(`git checkout ${branch}`, { cwd: opts.cwd, stdio: 'ignore' });
+    execSync(`git checkout ${branch}`, { cwd: opts.cwd, stdio: 'ignore', windowsHide: true });
   } else {
-    execSync(`git checkout -B ${branch}`, { cwd: opts.cwd, stdio: 'ignore' });
+    execSync(`git checkout -B ${branch}`, { cwd: opts.cwd, stdio: 'ignore', windowsHide: true });
   }
 }
 
@@ -80,7 +80,7 @@ export function allowDestroyFromArgs(args: string): boolean {
 export function detectBaseBranch(cwd: string): string {
   const has = (b: string): boolean => {
     try {
-      execSync(`git rev-parse --verify refs/heads/${b}`, { cwd, stdio: 'ignore' });
+      execSync(`git rev-parse --verify refs/heads/${b}`, { cwd, stdio: 'ignore', windowsHide: true });
       return true;
     } catch {
       return false;
@@ -89,7 +89,7 @@ export function detectBaseBranch(cwd: string): string {
   if (has('main')) return 'main';
   if (has('master')) return 'master';
   try {
-    return execSync('git rev-parse --abbrev-ref HEAD', { cwd, stdio: 'ignore' }).toString().trim() || 'main';
+    return execSync('git rev-parse --abbrev-ref HEAD', { cwd, stdio: 'ignore', windowsHide: true }).toString().trim() || 'main';
   } catch {
     return 'main';
   }
@@ -102,8 +102,8 @@ export function detectBaseBranch(cwd: string): string {
 // Returns true on success.
 export function safeMergeToBase(branch: string, base: string, cwd: string): boolean {
   try {
-    execSync(`git checkout ${base}`, { cwd, stdio: 'ignore' });
-    execSync(`git merge --no-edit ${branch}`, { cwd, stdio: 'ignore' });
+    execSync(`git checkout ${base}`, { cwd, stdio: 'ignore', windowsHide: true });
+    execSync(`git merge --no-edit ${branch}`, { cwd, stdio: 'ignore', windowsHide: true });
     return true;
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
@@ -121,9 +121,9 @@ export function safeMergeToBase(branch: string, base: string, cwd: string): bool
 export function ensureBranchFromBase(cwd: string): string | null {
   try {
     const base = detectBaseBranch(cwd);
-    const current = execSync('git rev-parse --abbrev-ref HEAD', { cwd, stdio: 'pipe' }).toString().trim();
+    const current = execSync('git rev-parse --abbrev-ref HEAD', { cwd, stdio: 'pipe', windowsHide: true }).toString().trim();
     if (current === base) {
-      const clean = execSync('git status --porcelain', { cwd, stdio: 'pipe' }).toString().trim();
+      const clean = execSync('git status --porcelain', { cwd, stdio: 'pipe', windowsHide: true }).toString().trim();
       if (clean) {
         console.log(pc.yellow(`[INFO] Working tree has uncommitted changes; staying on '${current}'.`));
         return null;

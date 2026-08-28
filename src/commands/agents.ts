@@ -40,7 +40,7 @@ const SECRET_FILE_PATTERN = /(\.env(\..*)?|.*\.key|.*\.pem|.*\.pfx|credentials.*
 
 function isGitIgnored(cwd: string, file: string): boolean {
   try {
-    execSync(`git check-ignore --quiet ${JSON.stringify(file)}`, { cwd, stdio: 'ignore' });
+    execSync(`git check-ignore --quiet ${JSON.stringify(file)}`, { cwd, stdio: 'ignore', windowsHide: true });
     return true;
   } catch {
     return false;
@@ -52,16 +52,16 @@ function isGitIgnored(cwd: string, file: string): boolean {
 // intended to keep untracked.
 function safeGitAdd(cwd: string): void {
   try {
-    execSync('git add -A', { cwd, stdio: 'ignore' });
+    execSync('git add -A', { cwd, stdio: 'ignore', windowsHide: true });
   } catch {
     return;
   }
   try {
-    const out = execSync('git diff --cached --name-only', { cwd, encoding: 'utf8' });
+    const out = execSync('git diff --cached --name-only', { cwd, encoding: 'utf8', windowsHide: true });
     const staged = out.split('\n').map((s) => s.trim()).filter(Boolean);
     const exclude = staged.filter((f) => SECRET_FILE_PATTERN.test(f) || isGitIgnored(cwd, f));
     if (exclude.length > 0) {
-      execSync(`git reset -q -- ${exclude.map((f) => JSON.stringify(f)).join(' ')}`, { cwd, stdio: 'ignore' });
+      execSync(`git reset -q -- ${exclude.map((f) => JSON.stringify(f)).join(' ')}`, { cwd, stdio: 'ignore', windowsHide: true });
       console.log(pc.dim(`[CHECK] Excluded ${exclude.length} secret/ignored file(s) from commit (e.g. .env) — not staged.`));
     }
   } catch {
@@ -121,7 +121,7 @@ export async function runAutopilotVerify(cwd: string): Promise<{ ok: boolean; de
     // means even a correct project fails verification because the binaries aren't on disk.
     if (!fs.existsSync(path.join(proj, 'node_modules'))) {
       try {
-        execSync('npm install', { cwd: proj, stdio: 'ignore' });
+        execSync('npm install', { cwd: proj, stdio: 'ignore', windowsHide: true });
       } catch (e) {
         const msg = e instanceof Error ? errMessage(e) : String(e);
         return { ok: false, detail: `npm install failed in ${path.relative(cwd, proj) || '.'}: ${msg.split('\n')[0]}` };
@@ -130,7 +130,7 @@ export async function runAutopilotVerify(cwd: string): Promise<{ ok: boolean; de
     for (const script of ['build', 'test']) {
       if (!scripts[script]) continue;
       try {
-        execSync(`npm run ${script}`, { cwd: proj, stdio: 'ignore' });
+        execSync(`npm run ${script}`, { cwd: proj, stdio: 'ignore', windowsHide: true });
       } catch (e) {
         const msg = e instanceof Error ? errMessage(e) : String(e);
         return { ok: false, detail: `npm run ${script} failed in ${path.relative(cwd, proj) || '.'}: ${msg.split('\n')[0]}` };
@@ -1027,7 +1027,7 @@ export const agentCommands: Command[] = [
       try {
       let isGitRepo = true;
       try {
-        execSync('git rev-parse --is-inside-work-tree', { cwd: ctx.toolContext.projectRoot, stdio: 'ignore' });
+        execSync('git rev-parse --is-inside-work-tree', { cwd: ctx.toolContext.projectRoot, stdio: 'ignore', windowsHide: true });
       } catch {
         isGitRepo = false;
       }
@@ -1036,13 +1036,13 @@ export const agentCommands: Command[] = [
         console.log(pc.cyan('[INFO] Non-git directory detected. Auto-initializing Git repository for autonomous branch safety...'));
         try {
           const cwd = ctx.toolContext.projectRoot || process.cwd();
-          execSync('git init', { cwd });
+          execSync('git init', { cwd, windowsHide: true });
           const gitIgnorePath = path.join(cwd, '.gitignore');
           if (!fs.existsSync(gitIgnorePath)) {
             fs.writeFileSync(gitIgnorePath, "node_modules/\ndist/\n.daedalus/\n", 'utf8');
           }
           safeGitAdd(cwd);
-          execSync('git commit -m "initial clean setup"', { cwd });
+          execSync('git commit -m "initial clean setup"', { cwd, windowsHide: true });
           isGitRepo = true;
           console.log(pc.green('[OK] Git repository initialized with tracking branch support.'));
         } catch {
@@ -1068,7 +1068,7 @@ export const agentCommands: Command[] = [
           // cruft chaining: a prior autopilot branch would otherwise leak into
           // the next run. Detect and switch to base first.
           const baseBranch = detectBaseBranch(ctx.toolContext.projectRoot);
-          execSync(`git checkout ${baseBranch}`, { cwd: ctx.toolContext.projectRoot, stdio: 'ignore' });
+          execSync(`git checkout ${baseBranch}`, { cwd: ctx.toolContext.projectRoot, stdio: 'ignore', windowsHide: true });
           // Re-entering a run must not discard uncommitted work already on the
           // branch. safeBranchSwitch switches without -B unless --allow-destroy.
           const allowDestroy = allowDestroyFromArgs(idea) || !!repoInfo;
@@ -1131,7 +1131,7 @@ export const agentCommands: Command[] = [
           if (allowDestroy) {
             try {
               safeGitResetHard({ cwd: ctx.toolContext.projectRoot, allowDestroy });
-              execSync('git checkout main', { cwd: ctx.toolContext.projectRoot, stdio: 'ignore' });
+              execSync('git checkout main', { cwd: ctx.toolContext.projectRoot, stdio: 'ignore', windowsHide: true });
               safeBranchDelete(branchName, { cwd: ctx.toolContext.projectRoot, allowDestroy });
               console.log(pc.green('[OK] Branch cleaned up; main is untouched.'));
             } catch (rollbackErr: unknown) {
@@ -1161,10 +1161,10 @@ export const agentCommands: Command[] = [
         try {
           safeGitAdd(ctx.toolContext.projectRoot);
           const cleanTitle = idea.replace(/[^a-zA-Z0-9 ]/g, '').trim();
-          execSync(`git commit -m "feat: ${cleanTitle}"`, { cwd: ctx.toolContext.projectRoot });
+          execSync(`git commit -m "feat: ${cleanTitle}"`, { cwd: ctx.toolContext.projectRoot, windowsHide: true });
           console.log(pc.green('[OK] Changes committed.'));
           try {
-            const diff = execSync(`git diff --name-only HEAD~1 HEAD`, { cwd: ctx.toolContext.projectRoot, encoding: 'utf8' });
+            const diff = execSync(`git diff --name-only HEAD~1 HEAD`, { cwd: ctx.toolContext.projectRoot, encoding: 'utf8', windowsHide: true });
             manifest.filesChanged = diff.split('\n').map((s) => s.trim()).filter(Boolean);
           } catch { /* best-effort */ }
         } catch (err: unknown) {
@@ -1185,7 +1185,7 @@ export const agentCommands: Command[] = [
         let token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
         if (!token) {
           try {
-            token = execSync('gh auth token', { encoding: 'utf8' }).trim();
+            token = execSync('gh auth token', { encoding: 'utf8', windowsHide: true }).trim();
           } catch {
             console.log(pc.yellow('[INFO] No GitHub token found. Run `gh auth login` or set GITHUB_TOKEN.'));
             console.log(pc.yellow(`[INFO] Branch ${branchName} is ready locally. Push manually.`));
@@ -1194,7 +1194,7 @@ export const agentCommands: Command[] = [
         }
 
         try {
-          execSync(`git push -u origin ${branchName} --force`, { cwd: ctx.toolContext.projectRoot });
+          execSync(`git push -u origin ${branchName} --force`, { cwd: ctx.toolContext.projectRoot, windowsHide: true });
 
           const prResponse = await fetch(`https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}/pulls`, {
             method: 'POST',
@@ -1325,7 +1325,7 @@ export const agentCommands: Command[] = [
         if (allowDestroy) {
           try {
             safeGitResetHard({ cwd: ctx.toolContext.projectRoot, allowDestroy });
-            execSync('git checkout main', { cwd: ctx.toolContext.projectRoot, stdio: 'ignore' });
+            execSync('git checkout main', { cwd: ctx.toolContext.projectRoot, stdio: 'ignore', windowsHide: true });
             safeBranchDelete(branchName, { cwd: ctx.toolContext.projectRoot, allowDestroy });
             console.log(pc.green('[OK] Branch cleaned up; main is untouched.'));
           } catch (rollbackErr: unknown) {
@@ -1358,9 +1358,9 @@ export const agentCommands: Command[] = [
       // Step 5: Commit
       console.log(pc.cyan('\n[HUNT] Committing changes...'));
       try {
-        execSync('git add .', { cwd: ctx.toolContext.projectRoot });
+        execSync('git add .', { cwd: ctx.toolContext.projectRoot, windowsHide: true });
         const cleanTitle = input.replace(/[^a-zA-Z0-9 ]/g, '').trim();
-        execSync(`git commit -m "fix: ${cleanTitle}"`, { cwd: ctx.toolContext.projectRoot });
+        execSync(`git commit -m "fix: ${cleanTitle}"`, { cwd: ctx.toolContext.projectRoot, windowsHide: true });
         console.log(pc.green('[OK] Changes committed.'));
       } catch (err: unknown) {
         const msg = err instanceof Error ? errMessage(err) : String(err);
@@ -1378,7 +1378,7 @@ export const agentCommands: Command[] = [
         let token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
         if (!token) {
           try {
-            token = execSync('gh auth token', { encoding: 'utf8' }).trim();
+            token = execSync('gh auth token', { encoding: 'utf8', windowsHide: true }).trim();
           } catch {
             console.log(pc.yellow('[INFO] No GitHub token found. Run `gh auth login` or set GITHUB_TOKEN.'));
             console.log(pc.yellow(`[INFO] Branch ${branchName} is ready locally. Push manually.`));
@@ -1387,7 +1387,7 @@ export const agentCommands: Command[] = [
         }
 
         try {
-          execSync(`git push -u origin ${branchName} --force`, { cwd: ctx.toolContext.projectRoot });
+          execSync(`git push -u origin ${branchName} --force`, { cwd: ctx.toolContext.projectRoot, windowsHide: true });
           const hasSummary = orchestratorResult && !orchestratorResult.startsWith('Orchestration failed');
           const prBody = `## Description\n\nAutonomously fixed by Daedalus Hunt.\n\n**Bug:** ${input}\n${testFailureOutput ? `\n**Failure reproduced:**\n\`\`\`\n${testFailureOutput.slice(0, 1500)}\n\`\`\`\n` : ''}${hasSummary ? `\n**Summary:**\n${orchestratorResult.slice(0, 2000)}` : ''}\n\n---\n_Generated by \`/hunt\`_`;
 

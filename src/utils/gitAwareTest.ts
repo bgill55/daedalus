@@ -14,7 +14,7 @@ export interface GitAwareResult {
 export function getGitAwareTestCommand(cwd: string = process.cwd(), defaultCmd: string = 'npm test'): GitAwareResult {
   let diffOutput: string;
   try {
-    diffOutput = execSync('git status --short', { cwd, encoding: 'utf8' });
+    diffOutput = execSync('git status --short', { cwd, encoding: 'utf8', windowsHide: true });
   } catch {
     return { modifiedFiles: [], testFiles: [], command: defaultCmd };
   }
