@@ -262,7 +262,7 @@ export function createTuiRepl(deps: ReplDeps): () => Promise<void> {
   toolContext.pauseSpinner = () => {};
   toolContext.resumeSpinner = () => {};
 
-  function initializeSessionState(loaded: {
+  async function initializeSessionState(loaded: {
     sessionId: string;
     turns: ChatMessage[];
     activeFiles: Map<string, string>;
@@ -278,7 +278,7 @@ export function createTuiRepl(deps: ReplDeps): () => Promise<void> {
     toolContext.activeFiles = new Map(activeFiles);
 
     messages.length = 0;
-    const sysPrompt = getSystemPromptWithMemory();
+    const sysPrompt = await getSystemPromptWithMemory();
     messages.push({ role: 'system', content: sysPrompt });
 
     if (loaded.turns.length > 0) {

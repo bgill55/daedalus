@@ -27,7 +27,7 @@ import { createRepl } from './repl.js';
 import { setFormattingConfig } from './formatting.js';
 import { getProjectRules, systemPrompt } from './system-prompt.js';
 import { getConstitutionSummary } from './config/constitution.js';
-import { getSkillsSection } from './skills/index.js';
+import { getSkillsSection, initSkillClassifier } from './skills/index.js';
 import { BoundedMap } from './utils/bounded-map.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -138,7 +138,12 @@ let mcpRegistryRef: { getConnectedServers: () => string[]; getToolDefinitions: (
 let lastNudgeRequest = '';
 
 // Build system prompt with project memory and user profile
-function getSystemPromptWithMemory(userRequest?: string): string {
+// Tracks the current user request so the (per-turn) system prompt can inject
+// matching skills even when getSystemPromptWithMemory() is called without an
+// explicit argument (e.g. on context refresh mid-turn).
+let currentUserRequest = '';
+
+async function getSystemPromptWithMemory(userRequest?: string): Promise<string> {
   let prompt = systemPrompt;
   const currentDateStr = new Date().toLocaleString();
   prompt += `\n\n## CURRENT TIME\nThe current date and local time is: ${currentDateStr}.\n`;
@@ -208,7 +213,8 @@ function getSystemPromptWithMemory(userRequest?: string): string {
   }
 
   // BETA: load-only skill playbooks (instructions only, trusted locations only)
-  const skillsSection = getSkillsSection(userRequest ?? '');
+  const req = userRequest ?? currentUserRequest ?? '';
+  const skillsSection = await getSkillsSection(req);
   if (skillsSection) {
     prompt += skillsSection;
   }
@@ -236,7 +242,7 @@ function getSystemPromptWithMemory(userRequest?: string): string {
   return prompt;
 }
 
-messages.push({ role: 'system', content: getSystemPromptWithMemory() });
+messages.push({ role: 'system', content: await getSystemPromptWithMemory() });
 
 // Parse initial arguments (e.g. if started as `daedalus src/index.ts`)
 const initialArgs = process.argv.slice(2).filter(a => !a.startsWith('-') && !a.startsWith('/'));
@@ -293,15 +299,24 @@ const { callModelWithTools: rawCallModelWithTools, callModelWithFallback } = cre
   toolContext,
   buildFileContext,
   askLine,
-  refreshSystemPrompt: () => {
+  refreshSystemPrompt: async () => {
     if (messages.length > 0 && messages[0].role === 'system') {
-      messages[0] = { role: 'system', content: getSystemPromptWithMemory() };
+      messages[0] = { role: 'system', content: await getSystemPromptWithMemory() };
     }
   },
 });
 
+// Wire the skill classifier to the router (gated LLM seed-matching, Part B).
+// classifySkillsWithModel only fires when the offline scorer finds nothing.
+try {
+  initSkillClassifier((opts) => router.chatCompletion(opts));
+} catch {
+  // Classifier disabled if router isn't ready; skills fall back to Option A only.
+}
+
 // Σ-Mem feedback proxy — rewards/penalizes active Σ-memories from patch outcomes per single-agent turn
 async function callModelWithTools(userContent: string, imageBase64?: string): Promise<{ content: string; toolCalls: ToolCall[] }> {
+  currentUserRequest = userContent;
   const prevPatches = toolContext.patchHistory?.length ?? 0;
   const prevStreak = maxPatchFailureStreak(toolContext.patchFailureStreak);
   // Branch from base at the start of a single-agent task when the user opted in.

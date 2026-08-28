@@ -66,7 +66,7 @@ describe('Skills module (beta, load-only)', () => {
     // Fresh import so discovery cache + homedir resolve to our temp home.
     vi.resetModules();
     const mod = await import('./index.js');
-    const matched = mod.matchSkills('can you add a command for X?');
+    const matched = await mod.matchSkills('can you add a command for X?');
     expect(matched.some((s) => s.name === 'demo')).toBe(true);
     const demo = matched.find((s) => s.name === 'demo');
     expect(demo?.safety).toBe('instructions');
@@ -75,16 +75,16 @@ describe('Skills module (beta, load-only)', () => {
   it('does not match when trigger terms are absent', async () => {
     vi.resetModules();
     const mod = await import('./index.js');
-    expect(mod.matchSkills('hello there').length).toBe(0);
+    expect((await mod.matchSkills('hello there')).length).toBe(0);
   });
 
   it('builds an injected section only when a skill matches', async () => {
     vi.resetModules();
     const mod = await import('./index.js');
-    const section = mod.getSkillsSection('create a slash command please');
+    const section = await mod.getSkillsSection('create a slash command please');
     expect(section).toContain('ACTIVE SKILLS');
     expect(section).toContain('# Demo Skill');
-    expect(mod.getSkillsSection('random chat')).toBe('');
+    expect(await mod.getSkillsSection('random chat')).toBe('');
   });
 
   it('ignores skills marked executable (beta: instructions only)', async () => {
@@ -101,15 +101,15 @@ describe('Skills module (beta, load-only)', () => {
     ].join('\n'));
     vi.resetModules();
     const mod = await import('./index.js');
-    expect(mod.matchSkills('please do thing').length).toBe(0);
+    expect((await mod.matchSkills('please do thing')).length).toBe(0);
   });
 
   it('ships the fix-typescript-build skill and matches build-fix requests', async () => {
     vi.resetModules();
     const mod = await import('./index.js');
-    const matched = mod.matchSkills('the build is broken, fix the typescript errors');
+    const matched = await mod.matchSkills('the build is broken, fix the typescript errors');
     expect(matched.some((s) => s.name === 'fix-typescript-build')).toBe(true);
-    expect(mod.getSkillsSection('the build is broken, fix the typescript errors'))
+    expect(await mod.getSkillsSection('the build is broken, fix the typescript errors'))
       .toContain('Fixing a TypeScript Build');
   });
 
@@ -123,6 +123,7 @@ describe('Skills module (beta, load-only)', () => {
       'trigger: audit code',
       'safety: instructions',
       '---',
+      '',
       '# Audit First',
       'Inspect before modifying.',
     ].join('\n'));
@@ -137,13 +138,14 @@ describe('Skills module (beta, load-only)', () => {
       'prerequisites: audit-first',
       'safety: instructions',
       '---',
+      '',
       '# Refactor Code',
       'Apply safe refactoring.',
     ].join('\n'));
 
     vi.resetModules();
     const mod = await import('./index.js');
-    const matched = mod.matchSkills('please refactor the codebase');
+    const matched = await mod.matchSkills('please refactor the codebase');
     expect(matched.length).toBe(2);
     // Prerequisite comes first
     expect(matched[0].name).toBe('audit-first');
@@ -155,15 +157,15 @@ describe('Skills module (beta, load-only)', () => {
     const mod = await import('./index.js');
     // No trigger phrase is a substring here ('build is broken' / 'type errors' absent),
     // but the tokens overlap enough to clear the threshold.
-    const matched = mod.matchSkills('my build keeps failing with type issues');
+    const matched = await mod.matchSkills('my build keeps failing with type issues');
     expect(matched.some((s) => s.name === 'fix-typescript-build')).toBe(true);
   });
 
   it('returns no skills for an unrelated request (threshold guard)', async () => {
     vi.resetModules();
     const mod = await import('./index.js');
-    expect(mod.matchSkills('summarize this README for me').length).toBe(0);
-    expect(mod.matchSkills('random chat').length).toBe(0);
+    expect((await mod.matchSkills('summarize this README for me')).length).toBe(0);
+    expect((await mod.matchSkills('random chat')).length).toBe(0);
   });
 
   it('scores an exact trigger match above any fuzzy overlap', async () => {
@@ -171,7 +173,44 @@ describe('Skills module (beta, load-only)', () => {
     const mod = await import('./index.js');
     // 'add a command' is a demo trigger substring; demo must be among the matches
     // (exact trigger tier fires, not merely fuzzy token overlap).
-    const matched = mod.matchSkills('how do i add a command for this?');
+    const matched = await mod.matchSkills('how do i add a command for this?');
     expect(matched.some((s) => s.name === 'demo')).toBe(true);
+  });
+
+  // ── Part B: LLM classifier (gated behind Option A silence) ──
+  it('does NOT call the model when Option A already matched (zero cost)', async () => {
+    vi.resetModules();
+    const mod = await import('./index.js');
+    let calls = 0;
+    mod.initSkillClassifier(async () => { calls++; return { choices: [{ message: { content: '- demo' } }] }; });
+    const matched = await mod.matchSkills('can you add a command for X?'); // exact trigger
+    expect(matched.some((s) => s.name === 'demo')).toBe(true);
+    expect(calls).toBe(0); // model never invoked
+  });
+
+  it('calls the model only when Option A is silent, and validates names against discovery', async () => {
+    vi.resetModules();
+    const mod = await import('./index.js');
+    let calls = 0;
+    mod.initSkillClassifier(async () => {
+      calls++;
+      // Suggests a real skill + an invented one; only the real one should inject.
+      return { choices: [{ message: { content: '- fix-typescript-build\n- nonexistent-skill' } }] };
+    });
+    const matched = await mod.matchSkills('the compiler is angry and the types are wrong'); // no trigger overlap
+    expect(calls).toBe(1);
+    expect(matched.map((s) => s.name)).toEqual(['fix-typescript-build']);
+  });
+
+  it('falls back to no skills when the model errors or returns NONE', async () => {
+    vi.resetModules();
+    const mod = await import('./index.js');
+    mod.initSkillClassifier(async () => { throw new Error('boom'); });
+    expect((await mod.matchSkills('something totally off topic')).length).toBe(0);
+
+    vi.resetModules();
+    const mod2 = await import('./index.js');
+    mod2.initSkillClassifier(async () => ({ choices: [{ message: { content: 'NONE' } }] }));
+    expect((await mod2.matchSkills('unrelated thing')).length).toBe(0);
   });
 });

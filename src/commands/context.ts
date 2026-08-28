@@ -178,7 +178,7 @@ export const contextCommands: Command[] = [
     helpText: 'Clear the in-memory conversation history for the current session. Does not delete saved session files.',
     execute: async (args, ctx) => {
       ctx.messages.length = 0;
-      ctx.messages.push({ role: 'system', content: ctx.getSystemPromptWithMemory() });
+      ctx.messages.push({ role: 'system', content: await ctx.getSystemPromptWithMemory() });
       console.log(pc.green('[OK] Conversation history cleared!'));
     }
   },

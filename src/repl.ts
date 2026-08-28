@@ -34,7 +34,7 @@ export interface ReplDeps {
   messages: ChatMessage[];
   activeFiles: Map<string, string>;
   toolContext: ToolContext;
-  getSystemPromptWithMemory: (userRequest?: string) => string;
+  getSystemPromptWithMemory: (userRequest?: string) => Promise<string>;
   callModelWithTools: (userContent: string, imageBase64?: string) => Promise<{ content: string; toolCalls: ToolCall[] }>;
   callModelWithFallback: (userContent: string, imageBase64?: string) => Promise<string>;
   getIndexDbPath: () => string;
@@ -155,7 +155,7 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
     });
   }
 
-  function initializeSessionState(loaded: {
+  async function initializeSessionState(loaded: {
     sessionId: string;
     turns: ChatMessage[];
     activeFiles: Map<string, string>;
@@ -171,7 +171,7 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
     toolContext.activeFiles = new Map(activeFiles);
 
     messages.length = 0;
-    const sysPrompt = getSystemPromptWithMemory();
+    const sysPrompt = await getSystemPromptWithMemory();
     messages.push({ role: 'system', content: sysPrompt });
 
     if (loaded.turns.length > 0) {
@@ -289,7 +289,7 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
           // BETA: rebuild system prompt with the current request so matched
           // skill playbooks are injected for this turn (load-only).
           if (messages.length > 0 && messages[0].role === 'system') {
-            messages[0] = { role: 'system', content: getSystemPromptWithMemory(activePrompt) };
+            messages[0] = { role: 'system', content: await getSystemPromptWithMemory(activePrompt) };
           }
           await callModelWithTools(userContent);
 

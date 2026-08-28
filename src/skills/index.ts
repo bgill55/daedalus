@@ -160,7 +160,75 @@ function scoreSkill(req: string, reqTokens: Set<string>, skill: Skill): number {
 
 const MATCH_THRESHOLD = 0.34;
 
-export function matchSkills(request: string): Skill[] {
+// ── Part B: LLM skill classifier (gated behind Option A silence) ──
+// Only runs when the offline scorer finds nothing, so most turns cost nothing.
+// Model output is validated against trusted discovery — unknown skill names are
+// dropped, preserving the instructions-only / trusted-dir safety model.
+
+export type SkillChatFn = (opts: {
+  messages: { role: 'user' | 'assistant' | 'system'; content: string }[];
+  temperature?: number;
+  maxTokens?: number;
+}) => Promise<unknown>;
+
+let classifyCache = new Map<string, Skill[]>();
+let skillChat: SkillChatFn | undefined;
+
+// Called once from the host after the router is ready.
+export function initSkillClassifier(chat: SkillChatFn): void {
+  skillChat = chat;
+}
+
+function extractChatText(res: unknown): string {
+  if (typeof res === 'string') return res;
+  const anyRes = res as any;
+  if (anyRes?.choices?.[0]?.message?.content) return anyRes.choices[0].message.content as string;
+  if (typeof anyRes?.content === 'string') return anyRes.content;
+  return '';
+}
+
+async function classifySkillsWithModel(request: string): Promise<Skill[]> {
+  if (!skillChat) return [];
+  const all = discoverSkills().filter((s) => s.safety === 'instructions');
+  if (all.length === 0) return [];
+
+  const key = request.toLowerCase();
+  const cached = classifyCache.get(key);
+  if (cached) return cached;
+
+  const catalog = all.map((s) => `- ${s.name}: ${s.description}`).join('\n');
+  const sys = 'You are a skill router. Given a user request and a catalog of available skills, return ONLY the names of skills that apply, one per line prefixed with "- ", or the single word NONE if none apply. Do not invent skills.';
+  const user = `REQUEST:\n${request}\n\nCATALOG:\n${catalog}`;
+
+  try {
+    const res = await skillChat({
+      messages: [
+        { role: 'system', content: sys },
+        { role: 'user', content: user },
+      ],
+      temperature: 0,
+      maxTokens: 128,
+    });
+    const text = extractChatText(res);
+    if (!text || /^\s*NONE\s*$/i.test(text)) {
+      classifyCache.set(key, []);
+      return [];
+    }
+    const byName = new Map(all.map((s) => [s.name.toLowerCase(), s]));
+    const picked = text.split('\n')
+      .map((l) => l.replace(/^[-*\s]+/, '').trim())
+      .filter(Boolean)
+      .map((n) => byName.get(n.toLowerCase()))
+      .filter((s): s is Skill => !!s);
+    classifyCache.set(key, picked);
+    return picked;
+  } catch {
+    classifyCache.set(key, []);
+    return [];
+  }
+}
+
+export async function matchSkills(request: string): Promise<Skill[]> {
   const req = (request || '').toLowerCase();
   if (!req) return [];
   const allSkills = discoverSkills();
@@ -173,15 +241,22 @@ export function matchSkills(request: string): Skill[] {
     .filter((x) => x.score >= MATCH_THRESHOLD)
     .sort((a, b) => b.score - a.score);
 
-  if (scored.length === 0) return [];
-  // Seed with the top few intent matches; the graph expands prereqs/leadsTo.
+  if (scored.length > 0) {
+    // Option A matched — no model call, zero cost.
+    const graph = skillGraphCache ?? new SkillGraph(allSkills);
+    return graph.getSkillBundle(scored.slice(0, 3).map((x) => x.skill));
+  }
+
+  // GATE: only call the model when the offline scorer found nothing.
+  const llmPicks = await classifySkillsWithModel(request);
+  if (llmPicks.length === 0) return [];
   const graph = skillGraphCache ?? new SkillGraph(allSkills);
-  return graph.getSkillBundle(scored.slice(0, 3).map((x) => x.skill));
+  return graph.getSkillBundle(llmPicks);
 }
 
 // Returns the injected prompt section for matched skills, or '' if none.
-export function getSkillsSection(request: string): string {
-  const matched = matchSkills(request);
+export async function getSkillsSection(request?: string): Promise<string> {
+  const matched = await matchSkills(request ?? '');
   if (matched.length === 0) return '';
   let out = '\n## ACTIVE SKILLS (playbooks — follow them using your tools; do NOT auto-execute code embedded in them)\n';
   for (const s of matched) {
@@ -198,6 +273,7 @@ export function listSkills(): Skill[] {
 export function clearSkillsCache(): void {
   cache = null;
   skillGraphCache = null;
+  classifyCache.clear();
 }
 
 // Bidirectional hook: the agent can propose a learned skill (e.g. a problem it

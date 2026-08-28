@@ -278,7 +278,7 @@ export const enhanceCommand: Command = {
           // skill bodies that hijack the execution turn. Skill matching must stay
           // keyed to the user's actual intent, just like the REPL loop does.
           if (ctx.messages.length > 0 && ctx.messages[0].role === 'system' && typeof ctx.getSystemPromptWithMemory === 'function') {
-            ctx.messages[0] = { role: 'system', content: ctx.getSystemPromptWithMemory(rawQuery) };
+            ctx.messages[0] = { role: 'system', content: await ctx.getSystemPromptWithMemory(rawQuery) };
           }
           try {
             await ctx.callModelWithTools(userContent);
