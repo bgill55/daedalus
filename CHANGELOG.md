@@ -1,3 +1,10 @@
+# [3.53.0](https://github.com/bgill55/daedalus/compare/v3.52.0...v3.53.0) (2026-08-28)
+
+
+### Features
+
+* **skills:** Part B LLM classifier + wire request into prompt builder ([771c580](https://github.com/bgill55/daedalus/commit/771c5801fc734f612625e957b01c8e67d20389ee))
+
 # [3.52.0](https://github.com/bgill55/daedalus/compare/v3.51.0...v3.52.0) (2026-08-28)
 
 
