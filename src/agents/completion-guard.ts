@@ -425,7 +425,14 @@ export function detectUngroundedClaim(text: string, ledger: ClaimLedger): string
       // Skip runtime/platform/CLI tokens (node.js, tsx, npm, ...) — verified via commands,
       // not by reading a repo file. Flagging them as "uninspected" is a false positive.
       if (NON_FILE_TOKENS.has(base)) continue;
-      if (!ledger.observed(base)) return raw;
+      const isObserved =
+        ledger.observed(base) ||
+        (base.endsWith('.js') && ledger.observed(base.slice(0, -3) + '.ts')) ||
+        (base.endsWith('.ts') && ledger.observed(base.slice(0, -3) + '.js')) ||
+        (base.endsWith('.mjs') && ledger.observed(base.slice(0, -4) + '.mts')) ||
+        (base.endsWith('.mts') && ledger.observed(base.slice(0, -4) + '.mjs')) ||
+        (base.endsWith('.d.ts') && (ledger.observed(base.slice(0, -5) + '.ts') || ledger.observed(base.slice(0, -5) + '.js')));
+      if (!isObserved) return raw;
     }
   }
   return null;

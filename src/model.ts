@@ -555,12 +555,15 @@ export function createModelFunctions(deps: ModelDeps) {
       // this turn (and it produced no new tool calls — i.e. it's just re-stating work), force
       // the agent to either change the repo or report the blocker honestly. The FIRST repeat
       // is a soft warning; a SECOND consecutive repeat is a runaway loop — halt the turn.
-      // NOTE: We exempt rewrites that are direct responses to a [SYSTEM WARNING] guard prompt
-      // (e.g. ungrounded claim correction), because the model was explicitly asked to rewrite its
-      // draft and the corrected text is naturally similar to the rejected draft.
-      const lastUserMsg = messages[messages.length - 1];
-      const isRespondingToGuardWarning = lastUserMsg && typeof lastUserMsg.content === 'string' && lastUserMsg.content.startsWith('[SYSTEM WARNING]');
-      if (!isRespondingToGuardWarning && toolCallArray.length === 0 && divergence.register(cleanContent)) {
+      // NOTE: We exempt rewrites following guard warnings/file-missing errors and substantive
+      // review deliverables (audits/assessments), because the model is delivering the requested
+      // analysis and not trapped in an infinite modification loop.
+      const hasRecentGuardWarning = messages.slice(-6).some((m) =>
+        typeof m.content === 'string' &&
+        (m.content.startsWith('[SYSTEM WARNING]') || m.content.startsWith('[FILE-MISSING]') || m.content.startsWith('[CHECK]'))
+      );
+      const isReviewContent = isReviewDeliverable(cleanContent);
+      if (!hasRecentGuardWarning && !isReviewContent && toolCallArray.length === 0 && divergence.register(cleanContent)) {
         const repeats = divergence.consecutiveRepeats;
         if (repeats >= 2) {
           openBlock();
@@ -574,7 +577,7 @@ export function createModelFunctions(deps: ModelDeps) {
         messages.push({ role: 'assistant', content: cleanContent });
         messages.push({
           role: 'user',
-          content: `[SYSTEM WARNING] This response is nearly identical to output you already produced this turn. You are looping on repeated text instead of making progress. Do NOT re-state completed work. Either (1) take a concrete next action (read the failing test, fix the code, verify), or (2) if you are blocked, report the blocker concisely and stop. Do not emit the same deliverable again.`,
+          content: `[SYSTEM WARNING] This response is nearly identical to output you already produced this turn. You are looping on repeated text instead of making progress. Do NOT re-state completed work. Either (1) take a concrete next action (read the failing test, fix the code, verify), or (2) if you are blocked, report the blocker concisely and stop.`,
         } as ChatMessage);
         continue;
       }
