@@ -1,3 +1,10 @@
+## [3.53.1](https://github.com/bgill55/daedalus/compare/v3.53.0...v3.53.1) (2026-08-28)
+
+
+### Bug Fixes
+
+* **skills:** gate auto-synthesis against informational and how-to-test prompts ([9dbd09a](https://github.com/bgill55/daedalus/commit/9dbd09aa1f32f020e4948cd4ec161bc41fb486eb))
+
 # [3.53.0](https://github.com/bgill55/daedalus/compare/v3.52.0...v3.53.0) (2026-08-28)
 
 
