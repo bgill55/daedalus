@@ -1,3 +1,10 @@
+## [3.50.5](https://github.com/bgill55/daedalus/compare/v3.50.4...v3.50.5) (2026-08-28)
+
+
+### Bug Fixes
+
+* **terminal/prompt:** translate Unix path slashes to backslashes for cmd.exe and separate informational queries from action plans ([533796b](https://github.com/bgill55/daedalus/commit/533796b5170e1e3be3aa0ee457fb3edabc3b72b5))
+
 ## [3.50.4](https://github.com/bgill55/daedalus/compare/v3.50.3...v3.50.4) (2026-08-28)
 
 
