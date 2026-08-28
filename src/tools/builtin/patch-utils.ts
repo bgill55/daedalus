@@ -640,6 +640,7 @@ export async function syntaxCheck(
       input: text,
       timeout: 10000,
       encoding: 'utf8',
+      windowsHide: true,
     });
     if (result.status !== 0) {
       const output = (result.stderr ?? result.stdout ?? '').split('\n')[0];
@@ -1062,6 +1063,7 @@ export async function runColocatedTests(filePath: string, projectRoot: string): 
     timeout: 30000,
     encoding: 'utf8',
     shell: true,
+    windowsHide: true,
   });
   if (result.status !== 0) {
     const output = ((result.stdout ?? '') + (result.stderr ?? '')).split('\n')

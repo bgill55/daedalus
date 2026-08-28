@@ -26,6 +26,7 @@ export function spawnDetached(
     ...options,
     stdio: options.stdio ?? ['ignore', 'pipe', 'pipe'],
     detached: options.detached ?? (process.platform === 'win32'),
+    windowsHide: options.windowsHide ?? true,
   });
 }
 
@@ -40,5 +41,6 @@ export function execSafe(command: string, options: ExecSyncOptions = {}): string
   return execSync(command, {
     ...options,
     stdio: options.stdio ?? ['ignore', 'pipe', 'pipe'],
+    windowsHide: options.windowsHide ?? true,
   });
 }

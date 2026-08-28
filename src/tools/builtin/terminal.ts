@@ -685,6 +685,7 @@ export async function execute(args: { command: string; timeout?: number; workdir
       // intermittent terminal failures when Daedalus is launched non-interactively.
       stdio: ['ignore', 'pipe', 'pipe'],
       detached: process.platform === 'win32',
+      windowsHide: true,
     });
 
     let childClosed = false;

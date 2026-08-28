@@ -64,6 +64,7 @@ __result.then(v => { if (v !== undefined) process.stdout.write(String(v) + '\\n'
       timeout: timeoutMs,
       encoding: 'utf8',
       env: { ...process.env },
+      windowsHide: true,
     });
 
     const stdout = (proc.stdout ?? '').trim();
