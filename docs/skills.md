@@ -39,15 +39,15 @@ safety: instructions
 - `safety` — `instructions` (default, surfaced to the agent) or `executable` (ignored
   in the current load-only implementation).
 
-When a skill matches, Daedalus's **CaSKG Graph Engine** resolves the full dependency
+When a skill matches, Daedalus's **CaSKG Graph Engine** (a directed procedural dependency graph) resolves the full dependency
 chain and prepends an `## ACTIVE SKILLS` section to the system prompt containing the
 topologically ordered bundle of playbooks.
 
 ---
 
-## CaSKG: Counterfactual-Causal Skill Dependency Graphs
+## CaSKG: Procedural Skill Dependency Graphs
 
-Daedalus features an embedded **CaSKG** (Counterfactual-Causal Skill Graph) engine (`src/skills/graph.ts`).
+Daedalus features an embedded **CaSKG** (Procedural Skill Dependency Graph) engine (`src/skills/graph.ts`).
 
 Traditional agent systems perform naive keyword or embedding retrieval, pulling isolated snippets that lack procedural context. Daedalus models skills as nodes in a directed dependency graph:
 
