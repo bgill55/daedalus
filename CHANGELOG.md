@@ -1,3 +1,10 @@
+## [3.53.11](https://github.com/bgill55/daedalus/compare/v3.53.10...v3.53.11) (2026-08-29)
+
+
+### Bug Fixes
+
+* **constitution:** add root-cause-before-theory and secret-hygiene principles ([94ab885](https://github.com/bgill55/daedalus/commit/94ab88598e5cb76bb33d34471c5411fcd2238618))
+
 ## [3.53.10](https://github.com/bgill55/daedalus/compare/v3.53.9...v3.53.10) (2026-08-29)
 
 
