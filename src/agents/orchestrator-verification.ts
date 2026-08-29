@@ -265,6 +265,7 @@ export async function runBuildVerification(toolContext: ToolContext, historyStar
 
   let command = '';
   let lintCommand = '';
+  let testCommand = '';
 
   if (fs.existsSync(path.join(cwd, 'package.json'))) {
     try {
@@ -281,6 +282,20 @@ export async function runBuildVerification(toolContext: ToolContext, historyStar
         if (pkg.scripts.lint) {
           lintCommand = 'npm run lint';
         }
+
+        // Test gate: a project's test suite is the real correctness signal.
+        // If a project defines `daedalus-check` it is assumed to cover tests
+        // already (it becomes `command` above), so we don't double-run.
+        if (!pkg.scripts['daedalus-check'] && pkg.scripts.test) {
+          const t = pkg.scripts.test;
+          // Guard against watch-mode runners (e.g. bare `vitest`) hanging the
+          // verification step — force a one-shot run when vitest is detected.
+          if (/\bvitest\b/.test(t) && !/\brun\b/.test(t)) {
+            testCommand = 'npx vitest run';
+          } else {
+            testCommand = 'npm test';
+          }
+        }
       }
     } catch { /* ignored */ }
   } else if (fs.existsSync(path.join(cwd, 'Cargo.toml'))) {
@@ -295,9 +310,9 @@ export async function runBuildVerification(toolContext: ToolContext, historyStar
 
   const { exec } = await import('child_process');
 
-  const runCmd = (cmd: string): Promise<{ success: boolean; logs?: string }> => {
+  const runCmd = (cmd: string, timeoutMs: number = 30000): Promise<{ success: boolean; logs?: string }> => {
     return new Promise((resolve) => {
-      exec(cmd, { cwd, timeout: 30000 }, (error, stdout, stderr) => {
+      exec(cmd, { cwd, timeout: timeoutMs }, (error, stdout, stderr) => {
         if (error) {
           resolve({ success: false, logs: (stdout + '\n' + stderr).trim() });
         } else {
@@ -353,6 +368,18 @@ export async function runBuildVerification(toolContext: ToolContext, historyStar
       return { success: false, errorLogs: res.logs };
     }
     console.log(pc.green(`[VERIFY] Linter passed.`));
+  }
+
+  if (testCommand) {
+    console.log(pc.cyan(`\n[VERIFY] Running test command: "${testCommand}"...`));
+    // Tests can be slow; give them a longer timeout than build/lint so a large
+    // suite doesn't false-fail the verification gate.
+    const res = await runCmd(testCommand, 120000);
+    if (!res.success) {
+      console.log(pc.red(`[VERIFY] Tests failed!`));
+      return { success: false, errorLogs: res.logs };
+    }
+    console.log(pc.green(`[VERIFY] Tests passed.`));
   }
 
   if (fs.existsSync(path.join(cwd, 'package.json'))) {
