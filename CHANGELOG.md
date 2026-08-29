@@ -1,3 +1,10 @@
+## [3.53.8](https://github.com/bgill55/daedalus/compare/v3.53.7...v3.53.8) (2026-08-29)
+
+
+### Bug Fixes
+
+* **sigma-mem:** stop frequency inflation of reliability score on re-record ([dad63cf](https://github.com/bgill55/daedalus/commit/dad63cf063f236de78ffd138cd109f6aa782fa2b))
+
 ## [3.53.7](https://github.com/bgill55/daedalus/compare/v3.53.6...v3.53.7) (2026-08-29)
 
 
