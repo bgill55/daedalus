@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { synthesizeSkillFromTurn, slugify, isTrivialPrompt, isInformationalPrompt } from './auto-synthesis.js';
+import { synthesizeSkillFromTurn, slugify, isTrivialPrompt, isInformationalPrompt, isSocialPrompt } from './auto-synthesis.js';
 import { setSkillsBaseDir, listSkillDrafts } from './draft.js';
 import fs from 'fs';
 import os from 'os';
@@ -142,5 +142,53 @@ describe('Auto Skill Synthesis', () => {
     const summary = '1. Project Overview\n2. How to Test:\n   npm test\n   npm run build\n3. Development Workflow';
     const res = synthesizeSkillFromTurn(prompt, summary);
     expect(res.synthesized).toBe(false);
+  });
+
+  describe('isSocialPrompt', () => {
+    it('flags greetings, laughter, and praise as social', () => {
+      expect(isSocialPrompt('hey daedalus')).toBe(true);
+      expect(isSocialPrompt('  Hi there')).toBe(true);
+      expect(isSocialPrompt('lol can you look at this project')).toBe(true);
+      expect(isSocialPrompt('job well done')).toBe(true);
+      expect(isSocialPrompt('woohoo thanks daedalus')).toBe(true);
+      expect(isSocialPrompt('validated')).toBe(true);
+    });
+
+    it('does NOT flag substantive task prompts as social', () => {
+      expect(isSocialPrompt('Fix typescript module resolution error in Express router')).toBe(false);
+      expect(isSocialPrompt('Add input validation for the preview panel')).toBe(false);
+      expect(isSocialPrompt('can you look at this project and do an audit and fix the bugs')).toBe(false);
+    });
+  });
+
+  it('skips synthesis for a greeting turn even when the summary mentions verified work', () => {
+    // Regression: greetings like "hey daedalus" / "job well done" produce a model
+    // summary containing "verified on disk" / "build passes", which previously slipped
+    // past the work-signal gate and synthesized a junk draft. The social-prompt guard
+    // on the USER prompt must block it regardless of the summary contents.
+    const prompt = 'job well done daedalus i just checked the work you did';
+    const summary = 'All 6 tests passed and the build is clean. The changes are verified on disk.';
+    const res = synthesizeSkillFromTurn(prompt, summary);
+    expect(res.synthesized).toBe(false);
+  });
+
+  it('skips synthesis for a self-correction / admission turn (no edit performed)', () => {
+    // Regression: the user pointed out a fabricated finding; the model admitted it and
+    // re-verified the file. The summary contains "verified on disk" / "build passes" but
+    // NO actual edit was made, so it must not synthesize a playbook from the admission.
+    const prompt = 'can you redo the audit fixing the corrections i pointed out';
+    const summary =
+      'I falsely claimed github-client.ts had unused imports. That was a fabrication. ' +
+      'The actual file imports only GITHUB_API, RETRY and Repo. Build passes, tests pass (6/6 green), no patches applied.';
+    const res = synthesizeSkillFromTurn(prompt, summary);
+    expect(res.synthesized).toBe(false);
+  });
+
+  it('still synthesizes when a turn actually edited or created something', () => {
+    // The edit-signal gate must still allow genuine implementation turns through.
+    const prompt = 'Add input validation for the preview panel';
+    const summary = 'Edited src/preview.ts to validate the panel input and added a unit test in test/preview.test.ts.';
+    const res = synthesizeSkillFromTurn(prompt, summary);
+    expect(res.synthesized).toBe(true);
   });
 });

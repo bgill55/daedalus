@@ -43,6 +43,18 @@ export function isInformationalPrompt(prompt: string): boolean {
   return INFORMATIONAL_PROMPT_RE.test(prompt.trim());
 }
 
+// Social / praise / meta-correction prompts ("hey daedalus", "lol look at this",
+// "job well done", "woohoo thanks", "you're right, I fabricated that") are not task
+// requests and must never synthesize a skill — even though the model's turn summary
+// for them often contains work verbs ("verified on disk", "build passes") that would
+// otherwise slip past the work-signal gate. Catch them on the USER prompt directly.
+const SOCIAL_PROMPT_RE =
+  /^\s*(hey|hi|hello|yo|lol|lmao|haha|ha|whoa|woohoo|yay|aww|oh|hmm|hm|uh|um|cool|nice|sweet|great|awesome|perfect|validated|thanks|thank you|ty|cheers|job well done|well done|good job|nice work|you('re| are) right|my (mistake|bad)|fair|agreed|gotcha|noted|respect|legend|goat)\b/i;
+
+export function isSocialPrompt(prompt: string): boolean {
+  return SOCIAL_PROMPT_RE.test(prompt.trim());
+}
+
 // A turn summary that shows no actual work performed (no edit/run confirmation, no
 // file change) is not a reusable playbook. We require at least one "did work" signal
 // before proposing a skill, so read-only summaries and "nothing to do" turns don't synth.
@@ -50,13 +62,14 @@ const NO_WORK_SUMMARY_RE =
   /\b(no (changes|patches|edits|fix(es)?) (were )?made|already (fixed|resolved|done|present)|nothing (to do|left|changed)|no further (changes|action)|change[s]? (already )?(present|in place|existing))\b/i;
 
 // Positive proof of work: a reusable skill can only be synthesized from a turn that
-// actually DID something — ran a command, edited/created a file, installed a dep,
-// fixed/implemented/verified something. Conversational or meta turns (the agent
-// bantering, or the user discussing the tool itself) produce summaries with no work
-// signal, so they must not spawn a skill draft. This is the mechanism-level gate:
-// "ground, don't guess" — no observed work, no synthesized playbook.
+// actually EDITED or CREATED something — a file patch, a dependency addition, an
+// implemented feature, a code generation. Read-only/verification signals ("ran",
+// "verified", "build passes", "tests green") are NOT sufficient on their own: an audit
+// report or a "you were right, I fabricated that" admission both contain those words
+// but produced no reusable procedure, so they must not spawn a skill draft. This is the
+// mechanism-level gate: "ground, don't guess" — no observed EDIT, no synthesized playbook.
 const DID_WORK_SUMMARY_RE =
-  /\b(installed|ran|run|executed|edited|updated|created|added|removed|deleted|fixed|resolved|refactored|implemented|patched|configured|set up|migrated|verified|tests? (?:pass|passed|green)|built|changed|wrote|generated|debugged)\b/i;
+  /\b(installed|edited|updated|created|added|removed|deleted|fixed|resolved|refactored|implemented|patched|configured|set up|migrated|modified|wrote|generated|debugged|diff --git|@@ -\d)\b/i;
 
 export function synthesizeSkillFromTurn(
   userPrompt: string,
@@ -67,6 +80,7 @@ export function synthesizeSkillFromTurn(
 
   if (isTrivialPrompt(userPrompt)) return { synthesized: false };
   if (isInformationalPrompt(userPrompt)) return { synthesized: false };
+  if (isSocialPrompt(userPrompt)) return { synthesized: false };
   if (NO_WORK_SUMMARY_RE.test(turnSummary)) return { synthesized: false };
   // Require proof of actual work before proposing a skill. Without this, a casual
   // chat / meta turn (e.g. the user joking about the guardrails) whose summary
