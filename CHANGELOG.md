@@ -1,3 +1,10 @@
+## [3.53.9](https://github.com/bgill55/daedalus/compare/v3.53.8...v3.53.9) (2026-08-29)
+
+
+### Bug Fixes
+
+* **sigma-mem:** gate single-agent reward on real build verification ([86ad93f](https://github.com/bgill55/daedalus/commit/86ad93f785b4ceab7ee184fe5310d8c6ee98c884))
+
 ## [3.53.8](https://github.com/bgill55/daedalus/compare/v3.53.7...v3.53.8) (2026-08-29)
 
 
