@@ -21,8 +21,9 @@ import { loadProfile, getProfilePrompt, UserProfile } from './profile.js';
 import { printBanner, printConfigInfo } from './banner.js';
 import { getTipOfDay } from './tips.js';
 import { checkForUpdates, checkChangelogOnUpgrade } from './update-check.js';
-import { createModelFunctions, currentAbortController, abortTurn, evaluatePatchOutcome, maxPatchFailureStreak } from './model.js';
+import { createModelFunctions, currentAbortController, abortTurn } from './model.js';
 import { SigmaMemEngine } from './session/sigma-mem.js';
+import { runBuildVerification } from './agents/orchestrator-verification.js';
 import { createRepl } from './repl.js';
 import { setFormattingConfig } from './formatting.js';
 import { getProjectRules, systemPrompt } from './system-prompt.js';
@@ -318,7 +319,6 @@ try {
 async function callModelWithTools(userContent: string, imageBase64?: string): Promise<{ content: string; toolCalls: ToolCall[] }> {
   currentUserRequest = userContent;
   const prevPatches = toolContext.patchHistory?.length ?? 0;
-  const prevStreak = maxPatchFailureStreak(toolContext.patchFailureStreak);
   // Branch from base at the start of a single-agent task when the user opted in.
   // Only acts when sitting on the base branch with a clean tree, so it never
   // clobbers a branch the user deliberately checked out. Idempotent: once on a
@@ -336,14 +336,24 @@ async function callModelWithTools(userContent: string, imageBase64?: string): Pr
   const memoryIds = activeSigmaMemoryIds;
   if (sessionManager?.projectMemDb) {
     try {
-      const signal = evaluatePatchOutcome(
-        { patches: prevPatches, maxStreak: prevStreak },
-        { patches: toolContext.patchHistory?.length ?? 0, maxStreak: maxPatchFailureStreak(toolContext.patchFailureStreak) },
-      );
-      if (signal === 'success' && memoryIds.length > 0) {
-        SigmaMemEngine.rewardSuccessfulPass(sessionManager.projectMemDb, memoryIds);
-      } else if (signal === 'failure' && memoryIds.length > 0) {
-        SigmaMemEngine.penalizeFailedAttempt(sessionManager.projectMemDb, memoryIds);
+      const newPatches = toolContext.patchHistory?.length ?? 0;
+      // Only grade a turn that actually changed source files — chat-only turns are
+      // neither success nor failure. Mirror the multi-agent path (orchestrator.ts):
+      // reliability rises on a VERIFIED green build and falls on a broken one. The
+      // old signal was evaluatePatchOutcome (patch-count based) — it rewarded mere
+      // editing activity, so a task that committed broken code still scored up. Now
+      // a broken fix fails runBuildVerification and is penalized instead.
+      if (newPatches > prevPatches && memoryIds.length > 0) {
+        const root = toolContext.projectRoot || sessionManager?.projectRoot;
+        const buildResult = await runBuildVerification({
+          ...toolContext,
+          projectRoot: root,
+        });
+        if (buildResult.success) {
+          SigmaMemEngine.rewardSuccessfulPass(sessionManager.projectMemDb, memoryIds);
+        } else {
+          SigmaMemEngine.penalizeFailedAttempt(sessionManager.projectMemDb, memoryIds);
+        }
       }
     } catch {
       // σ-mem feedback must never break the turn flow
