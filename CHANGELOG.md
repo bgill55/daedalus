@@ -1,3 +1,10 @@
+## [3.53.10](https://github.com/bgill55/daedalus/compare/v3.53.9...v3.53.10) (2026-08-29)
+
+
+### Bug Fixes
+
+* **verify:** include test suite in build verification gate ([1e9e458](https://github.com/bgill55/daedalus/commit/1e9e4585d60ccf71c7b59e6adb683d74962ead24))
+
 ## [3.53.9](https://github.com/bgill55/daedalus/compare/v3.53.8...v3.53.9) (2026-08-29)
 
 
