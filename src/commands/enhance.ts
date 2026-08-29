@@ -261,52 +261,64 @@ export const enhanceCommand: Command = {
     console.log(`\n${pc.yellow(enhanced)}\n`);
     console.log(pc.bold('=========================\n'));
 
+    // Confirmation + execution. In interactive mode we ask via askLine. In headless
+    // / auto-approve mode the readline is a closed pipe and askLine throws
+    // "readline was closed" — auto-proceed instead of crashing (this matches the
+    // REPL's own auto-resolve for dead readline prompts). When askLine is absent we
+    // also proceed, so the audit/report always gets a chance to run.
+    let proceed = true;
     if (typeof ctx.askLine === 'function') {
-      const confirm = await ctx.askLine(pc.green('Proceed with this enhanced prompt? (Y/n): '));
-      const answer = confirm.trim().toLowerCase();
-      if (answer === '' || answer === 'y' || answer === 'yes') {
-        if (typeof ctx.callModelWithTools === 'function') {
-          const indexCtx = typeof ctx.buildIndexContext === 'function' ? await ctx.buildIndexContext(enhanced) : '';
-          const filesCtx = typeof ctx.buildFileContext === 'function' ? ctx.buildFileContext() : '';
-          const userContent = `${indexCtx}${filesCtx}Execute the following task:\n\n${enhanced}`;
-          printUserTurn(enhanced);
-          // Rebuild the system prompt for the execution turn using the USER'S
-          // ORIGINAL request — NOT the enhanced prompt. The enhanced prompt is a
-          // generated intermediate artifact (often an audit/expansion) that can
-          // spuriously match skill triggers (e.g. "Pre-Flight Audit" hits the
-          // grade-and-fix-daedalus skill via "pre-flight"), injecting unrelated
-          // skill bodies that hijack the execution turn. Skill matching must stay
-          // keyed to the user's actual intent, just like the REPL loop does.
-          if (ctx.messages.length > 0 && ctx.messages[0].role === 'system' && typeof ctx.getSystemPromptWithMemory === 'function') {
-            ctx.messages[0] = { role: 'system', content: await ctx.getSystemPromptWithMemory(rawQuery) };
-          }
-          try {
-            await ctx.callModelWithTools(userContent);
-          } catch (execErr) {
-            // The execution turn can fail (e.g. the active model is unavailable
-            // upstream). Rather than kill the whole /enhance command, report the
-            // enhancer's already-validated prompt and the failure so the user can
-            // re-run with a working model. Don't throw — the enhanced prompt is the
-            // deliverable.
-            console.log(pc.yellow(`\n  [WARN] Execution turn failed: ${execErr instanceof Error ? execErr.message : String(execErr)}`));
-            console.log(pc.dim('  Enhanced prompt is shown above — re-run it directly, or switch models with /model and retry.'));
-            turnSeparator();
-            return true;
-          }
-          if (ctx.sessionManager?.sessionDb) {
-            ctx.sessionManager.saveSessionState(ctx.messages, ctx.activeFiles, getSessionTodos(ctx.sessionManager.sessionId));
-          }
-          if (ctx.router && ctx.sessionManager) {
-            await extractAndSave(ctx.router, ctx.sessionManager, ctx.messages);
-          }
-          turnSeparator();
-        } else {
-          ctx.messages.push({ role: 'user', content: enhanced });
-        }
-        return true;
-      } else {
-        console.log(pc.dim('  Enhanced prompt discarded.'));
+      try {
+        const confirm = await ctx.askLine(pc.green('Proceed with this enhanced prompt? (Y/n): '));
+        const answer = confirm.trim().toLowerCase();
+        proceed = (answer === '' || answer === 'y' || answer === 'yes');
+      } catch {
+        // stdin is a closed pipe (headless) — treat as auto-approve.
+        proceed = true;
       }
+    }
+
+    if (proceed && typeof ctx.callModelWithTools === 'function') {
+      const indexCtx = typeof ctx.buildIndexContext === 'function' ? await ctx.buildIndexContext(enhanced) : '';
+      const filesCtx = typeof ctx.buildFileContext === 'function' ? ctx.buildFileContext() : '';
+      const userContent = `${indexCtx}${filesCtx}Execute the following task:\n\n${enhanced}`;
+      printUserTurn(enhanced);
+      // Rebuild the system prompt for the execution turn using the USER'S
+      // ORIGINAL request — NOT the enhanced prompt. The enhanced prompt is a
+      // generated intermediate artifact (often an audit/expansion) that can
+      // spuriously match skill triggers (e.g. "Pre-Flight Audit" hits the
+      // grade-and-fix-daedalus skill via "pre-flight"), injecting unrelated
+      // skill bodies that hijack the execution turn. Skill matching must stay
+      // keyed to the user's actual intent, just like the REPL loop does.
+      if (ctx.messages.length > 0 && ctx.messages[0].role === 'system' && typeof ctx.getSystemPromptWithMemory === 'function') {
+        ctx.messages[0] = { role: 'system', content: await ctx.getSystemPromptWithMemory(rawQuery) };
+      }
+      try {
+        await ctx.callModelWithTools(userContent);
+      } catch (execErr) {
+        // The execution turn can fail (e.g. the active model is unavailable
+        // upstream). Rather than kill the whole /enhance command, report the
+        // enhancer's already-validated prompt and the failure so the user can
+        // re-run with a working model. Don't throw — the enhanced prompt is the
+        // deliverable.
+        console.log(pc.yellow(`\n  [WARN] Execution turn failed: ${execErr instanceof Error ? execErr.message : String(execErr)}`));
+        console.log(pc.dim('  Enhanced prompt is shown above — re-run it directly, or switch models with /model and retry.'));
+        turnSeparator();
+        return true;
+      }
+      if (ctx.sessionManager?.sessionDb) {
+        ctx.sessionManager.saveSessionState(ctx.messages, ctx.activeFiles, getSessionTodos(ctx.sessionManager.sessionId));
+      }
+      if (ctx.router && ctx.sessionManager) {
+        await extractAndSave(ctx.router, ctx.sessionManager, ctx.messages);
+      }
+      turnSeparator();
+      return true;
+    } else if (proceed) {
+      ctx.messages.push({ role: 'user', content: enhanced });
+      return true;
+    } else {
+      console.log(pc.dim('  Enhanced prompt discarded.'));
     }
   },
 };
