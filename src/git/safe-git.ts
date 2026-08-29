@@ -55,6 +55,22 @@ export function safeBranchDelete(branch: string, opts: SafeGitOptions): boolean 
   return true;
 }
 
+// Lists files tracked on the current HEAD that are ABSENT from `branch`.
+// Switching to `branch` would silently DELETE these from the working tree.
+// Returns [] when the branch can't be inspected (caller keeps prior behavior).
+export function trackedFilesDeletedBySwitch(branch: string, cwd: string): string[] {
+  try {
+    const onBranch = execSync(`git ls-tree -r --name-only ${branch}`, { cwd, stdio: 'pipe', windowsHide: true })
+      .toString().split('\n').filter(Boolean);
+    const onHead = execSync('git ls-tree -r --name-only HEAD', { cwd, stdio: 'pipe', windowsHide: true })
+      .toString().split('\n').filter(Boolean);
+    const branchSet = new Set(onBranch);
+    return onHead.filter((f) => !branchSet.has(f));
+  } catch {
+    return [];
+  }
+}
+
 // Non-destructive replacement for `git checkout -B <branch>` when re-entering a
 // run: create/switch to the branch WITHOUT discarding uncommitted work on it.
 // Only force-resets the branch (checkout -B) when allowDestroy is explicitly set.
@@ -62,6 +78,17 @@ export function safeBranchSwitch(branch: string, opts: SafeGitOptions): void {
   const exists = fs.existsSync(`${opts.cwd}/.git/refs/heads/${branch}`) ||
     (() => { try { return execSync('git rev-parse --verify ' + branch, { cwd: opts.cwd, stdio: 'ignore', windowsHide: true }).toString().trim().length > 0; } catch { return false; } })();
   if (exists && !opts.allowDestroy) {
+    // Guard: a plain `git checkout` to a branch that lacks files tracked on the
+    // current HEAD silently DELETES those files from the working tree. In a
+    // multi-project repo (or when re-entering a stale autopilot branch) this
+    // wipes sibling-project work the user never asked to touch. Refuse unless
+    // the user explicitly opts into destruction.
+    const wouldDelete = trackedFilesDeletedBySwitch(branch, opts.cwd);
+    if (wouldDelete.length > 0) {
+      const preview = wouldDelete.slice(0, 5).join(', ') + (wouldDelete.length > 5 ? `, … (+${wouldDelete.length - 5} more)` : '');
+      refuse(`git checkout ${branch} (would delete ${wouldDelete.length} tracked file(s): ${preview})`, opts);
+      return;
+    }
     // Switch without destroying local edits on the branch.
     execSync(`git checkout ${branch}`, { cwd: opts.cwd, stdio: 'ignore', windowsHide: true });
   } else {

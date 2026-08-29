@@ -73,6 +73,37 @@ describe('never-destroy-working-tree invariant', () => {
     expect(readFileSync(join(dir, 'draft.txt'), 'utf8')).toBe('in-progress');
     expect(execSync('git rev-parse --abbrev-ref HEAD', { cwd: dir }).toString().trim()).toBe('work');
   });
+
+  it('safeBranchSwitch refuses to switch to a branch missing tracked files (no --allow-destroy)', () => {
+    // Simulate a multi-project repo: the autopilot branch was cut before a
+    // sibling project (sibling.txt) existed on base. Re-entering the stale
+    // branch via a plain `git checkout` would silently delete sibling.txt.
+    git('checkout -q -b daedalus-autopilot-stale');
+    writeFileSync(join(dir, 'feature.txt'), 'x');
+    git('add -A');
+    git('commit -qm feat');
+    git('checkout -q main');
+    writeFileSync(join(dir, 'sibling.txt'), 'precious sibling work');
+    git('add -A');
+    git('commit -qm add-sibling'); // main now has sibling.txt; autopilot branch does not
+    safeBranchSwitch('daedalus-autopilot-stale', { cwd: dir, allowDestroy: false, branch: 'daedalus-autopilot-stale' });
+    // Must NOT switch, and the sibling project must survive.
+    expect(execSync('git rev-parse --abbrev-ref HEAD', { cwd: dir }).toString().trim()).toBe('main');
+    expect(readFileSync(join(dir, 'sibling.txt'), 'utf8')).toBe('precious sibling work');
+  });
+
+  it('safeBranchSwitch allows the deletion only when --allow-destroy is set', () => {
+    git('checkout -q -b daedalus-autopilot-stale');
+    writeFileSync(join(dir, 'feature.txt'), 'x');
+    git('add -A');
+    git('commit -qm feat');
+    git('checkout -q main');
+    writeFileSync(join(dir, 'sibling.txt'), 'precious sibling work');
+    git('add -A');
+    git('commit -qm add-sibling');
+    safeBranchSwitch('daedalus-autopilot-stale', { cwd: dir, allowDestroy: true, branch: 'daedalus-autopilot-stale' });
+    expect(execSync('git rev-parse --abbrev-ref HEAD', { cwd: dir }).toString().trim()).toBe('daedalus-autopilot-stale');
+  });
 });
 
 import { detectBaseBranch, safeMergeToBase } from './safe-git.js';
