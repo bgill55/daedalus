@@ -1,3 +1,10 @@
+## [3.53.7](https://github.com/bgill55/daedalus/compare/v3.53.6...v3.53.7) (2026-08-29)
+
+
+### Bug Fixes
+
+* **skills:** tighten auto-synthesis gate against social/praise/correction turns ([24408e5](https://github.com/bgill55/daedalus/commit/24408e5f488bf45dd50acd60e969c8ebfe5f985a))
+
 ## [3.53.6](https://github.com/bgill55/daedalus/compare/v3.53.5...v3.53.6) (2026-08-29)
 
 
