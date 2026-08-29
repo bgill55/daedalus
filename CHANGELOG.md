@@ -1,3 +1,10 @@
+## [3.53.5](https://github.com/bgill55/daedalus/compare/v3.53.4...v3.53.5) (2026-08-29)
+
+
+### Bug Fixes
+
+* **git:** refuse branch switch that would delete tracked files ([56faf03](https://github.com/bgill55/daedalus/commit/56faf0305a137f6244854a77231537e66c9129c9))
+
 ## [3.53.4](https://github.com/bgill55/daedalus/compare/v3.53.3...v3.53.4) (2026-08-28)
 
 
