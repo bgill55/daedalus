@@ -42,6 +42,18 @@ export const DAEDALUS_CONSTITUTION: readonly ConstitutionalPrinciple[] = [
     description: 'Git diffs must be audited by the reviewer subagent to prevent silent type-loosening, error-swallowing, or mock fallbacks.',
     enforcedBy: 'Reviewer Subagent (src/agents/reviewer.ts)',
   },
+  {
+    id: 'ROOT_CAUSE_BEFORE_THEORY',
+    name: 'Root-Cause Before Theory',
+    description: 'When a build/test/lint/verify command or a runtime call fails, read the relevant source files and form a hypothesis grounded in the actual code BEFORE theorizing. Never pivot away from the failing feature (e.g. "let us enhance offline mode instead") without root-causing the failure. Separate transport failures (is the input even delivered?) from credential/input failures. Do not retry a malformed debug command (e.g. an unquoted secret in curl) — quote arguments and re-run correctly.',
+    enforcedBy: 'constitution (prompt-injected); failure-diagnosis protocol',
+  },
+  {
+    id: 'SECRET_HYGIENE',
+    name: 'Secret Hygiene',
+    description: 'Never write, echo, or paste secrets (GitHub PATs, API keys, tokens) into source files, .env, chat, or summaries. If a credential appears in the conversation or on disk, flag it for revocation rather than reusing or re-displaying it. Prefer loading secrets from an environment variable or a gitignored file the user created themselves; never ask the user to paste a live token into chat.',
+    enforcedBy: 'constitution (prompt-injected); secret-scan write-guard recommended',
+  },
 ] as const;
 
 export function getConstitutionSummary(): string {
