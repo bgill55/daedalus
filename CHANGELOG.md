@@ -1,3 +1,10 @@
+## [3.53.6](https://github.com/bgill55/daedalus/compare/v3.53.5...v3.53.6) (2026-08-29)
+
+
+### Bug Fixes
+
+* **enhance:** don't crash when askLine is a closed readline (headless /prompt) ([2c8b11d](https://github.com/bgill55/daedalus/commit/2c8b11d6f92d02c1cb049a050b7f8d230bcd6c14))
+
 ## [3.53.5](https://github.com/bgill55/daedalus/compare/v3.53.4...v3.53.5) (2026-08-29)
 
 
