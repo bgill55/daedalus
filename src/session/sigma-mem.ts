@@ -56,7 +56,13 @@ export class SigmaMemEngine {
         tags: JSON.stringify(opts.tags || []),
         summary: safeSummary,
         content: safeContent,
-        sigma_score: Math.round(Math.min(1.0, existing.sigma_score + 0.05) * 10000) / 10000,
+        // NOTE: sigma_score is intentionally NOT bumped on upsert. Reliability must
+        // rise only via rewardSuccessfulPass (verified pass) and fall via
+        // penalizeFailedAttempt (verified failure) — never from mere reuse/recording.
+        // Re-recording a memory (e.g. from a failed-but-retried task) used to inflate
+        // sigma_score by +0.05 here, letting a broken memory climb to 100% on frequency
+        // alone. usefulness_count still increments as a retrieval tiebreaker only.
+        sigma_score: existing.sigma_score,
         usefulness_count: existing.usefulness_count + 1,
         updated_at: now,
       };

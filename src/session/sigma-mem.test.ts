@@ -109,7 +109,9 @@ describe('SigmaMemEngine (Σ-Mem)', () => {
 
     expect(second.id).toBe(first.id);
     expect(second.usefulness_count).toBe(2);
-    expect(second.sigma_score).toBe(0.75);
+    // Re-recording identical knowledge must NOT inflate reliability — sigma_score
+    // stays at its recorded value (0.70). Reliability rises only via rewardSuccessfulPass.
+    expect(second.sigma_score).toBe(0.70);
     expect(second.content).toBe('Set max-width: 24px on raw svg.');
 
     const memories = getSigmaMemories(db, 0.0);
@@ -135,6 +137,36 @@ describe('SigmaMemEngine (Σ-Mem)', () => {
 
     const memories = getSigmaMemories(db, 0.0);
     expect(memories.length).toBe(2);
+  });
+
+  it('re-recording knowledge many times raises usefulness_count but never sigma_score (reliability is outcome-gated only)', () => {
+    const mem = SigmaMemEngine.recordVerifiedKnowledge(db, {
+      agentRole: 'coder',
+      category: 'code_pattern',
+      tags: ['ts'],
+      summary: 'TS type guard rule',
+      content: 'Prefer user-defined type guards.',
+    });
+    expect(mem.sigma_score).toBe(0.70);
+
+    // Re-record the identical memory 5 more times (e.g. across failed retries).
+    for (let i = 0; i < 5; i++) {
+      const again = SigmaMemEngine.recordVerifiedKnowledge(db, {
+        agentRole: 'coder',
+        category: 'code_pattern',
+        tags: ['ts'],
+        summary: 'TS type guard rule',
+        content: 'Prefer user-defined type guards.',
+      });
+      // Reliability must NOT climb from reuse — only rewardSuccessfulPass may raise it.
+      expect(again.sigma_score).toBe(0.70);
+      expect(again.usefulness_count).toBe(mem.usefulness_count + i + 1);
+    }
+
+    // A verified pass still raises it; a re-record alone does not.
+    SigmaMemEngine.rewardSuccessfulPass(db, [mem.id]);
+    const after = getSigmaMemories(db, 0.0).find((m) => m.id === mem.id)!;
+    expect(after.sigma_score).toBe(0.80);
   });
 
 
