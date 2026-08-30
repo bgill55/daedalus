@@ -834,6 +834,13 @@ describe('LocalRouter', () => {
         ],
       });
       const router = new LocalRouter(config);
+      // Mock the HTTP client so no real socket is opened — port-9 behavior differs
+      // across environments (refuses fast locally, hangs until TCP timeout in CI),
+      // which made this test flaky. ECONNREFUSED is matched by isUnreachableError.
+      const fakeClient = {
+        chat: { completions: { create: vi.fn().mockRejectedValue(new Error('connect ECONNREFUSED 127.0.0.1:9')) } },
+      } as any;
+      vi.spyOn(router as any, 'getOrCreateClient').mockReturnValue(fakeClient);
       const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
       await expect(router.chatCompletion({
         model: 'pinned-local',
