@@ -1,3 +1,10 @@
+## [3.53.14](https://github.com/bgill55/daedalus/compare/v3.53.13...v3.53.14) (2026-08-30)
+
+
+### Bug Fixes
+
+* **tests:** make router unreachable-endpoint test deterministic (no real socket) ([44ff9a7](https://github.com/bgill55/daedalus/commit/44ff9a7341e068283fbdfcc0d54d3bfdebcca016))
+
 ## [3.53.13](https://github.com/bgill55/daedalus/compare/v3.53.12...v3.53.13) (2026-08-30)
 
 
