@@ -24,6 +24,20 @@ import { SigmaMemEngine } from './session/sigma-mem.js';
 import { synthesizeSkillFromTurn } from './skills/auto-synthesis.js';
 import { brand, dim, info, warn, err } from './ui/theme.js';
 
+/**
+ * Pure reduction for piped (non-TTY) multi-line input. Appends each line to the
+ * accumulator unless it is the terminator sentinel, which ends input without
+ * being included in the result. This is what keeps a multi-line goal intact
+ * instead of resolving on the first line (the bug that dropped STEP 2/3 of a
+ * piped prompt). Exported for unit testing.
+ */
+export function accumulatePipedLines(lines: string[], terminator = 'exit'): { result: string; done: boolean } {
+  for (const line of lines) {
+    if (line.trim() === terminator) return { result: lines.slice(0, lines.indexOf(line)).join('\n'), done: true };
+  }
+  return { result: lines.join('\n'), done: false };
+}
+
 export interface ReplDeps {
   config: DaedalusConfig;
   configDir: string;
@@ -146,12 +160,20 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
 
       const onLine = (line: string) => {
         if (resolved) return;
-        // Non-interactive (piped): return single line immediately
-        // so "/orchestrate ...\n/exit" doesn't get joined into one input
+        // Non-interactive (piped): accumulate the FULL prompt (multi-line goals
+        // must be preserved — resolving on the first line would silently drop
+        // the rest of the instructions). Resolve when the input ends (EOF) or an
+        // explicit "exit" sentinel line is seen, so `printf 'goal...\nexit\n'`
+        // delivers the complete goal and then terminates. The sentinel line is
+        // NOT included in the result (it's a terminator, not instruction).
         if (!process.stdin.isTTY) {
-          resolved = true;
-          rl.off('line', onLine);
-          resolve(line);
+          if (line.trim() === 'exit') {
+            resolved = true;
+            rl.off('line', onLine);
+            resolve(accumulatePipedLines(lines).result);
+          } else {
+            lines.push(line);
+          }
           return;
         }
         lines.push(line);
@@ -162,6 +184,13 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
           resolve(lines.join('\n'));
         }, 80);
       };
+
+      rl.on('close', () => {
+        if (resolved) return;
+        resolved = true;
+        rl.off('line', onLine);
+        resolve(lines.join('\n'));
+      });
 
       rl.on('line', onLine);
       // Let readline own the prompt (rl.prompt) so its arrow-key -> rl.history

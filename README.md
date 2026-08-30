@@ -169,6 +169,7 @@ AI assistance without:
 | `/undo` | Undo file edits (usage: /undo [count\|list]) |
 | `/ci [review\|fix]` | Run headless CI/CD PR review or auto-fix simulation locally |
 | `/badge [custom <label> <message> [color]] [--write]` | Generate Shields.io README badges or build custom badges |
+| `/scan-ai-repos [--top N] [--query "topic:..."] [--issue] [--repo owner/name]` | Scan top AI repos on GitHub, diff their patterns against this project, and optionally open a GitHub issue with file-specific suggestions. |
 
 ### Memory, Conventions & Config
 

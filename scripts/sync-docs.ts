@@ -63,6 +63,7 @@ const COMMAND_USAGES: Record<string, string> = {
   '/ci': '/ci [review|fix]',
   '/badge': '/badge [custom <label> <message> [color]] [--write]',
   '/spinner': '/spinner [list | braille | tracker | aurora]',
+  '/scan-ai-repos': '/scan-ai-repos [--top N] [--query "topic:..."] [--issue] [--repo owner/name]',
 };
 
 const COMMAND_GROUPS: { name: string; commands: string[] }[] = [
@@ -76,7 +77,7 @@ const COMMAND_GROUPS: { name: string; commands: string[] }[] = [
   },
   {
     name: 'Developer Tools, Git & MCP',
-    commands: ['/test', '/commit', '/branch', '/pr', '/mcp', '/image', '/undo', '/ci', '/badge']
+    commands: ['/test', '/commit', '/branch', '/pr', '/mcp', '/image', '/undo', '/ci', '/badge', '/scan-ai-repos']
   },
   {
     name: 'Memory, Conventions & Config',

@@ -353,6 +353,25 @@ export const BUILTIN_TOOLS: ToolDefinition[] = [
       },
     },
   },
+  {
+    type: 'function',
+    function: {
+      name: 'scan_ai_repos',
+      description:
+        'Scan GitHub\'s top AI repositories for reusable architecture/feature patterns, then diff them against the CURRENT project (via its code index) to produce file-specific suggestions — what the project already has, what is partial, and what is missing and worth porting. Optionally open a GitHub issue with the report. Self-analyzes when run from the Daedalus repo; analyzes any project when run elsewhere. Deterministic — does not spawn the agent.',
+      parameters: {
+        type: 'object',
+        properties: {
+          top: { type: 'integer', description: 'Number of top repos to scan (1-20, default 10)', minimum: 1, maximum: 20, default: 10 },
+          query: { type: 'string', description: 'GitHub search query (default "topic:ai stars:>1000")' },
+          issue: { type: 'boolean', description: 'If true, create a GitHub issue with the report' },
+          repo: { type: 'string', description: 'Target repo for the issue (owner/name). Defaults to the project\'s git remote, then bgill55/daedalus' },
+        },
+        required: [],
+        additionalProperties: false,
+      },
+    },
+  },
 ];
 
 export const POWER_TOOLS: ToolDefinition[] = [
@@ -659,4 +678,5 @@ export const TOOL_IMPLEMENTATIONS: Record<string, string> = {
   handoff_task: 'tools/builtin/handoff.handoffTask',
   set_context_variable: 'tools/builtin/handoff.setContextVariable',
   get_context_variable: 'tools/builtin/handoff.getContextVariable',
+  scan_ai_repos: 'tools/builtin/scan-ai-repos.scanAiRepos',
 };

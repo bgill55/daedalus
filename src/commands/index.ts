@@ -15,6 +15,7 @@ import { cheatsheetCommand } from './cheatsheet.js';
 import { faqCommand } from './faq.js';
 import { recipeCommand } from './recipe.js';
 import { gitAutoBranchCommand } from './gitautobranch.js';
+import { scanAiReposCommands } from './scan-ai-repos.js';
 import type { Command, CommandContext } from './types.js';
 
 export type { Command, CommandContext } from './types.js';
@@ -155,6 +156,7 @@ export const commandsList: Command[] = [
   faqCommand,
   recipeCommand,
   gitAutoBranchCommand,
+  ...scanAiReposCommands,
   helpCommand,
 ];
 
