@@ -1,3 +1,10 @@
+## [3.58.1](https://github.com/bgill55/daedalus/compare/v3.58.0...v3.58.1) (2026-08-30)
+
+
+### Bug Fixes
+
+* **sigma-mem:** CritICL AVOID block must not be gated by minScore (regression) ([bc78140](https://github.com/bgill55/daedalus/commit/bc781403a2dce7bd5d1ed6c3ec329ac6b7670c3c))
+
 # [3.58.0](https://github.com/bgill55/daedalus/compare/v3.57.0...v3.58.0) (2026-08-30)
 
 
