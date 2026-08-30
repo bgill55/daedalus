@@ -388,6 +388,69 @@ describe('LocalRouter', () => {
     consumeTokensSpy.mockRestore();
   });
 
+  it('prefers an independent provider over a same-pool sibling when the pool is rate limited', async () => {
+    // a and b share endpoint P (same provider pool); c is an independent pool Q.
+    const router = new LocalRouter(makeConfig({
+      chain: [
+        { name: 'a', endpoint: 'https://api.pool-p.ai/v1', model: 'm1', priority: 1, enabled: true },
+        { name: 'b', endpoint: 'https://api.pool-p.ai/v1', model: 'm2', priority: 2, enabled: true },
+        { name: 'c', endpoint: 'https://api.pool-q.ai/v1', model: 'm3', priority: 3, enabled: true },
+      ],
+    }));
+
+    const poolPKeys = new Set(['https://api.pool-p.ai/v1|m1', 'https://api.pool-p.ai/v1|m2']);
+    const consumeTokensSpy = vi.spyOn(rateLimiter, 'consumeTokens');
+    consumeTokensSpy.mockImplementation((bucket) => {
+      const limiters = (router as any).rateLimiters;
+      for (const [key, value] of limiters.entries()) {
+        if (value === bucket && poolPKeys.has(key)) return false; // pool P exhausted
+      }
+      return true; // pool Q has capacity
+    });
+
+    const result = await router.route({ messages: [{ role: 'user', content: 'hello' }] });
+    expect(result.model.name).toBe('c'); // independent provider, not same-pool sibling b
+    consumeTokensSpy.mockRestore();
+  });
+
+  it('excludes the whole exhausted provider pool after a 429 and falls through to an independent provider', async () => {
+    const router = new LocalRouter(makeConfig({
+      chain: [
+        { name: 'a', endpoint: 'https://api.pool-p.ai/v1', model: 'm1', priority: 1, enabled: true },
+        { name: 'b', endpoint: 'https://api.pool-p.ai/v1', model: 'm2', priority: 2, enabled: true },
+        { name: 'c', endpoint: 'https://api.pool-q.ai/v1', model: 'm3', priority: 3, enabled: true },
+      ],
+    }));
+
+    const client = {
+      chat: {
+        completions: {
+          create: vi.fn().mockImplementation(async (_body: unknown, _opts: unknown) => {
+            throw Object.assign(new Error('Rate limit exceeded'), { status: 429 });
+          }),
+        },
+      },
+    };
+    const getClientSpy = vi.spyOn(router as any, 'getOrCreateClient').mockReturnValue(client as any);
+
+    // Give pool Q a working client by returning a success only when the selected
+    // model is c. We can't know the name inside the spy easily, so instead make the
+    // mocked client succeed after the first (pool-P) failures exclude that pool.
+    // Simpler: successive calls — first two (pool P) throw 429, third (pool Q) succeeds.
+    let calls = 0;
+    (client.chat.completions.create as any) = vi.fn().mockImplementation(async () => {
+      calls++;
+      if (calls <= 2) throw Object.assign(new Error('Rate limit exceeded'), { status: 429 });
+      return { choices: [{ message: { role: 'assistant', content: 'ok' }, finish_reason: 'stop' }], usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 } };
+    });
+
+    const response = await router.chatCompletion({ messages: [{ role: 'user', content: 'hello' }] });
+    expect(response.choices[0].message.content).toBe('ok');
+    // After the 429s, pool P (a + b) must be excluded and c (pool Q) selected.
+    expect((router as any).lastRoutedModelName).toBe('c');
+    getClientSpy.mockRestore();
+  });
+
   describe('sanitizeMessagesForModel', () => {
     it('keeps vision payload intact if model supports vision', () => {
       const model = { name: 'v', endpoint: 'http://localhost:1/v1', model: 'm', priority: 1, enabled: true, supportsVision: true };

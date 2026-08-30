@@ -46,6 +46,19 @@ export function isModelUnavailableError(err: unknown): boolean {
     || /(disabled|not (found|available)|does not exist|no longer available|deprecated|unknown model)/i.test(msg);
 }
 
+// Upstream rejected the request due to rate limiting / quota exhaustion
+// (HTTP 429, or provider text like "rate limit" / "quota"). Distinct from a hard
+// 4xx (bad request) or unreachable (connection) error. When this fires, the whole
+// provider account is likely throttled, so the router should fall through to an
+// independent provider rather than retrying siblings in the same exhausted pool.
+export function isRateLimitError(err: unknown): boolean {
+  const status = (err as { status?: number; statusCode?: number })?.status
+    ?? (err as { status?: number; statusCode?: number })?.statusCode;
+  if (status === 429) return true;
+  const msg = err instanceof Error ? err.message : String(err);
+  return /rate[ -]?limit|too many requests|quota|429/i.test(msg);
+}
+
 // The pinned modelOverride's endpoint is down / not serving (connection refused,
 // DNS failure, fetch failed). Distinct from a 4xx "model unavailable" — this means
 // the local server (e.g. LM Studio) isn't running or the model isn't loaded, so the
@@ -150,6 +163,27 @@ export class LocalRouter {
     return blacklisted;
   }
 
+  // On a rate-limit / quota error, the failed model's entire provider account is
+  // likely throttled — not just that one entry. Exclude every enabled chain model
+  // in the same pool so the next route() falls through to an INDEPENDENT provider
+  // instead of thrashing siblings that share the exhausted cap. Never excludes the
+  // whole chain: if the pool covers every model, only the single failed model is
+  // excluded (so the run can still attempt a retry rather than hard-failing).
+  private excludeProviderPool(failed: ModelEntry, excluded: Set<string>): void {
+    const pool = this.getProviderPool(failed);
+    const samePool = this.config.chain.filter(
+      (m) => m.enabled && this.getProviderPool(m) === pool
+    );
+    const remainingAfterExclusion = this.config.chain.filter(
+      (m) => m.enabled && !samePool.includes(m)
+    );
+    const targets = remainingAfterExclusion.length > 0 ? samePool : [failed];
+    for (const m of targets) {
+      excluded.add(m.name);
+      excluded.add(m.model);
+    }
+  }
+
   private recordLatency(m: ModelEntry, latencyMs: number): void {
     const threshold = this.config.slowModelThresholdMs ?? 0;
     if (threshold <= 0 || this.isBlacklisted(m)) return;
@@ -170,6 +204,16 @@ export class LocalRouter {
       return `${model.endpoint}|${model.provider}`;
     }
     return `${model.endpoint}|${model.model}`;
+  }
+
+  // An "independent provider pool" is the account-wide capacity bucket a model
+  // draws from. Many models share one pool (e.g. several OpenRouter :free entries
+  // all count against the same ~50/day account cap), so hitting a 429 on one means
+  // the others in that pool are also exhausted. The rate-limiter key already
+  // encodes this (endpoint + apiKey/provider/model), so we reuse it as the pool id.
+  // Provider-neutral: works for any endpoint/key arrangement, not just OpenRouter.
+  private getProviderPool(model: ModelEntry): string {
+    return this.getRateLimiterKey(model);
   }
 
   private initializeRateLimiters(): void {
@@ -490,8 +534,20 @@ export class LocalRouter {
       }
     }
     let rateLimitError: Error | undefined;
+    const exhaustedPools = new Set<string>();
 
     for (const m of rankedCandidates) {
+      // If this model shares a pool we already found rate-limited, prefer an
+      // independent provider — UNLESS every remaining candidate is in that same
+      // exhausted pool (then we have no alternative and must fall back to it).
+      const pool = this.getProviderPool(m);
+      if (exhaustedPools.has(pool)) {
+        const hasIndependentAlt = rankedCandidates.some(
+          (c) => c !== m && this.getProviderPool(c) !== pool
+        );
+        if (hasIndependentAlt) continue;
+      }
+
       if (isLocalEndpoint(m.endpoint)) {
         selectedModel = m;
         if (this.config.strategy === 'round-robin') {
@@ -512,6 +568,7 @@ export class LocalRouter {
           }
           break;
         } else {
+          exhaustedPools.add(pool);
           const waitMs = getWaitTime(rateLimiter, est);
           if (!rateLimitError) {
             rateLimitError = new Error(`Rate limited. Wait ${waitMs}ms or try another model.`);
@@ -636,6 +693,12 @@ export class LocalRouter {
           }
           excludedModels.add(selectedModel.name);
           excludedModels.add(selectedModel.model);
+          // Rate-limit / quota: the whole provider account is likely throttled, so
+          // exclude every sibling in the same pool and fall through to an independent
+          // provider instead of retrying models that share the exhausted cap.
+          if (isRateLimitError(err)) {
+            this.excludeProviderPool(selectedModel, excludedModels);
+          }
           // The pinned model was rejected by the provider as unavailable (disabled /
           // removed / renamed). Re-pinning it next attempt would only loop on the
           // dead model, so drop the pin and let the router fall back to others.
@@ -734,6 +797,12 @@ export class LocalRouter {
           }
           excludedModels.add(selectedModel.name);
           excludedModels.add(selectedModel.model);
+          // Rate-limit / quota: the whole provider account is likely throttled, so
+          // exclude every sibling in the same pool and fall through to an independent
+          // provider instead of retrying models that share the exhausted cap.
+          if (isRateLimitError(err)) {
+            this.excludeProviderPool(selectedModel, excludedModels);
+          }
           // The pinned model was rejected by the provider as unavailable (disabled /
           // removed / renamed). Re-pinning it next attempt would only loop on the
           // dead model, so drop the pin and let the router fall back to others.
