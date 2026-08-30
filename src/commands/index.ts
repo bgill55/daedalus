@@ -70,17 +70,17 @@ const helpCommand: Command = {
     };
     for (const cmd of commandsList) {
       const name = cmd.name.replace('/', '');
-      if (['add', 'remove', 'context', 'paste', 'clear', 'enhance', 'prompt'].includes(name)) {
+      if (HELP_CATEGORY_NAMES.Core.includes(name)) {
         categories.Core.push(cmd);
-      } else if (['memory', 'fact', 'convention', 'extract', 'summarize', 'compress', 'profile', 'style', 'lite'].includes(name)) {
+      } else if (HELP_CATEGORY_NAMES.Context.includes(name)) {
         categories.Context.push(cmd);
-      } else if (['spawn', 'delegate', 'tasks', 'task', 'orchestrate', 'orc', 'run', 'o', 'ensemble', 'spec', 'mcp', 'onboard', 'feedback'].includes(name)) {
+      } else if (HELP_CATEGORY_NAMES.Agents.includes(name)) {
         categories.Agents.push(cmd);
-      } else if (['tui', 'image', 'autopilot', 'preview', 'branch', 'pr', 'debug', 'commit', 'project', 'test', 'watch', 'index', 'find', 'refs', 'def', 'callgraph', 'impact', 'ci', 'badge', 'changelog', 'models', 'model', 'preset', 'config', 'doctor', 'stats', 'health', 'shortcut', 'sc', 'blacklist', 'providers', 'routing', 'gitautobranch', 'scan-ai-repos'].includes(name)) {
+      } else if (HELP_CATEGORY_NAMES.Development.includes(name)) {
         categories.Development.push(cmd);
-      } else if (['session', 'undo', 'history', 'h', 'exit', 'quit', 'bye'].includes(name)) {
+      } else if (HELP_CATEGORY_NAMES.Session.includes(name)) {
         categories.Session.push(cmd);
-      } else if (['help', '?'].includes(name)) {
+      } else if (HELP_CATEGORY_NAMES.Help.includes(name)) {
         categories.Help.push(cmd);
       } else {
         categories.Other.push(cmd);
@@ -138,6 +138,15 @@ const themeCommand: Command = {
     console.log(`\n  ${ok('[OK]')} Theme set to ${info(arg)} and saved.`);
     console.log();
   },
+};
+
+export const HELP_CATEGORY_NAMES: Record<string, string[]> = {
+  Core: ['add', 'remove', 'context', 'paste', 'clear', 'enhance', 'prompt', 'theme'],
+  Context: ['memory', 'fact', 'convention', 'extract', 'summarize', 'compress', 'profile', 'style', 'lite', 'system', 'sigma'],
+  Agents: ['spawn', 'delegate', 'tasks', 'task', 'orchestrate', 'orc', 'run', 'o', 'ensemble', 'spec', 'mcp', 'onboard', 'feedback', 'hunt'],
+  Development: ['tui', 'image', 'autopilot', 'preview', 'branch', 'pr', 'debug', 'commit', 'project', 'test', 'watch', 'index', 'find', 'refs', 'def', 'callgraph', 'impact', 'ci', 'badge', 'changelog', 'models', 'model', 'preset', 'config', 'doctor', 'stats', 'health', 'shortcut', 'sc', 'blacklist', 'providers', 'routing', 'gitautobranch', 'scan-ai-repos', 'recipe', 'spinner', 'skills'],
+  Session: ['session', 'undo', 'history', 'h', 'exit', 'quit', 'bye'],
+  Help: ['help', '?', 'cheatsheet', 'faq'],
 };
 
 export const commandsList: Command[] = [
