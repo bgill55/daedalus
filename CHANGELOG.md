@@ -1,3 +1,10 @@
+# [3.56.0](https://github.com/bgill55/daedalus/compare/v3.55.0...v3.56.0) (2026-08-30)
+
+
+### Features
+
+* **sigma-mem:** record verified pass/fail outcomes and rank by pass-rate ([#171](https://github.com/bgill55/daedalus/issues/171) B) ([aef97ca](https://github.com/bgill55/daedalus/commit/aef97cafb0463a528970fb04ae89b9c32f1b3251))
+
 # [3.55.0](https://github.com/bgill55/daedalus/compare/v3.54.1...v3.55.0) (2026-08-30)
 
 
