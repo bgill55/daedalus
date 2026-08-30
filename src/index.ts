@@ -64,6 +64,30 @@ if (isCi) {
   process.env.NO_COLOR = '1';
 }
 
+// One-shot mode: `daedalus --goal "..."` or `daedalus run "..."` runs exactly
+// one autonomous turn then exits. Non-interactive by design (headless/CI/batch).
+// (A bare positional arg is intentionally NOT a goal — it is handled separately
+// as a file to open, see initialArgs below.)
+function parseGoalArg(argv: string[]): string | undefined {
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (a === '--goal' || a === '-g' || a === 'run') {
+      const next = argv[i + 1];
+      if (next && !next.startsWith('-')) return next;
+    } else if (a.startsWith('--goal=')) {
+      return a.slice('--goal='.length);
+    } else if (a.startsWith('-g=')) {
+      return a.slice('-g='.length);
+    }
+  }
+  return undefined;
+}
+const oneShotGoal = parseGoalArg(process.argv.slice(2));
+if (oneShotGoal !== undefined) {
+  // Force auto-approve so the single turn cannot stall on a plan/tool prompt.
+  process.env.DAEDALUS_AUTO_APPROVE = 'true';
+}
+
 const changelogPath = path.join(__dirname, '..', 'CHANGELOG.md');
 checkChangelogOnUpgrade(APP_VERSION, configDir, changelogPath);
 
@@ -608,11 +632,16 @@ async function main() {
         callModelWithFallback,
         getIndexDbPath,
         projectStackTags: [...classifyStack(sessionManager.projectRoot)],
+        oneShotGoal,
       });
     }
 
     try {
       await chatLoop();
+      if (oneShotGoal !== undefined) {
+        // One-shot mode completed its single turn — exit cleanly.
+        process.exit(0);
+      }
       break;
     } catch (err: unknown) {
       if (err instanceof Error && err.message === 'SWITCH_MODE_CLI') {

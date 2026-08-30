@@ -67,6 +67,13 @@ To launch with the interactive terminal dashboard layout:
 daedalus --tui
 ```
 
+To run a single autonomous task and exit (non-interactive / headless mode):
+```bash
+daedalus --goal "add a --dry-run flag to the build script and update the README"
+# also:  daedalus run "..."   (alias)
+```
+The one-shot run auto-approves plans and tool calls so it completes without waiting for stdin, then exits with the turn's result.
+
 On first run, Daedalus scans for local LLM servers and guides you through setup. If none are found, it prompts for a remote provider.
 
 From source: `git clone https://github.com/bgill55/daedalus.git && cd daedalus && npm install && npm run build`

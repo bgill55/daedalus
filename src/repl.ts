@@ -55,6 +55,10 @@ export interface ReplDeps {
   // Detected project stack tags (from classifyStack) used to bias the
   // first-turn prompt hint toward the active project. Empty when unknown.
   projectStackTags: string[];
+  // One-shot mode: when set, the REPL runs exactly one autonomous turn for the
+  // given goal and then exits (process.exit is driven by the caller). Non-
+  // interactive by design — used by `daedalus --goal "..."` / `daedalus run "..."`.
+  oneShotGoal?: string;
 }
 
 export function createRepl(deps: ReplDeps): () => Promise<void> {
@@ -63,8 +67,9 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
     messages, activeFiles, toolContext,
     getSystemPromptWithMemory,
     callModelWithTools, callModelWithFallback, getIndexDbPath,
-    projectStackTags,
-  } = deps;
+ projectStackTags,
+ oneShotGoal,
+ } = deps;
 
   let sessionId = sessionManager.sessionId;
 
@@ -247,40 +252,13 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
         }
       }
 
-      while (true) {
-        if (pendingNotifications.length > 0) {
-          console.log();
-          while (pendingNotifications.length > 0) {
-            console.log(warn(pendingNotifications.shift()!));
-          }
-        }
-        let prompt = `\n${brand('  ›')} `;
-        if (activeFiles.size > 0 || (config.ui.showTokens && messages.length > 1)) {
-          const fileStr = activeFiles.size > 0 ? `${activeFiles.size} file${activeFiles.size > 1 ? 's' : ''}` : '';
-          let tokenStr = '';
-          if (config.ui.showTokens) {
-            const tokens = calculateSessionTokens(messages, buildFileContext());
-            const total = tokens.total;
-            tokenStr = total >= 1000 ? `${(total / 1000).toFixed(1)}kt` : `${total}t`;
-          }
-          const separator = fileStr && tokenStr ? ' · ' : '';
-          prompt += dim(`[${fileStr}${separator}${tokenStr}] `);
-        }
-        prompt += `${pc.bold(pc.white('›'))} `;
-        // autoApprovePlans: when a synthetic "Yes" was queued (the assistant asked
-        // to proceed with a plan), consume it instead of blocking on stdin — this is
-        // what makes headless/CI runs complete without stalling on an approval prompt.
-        let trimmedInput: string;
-        if (syntheticInput !== null) {
-          trimmedInput = syntheticInput;
-          syntheticInput = null;
-          console.log(pc.gray(`  [AUTO-APPROVE] Plan approved (autoApprovePlans) — proceeding.`));
-        } else {
-          const input = await readMultiLineInput(prompt);
-          trimmedInput = input.trim();
-        }
-        if (!trimmedInput) continue;
-        appendHistory(trimmedInput);
+      const runOneTurn = async (rawInput: string): Promise<void> => {
+        const trimmedInput = rawInput.trim();
+        if (!trimmedInput) return;
+
+        // In one-shot mode, treat a proposed plan as auto-approved so the single
+        // turn cannot stall waiting for stdin (mirrors safety.autoApprovePlans).
+        const oneShot = oneShotGoal !== undefined;
 
         resetTurnAborted();
         toolContext.autoApproveTools = false;
@@ -310,9 +288,7 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
 
         // Try executing as command first
         const wasCommand = await executeCommand(trimmedInput, cmdContext);
-        if (wasCommand) {
-          continue;
-        }
+        if (wasCommand) return;
 
         // User Message Processing (regular assistant chat)
         let activePrompt = trimmedInput;
@@ -343,7 +319,7 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
           // autoApprovePlans: if the assistant just proposed a plan and asked for
           // approval, queue a synthetic "Yes" so the next loop iteration proceeds
           // without waiting for stdin. Headless/CI runs complete autonomously.
-          if (config.safety?.autoApprovePlans) {
+          if (config.safety?.autoApprovePlans || oneShot) {
             const lastAssistant = messages.filter(m => m.role === 'assistant').pop()?.content;
             const lastText = typeof lastAssistant === 'string' ? lastAssistant : JSON.stringify(lastAssistant ?? '');
             if (/Would you like me to proceed with this plan\?|proceed with (the|this) plan/i.test(lastText)) {
@@ -384,6 +360,51 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
           }
         }
         turnSeparator();
+      };
+
+      // One-shot mode: run exactly one autonomous turn for the goal, then return.
+      // The caller (index.ts) performs process.exit after chatLoop resolves.
+      if (oneShotGoal !== undefined) {
+        await runOneTurn(oneShotGoal);
+        return;
+      }
+
+      while (true) {
+        if (pendingNotifications.length > 0) {
+          console.log();
+          while (pendingNotifications.length > 0) {
+            console.log(warn(pendingNotifications.shift()!));
+          }
+        }
+        let prompt = `\n${brand('  ›')} `;
+        if (activeFiles.size > 0 || (config.ui.showTokens && messages.length > 1)) {
+          const fileStr = activeFiles.size > 0 ? `${activeFiles.size} file${activeFiles.size > 1 ? 's' : ''}` : '';
+          let tokenStr = '';
+          if (config.ui.showTokens) {
+            const tokens = calculateSessionTokens(messages, buildFileContext());
+            const total = tokens.total;
+            tokenStr = total >= 1000 ? `${(total / 1000).toFixed(1)}kt` : `${total}t`;
+          }
+          const separator = fileStr && tokenStr ? ' · ' : '';
+          prompt += dim(`[${fileStr}${separator}${tokenStr}] `);
+        }
+        prompt += `${pc.bold(pc.white('›'))} `;
+        // autoApprovePlans: when a synthetic "Yes" was queued (the assistant asked
+        // to proceed with a plan), consume it instead of blocking on stdin — this is
+        // what makes headless/CI runs complete without stalling on an approval prompt.
+        let trimmedInput: string;
+        if (syntheticInput !== null) {
+          trimmedInput = syntheticInput;
+          syntheticInput = null;
+          console.log(pc.gray(`  [AUTO-APPROVE] Plan approved (autoApprovePlans) — proceeding.`));
+        } else {
+          const input = await readMultiLineInput(prompt);
+          trimmedInput = input.trim();
+        }
+        if (!trimmedInput) continue;
+        appendHistory(trimmedInput);
+
+        await runOneTurn(trimmedInput);
       }
     } finally {
       rl.close();
