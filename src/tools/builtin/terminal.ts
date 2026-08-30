@@ -474,6 +474,19 @@ export async function execute(args: { command: string; timeout?: number; workdir
     });
   }
 
+  // Gate: never let the shell print or write credential files (.env and friends).
+  // Blocks `cat .env`, `type .env`, `echo x >> .env`, `tee .env`, etc. — defense
+  // in depth so a missed secret-detector pattern can't surface tokens via terminal.
+  if (/\.(env(\.[a-z0-9]+)?|npmrc|netrc|aws[\\/]credentials|service-account\.json|credentials\.(json|yml)|secrets\.json|id_(rsa|ed25519|ecdsa)|known_hosts)\b/i.test(command)) {
+    return Promise.resolve({
+      toolCallId: '',
+      name: 'terminal',
+      success: false,
+      content: '',
+      error: 'Refusing to run a command that targets a credential file (.env, .npmrc, .netrc, SSH keys, service-account, etc.). Secrets must stay in gitignored env files, not in terminal output or written via the shell.',
+    });
+  }
+
   // Gate: third-party install commands require user confirmation
   if (INSTALL_COMMAND_RE.test(command)) {
     if (process.env.DAEDALUS_ALLOW_INSTALL === 'true' || process.env.DAEDALUS_AUTO_APPROVE === 'true') {

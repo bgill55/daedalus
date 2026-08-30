@@ -38,6 +38,34 @@ const MANIFEST_BASENAMES = new Set([
   'pom.xml', 'build.gradle', 'build.gradle.kts',
 ]);
 
+// Credential/secret filenames that must never be read into or written through
+// the agent context, even with secret masking. A missed detector pattern would
+// otherwise leak them.
+const SECRET_FILENAMES = new Set([
+  '.env',
+  '.env.local',
+  '.env.development',
+  '.env.production',
+  '.env.test',
+  'credentials.json',
+  'credentials.yml',
+  'secrets.json',
+  'service-account.json',
+  'id_rsa',
+  'id_ed25519',
+  'id_ecdsa',
+  'known_hosts',
+  '.npmrc',
+  '.netrc',
+  '.aws/credentials',
+]);
+
+function isSecretFile(p: string): boolean {
+  const base = path.basename(p.trim()).toLowerCase();
+  if (base === '.env' || base.startsWith('.env.')) return true;
+  return SECRET_FILENAMES.has(base);
+}
+
 function checkpointNote(targetPath: string, projectRoot: string): string {
   const base = path.basename(targetPath);
   if (!MANIFEST_BASENAMES.has(base) && !base.endsWith('.csproj')) return '';
@@ -51,6 +79,12 @@ function checkpointNote(targetPath: string, projectRoot: string): string {
 function resolvePath(p: string, projectRoot: string): string {
   if (!p) {
     throw new Error('Path argument is empty or undefined');
+  }
+
+  // Refuse to access credential files. Secrets must stay in gitignored env
+  // files, not in the agent context or written through the agent.
+  if (isSecretFile(p)) {
+    throw new Error(`Refusing to access credential file: ${path.basename(p.trim())}. Secrets must stay in gitignored env files, not in the agent context.`);
   }
 
   // Strip surrounding quotes or whitespace if injected by LLM tool arguments

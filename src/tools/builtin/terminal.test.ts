@@ -387,6 +387,15 @@ describe('terminal execute', () => {
     }
   });
 
+  it('refuses to run commands targeting credential files (.env, keys)', async () => {
+    const ctx = makeContext();
+    for (const cmd of ['cat .env', 'type .env', 'echo x >> .env', 'tee .env', 'cat .npmrc']) {
+      const result = await execute({ command: cmd }, ctx);
+      expect(result.success).toBe(false);
+      expect(result.error).toMatch(/credential file/i);
+    }
+  });
+
   it('trips circuit breaker after 2 consecutive failures of the same command prefix', async () => {
     const ctx = makeContext();
     ctx.terminalFailureStreak = new Map<string, number>();

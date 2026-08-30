@@ -337,6 +337,21 @@ describe('patchFile — circuit breaker', () => {
     const ok = await patchFile({ path: file, old_string: 'const x = 1;', new_string: 'const x = 2;' }, ctx);
     expect(ok.success).toBe(true);
   });
+
+  it('refuses to read .env / credential files', async () => {
+    fs.writeFileSync(path.join(tmpDir, '.env'), 'GITHUB_TOKEN=github_pat_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n');
+    const ctx = makeContextWithRead(tmpDir, []);
+    const result = await readFile({ path: '.env' }, ctx);
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/credential file/i);
+  });
+
+  it('refuses to write .env / credential files', async () => {
+    const ctx = makeContextWithRead(tmpDir, []);
+    const result = await writeFile({ path: '.env', content: 'GITHUB_TOKEN=github_pat_xxx' }, ctx);
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/credential file/i);
+  });
 });
 
 describe('writeFile — import existence validation', () => {
