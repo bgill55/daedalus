@@ -1,3 +1,10 @@
+# [3.58.0](https://github.com/bgill55/daedalus/compare/v3.57.0...v3.58.0) (2026-08-30)
+
+
+### Features
+
+* **sigma-mem:** CritICL-inspired failure-mode critique injection ([#171](https://github.com/bgill55/daedalus/issues/171) follow-up) ([5beb18d](https://github.com/bgill55/daedalus/commit/5beb18d7d9d3a6d2c78727b8955dcfde0a41f6ee))
+
 # [3.57.0](https://github.com/bgill55/daedalus/compare/v3.56.0...v3.57.0) (2026-08-30)
 
 
