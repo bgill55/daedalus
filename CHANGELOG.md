@@ -1,3 +1,10 @@
+# [3.57.0](https://github.com/bgill55/daedalus/compare/v3.56.0...v3.57.0) (2026-08-30)
+
+
+### Features
+
+* **commands:** guard /help categorization so new commands can't ship undocumented ([#171](https://github.com/bgill55/daedalus/issues/171) E) ([e83f449](https://github.com/bgill55/daedalus/commit/e83f4490120c195ecf2a85452f0c2ab7abf0126a))
+
 # [3.56.0](https://github.com/bgill55/daedalus/compare/v3.55.0...v3.56.0) (2026-08-30)
 
 
