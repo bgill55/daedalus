@@ -171,6 +171,8 @@ export function initProjectMemDb(dbPath: string): Database.Database {
       sigma_score REAL NOT NULL DEFAULT 0.70,
       usefulness_count INTEGER DEFAULT 0,
       decay_count INTEGER DEFAULT 0,
+      verified_pass INTEGER DEFAULT 0,
+      verified_fail INTEGER DEFAULT 0,
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
     );
@@ -182,6 +184,12 @@ export function initProjectMemDb(dbPath: string): Database.Database {
   if (!cols.some((col) => col.name === 'content_hash')) {
     db.exec('ALTER TABLE sigma_memories ADD COLUMN content_hash TEXT');
     db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_sigma_content_hash ON sigma_memories(content_hash) WHERE content_hash IS NOT NULL');
+  }
+  if (!cols.some((col) => col.name === 'verified_pass')) {
+    db.exec('ALTER TABLE sigma_memories ADD COLUMN verified_pass INTEGER DEFAULT 0');
+  }
+  if (!cols.some((col) => col.name === 'verified_fail')) {
+    db.exec('ALTER TABLE sigma_memories ADD COLUMN verified_fail INTEGER DEFAULT 0');
   }
 
   return db;
@@ -343,14 +351,16 @@ export interface SqliteSigmaMemory {
   sigma_score: number;
   usefulness_count: number;
   decay_count: number;
+  verified_pass: number;
+  verified_fail: number;
   created_at: number;
   updated_at: number;
 }
 
 export function saveSigmaMemory(db: Database.Database, mem: SqliteSigmaMemory): void {
   db.prepare(`
-    INSERT INTO sigma_memories (id, agent_role, category, tags, summary, content, content_hash, sigma_score, usefulness_count, decay_count, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO sigma_memories (id, agent_role, category, tags, summary, content, content_hash, sigma_score, usefulness_count, decay_count, verified_pass, verified_fail, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       tags = excluded.tags,
       summary = excluded.summary,
@@ -358,10 +368,12 @@ export function saveSigmaMemory(db: Database.Database, mem: SqliteSigmaMemory): 
       sigma_score = excluded.sigma_score,
       usefulness_count = excluded.usefulness_count,
       decay_count = excluded.decay_count,
+      verified_pass = excluded.verified_pass,
+      verified_fail = excluded.verified_fail,
       updated_at = excluded.updated_at
   `).run(
     mem.id, mem.agent_role, mem.category, mem.tags, mem.summary, mem.content, mem.content_hash,
-    mem.sigma_score, mem.usefulness_count, mem.decay_count, mem.created_at, mem.updated_at
+    mem.sigma_score, mem.usefulness_count, mem.decay_count, mem.verified_pass, mem.verified_fail, mem.created_at, mem.updated_at
   );
 }
 
@@ -389,10 +401,24 @@ export function getSigmaMemories(db: Database.Database, minScore: number = 0.60,
     .filter((m) => m.sigma_score >= minScore)
     .sort((a, b) =>
       b.sigma_score - a.sigma_score ||
+      verifiedPassRate(b) - verifiedPassRate(a) ||
       b.usefulness_count - a.usefulness_count ||
       b.updated_at - a.updated_at
     )
     .slice(0, limit);
+}
+
+/**
+ * Verified pass-rate for a memory: verified_pass / (verified_pass + verified_fail).
+ * Returns 0 when there are no verified outcomes yet (neither confirmed nor
+ * contradicted) so it acts as a neutral tiebreaker and never inflates a memory
+ * that has only been recorded/recalled but never outcome-graded. Reliability
+ * itself still flows through sigma_score (reward/penalize); this rate is only a
+ * ranking tiebreaker among equally-scored memories — it never moves sigma_score.
+ */
+export function verifiedPassRate(m: SqliteSigmaMemory): number {
+  const total = m.verified_pass + m.verified_fail;
+  return total === 0 ? 0 : m.verified_pass / total;
 }
 
 /**
@@ -425,6 +451,7 @@ export function updateSigmaScore(db: Database.Database, id: string, scoreDelta: 
       UPDATE sigma_memories
       SET sigma_score = ROUND(MIN(1.0, sigma_score + ?), 4),
           usefulness_count = usefulness_count + 1,
+          verified_pass = verified_pass + 1,
           updated_at = ?
       WHERE id = ?
     `).run(scoreDelta, now, id);
@@ -433,6 +460,7 @@ export function updateSigmaScore(db: Database.Database, id: string, scoreDelta: 
       UPDATE sigma_memories
       SET sigma_score = ROUND(MAX(0.0, sigma_score * ?), 4),
           decay_count = decay_count + 1,
+          verified_fail = verified_fail + 1,
           updated_at = ?
       WHERE id = ?
     `).run(scoreDelta, now, id);

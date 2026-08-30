@@ -169,6 +169,91 @@ describe('SigmaMemEngine (Σ-Mem)', () => {
     expect(after.sigma_score).toBe(0.80);
   });
 
+  it('records verified_pass / verified_fail counts on reward and penalize (does NOT move sigma_score by them)', () => {
+    const mem = SigmaMemEngine.recordVerifiedKnowledge(db, {
+      agentRole: 'coder', category: 'build_rule', tags: ['lint'],
+      summary: 'Run lint before commit', content: 'Run npm run lint.',
+    });
+    expect(mem.verified_pass).toBe(0);
+    expect(mem.verified_fail).toBe(0);
+
+    SigmaMemEngine.rewardSuccessfulPass(db, [mem.id]);
+    let after = getSigmaMemories(db, 0.0).find((m) => m.id === mem.id)!;
+    expect(after.verified_pass).toBe(1);
+    expect(after.verified_fail).toBe(0);
+    expect(after.sigma_score).toBe(0.80);
+
+    SigmaMemEngine.rewardSuccessfulPass(db, [mem.id]);
+    after = getSigmaMemories(db, 0.0).find((m) => m.id === mem.id)!;
+    expect(after.verified_pass).toBe(2);
+    expect(after.sigma_score).toBe(0.90);
+
+    SigmaMemEngine.penalizeFailedAttempt(db, [mem.id]);
+    after = getSigmaMemories(db, 0.0).find((m) => m.id === mem.id)!;
+    expect(after.verified_fail).toBe(1);
+    // 0.90 * 0.70 = 0.63
+    expect(after.sigma_score).toBeCloseTo(0.63, 4);
+    // verified_pass is preserved across the failure (history, not a reset)
+    expect(after.verified_pass).toBe(2);
+  });
+
+  it('re-recording carries verified counts forward (no reset on re-observation)', () => {
+    const mem = SigmaMemEngine.recordVerifiedKnowledge(db, {
+      agentRole: 'debugger', category: 'fix_resolution', tags: ['express'],
+      summary: 'Express static path fix', content: 'Use path.join(process.cwd(), "public")',
+    });
+    SigmaMemEngine.rewardSuccessfulPass(db, [mem.id]);
+    SigmaMemEngine.rewardSuccessfulPass(db, [mem.id]);
+    let after = getSigmaMemories(db, 0.0).find((m) => m.id === mem.id)!;
+    expect(after.verified_pass).toBe(2);
+
+    // Re-record (e.g. observed again in a later task) must NOT wipe the history.
+    const again = SigmaMemEngine.recordVerifiedKnowledge(db, {
+      agentRole: 'debugger', category: 'fix_resolution', tags: ['express'],
+      summary: 'Express static path fix', content: 'Use path.join(process.cwd(), "public")',
+    });
+    expect(again.verified_pass).toBe(2);
+    expect(again.verified_fail).toBe(0);
+    expect(again.usefulness_count).toBe(after.usefulness_count + 1);
+    expect(again.sigma_score).toBe(after.sigma_score);
+  });
+
+  it('ranking breaks ties between equal Σ-Scores by verified pass-rate', () => {
+    // Two memories with identical scores; the higher pass-rate should rank first.
+    const highRate = SigmaMemEngine.recordVerifiedKnowledge(db, {
+      agentRole: 'coder', category: 'code_pattern', tags: ['ts'],
+      summary: 'High-rate rule', content: 'Always prefer guards.', initialScore: 0.80,
+    });
+    const lowRate = SigmaMemEngine.recordVerifiedKnowledge(db, {
+      agentRole: 'coder', category: 'code_pattern', tags: ['ts'],
+      summary: 'Low-rate rule', content: 'Avoid any().', initialScore: 0.80,
+    });
+    SigmaMemEngine.rewardSuccessfulPass(db, [highRate.id]);
+    SigmaMemEngine.rewardSuccessfulPass(db, [highRate.id]);
+    SigmaMemEngine.rewardSuccessfulPass(db, [highRate.id]);
+    SigmaMemEngine.penalizeFailedAttempt(db, [lowRate.id]); // 0.80*0.70 = 0.56 -> below 0.60!
+
+    // lowRate dropped to 0.56 (below default 0.60 min), so only highRate survives.
+    const ctx = SigmaMemEngine.getPromptContext(db, 'coder', 0.60, 6, ['ts']);
+    expect(ctx.activeMemoryIds).toContain(highRate.id);
+    expect(ctx.activeMemoryIds).not.toContain(lowRate.id);
+
+    // At a low minScore both survive; high-rate (3✓/0✗) must outrank low-rate (0✓/1✗)
+    // despite identical starting sigma (the pass-rate tiebreaker).
+    const ctx2 = SigmaMemEngine.getPromptContext(db, 'coder', 0.0, 6, ['ts']);
+    expect(ctx2.activeMemoryIds[0]).toBe(highRate.id);
+  });
+
+  it('verified pass-rate is 0 (neutral) when no outcome has been recorded', () => {
+    const mem = SigmaMemEngine.recordVerifiedKnowledge(db, {
+      agentRole: 'coder', category: 'code_pattern', tags: ['ts'],
+      summary: 'Neutral rule', content: 'Be consistent.',
+    });
+    const after = getSigmaMemories(db, 0.0).find((m) => m.id === mem.id)!;
+    expect(after.verified_pass).toBe(0);
+    expect(after.verified_fail).toBe(0);
+  });
+
 
   it('matchTags prioritizes memories with overlapping tags, then falls back to best global', () => {
     const a = SigmaMemEngine.recordVerifiedKnowledge(db, {

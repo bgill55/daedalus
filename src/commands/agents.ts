@@ -1493,7 +1493,10 @@ export const agentCommands: Command[] = [
         const scorePct = (m.sigma_score * 100).toFixed(0);
         const scoreColor = m.sigma_score >= 0.8 ? pc.green : m.sigma_score >= 0.6 ? pc.cyan : pc.yellow;
         console.log(`  ${scoreColor(`[Σ-Score: ${scorePct}%]`)} ${pc.bold(`[${roleLabel(m.agent_role).toUpperCase()}]`)} ${m.summary}`);
-        console.log(pc.dim(`    Used: ${m.usefulness_count} | Decays: ${m.decay_count} | Content: ${m.content.slice(0, 100)}...`));
+        const verified = m.verified_pass + m.verified_fail > 0
+          ? ` | Verified: ${m.verified_pass}✓/${m.verified_fail}✗`
+          : '';
+        console.log(pc.dim(`    Used: ${m.usefulness_count} | Decays: ${m.decay_count}${verified} | Content: ${m.content.slice(0, 100)}...`));
         console.log();
       }
       console.log(pc.bold('===================================================\n'));

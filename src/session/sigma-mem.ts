@@ -11,6 +11,7 @@ import {
   markMemoriesUsed,
   initProjectMemDb,
   pruneLowSigmaMemories,
+  verifiedPassRate,
   SqliteSigmaMemory,
 } from './sqlite.js';
 import { getProjectHash } from '../project-hash.js';
@@ -62,8 +63,12 @@ export class SigmaMemEngine {
         // Re-recording a memory (e.g. from a failed-but-retried task) used to inflate
         // sigma_score by +0.05 here, letting a broken memory climb to 100% on frequency
         // alone. usefulness_count still increments as a retrieval tiebreaker only.
+        // verified_pass/verified_fail are CARRIED FORWARD (not reset) — re-recording is
+        // a re-observation, not a new outcome, so the verified history must persist.
         sigma_score: existing.sigma_score,
         usefulness_count: existing.usefulness_count + 1,
+        verified_pass: existing.verified_pass,
+        verified_fail: existing.verified_fail,
         updated_at: now,
       };
       saveSigmaMemory(db, refreshed);
@@ -82,6 +87,8 @@ export class SigmaMemEngine {
       sigma_score: opts.initialScore ?? 0.70,
       usefulness_count: 1,
       decay_count: 0,
+      verified_pass: 0,
+      verified_fail: 0,
       created_at: now,
       updated_at: now,
     };
@@ -132,7 +139,12 @@ export class SigmaMemEngine {
 
     const lines = selected.map((m) => {
       const scorePct = Math.round(m.sigma_score * 100);
-      return `• [Σ-Score: ${scorePct}%] [${roleLabel(m.agent_role).toUpperCase()}] ${m.summary}\n  ${m.content.trim()}`;
+      let verdict = '';
+      if (m.verified_pass > 0 || m.verified_fail > 0) {
+        const rate = Math.round(verifiedPassRate(m) * 100);
+        verdict = ` [verified: ${m.verified_pass}✓/${m.verified_fail}✗ · ${rate}%]`;
+      }
+      return `• [Σ-Score: ${scorePct}%] [${roleLabel(m.agent_role).toUpperCase()}] ${m.summary}${verdict}\n  ${m.content.trim()}`;
     });
 
     const prompt = `\n--- Σ-Mem Verified Team Memory (Reliability-Scored Knowledge) ---\n${lines.join('\n\n')}\n--- End Σ-Mem ---\n`;
@@ -178,6 +190,7 @@ export class SigmaMemEngine {
       .sort((a, b) =>
         b.overlap - a.overlap ||
         b.m.sigma_score - a.m.sigma_score ||
+        verifiedPassRate(b.m) - verifiedPassRate(a.m) ||
         b.m.usefulness_count - a.m.usefulness_count ||
         b.m.updated_at - a.m.updated_at
       )
@@ -187,6 +200,7 @@ export class SigmaMemEngine {
       .filter((m) => countOverlap(m) === 0)
       .sort((a, b) =>
         b.sigma_score - a.sigma_score ||
+        verifiedPassRate(b) - verifiedPassRate(a) ||
         b.usefulness_count - a.usefulness_count ||
         b.updated_at - a.updated_at
       );
