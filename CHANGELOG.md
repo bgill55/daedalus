@@ -1,3 +1,11 @@
+# [3.55.0](https://github.com/bgill55/daedalus/compare/v3.54.1...v3.55.0) (2026-08-30)
+
+
+### Features
+
+* **cli:** one-shot --goal mode for non-interactive / headless runs ([#171](https://github.com/bgill55/daedalus/issues/171) A) ([67b254b](https://github.com/bgill55/daedalus/commit/67b254b9515f5183c97194ccc28bd27e22afe07a))
+* **router:** fall through to an independent provider when a pool is rate-limited or 429s ([5d52b1c](https://github.com/bgill55/daedalus/commit/5d52b1ce316968978779991bc1d62f5168d02641)), closes [#171](https://github.com/bgill55/daedalus/issues/171)
+
 ## [3.54.1](https://github.com/bgill55/daedalus/compare/v3.54.0...v3.54.1) (2026-08-30)
 
 
