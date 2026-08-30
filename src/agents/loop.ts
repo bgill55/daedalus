@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 import { execSafe } from '../utils/spawn.js';
 import pc from 'picocolors';
 import { ToolContext, messageText } from '../types.js';
@@ -31,7 +32,7 @@ interface GitHubIssue {
   body?: string;
 }
 
-dotenv.config();
+dotenv.config({ path: path.join(os.homedir(), '.daedalus', '.env'), quiet: true });
 
 import { errMessage } from '../utils/errors.js';
 
