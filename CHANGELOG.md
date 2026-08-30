@@ -1,3 +1,10 @@
+## [3.54.1](https://github.com/bgill55/daedalus/compare/v3.54.0...v3.54.1) (2026-08-30)
+
+
+### Bug Fixes
+
+* **docs:** register /scan-ai-repos in the /help command category listing ([7c01409](https://github.com/bgill55/daedalus/commit/7c014098f6add891cb5cc588674f2fe629504e8c))
+
 # [3.54.0](https://github.com/bgill55/daedalus/compare/v3.53.15...v3.54.0) (2026-08-30)
 
 
