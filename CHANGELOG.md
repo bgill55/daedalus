@@ -1,3 +1,10 @@
+## [3.53.13](https://github.com/bgill55/daedalus/compare/v3.53.12...v3.53.13) (2026-08-30)
+
+
+### Bug Fixes
+
+* **security:** harden file + terminal tools to refuse credential files ([2553ab3](https://github.com/bgill55/daedalus/commit/2553ab3556cd88916720fa13b073603b38316e4a))
+
 ## [3.53.12](https://github.com/bgill55/daedalus/compare/v3.53.11...v3.53.12) (2026-08-30)
 
 
