@@ -1497,6 +1497,9 @@ export const agentCommands: Command[] = [
           ? ` | Verified: ${m.verified_pass}✓/${m.verified_fail}✗`
           : '';
         console.log(pc.dim(`    Used: ${m.usefulness_count} | Decays: ${m.decay_count}${verified} | Content: ${m.content.slice(0, 100)}...`));
+        if (m.critique && m.critique.trim()) {
+          console.log(pc.dim(`    ${pc.yellow('AVOID critique:')} ${m.critique.trim().slice(0, 160)}`));
+        }
         console.log();
       }
       console.log(pc.bold('===================================================\n'));

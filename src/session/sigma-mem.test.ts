@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import Database from 'better-sqlite3';
-import { initProjectMemDb, getSigmaMemories } from './sqlite.js';
+import { initProjectMemDb, getSigmaMemories, getTopFailureCritiques } from './sqlite.js';
 import { SigmaMemEngine } from './sigma-mem.js';
 
 describe('SigmaMemEngine (Σ-Mem)', () => {
@@ -360,4 +360,61 @@ describe('SigmaMemEngine (Σ-Mem)', () => {
     expect(memories[0].summary).toBe('Always run lint before commit');
     db2.close();
   });
+
+  // ===== CritICL-inspired failure-mode critique injection =====
+
+  it('penalizeFailedAttempt records a critique without moving sigma_score', () => {
+    const mem = SigmaMemEngine.recordVerifiedKnowledge(db, {
+      agentRole: 'coder', category: 'build_rule', tags: ['lint'],
+      summary: 'Run lint before commit', content: 'Run npm run lint.',
+    });
+    SigmaMemEngine.rewardSuccessfulPass(db, [mem.id]); // 0.80
+    SigmaMemEngine.penalizeFailedAttempt(db, [mem.id], 'Do NOT run lint with --fix, it rewrites unrelated files');
+
+    const after = getSigmaMemories(db, 0.0).find((m) => m.id === mem.id)!;
+    expect(after.critique).toContain('Do NOT run lint with --fix');
+    expect(after.verified_fail).toBe(1);
+    // critique does NOT alter reliability — still 0.80 * 0.70
+    expect(after.sigma_score).toBeCloseTo(0.56, 4);
+  });
+
+  it('a failed memory with a critique surfaces in the AVOID block of getPromptContext', () => {
+    const mem = SigmaMemEngine.recordVerifiedKnowledge(db, {
+      agentRole: 'debugger', category: 'fix_resolution', tags: ['ts'],
+      summary: 'Avoid any() on arrays', content: 'Prefer a typed find.',
+    });
+    SigmaMemEngine.penalizeFailedAttempt(db, [mem.id], 'any() skips the narrowing check and hides type errors');
+
+    const { prompt } = SigmaMemEngine.getPromptContext(db, 'debugger', 0.0, 6);
+    expect(prompt).toContain('--- Σ-Mem Failure Mode Critiques (AVOID');
+    expect(prompt).toContain('AVOID');
+    expect(prompt).toContain('any() skips the narrowing check');
+  });
+
+  it('AVOID block is absent when no memory has failed with a critique', () => {
+    SigmaMemEngine.recordVerifiedKnowledge(db, {
+      agentRole: 'coder', category: 'code_pattern', tags: ['ts'],
+      summary: 'Use type guards', content: 'Prefer guards.',
+    });
+    const { prompt } = SigmaMemEngine.getPromptContext(db, 'coder', 0.0, 6);
+    expect(prompt).not.toContain('Failure Mode Critiques (AVOID');
+  });
+
+  it('getTopFailureCritiques is bounded and only includes critiqued failures', () => {
+    for (let i = 0; i < 5; i++) {
+      const mem = SigmaMemEngine.recordVerifiedKnowledge(db, {
+        agentRole: 'coder', category: 'build_rule', tags: ['t' + i],
+        summary: `Rule ${i}`, content: `content ${i}`,
+      });
+      SigmaMemEngine.penalizeFailedAttempt(db, [mem.id], `failure reason ${i}`);
+    }
+    const top = getTopFailureCritiques(db, 3);
+    expect(top.length).toBe(3);
+    // all have a critique and a verified_fail
+    for (const m of top) {
+      expect(m.verified_fail).toBeGreaterThan(0);
+      expect(m.critique.trim().length).toBeGreaterThan(0);
+    }
+  });
 });
+

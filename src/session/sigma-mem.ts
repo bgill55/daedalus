@@ -11,6 +11,8 @@ import {
   markMemoriesUsed,
   initProjectMemDb,
   pruneLowSigmaMemories,
+  getTopFailureCritiques,
+  setCritique,
   verifiedPassRate,
   SqliteSigmaMemory,
 } from './sqlite.js';
@@ -38,6 +40,11 @@ export interface SigmaRecordOptions {
   summary: string;
   content: string;
   initialScore?: number;
+  // Optional critique: a steering note describing a known failure mode for this
+  // knowledge (CritICL-inspired). Stored on the memory and surfaced in the
+  // AVOID block so the agent is steered AWAY from verified mistakes. Never moves
+  // sigma_score.
+  critique?: string;
 }
 
 export class SigmaMemEngine {
@@ -69,6 +76,10 @@ export class SigmaMemEngine {
         usefulness_count: existing.usefulness_count + 1,
         verified_pass: existing.verified_pass,
         verified_fail: existing.verified_fail,
+        // critique is CARRIED FORWARD on re-record (a re-observation doesn't erase
+        // the known failure-mode steering note). It is only set/overwritten via
+        // penalizeFailedAttempt when a fresh failure reason is supplied.
+        critique: existing.critique,
         updated_at: now,
       };
       saveSigmaMemory(db, refreshed);
@@ -89,6 +100,7 @@ export class SigmaMemEngine {
       decay_count: 0,
       verified_pass: 0,
       verified_fail: 0,
+      critique: opts.critique ? maskSecrets(opts.critique) : '',
       created_at: now,
       updated_at: now,
     };
@@ -105,9 +117,16 @@ export class SigmaMemEngine {
   }
 
   /** Decay scores for memory IDs involved in a failed verification or patch rollback */
-  public static penalizeFailedAttempt(db: Database.Database, memoryIds: string[]): void {
+  public static penalizeFailedAttempt(db: Database.Database, memoryIds: string[], reason?: string): void {
     for (const id of memoryIds) {
       updateSigmaScore(db, id, 0.70, false); // Multiplies score by 0.70 (30% decay)
+      // CritICL-inspired: capture the failure as a steering critique so the agent is
+      // steered AWAY from this verified mistake next time. Writing a critique NEVER
+      // moves sigma_score — it only enriches the AVOID block. A later reason overrides
+      // the prior one (most recent failure is the most relevant steering note).
+      if (reason && reason.trim()) {
+        setCritique(db, id, maskSecrets(reason.trim()));
+      }
     }
     // Auto-prune any memories that drop below threshold
     pruneLowSigmaMemories(db, 0.20);
@@ -147,7 +166,22 @@ export class SigmaMemEngine {
       return `• [Σ-Score: ${scorePct}%] [${roleLabel(m.agent_role).toUpperCase()}] ${m.summary}${verdict}\n  ${m.content.trim()}`;
     });
 
-    const prompt = `\n--- Σ-Mem Verified Team Memory (Reliability-Scored Knowledge) ---\n${lines.join('\n\n')}\n--- End Σ-Mem ---\n`;
+    let prompt = `\n--- Σ-Mem Verified Team Memory (Reliability-Scored Knowledge) ---\n${lines.join('\n\n')}\n--- End Σ-Mem ---\n`;
+
+    // CritICL-inspired AVOID block: surface the top verified failure modes as
+    // steering critiques so the agent is steered AWAY from known, verified mistakes
+    // (not just down-weighted). This READS only and never touches sigma_score. It is
+    // bounded (top 3 by failure count) and only includes memories that actually failed
+    // verification AND carry a critique, so stale/noise critiques can't flood the prompt.
+    const avoid = getTopFailureCritiques(db, 3);
+    if (avoid.length > 0) {
+      const avoidLines = avoid.map((m) => {
+        const role = roleLabel(m.agent_role).toUpperCase();
+        return `• [AVOID · ${role} · ${m.verified_fail}✗] ${m.summary}\n  ${m.critique.trim()}`;
+      });
+      prompt += `\n--- Σ-Mem Failure Mode Critiques (AVOID — learned from verified failures) ---\n${avoidLines.join('\n\n')}\n--- End AVOID ---\n`;
+    }
+
     const activeMemoryIds = selected.map((m) => m.id);
 
     return { prompt, activeMemoryIds };

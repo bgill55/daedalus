@@ -173,6 +173,7 @@ export function initProjectMemDb(dbPath: string): Database.Database {
       decay_count INTEGER DEFAULT 0,
       verified_pass INTEGER DEFAULT 0,
       verified_fail INTEGER DEFAULT 0,
+      critique TEXT DEFAULT '',
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
     );
@@ -190,6 +191,9 @@ export function initProjectMemDb(dbPath: string): Database.Database {
   }
   if (!cols.some((col) => col.name === 'verified_fail')) {
     db.exec('ALTER TABLE sigma_memories ADD COLUMN verified_fail INTEGER DEFAULT 0');
+  }
+  if (!cols.some((col) => col.name === 'critique')) {
+    db.exec('ALTER TABLE sigma_memories ADD COLUMN critique TEXT DEFAULT \'\'');
   }
 
   return db;
@@ -353,14 +357,15 @@ export interface SqliteSigmaMemory {
   decay_count: number;
   verified_pass: number;
   verified_fail: number;
+  critique: string;
   created_at: number;
   updated_at: number;
 }
 
 export function saveSigmaMemory(db: Database.Database, mem: SqliteSigmaMemory): void {
   db.prepare(`
-    INSERT INTO sigma_memories (id, agent_role, category, tags, summary, content, content_hash, sigma_score, usefulness_count, decay_count, verified_pass, verified_fail, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO sigma_memories (id, agent_role, category, tags, summary, content, content_hash, sigma_score, usefulness_count, decay_count, verified_pass, verified_fail, critique, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       tags = excluded.tags,
       summary = excluded.summary,
@@ -370,10 +375,11 @@ export function saveSigmaMemory(db: Database.Database, mem: SqliteSigmaMemory): 
       decay_count = excluded.decay_count,
       verified_pass = excluded.verified_pass,
       verified_fail = excluded.verified_fail,
+      critique = excluded.critique,
       updated_at = excluded.updated_at
   `).run(
     mem.id, mem.agent_role, mem.category, mem.tags, mem.summary, mem.content, mem.content_hash,
-    mem.sigma_score, mem.usefulness_count, mem.decay_count, mem.verified_pass, mem.verified_fail, mem.created_at, mem.updated_at
+    mem.sigma_score, mem.usefulness_count, mem.decay_count, mem.verified_pass, mem.verified_fail, mem.critique, mem.created_at, mem.updated_at
   );
 }
 
@@ -419,6 +425,25 @@ export function getSigmaMemories(db: Database.Database, minScore: number = 0.60,
 export function verifiedPassRate(m: SqliteSigmaMemory): number {
   const total = m.verified_pass + m.verified_fail;
   return total === 0 ? 0 : m.verified_pass / total;
+}
+
+export function setCritique(db: Database.Database, id: string, critique: string): void {
+  db.prepare('UPDATE sigma_memories SET critique = ? WHERE id = ?').run(critique, id);
+}
+
+/**
+ * Top failure-mode critiques for AVOID-block injection (CritICL-inspired):
+ * returns memories with verified_fail > 0 that carry a non-empty critique,
+ * ranked by failure count (then recency), capped at `limit`. These are steering
+ * hints that steer the agent AWAY from known, verified mistakes. This query only
+ * READS — it never moves sigma_score. A memory qualifies only if it actually
+ * failed verification (verified_fail > 0) AND has a recorded critique.
+ */
+export function getTopFailureCritiques(db: Database.Database, limit: number = 3): SqliteSigmaMemory[] {
+  const rows = db.prepare('SELECT * FROM sigma_memories WHERE verified_fail > 0 AND critique IS NOT NULL AND critique != ?').all('') as SqliteSigmaMemory[];
+  return rows
+    .sort((a, b) => b.verified_fail - a.verified_fail || b.updated_at - a.updated_at)
+    .slice(0, limit);
 }
 
 /**
