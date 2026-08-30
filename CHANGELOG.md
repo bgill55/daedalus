@@ -1,3 +1,10 @@
+## [3.53.15](https://github.com/bgill55/daedalus/compare/v3.53.14...v3.53.15) (2026-08-30)
+
+
+### Bug Fixes
+
+* **security:** scope dotenv loading to ~/.daedalus, never the cwd .env ([72593a4](https://github.com/bgill55/daedalus/commit/72593a4363bb69c4d39f758761d471f06530866c))
+
 ## [3.53.14](https://github.com/bgill55/daedalus/compare/v3.53.13...v3.53.14) (2026-08-30)
 
 
