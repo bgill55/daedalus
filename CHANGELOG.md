@@ -1,3 +1,10 @@
+## [3.53.12](https://github.com/bgill55/daedalus/compare/v3.53.11...v3.53.12) (2026-08-30)
+
+
+### Bug Fixes
+
+* **security:** mask GitHub fine-grained PATs (github_pat_ prefix) ([a9391d4](https://github.com/bgill55/daedalus/commit/a9391d42563698bba845095caf2e55836ba954e9))
+
 ## [3.53.11](https://github.com/bgill55/daedalus/compare/v3.53.10...v3.53.11) (2026-08-29)
 
 
