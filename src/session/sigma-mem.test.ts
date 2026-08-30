@@ -416,5 +416,23 @@ describe('SigmaMemEngine (Σ-Mem)', () => {
       expect(m.critique.trim().length).toBeGreaterThan(0);
     }
   });
+
+  it('AVOID block still surfaces a freshly-penalized memory below minScore (critique reaches agent while mistake is fresh)', () => {
+    // Regression: a memory penalized right before the next turn sits at ~0.56, below
+    // the default 0.60 minScore. The AVOID block must NOT be gated by minScore — it is
+    // queried independently, because the failure is most useful as steering exactly then.
+    const mem = SigmaMemEngine.recordVerifiedKnowledge(db, {
+      agentRole: 'coder', category: 'build_rule', tags: ['ts'],
+      summary: 'Narrow the formatter return type', content: 'Return the union, not any.',
+    });
+    SigmaMemEngine.rewardSuccessfulPass(db, [mem.id]); // 0.80
+    SigmaMemEngine.penalizeFailedAttempt(db, [mem.id], 'error TS2322: not assignable to "json" | "csv"'); // -> 0.56
+
+    // minScore 0.60 would hide this memory from the positive-knowledge block, but the
+    // AVOID block must still deliver the critique.
+    const { prompt } = SigmaMemEngine.getPromptContext(db, 'coder', 0.60, 5);
+    expect(prompt).toContain('Failure Mode Critiques (AVOID');
+    expect(prompt).toContain('not assignable to "json" | "csv"');
+  });
 });
 

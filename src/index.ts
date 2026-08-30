@@ -376,7 +376,7 @@ async function callModelWithTools(userContent: string, imageBase64?: string): Pr
         if (buildResult.success) {
           SigmaMemEngine.rewardSuccessfulPass(sessionManager.projectMemDb, memoryIds);
         } else {
-          SigmaMemEngine.penalizeFailedAttempt(sessionManager.projectMemDb, memoryIds);
+          SigmaMemEngine.penalizeFailedAttempt(sessionManager.projectMemDb, memoryIds, buildResult.errorLogs?.slice(0, 280));
         }
       }
     } catch {

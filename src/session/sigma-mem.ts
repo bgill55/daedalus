@@ -152,7 +152,16 @@ export class SigmaMemEngine {
       matchTags && matchTags.length > 0
         ? SigmaMemEngine.rankByTagOverlap(filtered, matchTags).slice(0, limit)
         : filtered.slice(0, limit);
-    if (selected.length === 0) {
+    // CritICL-inspired AVOID block: surface the top verified failure modes as
+    // steering critiques so the agent is steered AWAY from known, verified mistakes
+    // (not just down-weighted). This READS only and never touches sigma_score. It is
+    // bounded (top 3 by failure count) and only includes memories that actually failed
+    // verification AND carry a critique, so stale/noise critiques can't flood the prompt.
+    // Queried INDEPENDENTLY of `selected` — a freshly-penalized memory (often below
+    // minScore right after a failure) must still reach the agent while the mistake is
+    // fresh, which is exactly when the steering matters most.
+    const avoid = getTopFailureCritiques(db, 3);
+    if (selected.length === 0 && avoid.length === 0) {
       return { prompt: '', activeMemoryIds: [] };
     }
 
@@ -166,14 +175,10 @@ export class SigmaMemEngine {
       return `• [Σ-Score: ${scorePct}%] [${roleLabel(m.agent_role).toUpperCase()}] ${m.summary}${verdict}\n  ${m.content.trim()}`;
     });
 
-    let prompt = `\n--- Σ-Mem Verified Team Memory (Reliability-Scored Knowledge) ---\n${lines.join('\n\n')}\n--- End Σ-Mem ---\n`;
+    let prompt = selected.length > 0
+      ? `\n--- Σ-Mem Verified Team Memory (Reliability-Scored Knowledge) ---\n${lines.join('\n\n')}\n--- End Σ-Mem ---\n`
+      : '';
 
-    // CritICL-inspired AVOID block: surface the top verified failure modes as
-    // steering critiques so the agent is steered AWAY from known, verified mistakes
-    // (not just down-weighted). This READS only and never touches sigma_score. It is
-    // bounded (top 3 by failure count) and only includes memories that actually failed
-    // verification AND carry a critique, so stale/noise critiques can't flood the prompt.
-    const avoid = getTopFailureCritiques(db, 3);
     if (avoid.length > 0) {
       const avoidLines = avoid.map((m) => {
         const role = roleLabel(m.agent_role).toUpperCase();

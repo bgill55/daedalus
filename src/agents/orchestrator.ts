@@ -1439,7 +1439,7 @@ export class Orchestrator {
       if (this.sessionManager?.projectMemDb) {
         const related = this.getTaskRelatedSigmaIds(this.sessionManager.projectMemDb, activeSigmaMemoryIds, task);
         if (related.length > 0) {
-          SigmaMemEngine.penalizeFailedAttempt(this.sessionManager.projectMemDb, related);
+          SigmaMemEngine.penalizeFailedAttempt(this.sessionManager.projectMemDb, related, task.error?.slice(0, 280));
         }
       }
 
