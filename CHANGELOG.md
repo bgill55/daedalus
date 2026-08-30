@@ -1,3 +1,10 @@
+# [3.54.0](https://github.com/bgill55/daedalus/compare/v3.53.15...v3.54.0) (2026-08-30)
+
+
+### Features
+
+* **scan-ai-repos:** built-in tool + /scan-ai-repos command, and fix piped multi-line truncation ([23bfe9a](https://github.com/bgill55/daedalus/commit/23bfe9a30c6e612ac479f29eaf175de16a89cca0)), closes [#175](https://github.com/bgill55/daedalus/issues/175)
+
 ## [3.53.15](https://github.com/bgill55/daedalus/compare/v3.53.14...v3.53.15) (2026-08-30)
 
 
