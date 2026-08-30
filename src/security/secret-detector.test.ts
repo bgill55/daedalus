@@ -15,6 +15,12 @@ describe('secret-detector', () => {
     expect(maskSecrets(`token ${t} end`)).toBe(`token ${REDACTED_SECRET} end`);
   });
 
+  it('masks github fine-grained PATs (github_pat_ prefix)', () => {
+    const t = tok('github_pat_', 82);
+    expect(maskSecrets(`GITHUB_TOKEN=${t}`)).toBe(`GITHUB_TOKEN=${REDACTED_SECRET}`);
+    expect(findSecrets(`GITHUB_TOKEN=${t}`)).toBe(true);
+  });
+
   it('masks openai sk- and sk-proj- keys', () => {
     expect(maskSecrets(`key ${tok('sk-proj-', 28)}`)).toBe(`key ${REDACTED_SECRET}`);
     expect(maskSecrets(`key ${tok('sk-', 22)}`)).toBe(`key ${REDACTED_SECRET}`);

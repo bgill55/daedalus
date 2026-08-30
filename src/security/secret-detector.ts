@@ -14,6 +14,8 @@ import { execSync } from 'child_process';
 const SECRET_PATTERNS: RegExp[] = [
   // GitHub personal access tokens (classic + fine-grained)
   /\bgh[pousr]_[A-Za-z0-9]{36,}\b/g,
+  // GitHub fine-grained PATs (github_pat_ prefix)
+  /\bgithub_pat_[A-Za-z0-9_]{20,}\b/g,
   // OpenAI
   /\bsk-(proj|ant)-[A-Za-z0-9_-]{20,}\b/g,
   /\bsk-[A-Za-z0-9]{20,}\b/g,
