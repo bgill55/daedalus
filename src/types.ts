@@ -98,6 +98,9 @@ export interface ToolContext {
   // so the SAME claim is not re-verified every turn (the "verify the same 5 items 4x"
   // token waste). Mirrors claimLedger/verifyBreakerTrippedLastTurn persistence.
   firedCompletionGuards?: Set<string>;
+  // Count of citation-guard challenges emitted this session (audit-hallucination hardening).
+  // Capped at 3 so a stubborn model cannot loop forever; naturally stops once a real file:line appears.
+  archGuardHits?: number;
   // Count of automatic self-corrections / auto-heals performed this turn/session
   selfCorrectionCount?: number;
   // Persisted across turns: true once we've escalated the model on a failure streak,

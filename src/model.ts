@@ -766,21 +766,31 @@ export function createModelFunctions(deps: ModelDeps) {
         // (architecture / type-safety / entry point / "no any leakage" / "patch tool used
         // for all modifications" / etc.) but cites NO source location must be challenged.
         // Vague, uncited praise is exactly what a self-audit fabricates; force a file:line or
-        // an explicit "this is a high-level impression" framing. Gated to reviews only.
-        if (isReviewTask(userTask)) {
+        // an explicit "this is a high-level impression" framing. Gate on the OUTPUT shape
+        // (isReviewDeliverable) so it fires whenever a review-shaped report is emitted,
+        // regardless of how the user phrased the request.
+        // NOTE: this guard must NOT use a permanent de-dup key. A model can dodge a one-shot
+        // warning by adding cosmetic labels ("... (Verified)") that are NOT citations — the
+        // guard would see it already fired and stay silent. Instead it re-fires whenever the
+        // content still makes uncited structural claims; CITATION_RE naturally stops it once
+        // a real file:line appears. Hard-cap retries so a stubborn model cannot loop forever.
+        if (isReviewTask(userTask) || isReviewDeliverable(cleanContent)) {
           const archTerm = isUncitedArchClaim(cleanContent);
           if (archTerm) {
-            const key = `arch:${archTerm}`;
-            if (toolContext.firedCompletionGuards?.has(key)) continue;
-            (toolContext.firedCompletionGuards ??= new Set<string>()).add(key);
-            console.log(dim(`\n  [CHECK] Review makes uncited structural claim "${archTerm}" (no file:line).`));
-            toolContext.selfCorrectionCount = (toolContext.selfCorrectionCount ?? 0) + 1;
-            messages.push({ role: 'assistant', content: cleanContent });
-            messages.push({
-              role: 'user',
-              content: uncitedArchClaimWarning(archTerm),
-            } as ChatMessage);
-            continue;
+            if ((toolContext.archGuardHits ?? 0) >= 3) {
+              // Give up gracefully: the model refuses to cite; let it finish but mark the cause.
+              toolContext.maxTurnsCause = 'repeated uncited architectural claims despite 3 citation warnings (audit guard)';
+            } else {
+              toolContext.archGuardHits = (toolContext.archGuardHits ?? 0) + 1;
+              console.log(dim(`\n  [CHECK] Review makes uncited structural claim "${archTerm}" (no file:line).`));
+              toolContext.selfCorrectionCount = (toolContext.selfCorrectionCount ?? 0) + 1;
+              messages.push({ role: 'assistant', content: cleanContent });
+              messages.push({
+                role: 'user',
+                content: uncitedArchClaimWarning(archTerm),
+              } as ChatMessage);
+              continue;
+            }
           }
         }
 
