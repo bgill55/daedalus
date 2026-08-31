@@ -695,6 +695,122 @@ export function uncitedArchClaimWarning(term: string): string {
   );
 }
 
+// Layer-1 citation validator (audit hardening — turns "citations required" into
+// "citations checked"). A cited `file:NN` is only as trustworthy as the file it points at.
+// This validator actually inspects the cited region and confirms the claim is *anchored* to
+// real code: the line is in range AND the claimed symbol/keyword actually appears near it.
+// It does NOT judge whether the prose interpretation of the line is correct — that is the
+// (costlier) LLM-as-judge layer. But it catches the most common fabrications: a wrong file,
+// a line number out of range, or a claimed symbol that isn't even in the file.
+//
+// Pure: callers inject a `readLines(path, fromLine, toLine)` reader so this stays testable
+// without touching the filesystem. Returned `CitationCheck` lists every cited anchor that
+// failed validation so the guard can force a correction.
+export interface CitationCheck {
+  file: string;
+  line: number;
+  reason: 'file-not-found' | 'line-out-of-range' | 'symbol-missing';
+  claimedSymbols: string[];
+}
+
+const CITATION_SCAN_RE =
+  /((?:[A-Za-z0-9_./\\@-]+\/)*[A-Za-z0-9_./\\@-]+\.(?:ts|tsx|js|jsx|mjs|py|go|rs|java|cs|rb|cpp|c|cc|h|hpp|json|md|yaml|yml)):(\d+)/gi;
+
+// Pull candidate symbol tokens from a sentence: identifiers (>=3 chars, not pure prose words
+// we expect in English). We keep camelCase/snake_case/PascalCase and dotted member accesses.
+const SYMBOL_TOKEN_RE = /[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*){0,2}/g;
+const STOPWORD_RE =
+  /^(the|a|an|and|or|but|for|with|from|that|this|these|those|its|their|our|you|your|we|is|are|was|were|be|been|has|have|had|of|to|in|on|at|by|as|it|he|she|they|not|no|yes|via|via|into|than|then|when|where|which|who|how|what|why|can|could|should|would|will|may|might|must|do|does|did|so|if|else|each|per|about|across|between|through|over|under|after|before|both|such|only|also|any|all|some|more|most|less|new|old|use|uses|used|using)$/i;
+
+function extractClaimedSymbols(claim: string, around: string): string[] {
+  const seen = new Set<string>();
+  for (const m of claim.match(SYMBOL_TOKEN_RE) ?? []) {
+    if (m.length < 3) continue;
+    if (STOPWORD_RE.test(m)) continue;
+    seen.add(m);
+  }
+  // Only keep symbols that actually appear in the cited region — those are the checkable ones.
+  const region = around.toLowerCase();
+  return [...seen].filter((s) => region.includes(s.toLowerCase()));
+}
+
+export interface CitationValidatorDeps {
+  // Given a repo-relative file path and a line window, return the lines (1-indexed inclusive)
+  // or null if the file cannot be read. The window is kept small (±12 lines) for cheap checks.
+  readLines: (file: string, fromLine: number, toLine: number) => string[] | null;
+}
+
+export function validateCitations(
+  text: string,
+  deps: CitationValidatorDeps,
+  window = 12,
+): CitationCheck[] {
+  if (!text || !deps?.readLines) return [];
+  const matches = [...text.matchAll(CITATION_SCAN_RE)];
+  const failures: CitationCheck[] = [];
+  const seenKeys = new Set<string>();
+  for (const m of matches) {
+    const file = m[1];
+    const line = parseInt(m[2], 10);
+    if (!Number.isFinite(line) || line < 1) continue;
+    const key = `${file}:${line}`;
+    if (seenKeys.has(key)) continue;
+    seenKeys.add(key);
+
+    // Pull the claim sentence this citation belongs to (up to the next blank line / header).
+    const idx = m.index ?? 0;
+    const start = text.lastIndexOf('\n', idx) + 1;
+    let end = text.indexOf('\n\n', idx);
+    if (end === -1) end = text.length;
+    const claim = text.slice(start, end);
+
+    const from = Math.max(1, line - window);
+    const to = line + window;
+    const regionLines = deps.readLines(file, from, to);
+    if (regionLines === null) {
+      failures.push({ file, line, reason: 'file-not-found', claimedSymbols: [] });
+      continue;
+    }
+    if (line > regionLines.length + (from - 1)) {
+      failures.push({ file, line, reason: 'line-out-of-range', claimedSymbols: [] });
+      continue;
+    }
+    const around = regionLines.join('\n');
+    const symbols = extractClaimedSymbols(claim, around);
+    if (symbols.length > 0) {
+      // Re-check against the *cited line specifically*, not just the window, to avoid
+      // accepting a symbol that appears far from the cited line.
+      const citedLine = regionLines[line - from] ?? '';
+      const onCitedLine = symbols.filter((s) => citedLine.toLowerCase().includes(s.toLowerCase()));
+      if (onCitedLine.length === 0) {
+        failures.push({ file, line, reason: 'symbol-missing', claimedSymbols: symbols });
+      }
+    }
+  }
+  return failures;
+}
+
+export function citationValidationWarning(failures: CitationCheck[]): string {
+  const lines = failures
+    .map((f) => {
+      const why =
+        f.reason === 'file-not-found'
+          ? `file not found`
+          : f.reason === 'line-out-of-range'
+            ? `line ${f.line} is out of range`
+            : `none of the claimed symbols (${f.claimedSymbols.join(', ')}) appear on the cited line`;
+      return `- ${f.file}:${f.line} — ${why}`;
+    })
+    .join('\n');
+  return (
+    `[SYSTEM WARNING] Your review cites source locations that do not check out against the actual ` +
+    `codebase:\n${lines}\nA citation is only trustworthy if it points at real code that supports the ` +
+    `claim. Either (1) re-read the cited file and fix the path/line so it anchors to the real symbol, ` +
+    `or (2) drop the citation and the unsupported claim. Do NOT present fabricated file:line references ` +
+    `as evidence.`
+  );
+}
+
 // Fix 3: Test-count claim without any npm test run this session.
 // The existing fabricatedTestCountCorrection guard only fires when lastActualPassCount is set
 // (i.e. a real npm test was observed). This companion guard fires unconditionally when the

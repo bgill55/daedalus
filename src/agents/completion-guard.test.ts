@@ -19,6 +19,8 @@ import {
   detectUngroundedWorksClaim,
   isUncitedArchClaim,
   uncitedArchClaimWarning,
+  validateCitations,
+  citationValidationWarning,
 } from './completion-guard.js';
 import type { SqliteTodo } from '../session/sqlite.js';
 
@@ -599,6 +601,71 @@ describe('Uncited architectural-claim guard (audit-hallucination hardening)', ()
     const w = uncitedArchClaimWarning('well-structured');
     expect(w).toContain('well-structured');
     expect(w).toContain('file:line');
+  });
+});
+
+describe('Citation validator (layer-1 audit hardening)', () => {
+  // Fake file store keyed by path; each value is the file's lines.
+  const files: Record<string, string[]> = {
+    'src/agents/orchestrator.ts': [
+      '// line 1',
+      'export const BUILTIN_TOOLS = [];',          // line 2
+      'function startLoopDaemon() {}',             // line 3
+      'const router = createRouter();',            // line 4
+    ],
+    'src/config/index.ts': [
+      '// header',
+      'export const ConfigSchema = z.object({});', // line 2
+    ],
+  };
+  const readLines = (file: string, from: number, to: number): string[] | null => {
+    const all = files[file];
+    if (!all) return null;
+    if (from < 1 || from > all.length) return [];
+    return all.slice(from - 1, to);
+  };
+
+  it('passes when a cited file:line anchors a real symbol', () => {
+    const report = 'Modular tooling: src/agents/orchestrator.ts:2 wires BUILTIN_TOOLS.';
+    expect(validateCitations(report, { readLines })).toEqual([]);
+  });
+
+  it('flags a citation to a non-existent file', () => {
+    const report = 'X is at src/missing/file.ts:5.';
+    const fails = validateCitations(report, { readLines });
+    expect(fails).toHaveLength(1);
+    expect(fails[0].reason).toBe('file-not-found');
+  });
+
+  it('flags a line number out of range', () => {
+    const report = 'Y at src/config/index.ts:99.';
+    const fails = validateCitations(report, { readLines });
+    expect(fails).toHaveLength(1);
+    expect(fails[0].reason).toBe('line-out-of-range');
+  });
+
+  it('flags when the claimed symbol is on a different line than the cited one', () => {
+    // BUILTIN_TOOLS exists in the file (line 2) but the citation points at line 4 (router),
+    // where BUILTIN_TOOLS does not appear — a fabricated anchor.
+    const report = 'Builtin tools are wired at src/agents/orchestrator.ts:4 via BUILTIN_TOOLS.';
+    const fails = validateCitations(report, { readLines });
+    expect(fails.length).toBeGreaterThanOrEqual(1);
+    expect(fails[0].reason).toBe('symbol-missing');
+    expect(fails[0].claimedSymbols).toContain('BUILTIN_TOOLS');
+  });
+
+  it('does not flag when no citations appear', () => {
+    expect(validateCitations('Just prose, no anchors.', { readLines })).toEqual([]);
+  });
+
+  it('produces a readable warning listing each failed anchor', () => {
+    const w = citationValidationWarning([
+      { file: 'a.ts', line: 5, reason: 'file-not-found', claimedSymbols: [] },
+      { file: 'b.ts', line: 9, reason: 'symbol-missing', claimedSymbols: ['Foo'] },
+    ]);
+    expect(w).toContain('a.ts:5');
+    expect(w).toContain('b.ts:9');
+    expect(w).toContain('Foo');
   });
 });
 

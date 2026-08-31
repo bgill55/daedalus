@@ -1,8 +1,10 @@
 import pc from 'picocolors';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { BUILTIN_TOOLS, POWER_TOOLS } from './tools/definitions.js';
 import { executeToolCalls } from './tools/executor.js';
 import { getSessionTodos } from './tools/builtin/todo.js';
-import { detectFalseCompletion, falseCompletionWarning, detectFalseCompletionOnDisk, isScopeOverstatedSummary, scopeOverstatementWarning, isUnsubstantiatedProgressReport, unsubstantiatedProgressWarning, countAchievementItems, ClaimLedger, detectUngroundedClaim, ungroundedClaimWarning, isGreenStateClaim, greenStateWarning, isUngroundedProjectClaim, ungroundedProjectClaimWarning, isNegativeExistenceClaim, negativeExistenceWarning, isReviewTask, isReviewDeliverable, reviewWithoutInspectionWarning, isReviewWithoutSourceInspection, reviewWithoutSourceInspectionWarning, claimedTestCountWithoutRun, claimedTestCountWithoutRunWarning, detectUngroundedWorksClaim, ungroundedWorksWarning, isUncitedArchClaim, uncitedArchClaimWarning, RUNTIME_EXERCISE_RE } from './agents/completion-guard.js';
+import { detectFalseCompletion, falseCompletionWarning, detectFalseCompletionOnDisk, isScopeOverstatedSummary, scopeOverstatementWarning, isUnsubstantiatedProgressReport, unsubstantiatedProgressWarning, countAchievementItems, ClaimLedger, detectUngroundedClaim, ungroundedClaimWarning, isGreenStateClaim, greenStateWarning, isUngroundedProjectClaim, ungroundedProjectClaimWarning, isNegativeExistenceClaim, negativeExistenceWarning, isReviewTask, isReviewDeliverable, reviewWithoutInspectionWarning, isReviewWithoutSourceInspection, reviewWithoutSourceInspectionWarning, claimedTestCountWithoutRun, claimedTestCountWithoutRunWarning, detectUngroundedWorksClaim, ungroundedWorksWarning, isUncitedArchClaim, uncitedArchClaimWarning, RUNTIME_EXERCISE_RE, validateCitations, citationValidationWarning } from './agents/completion-guard.js';
 import { ReadStallDetector, isGreenBuildTestClaim, fabricatedTestCountCorrection, DivergenceDetector, isStaleReadFailure } from './agents/loop-guards.js';
 import { mcpRegistry } from './tools/mcp/registry.js';
 import { DaedalusSpinner } from './tools/daedalus-spinner.js';
@@ -147,6 +149,9 @@ export interface ModelDeps {
   buildFileContext: () => string;
   askLine: (prompt: string) => Promise<string>;
   refreshSystemPrompt?: () => void;
+  // Repo root used to resolve repo-relative file:line citations during audit verification.
+  // Falls back to process.cwd() when not provided.
+  repoRoot?: string;
 }
 
 function ensureAbortController(): AbortController {
@@ -165,7 +170,23 @@ function clearAbortController(): void {
 
 // Streaming response handler with tool call support — iterative, not recursive
 export function createModelFunctions(deps: ModelDeps) {
-  const { messages, config, router, toolContext, buildFileContext, askLine, refreshSystemPrompt } = deps;
+  const { messages, config, router, toolContext, buildFileContext, askLine, refreshSystemPrompt, repoRoot } = deps;
+  const resolvedRepoRoot = repoRoot ?? process.cwd();
+
+  // Resolve a repo-relative path and return the requested 1-indexed line window, or null
+  // if the file is unreadable. Used by the citation validator to verify review citations
+  // actually point at real code.
+  function readLines(file: string, fromLine: number, toLine: number): string[] | null {
+    try {
+      const abs = path.isAbsolute(file) ? file : path.join(resolvedRepoRoot, file);
+      const content = readFileSync(abs, 'utf8');
+      const all = content.split('\n');
+      if (fromLine < 1 || fromLine > all.length) return [];
+      return all.slice(fromLine - 1, toLine);
+    } catch {
+      return null;
+    }
+  }
 
   // Capture the original user task (first user message in the conversation) so the
   // inspection-before-review gate can tell whether this session is a "review the project"
@@ -794,6 +815,28 @@ export function createModelFunctions(deps: ModelDeps) {
           }
         }
 
+        // Layer-1 citation validator (audit hardening): citations must point at REAL code, not
+        // just exist as text. If the report cites file:NN anchors that fail verification
+        // (file missing, line out of range, or the claimed symbol absent from the cited line),
+        // force a correction. This is what turns "citations required" into "citations checked" —
+        // the difference between a real audit and decorated prose. Gated on the same review shape.
+        if (isReviewTask(userTask) || isReviewDeliverable(cleanContent)) {
+          const citationFails = validateCitations(cleanContent, { readLines });
+          if (citationFails.length > 0) {
+            const key = 'citation-validation';
+            if (!toolContext.firedCompletionGuards?.has(key)) {
+              (toolContext.firedCompletionGuards ??= new Set<string>()).add(key);
+              console.log(dim(`\n  [CHECK] Review cites ${citationFails.length} source location(s) that do not check out against the codebase.`));
+              toolContext.selfCorrectionCount = (toolContext.selfCorrectionCount ?? 0) + 1;
+              messages.push({ role: 'assistant', content: cleanContent });
+              messages.push({
+                role: 'user',
+                content: citationValidationWarning(citationFails),
+              } as ChatMessage);
+              continue;
+            }
+          }
+        }
         // Fix 3: Test-count claim without any real npm test run this session. Fires when the
         // agent asserts a specific passing count (e.g. "9 tests passing") but lastVerifyPassCount
         // is undefined (no real test run was observed). Prevents walkthrough-sourced count invention.
