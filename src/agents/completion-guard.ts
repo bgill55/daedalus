@@ -654,6 +654,47 @@ export function reviewWithoutSourceInspectionWarning(srcCount: number): string {
   );
 }
 
+// Fix (audit-hallucination hardening): a multi-section code review / architecture report must
+// back its structural claims with CITATIONS (a file path + line, e.g. `src/index.ts:250`), not
+// vague praise. The existing guards catch unverified FILE MENTIONS and a curated buzzword list,
+// but they cannot catch generic architecture assertions that name no file and no buzzword
+// ("well-structured", "no any leakage", "patch tool used for all modifications", "entry point is
+// src/definitions.ts"). Those are exactly what a self-audit hallucinates. This guard forces a
+// review deliverable to either (a) cite source locations, or (b) be framed as provisional.
+// It is gated on isReviewDeliverable so normal coding turns (which legitimately make claims
+// without citations) are NOT burdened.
+const ARCH_CLAIM_RE =
+  /\b(module|architecture|entry point|separates? (?:concerns|responsibilities)|type[ -]?safe|no (?:`?any`?|any leakage)|uses? (?:Zod|strongly[ -]?typed)|centrali[sz]ed|extensible|well[ -]?structured|maintainab|read[ -]?only|patch[ -]?only|graceful|self[ -]?heal|circuit[ -]?breaker|robust|encapsulat|separation of)\b/i;
+
+// A citation is a `path/to/file.ts:NN` or `file.ts:NN` or `path:NN` token.
+const CITATION_RE = /(?:[A-Za-z0-9_./\\-]+\.(?:ts|tsx|js|jsx|mjs|py|go|rs|java|cs|rb|cpp|c|json|md)):\d+/i;
+
+/**
+ * True when the text is a review deliverable that makes architecture/structure claims but
+ * provides NO file:line citation (and names no source file at all). Returns the first flagged
+ * architecture claim snippet, or null when the deliverable either cites sources or makes no
+ * structural assertions. Gated to reviews so coding turns are unaffected.
+ */
+export function isUncitedArchClaim(text: string): string | null {
+  if (!text) return null;
+  if (!isReviewDeliverable(text)) return null;
+  if (CITATION_RE.test(text)) return null; // the report cites at least one location — grounded
+  const m = text.match(ARCH_CLAIM_RE);
+  if (!m) return null;
+  return m[0];
+}
+
+export function uncitedArchClaimWarning(term: string): string {
+  return (
+    `[SYSTEM WARNING] Your review asserts "${term}" (and likely other structural claims) but ` +
+    `cites NO source location (e.g. \`src/index.ts:250\`). Vague architecture praise is exactly ` +
+    `what a self-audit hallucinates — it reads as verified but is not backed by a cited file:line. ` +
+    `Either (1) re-read the relevant source and attach a file:line to each structural claim you make, ` +
+    `or (2) explicitly frame the section as a high-level impression, not a verified finding. ` +
+    `Do NOT present uncited structural claims as discovered facts.`
+  );
+}
+
 // Fix 3: Test-count claim without any npm test run this session.
 // The existing fabricatedTestCountCorrection guard only fires when lastActualPassCount is set
 // (i.e. a real npm test was observed). This companion guard fires unconditionally when the

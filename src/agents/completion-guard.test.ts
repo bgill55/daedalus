@@ -17,6 +17,8 @@ import {
   claimedTestCountWithoutRun,
   isNegativeExistenceClaim,
   detectUngroundedWorksClaim,
+  isUncitedArchClaim,
+  uncitedArchClaimWarning,
 } from './completion-guard.js';
 import type { SqliteTodo } from '../session/sqlite.js';
 
@@ -557,3 +559,46 @@ describe('detectUngroundedWorksClaim (runtime-exercise guard)', () => {
     expect(detectUngroundedClaim(claim, ledgerN1)).toBe(null);
   });
 });
+
+describe('Uncited architectural-claim guard (audit-hallucination hardening)', () => {
+  const review = [
+    '## Module Organization',
+    'The codebase is split into logical top-level folders: agents, config, router, session.',
+    'Each layer owns a single responsibility and the boundaries are explicit.',
+    '## Type Safety',
+    'Strongly-typed tool contracts prevent ad-hoc interfaces across the project.',
+    'The configuration schema validates the entire runtime object at startup.',
+    '## Error Handling',
+    'Centralized error formatting gives a single source of truth for thrown values.',
+    'Graceful shutdown hooks restore terminal state and stop health checks.',
+    '## Extensibility',
+    'The tool plug-in model lets new capabilities be added without touching core logic.',
+    '## Overall Assessment',
+    'Daedalus exhibits a well-structured, maintainable architecture with clear separation of concerns.',
+  ].join('\n');
+
+  it('flags a review deliverable that asserts structure with NO file:line citation', () => {
+    expect(isUncitedArchClaim(review)).not.toBeNull();
+  });
+
+  it('does NOT flag a review deliverable that cites at least one source location', () => {
+    const cited = review + '\nThe REPL wires everything in src/index.ts:250 via createRepl().';
+    expect(isUncitedArchClaim(cited)).toBeNull();
+  });
+
+  it('does NOT flag a short non-review text (normal coding turn)', () => {
+    expect(isUncitedArchClaim('Fixed the build. The module is now well-structured.')).toBeNull();
+  });
+
+  it('does NOT flag a review that makes no structural assertions', () => {
+    const bland = '## Notes\nThe project is large.\nThere are many files.\nIt would take time to review fully.';
+    expect(isUncitedArchClaim(bland)).toBeNull();
+  });
+
+  it('warns with a SYSTEM-level message naming the flagged term', () => {
+    const w = uncitedArchClaimWarning('well-structured');
+    expect(w).toContain('well-structured');
+    expect(w).toContain('file:line');
+  });
+});
+

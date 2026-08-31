@@ -2,7 +2,7 @@ import pc from 'picocolors';
 import { BUILTIN_TOOLS, POWER_TOOLS } from './tools/definitions.js';
 import { executeToolCalls } from './tools/executor.js';
 import { getSessionTodos } from './tools/builtin/todo.js';
-import { detectFalseCompletion, falseCompletionWarning, detectFalseCompletionOnDisk, isScopeOverstatedSummary, scopeOverstatementWarning, isUnsubstantiatedProgressReport, unsubstantiatedProgressWarning, countAchievementItems, ClaimLedger, detectUngroundedClaim, ungroundedClaimWarning, isGreenStateClaim, greenStateWarning, isUngroundedProjectClaim, ungroundedProjectClaimWarning, isNegativeExistenceClaim, negativeExistenceWarning, isReviewTask, isReviewDeliverable, reviewWithoutInspectionWarning, isReviewWithoutSourceInspection, reviewWithoutSourceInspectionWarning, claimedTestCountWithoutRun, claimedTestCountWithoutRunWarning, detectUngroundedWorksClaim, ungroundedWorksWarning, RUNTIME_EXERCISE_RE } from './agents/completion-guard.js';
+import { detectFalseCompletion, falseCompletionWarning, detectFalseCompletionOnDisk, isScopeOverstatedSummary, scopeOverstatementWarning, isUnsubstantiatedProgressReport, unsubstantiatedProgressWarning, countAchievementItems, ClaimLedger, detectUngroundedClaim, ungroundedClaimWarning, isGreenStateClaim, greenStateWarning, isUngroundedProjectClaim, ungroundedProjectClaimWarning, isNegativeExistenceClaim, negativeExistenceWarning, isReviewTask, isReviewDeliverable, reviewWithoutInspectionWarning, isReviewWithoutSourceInspection, reviewWithoutSourceInspectionWarning, claimedTestCountWithoutRun, claimedTestCountWithoutRunWarning, detectUngroundedWorksClaim, ungroundedWorksWarning, isUncitedArchClaim, uncitedArchClaimWarning, RUNTIME_EXERCISE_RE } from './agents/completion-guard.js';
 import { ReadStallDetector, isGreenBuildTestClaim, fabricatedTestCountCorrection, DivergenceDetector, isStaleReadFailure } from './agents/loop-guards.js';
 import { mcpRegistry } from './tools/mcp/registry.js';
 import { DaedalusSpinner } from './tools/daedalus-spinner.js';
@@ -760,6 +760,28 @@ export function createModelFunctions(deps: ModelDeps) {
             content: reviewWithoutSourceInspectionWarning(srcCount),
           } as ChatMessage);
           continue;
+        }
+
+        // Audit-hallucination hardening: a review deliverable that makes structural claims
+        // (architecture / type-safety / entry point / "no any leakage" / "patch tool used
+        // for all modifications" / etc.) but cites NO source location must be challenged.
+        // Vague, uncited praise is exactly what a self-audit fabricates; force a file:line or
+        // an explicit "this is a high-level impression" framing. Gated to reviews only.
+        if (isReviewTask(userTask)) {
+          const archTerm = isUncitedArchClaim(cleanContent);
+          if (archTerm) {
+            const key = `arch:${archTerm}`;
+            if (toolContext.firedCompletionGuards?.has(key)) continue;
+            (toolContext.firedCompletionGuards ??= new Set<string>()).add(key);
+            console.log(dim(`\n  [CHECK] Review makes uncited structural claim "${archTerm}" (no file:line).`));
+            toolContext.selfCorrectionCount = (toolContext.selfCorrectionCount ?? 0) + 1;
+            messages.push({ role: 'assistant', content: cleanContent });
+            messages.push({
+              role: 'user',
+              content: uncitedArchClaimWarning(archTerm),
+            } as ChatMessage);
+            continue;
+          }
         }
 
         // Fix 3: Test-count claim without any real npm test run this session. Fires when the
