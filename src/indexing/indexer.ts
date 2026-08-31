@@ -64,7 +64,12 @@ export function collectFiles(
 }
 
 function yieldToEventLoop(): Promise<void> {
-  return new Promise(resolve => setImmediate(resolve));
+  return new Promise<void>((resolve) => {
+    // setImmediate is unreliable on some Windows CI environments (can stall the
+    // event loop). setTimeout(0) is more portable; the clamped 1ms delay is negligible
+    // for keeping the loop responsive during indexing.
+    setTimeout(resolve, 0);
+  });
 }
 
 /** Extract symbols and references from TypeScript/JavaScript file */

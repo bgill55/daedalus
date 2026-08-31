@@ -88,18 +88,22 @@ export function clearProjectIndex(db: Database.Database, projectHash: string): v
 
 /** Clear a specific file's index data */
 export function clearFileIndex(db: Database.Database, filePath: string, projectHash: string): void {
-  db.prepare('DELETE FROM file_hashes WHERE file_path = ?').run(filePath);
-  db.prepare('DELETE FROM symbols WHERE file_path = ? AND project_hash = ?').run(filePath, projectHash);
-  db.prepare('DELETE FROM "references" WHERE caller_file = ? AND project_hash = ?').run(filePath, projectHash);
+  db.transaction(() => {
+    db.prepare('DELETE FROM file_hashes WHERE file_path = ?').run(filePath);
+    db.prepare('DELETE FROM symbols WHERE file_path = ? AND project_hash = ?').run(filePath, projectHash);
+    db.prepare('DELETE FROM "references" WHERE caller_file = ? AND project_hash = ?').run(filePath, projectHash);
+  })();
 }
 
 /** Save file hash for incremental updates */
 export function saveFileHash(db: Database.Database, filePath: string, hash: string): void {
-  db.prepare(`
-    INSERT INTO file_hashes (file_path, hash, updated_at)
-    VALUES (?, ?, ?)
-    ON CONFLICT(file_path) DO UPDATE SET hash = excluded.hash, updated_at = excluded.updated_at
-  `).run(filePath, hash, Date.now());
+  db.transaction(() => {
+    db.prepare(`
+      INSERT INTO file_hashes (file_path, hash, updated_at)
+      VALUES (?, ?, ?)
+      ON CONFLICT(file_path) DO UPDATE SET hash = excluded.hash, updated_at = excluded.updated_at
+    `).run(filePath, hash, Date.now());
+  })();
 }
 
 /** Get stored file hash */

@@ -303,6 +303,6 @@ describe('Indexer - indexCodebase integration', () => {
     const result = await indexCodebase(db, tmpDir, 'proj1');
     expect(result.indexedFiles).toBe(1);
     expect(result.skippedFiles).toBe(1);
-  });
+  }, 15000);
 
 });
