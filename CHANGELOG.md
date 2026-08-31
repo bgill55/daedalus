@@ -1,3 +1,10 @@
+# [3.63.0](https://github.com/bgill55/daedalus/compare/v3.62.0...v3.63.0) (2026-08-31)
+
+
+### Features
+
+* **tools:** relocate generated root-level .md writes into gitignored .daedalus/generated/ ([9889f46](https://github.com/bgill55/daedalus/commit/9889f4633f73c09a8eeb1beba74b2420d7d16e00))
+
 # [3.62.0](https://github.com/bgill55/daedalus/compare/v3.61.1...v3.62.0) (2026-08-31)
 
 
