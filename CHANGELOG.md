@@ -1,3 +1,10 @@
+# [3.59.0](https://github.com/bgill55/daedalus/compare/v3.58.1...v3.59.0) (2026-08-31)
+
+
+### Features
+
+* **completion-guard:** require file:line citations for uncited architectural claims in reviews ([7beeb2e](https://github.com/bgill55/daedalus/commit/7beeb2ed4ce1af6562153a7f846062f035146f7a)), closes [hi#level](https://github.com/hi/issues/level)
+
 ## [3.58.1](https://github.com/bgill55/daedalus/compare/v3.58.0...v3.58.1) (2026-08-30)
 
 
