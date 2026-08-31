@@ -101,6 +101,9 @@ export interface ToolContext {
   // Count of citation-guard challenges emitted this session (audit-hallucination hardening).
   // Capped at 3 so a stubborn model cannot loop forever; naturally stops once a real file:line appears.
   archGuardHits?: number;
+  // Count of Layer-2 semantic-judge challenges emitted this session (audit hardening).
+  // Capped at 3 so a stubborn/looping judge cannot trap the agent indefinitely.
+  judgeGuardHits?: number;
   // Count of automatic self-corrections / auto-heals performed this turn/session
   selfCorrectionCount?: number;
   // Persisted across turns: true once we've escalated the model on a failure streak,

@@ -740,12 +740,64 @@ export interface CitationValidatorDeps {
   readLines: (file: string, fromLine: number, toLine: number) => string[] | null;
 }
 
+export interface CitationClaim {
+  file: string;
+  line: number;
+  // The sentence/paragraph the citation is embedded in (the structural claim being made).
+  claimSentence: string;
+  // The actual source lines around the cited anchor, 1-indexed inclusive window.
+  codeRegion: string;
+}
+
+export interface CitationValidatorDeps {
+  // Given a repo-relative file path and a line window, return the lines (1-indexed inclusive)
+  // or null if the file cannot be read. The window is kept small (±12 lines) for cheap checks.
+  readLines: (file: string, fromLine: number, toLine: number) => string[] | null;
+}
+
+// Extract every file:NN anchor in `text` together with the claim sentence it sits in and the
+// real code region it points at. Used by both Layer 1 (anchor validation) and Layer 2
+// (semantic judge). Deduplicates by anchor.
+export function collectCitationClaims(
+  text: string,
+  deps: CitationValidatorDeps,
+  window = 12,
+): CitationClaim[] {
+  if (!text || !deps?.readLines) return [];
+  const matches = [...text.matchAll(CITATION_SCAN_RE)];
+  const out: CitationClaim[] = [];
+  const seenKeys = new Set<string>();
+  for (const m of matches) {
+    const file = m[1];
+    const line = parseInt(m[2], 10);
+    if (!Number.isFinite(line) || line < 1) continue;
+    const key = `${file}:${line}`;
+    if (seenKeys.has(key)) continue;
+    seenKeys.add(key);
+
+    const idx = m.index ?? 0;
+    const start = text.lastIndexOf('\n', idx) + 1;
+    let end = text.indexOf('\n\n', idx);
+    if (end === -1) end = text.length;
+    const claimSentence = text.slice(start, end).trim();
+
+    const from = Math.max(1, line - window);
+    const to = line + window;
+    const regionLines = deps.readLines(file, from, to);
+    if (regionLines === null) continue; // Layer 1 handles missing files separately
+    out.push({ file, line, claimSentence, codeRegion: regionLines.join('\n') });
+  }
+  return out;
+}
+
 export function validateCitations(
   text: string,
   deps: CitationValidatorDeps,
   window = 12,
 ): CitationCheck[] {
   if (!text || !deps?.readLines) return [];
+  // Iterate raw anchors (not collectCitationClaims, which skips unreadable files) so a
+  // missing file is still reported as a failure rather than silently dropped.
   const matches = [...text.matchAll(CITATION_SCAN_RE)];
   const failures: CitationCheck[] = [];
   const seenKeys = new Set<string>();
@@ -757,12 +809,11 @@ export function validateCitations(
     if (seenKeys.has(key)) continue;
     seenKeys.add(key);
 
-    // Pull the claim sentence this citation belongs to (up to the next blank line / header).
     const idx = m.index ?? 0;
     const start = text.lastIndexOf('\n', idx) + 1;
     let end = text.indexOf('\n\n', idx);
     if (end === -1) end = text.length;
-    const claim = text.slice(start, end);
+    const claimSentence = text.slice(start, end).trim();
 
     const from = Math.max(1, line - window);
     const to = line + window;
@@ -776,10 +827,8 @@ export function validateCitations(
       continue;
     }
     const around = regionLines.join('\n');
-    const symbols = extractClaimedSymbols(claim, around);
+    const symbols = extractClaimedSymbols(claimSentence, around);
     if (symbols.length > 0) {
-      // Re-check against the *cited line specifically*, not just the window, to avoid
-      // accepting a symbol that appears far from the cited line.
       const citedLine = regionLines[line - from] ?? '';
       const onCitedLine = symbols.filter((s) => citedLine.toLowerCase().includes(s.toLowerCase()));
       if (onCitedLine.length === 0) {
@@ -788,6 +837,79 @@ export function validateCitations(
     }
   }
   return failures;
+}
+
+// Layer-2 semantic verification (audit hardening). Layer 1 only confirms the citation points
+// at a real symbol on a real line. Layer 2 asks a separate model call to judge whether the
+// PROSE CLAIM actually follows from the cited code — catching the subtle case where the anchor
+// is correct but the interpretation is wrong. Batched into ONE call over all claims to keep the
+// cost bounded (one extra completion per audit, not one per citation).
+export interface JudgeVerdict {
+  file: string;
+  line: number;
+  supported: boolean;
+  reason: string;
+}
+
+export function buildJudgePrompt(claims: CitationClaim[]): string {
+  const items = claims
+    .map((c, i) => {
+      return `CLAIM ${i + 1}: ${c.claimSentence}\nCITED CODE (${c.file}:${c.line}):\n\`\`\`\n${c.codeRegion}\n\`\`\``;
+    })
+    .join('\n\n');
+  return (
+    `You are a strict code-reviewer verifying an architecture audit. For each CLAIM below, decide ` +
+    `whether the CITED CODE actually supports the claim. A claim is SUPPORTED only if the cited code ` +
+    `region demonstrably shows what the claim asserts (e.g. "X is validated by Zod" must point at a ` +
+    `Zod schema validating X). A claim is UNSUPPORTED if the code does not show it, shows the opposite, ` +
+    `or the cited region is irrelevant to the claim.\n\n` +
+    `${items}\n\n` +
+    `Respond ONLY with a JSON array, one object per claim in order, shaped exactly:\n` +
+    `[{"claim":1,"supported":true,"reason":"one sentence"}, ...]\n` +
+    `Do not add prose outside the JSON array.`
+  );
+}
+
+// Tolerant parser: extract the first JSON array from the judge reply and map verdicts back to
+// claims by index. Returns only successfully parsed verdicts (skips malformed entries) so a
+// partial/garbled judge response degrades gracefully rather than blocking the audit.
+export function parseJudgeResponse(raw: string, claims: CitationClaim[]): JudgeVerdict[] {
+  if (!raw) return [];
+  const arrMatch = raw.match(/\[[\s\S]*\]/);
+  if (!arrMatch) return [];
+  let parsed: Array<{ claim?: number; supported?: boolean; reason?: string }>;
+  try {
+    parsed = JSON.parse(arrMatch[0]);
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(parsed)) return [];
+  const verdicts: JudgeVerdict[] = [];
+  for (const entry of parsed) {
+    if (typeof entry?.supported !== 'boolean') continue;
+    const idx = (typeof entry.claim === 'number' ? entry.claim : 0) - 1;
+    const claim = claims[idx];
+    if (!claim) continue;
+    verdicts.push({
+      file: claim.file,
+      line: claim.line,
+      supported: entry.supported,
+      reason: typeof entry.reason === 'string' ? entry.reason : '',
+    });
+  }
+  return verdicts;
+}
+
+export function judgeClaimWarning(unsupported: JudgeVerdict[]): string {
+  const lines = unsupported
+    .map((v) => `- ${v.file}:${v.line} — ${v.reason || 'claim not supported by the cited code'}`)
+    .join('\n');
+  return (
+    `[SYSTEM WARNING] A verification pass found claims in your review that are NOT supported by the ` +
+    `code they cite:\n${lines}\nThe citation points at real code, but the code does not show what the ` +
+    `claim asserts. Either (1) re-read the cited region and correct the claim to match what the code ` +
+    `actually does, or (2) drop the claim. Do NOT present an interpretation the cited code contradicts.`
+  );
 }
 
 export function citationValidationWarning(failures: CitationCheck[]): string {

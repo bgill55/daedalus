@@ -21,6 +21,10 @@ import {
   uncitedArchClaimWarning,
   validateCitations,
   citationValidationWarning,
+  collectCitationClaims,
+  buildJudgePrompt,
+  parseJudgeResponse,
+  judgeClaimWarning,
 } from './completion-guard.js';
 import type { SqliteTodo } from '../session/sqlite.js';
 
@@ -666,6 +670,69 @@ describe('Citation validator (layer-1 audit hardening)', () => {
     expect(w).toContain('a.ts:5');
     expect(w).toContain('b.ts:9');
     expect(w).toContain('Foo');
+  });
+});
+
+describe('Layer-2 semantic judge (audit hardening)', () => {
+  const files: Record<string, string[]> = {
+    'src/config/index.ts': [
+      '// header',
+      'export const ConfigSchema = z.object({ apiKey: z.string() });', // line 2
+    ],
+    'src/agents/orchestrator.ts': [
+      '// header',
+      'function startLoopDaemon() {}', // line 2
+      'const router = createRouter();', // line 3
+    ],
+  };
+  const readLines = (file: string, from: number, to: number): string[] | null => {
+    const all = files[file];
+    if (!all) return null;
+    if (from < 1 || from > all.length) return [];
+    return all.slice(from - 1, to);
+  };
+
+  it('collects citation claims with their code region', () => {
+    const report = 'Config validates keys: src/config/index.ts:2 uses Zod.';
+    const claims = collectCitationClaims(report, { readLines });
+    expect(claims).toHaveLength(1);
+    expect(claims[0].file).toBe('src/config/index.ts');
+    expect(claims[0].line).toBe(2);
+    expect(claims[0].codeRegion).toContain('ConfigSchema');
+  });
+
+  it('buildJudgePrompt embeds claim text and cited code', () => {
+    const report = 'Config validates keys: src/config/index.ts:2 uses Zod.';
+    const claims = collectCitationClaims(report, { readLines });
+    const prompt = buildJudgePrompt(claims);
+    expect(prompt).toContain('src/config/index.ts:2');
+    expect(prompt).toContain('ConfigSchema');
+    expect(prompt).toContain('CLAIM 1');
+  });
+
+  it('parseJudgeResponse maps verdicts back by index', () => {
+    const report = 'A: src/config/index.ts:2. B: src/agents/orchestrator.ts:3.';
+    const claims = collectCitationClaims(report, { readLines });
+    const raw = '[{"claim":1,"supported":true,"reason":"ok"},{"claim":2,"supported":false,"reason":"wrong"}]';
+    const verdicts = parseJudgeResponse(raw, claims);
+    expect(verdicts).toHaveLength(2);
+    expect(verdicts[0].supported).toBe(true);
+    expect(verdicts[1].supported).toBe(false);
+    expect(verdicts[1].reason).toBe('wrong');
+  });
+
+  it('parseJudgeResponse degrades gracefully on garbage', () => {
+    const claims = collectCitationClaims('X: src/config/index.ts:2.', { readLines });
+    expect(parseJudgeResponse('not json at all', claims)).toEqual([]);
+    expect(parseJudgeResponse('[]', claims)).toEqual([]);
+  });
+
+  it('judgeClaimWarning lists unsupported claims', () => {
+    const w = judgeClaimWarning([
+      { file: 'src/config/index.ts', line: 2, supported: false, reason: 'schema is empty' },
+    ]);
+    expect(w).toContain('src/config/index.ts:2');
+    expect(w).toContain('schema is empty');
   });
 });
 

@@ -4,7 +4,7 @@ import path from 'node:path';
 import { BUILTIN_TOOLS, POWER_TOOLS } from './tools/definitions.js';
 import { executeToolCalls } from './tools/executor.js';
 import { getSessionTodos } from './tools/builtin/todo.js';
-import { detectFalseCompletion, falseCompletionWarning, detectFalseCompletionOnDisk, isScopeOverstatedSummary, scopeOverstatementWarning, isUnsubstantiatedProgressReport, unsubstantiatedProgressWarning, countAchievementItems, ClaimLedger, detectUngroundedClaim, ungroundedClaimWarning, isGreenStateClaim, greenStateWarning, isUngroundedProjectClaim, ungroundedProjectClaimWarning, isNegativeExistenceClaim, negativeExistenceWarning, isReviewTask, isReviewDeliverable, reviewWithoutInspectionWarning, isReviewWithoutSourceInspection, reviewWithoutSourceInspectionWarning, claimedTestCountWithoutRun, claimedTestCountWithoutRunWarning, detectUngroundedWorksClaim, ungroundedWorksWarning, isUncitedArchClaim, uncitedArchClaimWarning, RUNTIME_EXERCISE_RE, validateCitations, citationValidationWarning } from './agents/completion-guard.js';
+import { detectFalseCompletion, falseCompletionWarning, detectFalseCompletionOnDisk, isScopeOverstatedSummary, scopeOverstatementWarning, isUnsubstantiatedProgressReport, unsubstantiatedProgressWarning, countAchievementItems, ClaimLedger, detectUngroundedClaim, ungroundedClaimWarning, isGreenStateClaim, greenStateWarning, isUngroundedProjectClaim, ungroundedProjectClaimWarning, isNegativeExistenceClaim, negativeExistenceWarning, isReviewTask, isReviewDeliverable, reviewWithoutInspectionWarning, isReviewWithoutSourceInspection, reviewWithoutSourceInspectionWarning, claimedTestCountWithoutRun, claimedTestCountWithoutRunWarning, detectUngroundedWorksClaim, ungroundedWorksWarning, isUncitedArchClaim, uncitedArchClaimWarning, RUNTIME_EXERCISE_RE, validateCitations, citationValidationWarning, collectCitationClaims, buildJudgePrompt, parseJudgeResponse, judgeClaimWarning } from './agents/completion-guard.js';
 import { ReadStallDetector, isGreenBuildTestClaim, fabricatedTestCountCorrection, DivergenceDetector, isStaleReadFailure } from './agents/loop-guards.js';
 import { mcpRegistry } from './tools/mcp/registry.js';
 import { DaedalusSpinner } from './tools/daedalus-spinner.js';
@@ -836,7 +836,49 @@ export function createModelFunctions(deps: ModelDeps) {
               continue;
             }
           }
+
+          // Layer-2 semantic judge (audit hardening): Layer 1 confirms a citation points at a real
+          // symbol on a real line. Layer 2 asks ONE model call to judge whether the PROSE CLAIM actually
+          // follows from the cited code — catching a correct anchor with a wrong interpretation. Batched
+          // into a single completion per audit report (not per citation) to keep cost bounded. Soft guard:
+          // capped at 3 challenges so a misbehaving judge cannot trap the turn in a loop. If the judge
+          // call itself fails, we degrade to Layer 1 only (do NOT block the audit on a judge error).
+          if ((isReviewTask(userTask) || isReviewDeliverable(cleanContent)) && (toolContext.judgeGuardHits ?? 0) < 3) {
+            const claims = collectCitationClaims(cleanContent, { readLines }, 8);
+            if (claims.length > 0) {
+              try {
+                const judgePrompt = buildJudgePrompt(claims);
+                const jr = await router.chat.completions.create({
+                  model: config.modelOverride || 'auto',
+                  messages: [{ role: 'user', content: judgePrompt }],
+                  temperature: 0,
+                  max_tokens: 1024,
+                });
+                const judgeRaw = messageText(jr.choices?.[0]?.message?.content ?? '');
+                const verdicts = parseJudgeResponse(judgeRaw, claims);
+                const unsupported = verdicts.filter((v) => !v.supported);
+                if (unsupported.length > 0) {
+                  toolContext.judgeGuardHits = (toolContext.judgeGuardHits ?? 0) + 1;
+                  console.log(dim(`\n  [CHECK] Semantic judge found ${unsupported.length} claim(s) not supported by cited code.`));
+                  toolContext.selfCorrectionCount = (toolContext.selfCorrectionCount ?? 0) + 1;
+                  messages.push({ role: 'assistant', content: cleanContent });
+                  messages.push({
+                    role: 'user',
+                    content: judgeClaimWarning(unsupported),
+                  } as ChatMessage);
+                  continue;
+                }
+              } catch (judgeErr) {
+                // Judge unavailable (offline / rate-limited / parse failure): degrade to Layer 1 only.
+                if (process.env.DAEDALUS_DEBUG === 'true') {
+                  console.log(dim(`  [judge] Layer-2 verification skipped (${String(judgeErr)}).`));
+                }
+              }
+            }
+          }
+
         }
+
         // Fix 3: Test-count claim without any real npm test run this session. Fires when the
         // agent asserts a specific passing count (e.g. "9 tests passing") but lastVerifyPassCount
         // is undefined (no real test run was observed). Prevents walkthrough-sourced count invention.
