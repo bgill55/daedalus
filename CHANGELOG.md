@@ -1,3 +1,10 @@
+# [3.61.0](https://github.com/bgill55/daedalus/compare/v3.60.0...v3.61.0) (2026-08-31)
+
+
+### Features
+
+* **completion-guard:** Layer-2 semantic judge — audit claims now verified against cited code ([807c677](https://github.com/bgill55/daedalus/commit/807c67724174c0c04219403096dba729210c16fa))
+
 # [3.60.0](https://github.com/bgill55/daedalus/compare/v3.59.1...v3.60.0) (2026-08-31)
 
 
