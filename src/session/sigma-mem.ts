@@ -3,6 +3,8 @@
 
 import Database from 'better-sqlite3';
 import crypto from 'crypto';
+import os from 'os';
+import path from 'path';
 import {
   saveSigmaMemory,
   getSigmaMemories,
@@ -213,7 +215,11 @@ export class SigmaMemEngine {
     if (sessionManager?.projectMemDb) return sessionManager.projectMemDb;
     const root = projectRoot || sessionManager?.projectRoot;
     if (!root) return undefined;
-    return initProjectMemDb(getProjectHash(root));
+    // Resolve under the canonical ~/.daedalus/sessions/<hash>/project-mem.sqlite path used by
+    // SessionManager. Passing only the bare hash to initProjectMemDb makes better-sqlite3 create
+    // the file in the process cwd (e.g. the repo root), which leaks runtime state into source trees.
+    const dbPath = path.join(os.homedir(), '.daedalus', 'sessions', getProjectHash(root), 'project-mem.sqlite');
+    return initProjectMemDb(dbPath);
   }
 
   private static rankByTagOverlap(memories: SqliteSigmaMemory[], matchTags: string[]): SqliteSigmaMemory[] {

@@ -22,3 +22,6 @@ assets/emojis/
 walkthrough.md
 walkthrough*.md
 .daedalus/
+
+# Σ-Mem runtime DB leaked into cwd by resolveProjectMemDb (fixed in core); guard against recurrence
+b7a69d8fb716
