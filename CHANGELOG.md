@@ -1,3 +1,10 @@
+# [3.60.0](https://github.com/bgill55/daedalus/compare/v3.59.1...v3.60.0) (2026-08-31)
+
+
+### Features
+
+* **completion-guard:** layer-1 citation validator — audit citations now checked against real code ([ddb0193](https://github.com/bgill55/daedalus/commit/ddb019322f9c1e18682ded04a5981c37b2d48c56))
+
 ## [3.59.1](https://github.com/bgill55/daedalus/compare/v3.59.0...v3.59.1) (2026-08-31)
 
 
