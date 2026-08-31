@@ -1,3 +1,10 @@
+## [3.59.1](https://github.com/bgill55/daedalus/compare/v3.59.0...v3.59.1) (2026-08-31)
+
+
+### Bug Fixes
+
+* **completion-guard:** citation guard must re-fire past cosmetic labels and gate on output shape ([198222c](https://github.com/bgill55/daedalus/commit/198222cae4281d54ea5018f467114d3c4f73643f))
+
 # [3.59.0](https://github.com/bgill55/daedalus/compare/v3.58.1...v3.59.0) (2026-08-31)
 
 
