@@ -1,3 +1,10 @@
+## [3.61.1](https://github.com/bgill55/daedalus/compare/v3.61.0...v3.61.1) (2026-08-31)
+
+
+### Bug Fixes
+
+* **sigma-mem:** stop leaking project-mem DB into cwd (repo root) ([45dc017](https://github.com/bgill55/daedalus/commit/45dc017e78627b98d85f747ee324c219714ff81b))
+
 # [3.61.0](https://github.com/bgill55/daedalus/compare/v3.60.0...v3.61.0) (2026-08-31)
 
 
