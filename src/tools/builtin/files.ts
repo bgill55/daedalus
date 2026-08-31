@@ -76,6 +76,37 @@ function checkpointNote(targetPath: string, projectRoot: string): string {
   return '';
 }
 
+// Real docs the agent may legitimately (re)write at the project root — never auto-relocate these.
+const ROOT_DOC_ALLOWLIST = new Set([
+  'README.md',
+  'CHANGELOG.md',
+  'CONTRIBUTING.md',
+  'LICENSE.md',
+  'AGENTS.md',
+  'CODE_OF_CONDUCT.md',
+  'SECURITY.md',
+]);
+
+// Redirect generated markdown reports (e.g. audits, summaries) that an agent drops at the repo
+// root into .daedalus/generated/ so they never muddy the tracked source tree. .daedalus/ is
+// gitignored, so the relocated file is automatically untracked. Source files and intentional docs
+// are left where the agent put them. Returns the (possibly rewritten) absolute path.
+function relocateGeneratedMarkdown(
+  targetPath: string,
+  projectRoot: string,
+): { path: string; redirected: boolean } {
+  const ext = path.extname(targetPath).toLowerCase();
+  if (ext !== '.md') return { path: targetPath, redirected: false };
+  if (path.dirname(path.resolve(targetPath)) !== path.resolve(projectRoot)) {
+    return { path: targetPath, redirected: false };
+  }
+  if (ROOT_DOC_ALLOWLIST.has(path.basename(targetPath))) {
+    return { path: targetPath, redirected: false };
+  }
+  const generatedDir = path.join(projectRoot, '.daedalus', 'generated');
+  return { path: path.join(generatedDir, path.basename(targetPath)), redirected: true };
+}
+
 function resolvePath(p: string, projectRoot: string): string {
   if (!p) {
     throw new Error('Path argument is empty or undefined');
@@ -229,7 +260,13 @@ export async function writeFile(args: { path: string; content: string }, context
     if (detectPlaceholders(args.content)) {
       return formatError(`Code placeholders like '// ...' or '/* ... */' detected. You must write the complete, non-abbreviated code.`);
     }
-    const targetPath = resolvePath(args.path, context.projectRoot);
+    let targetPath = resolvePath(args.path, context.projectRoot);
+
+    // Keep generated markdown reports out of the tracked source tree: relocate root-level
+    // .md writes (e.g. audits) into the gitignored .daedalus/generated/ folder.
+    const relocation = relocateGeneratedMarkdown(targetPath, context.projectRoot);
+    const redirectedFrom = relocation.redirected ? targetPath : null;
+    if (relocation.redirected) targetPath = relocation.path;
 
     if (!context.autoApproveTools && process.env.DAEDALUS_AUTO_APPROVE !== 'true') {
       const readGuard = checkWriteWithoutRead(targetPath, context);
@@ -297,8 +334,11 @@ export async function writeFile(args: { path: string; content: string }, context
 
     recordWriteSuccess(targetPath, context);
 
+    const redirectNote = redirectedFrom
+      ? `\n\nNote: this .md was relocated from ${redirectedFrom} to ${targetPath} (a gitignored folder) so it doesn't clutter the source tree. Read it there.`
+      : '';
     const suffix = notices.length > 0 ? `\n\n${notices.join('\n\n')}` : '';
-    return { toolCallId: '', name: 'write_file', success: true, content: `Written ${args.content.length} chars to ${args.path}${suffix}${checkpointNoteStr}` };
+    return { toolCallId: '', name: 'write_file', success: true, content: `Written ${args.content.length} chars to ${targetPath}${redirectNote}${suffix}${checkpointNoteStr}` };
   } catch (err) {
     return formatError(`Failed to write file: ${(err instanceof Error ? err.message : String(err))}`);
   }

@@ -434,6 +434,60 @@ describe('writeFile — export consistency check', () => {
   });
 });
 
+describe('writeFile — generated markdown relocation', () => {
+  let tmpDir: string;
+
+  beforeEach(() => { tmpDir = makeTmpDir(); });
+  afterEach(() => { fs.rmSync(tmpDir, { recursive: true, force: true }); });
+
+  it('relocates a root-level generated .md into .daedalus/generated/', async () => {
+    const ctx = makeContext(tmpDir);
+    const result = await writeFile(
+      { path: path.join(tmpDir, 'CODEBASE_AUDIT.md'), content: '# audit\n' },
+      ctx,
+    );
+    expect(result.success).toBe(true);
+    const relocated = path.join(tmpDir, '.daedalus', 'generated', 'CODEBASE_AUDIT.md');
+    expect(fs.existsSync(relocated)).toBe(true);
+    expect(fs.existsSync(path.join(tmpDir, 'CODEBASE_AUDIT.md'))).toBe(false);
+    expect(result.content).toMatch(/relocated from/);
+  });
+
+  it('does not relocate a .md inside a subdirectory', async () => {
+    const ctx = makeContext(tmpDir);
+    const sub = path.join(tmpDir, 'docs');
+    const result = await writeFile(
+      { path: path.join(sub, 'notes.md'), content: '# notes\n' },
+      ctx,
+    );
+    expect(result.success).toBe(true);
+    expect(fs.existsSync(path.join(sub, 'notes.md'))).toBe(true);
+    expect(fs.existsSync(path.join(tmpDir, '.daedalus', 'generated', 'notes.md'))).toBe(false);
+  });
+
+  it('does not relocate an allowlisted root doc (README.md)', async () => {
+    const ctx = makeContext(tmpDir);
+    const result = await writeFile(
+      { path: path.join(tmpDir, 'README.md'), content: '# readme\n' },
+      ctx,
+    );
+    expect(result.success).toBe(true);
+    expect(fs.existsSync(path.join(tmpDir, 'README.md'))).toBe(true);
+    expect(result.content).not.toMatch(/relocated from/);
+  });
+
+  it('does not relocate non-markdown files at root', async () => {
+    const ctx = makeContext(tmpDir);
+    const result = await writeFile(
+      { path: path.join(tmpDir, 'config.json'), content: '{}' },
+      ctx,
+    );
+    expect(result.success).toBe(true);
+    expect(fs.existsSync(path.join(tmpDir, 'config.json'))).toBe(true);
+    expect(fs.existsSync(path.join(tmpDir, '.daedalus', 'generated', 'config.json'))).toBe(false);
+  });
+});
+
 describe('listFiles and searchFiles — directory exclusions', () => {
   let tmpDir: string;
 
