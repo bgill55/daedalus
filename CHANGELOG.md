@@ -1,3 +1,10 @@
+# [3.62.0](https://github.com/bgill55/daedalus/compare/v3.61.1...v3.62.0) (2026-08-31)
+
+
+### Features
+
+* **completion-guard:** Layer-1b prose file-reference validator — closes the audit gap that slipped through ([4b45d78](https://github.com/bgill55/daedalus/commit/4b45d7847b47fb7a45d0b89d162f6ccb4378c11f))
+
 ## [3.61.1](https://github.com/bgill55/daedalus/compare/v3.61.0...v3.61.1) (2026-08-31)
 
 
