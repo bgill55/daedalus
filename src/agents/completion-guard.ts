@@ -738,6 +738,9 @@ export interface CitationValidatorDeps {
   // Given a repo-relative file path and a line window, return the lines (1-indexed inclusive)
   // or null if the file cannot be read. The window is kept small (±12 lines) for cheap checks.
   readLines: (file: string, fromLine: number, toLine: number) => string[] | null;
+  // Cheap existence check for a repo-relative path. Used by the prose-reference validator
+  // (Layer 1b) to confirm a named file actually exists, including sibling test files.
+  fileExists?: (file: string) => boolean;
 }
 
 export interface CitationClaim {
@@ -753,6 +756,9 @@ export interface CitationValidatorDeps {
   // Given a repo-relative file path and a line window, return the lines (1-indexed inclusive)
   // or null if the file cannot be read. The window is kept small (±12 lines) for cheap checks.
   readLines: (file: string, fromLine: number, toLine: number) => string[] | null;
+  // Cheap existence check for a repo-relative path. Used by the prose-reference validator
+  // (Layer 1b) to confirm a named file actually exists, including sibling test files.
+  fileExists?: (file: string) => boolean;
 }
 
 // Extract every file:NN anchor in `text` together with the claim sentence it sits in and the
@@ -839,6 +845,106 @@ export function validateCitations(
   return failures;
 }
 
+// Layer 1b: prose file-reference validation (audit hardening).
+//
+// Layer 1 (above) only handles inline `path:NN` citations. Audit reports frequently reference
+// files by NAME only (e.g. "src/indexing/watcher.ts") with no line number. This validator
+// catches two gaps that Layer 1 misses:
+//   1. file-not-found: a named source file does not exist at the cited path.
+//   2. false-negative-claim: the report asserts a file (typically a test file) "does not exist"
+//      / "no test file exists", but a sibling test file actually does. This is the exact
+//      fabrication class that slipped through the prior audit ("no watcher.test.ts exists").
+export interface ProseRefCheck {
+  file: string;
+  reason: 'file-not-found' | 'false-negative-claim';
+  detail: string;
+}
+
+// Matches repo-relative source-file references: src/foo/bar.ts, `src/foo/bar.ts`,
+// src/foo/bar.test.ts, path/to/file.tsx, etc. Accepts an optional leading backtick so paths
+// wrapped in inline code (`like this`) are still captured. Tuned to avoid matching prose.
+const PROSE_FILE_RE =
+  /(?:^|\s)`?((?:src|test|tests|lib|app|packages|\.?\/)?[A-Za-z0-9_./@-]+\/[A-Za-z0-9_./@-]+\.(?:ts|tsx|js|jsx|mjs|py|go|rs|java|cs|rb|cpp|c|cc|h|hpp|json|md|yaml|yml))`?/g;
+
+// Detects an explicit negative-existence claim about a file ("no test file exists",
+// "no *.test.ts file exists", "no tests for X").
+const NEG_EXIST_RE =
+  /\b(no|not|without|lacking|missing|absent)\b[^?!]*?(test file|tests?|\*\.test\.[a-z]+|spec\.[a-z]+|file|coverage|integration test|e2e)[^?!]*(exists?|present|found|available|written|cover)/i;
+
+// Given a source file path, return the set of sibling test paths that SHOULD exist if the
+// project follows its own conventions (colocated *.test.ts beside the source).
+function siblingTestPaths(file: string): string[] {
+  const m = file.match(/^(.*\/)?([A-Za-z0-9_]+)\.(ts|tsx|js|jsx)$/);
+  if (!m) return [];
+  const dir = m[1] ?? '';
+  const base = m[2];
+  const ext = m[3];
+  return [
+    `${dir}${base}.test.${ext}`,
+    `${dir}__tests__/${base}.test.${ext}`,
+    `${dir}tests/${base}.test.${ext}`,
+  ];
+}
+
+export function validateProseReferences(
+  text: string,
+  deps: CitationValidatorDeps,
+): ProseRefCheck[] {
+  if (!text || !deps?.fileExists) return [];
+  const fileExists = deps.fileExists;
+  const checks: ProseRefCheck[] = [];
+  const seen = new Set<string>();
+
+  const referenced = new Set<string>();
+  for (const m of text.matchAll(PROSE_FILE_RE)) {
+    const file = m[1];
+    referenced.add(file);
+  }
+  if (referenced.size === 0) return checks;
+
+  // 1. File existence: every named source file must exist.
+  for (const file of referenced) {
+    if (seen.has(file)) continue;
+    seen.add(file);
+    if (!fileExists(file)) {
+      checks.push({ file, reason: 'file-not-found', detail: 'named file does not exist in the codebase' });
+    }
+  }
+
+  // 2. Negative-existence claims about test files: if the report names a test file that DOES
+  //    exist, or names a source file that HAS a sibling test, the "no test exists" claim is false.
+  for (const sentence of text.split(/\n{1,}|(?<=[.!?])\s+/)) {
+    if (!NEG_EXIST_RE.test(sentence)) continue;
+    for (const m of sentence.matchAll(PROSE_FILE_RE)) {
+      const file = m[1];
+      // Only the test file itself being named-and-present is a direct false-negative. A source
+      // file existing is expected and not what the claim disputes — let the sibling check below
+      // handle "source exists but its test doesn't".
+      if (/\.(test|spec)\.[a-z]+$/.test(file) && fileExists(file)) {
+        checks.push({
+          file,
+          reason: 'false-negative-claim',
+          detail: `report claims no test file exists, but ${file} is present`,
+        });
+        continue;
+      }
+      // Or it names a source file — check for a real sibling test.
+      for (const testPath of siblingTestPaths(file)) {
+        if (fileExists(testPath)) {
+          checks.push({
+            file: testPath,
+            reason: 'false-negative-claim',
+            detail: `report claims no test file exists, but ${testPath} is present`,
+          });
+          break;
+        }
+      }
+    }
+  }
+
+  return checks;
+}
+
 // Layer-2 semantic verification (audit hardening). Layer 1 only confirms the citation points
 // at a real symbol on a real line. Layer 2 asks a separate model call to judge whether the
 // PROSE CLAIM actually follows from the cited code — catching the subtle case where the anchor
@@ -909,6 +1015,18 @@ export function judgeClaimWarning(unsupported: JudgeVerdict[]): string {
     `code they cite:\n${lines}\nThe citation points at real code, but the code does not show what the ` +
     `claim asserts. Either (1) re-read the cited region and correct the claim to match what the code ` +
     `actually does, or (2) drop the claim. Do NOT present an interpretation the cited code contradicts.`
+  );
+}
+
+export function proseRefWarning(checks: ProseRefCheck[]): string {
+  const lines = checks
+    .map((c) => `- ${c.file} — ${c.detail}`)
+    .join('\n');
+  return (
+    `[SYSTEM WARNING] Your review references files whose existence does not check out against the ` +
+    `actual codebase:\n${lines}\nEither (1) re-verify the file on disk before asserting it is missing ` +
+    `or misnamed, or (2) drop the claim. Do NOT assert a file is absent without checking; the codebase ` +
+    `is the source of truth.`
   );
 }
 

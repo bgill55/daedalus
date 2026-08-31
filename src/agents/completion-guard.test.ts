@@ -25,6 +25,8 @@ import {
   buildJudgePrompt,
   parseJudgeResponse,
   judgeClaimWarning,
+  validateProseReferences,
+  proseRefWarning,
 } from './completion-guard.js';
 import type { SqliteTodo } from '../session/sqlite.js';
 
@@ -691,6 +693,7 @@ describe('Layer-2 semantic judge (audit hardening)', () => {
     if (from < 1 || from > all.length) return [];
     return all.slice(from - 1, to);
   };
+  const fileExists = (file: string): boolean => file in files || `${file}.test.ts` in files;
 
   it('collects citation claims with their code region', () => {
     const report = 'Config validates keys: src/config/index.ts:2 uses Zod.';
@@ -733,6 +736,57 @@ describe('Layer-2 semantic judge (audit hardening)', () => {
     ]);
     expect(w).toContain('src/config/index.ts:2');
     expect(w).toContain('schema is empty');
+  });
+});
+
+describe('Layer-1b prose file-reference validator (audit hardening)', () => {
+  const files: Record<string, string[]> = {
+    'src/config/index.ts': ['// header'],
+    'src/indexing/watcher.ts': ['// header'],
+    'src/indexing/watcher.test.ts': ['// sibling test exists'],
+  };
+  const readLines = (file: string, from: number, to: number): string[] | null => {
+    const all = files[file];
+    if (!all) return null;
+    if (from < 1 || from > all.length) return [];
+    return all.slice(from - 1, to);
+  };
+  const fileExists = (file: string): boolean => file in files;
+
+  it('flags a referenced file that does not exist', () => {
+    const report = 'The module src/does/not/exist.ts handles parsing.';
+    const checks = validateProseReferences(report, { readLines, fileExists });
+    expect(checks).toHaveLength(1);
+    expect(checks[0].file).toBe('src/does/not/exist.ts');
+    expect(checks[0].reason).toBe('file-not-found');
+  });
+
+  it('passes a referenced file that exists', () => {
+    const report = 'The module src/indexing/watcher.ts watches the index.';
+    const checks = validateProseReferences(report, { readLines, fileExists });
+    expect(checks).toHaveLength(0);
+  });
+
+  it('flags a "no test file exists" claim when a sibling test is present', () => {
+    const report =
+      'Index watcher (watcher.ts) is untested — no src/indexing/watcher.test.ts file exists for it.';
+    const checks = validateProseReferences(report, { readLines, fileExists });
+    expect(checks.some((c) => c.reason === 'false-negative-claim')).toBe(true);
+    expect(checks[0].file).toBe('src/indexing/watcher.test.ts');
+  });
+
+  it('does not flag when no negative-existence claim is made', () => {
+    const report = 'Index watcher (watcher.ts) has a colocated test file watcher.test.ts.';
+    const checks = validateProseReferences(report, { readLines, fileExists });
+    expect(checks).toHaveLength(0);
+  });
+
+  it('proseRefWarning formats the checks', () => {
+    const w = proseRefWarning([
+      { file: 'src/indexing/watcher.test.ts', reason: 'false-negative-claim', detail: 'report claims no test file exists, but src/indexing/watcher.test.ts is present' },
+    ]);
+    expect(w).toContain('src/indexing/watcher.test.ts');
+    expect(w).toContain('no test file exists');
   });
 });
 

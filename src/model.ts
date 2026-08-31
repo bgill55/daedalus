@@ -1,10 +1,10 @@
 import pc from 'picocolors';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 import { BUILTIN_TOOLS, POWER_TOOLS } from './tools/definitions.js';
 import { executeToolCalls } from './tools/executor.js';
 import { getSessionTodos } from './tools/builtin/todo.js';
-import { detectFalseCompletion, falseCompletionWarning, detectFalseCompletionOnDisk, isScopeOverstatedSummary, scopeOverstatementWarning, isUnsubstantiatedProgressReport, unsubstantiatedProgressWarning, countAchievementItems, ClaimLedger, detectUngroundedClaim, ungroundedClaimWarning, isGreenStateClaim, greenStateWarning, isUngroundedProjectClaim, ungroundedProjectClaimWarning, isNegativeExistenceClaim, negativeExistenceWarning, isReviewTask, isReviewDeliverable, reviewWithoutInspectionWarning, isReviewWithoutSourceInspection, reviewWithoutSourceInspectionWarning, claimedTestCountWithoutRun, claimedTestCountWithoutRunWarning, detectUngroundedWorksClaim, ungroundedWorksWarning, isUncitedArchClaim, uncitedArchClaimWarning, RUNTIME_EXERCISE_RE, validateCitations, citationValidationWarning, collectCitationClaims, buildJudgePrompt, parseJudgeResponse, judgeClaimWarning } from './agents/completion-guard.js';
+import { detectFalseCompletion, falseCompletionWarning, detectFalseCompletionOnDisk, isScopeOverstatedSummary, scopeOverstatementWarning, isUnsubstantiatedProgressReport, unsubstantiatedProgressWarning, countAchievementItems, ClaimLedger, detectUngroundedClaim, ungroundedClaimWarning, isGreenStateClaim, greenStateWarning, isUngroundedProjectClaim, ungroundedProjectClaimWarning, isNegativeExistenceClaim, negativeExistenceWarning, isReviewTask, isReviewDeliverable, reviewWithoutInspectionWarning, isReviewWithoutSourceInspection, reviewWithoutSourceInspectionWarning, claimedTestCountWithoutRun, claimedTestCountWithoutRunWarning, detectUngroundedWorksClaim, ungroundedWorksWarning, isUncitedArchClaim, uncitedArchClaimWarning, RUNTIME_EXERCISE_RE, validateCitations, citationValidationWarning, collectCitationClaims, buildJudgePrompt, parseJudgeResponse, judgeClaimWarning, validateProseReferences, proseRefWarning } from './agents/completion-guard.js';
 import { ReadStallDetector, isGreenBuildTestClaim, fabricatedTestCountCorrection, DivergenceDetector, isStaleReadFailure } from './agents/loop-guards.js';
 import { mcpRegistry } from './tools/mcp/registry.js';
 import { DaedalusSpinner } from './tools/daedalus-spinner.js';
@@ -185,6 +185,15 @@ export function createModelFunctions(deps: ModelDeps) {
       return all.slice(fromLine - 1, toLine);
     } catch {
       return null;
+    }
+  }
+
+  function fileExists(file: string): boolean {
+    try {
+      const abs = path.isAbsolute(file) ? file : path.join(resolvedRepoRoot, file);
+      return existsSync(abs);
+    } catch {
+      return false;
     }
   }
 
@@ -832,6 +841,26 @@ export function createModelFunctions(deps: ModelDeps) {
               messages.push({
                 role: 'user',
                 content: citationValidationWarning(citationFails),
+              } as ChatMessage);
+              continue;
+            }
+          }
+
+          // Layer-1b prose file-reference validator (audit hardening): catches referenced files
+          // by NAME (the format audits actually use) that Layer 1's inline `path:NN` scan misses —
+          // both a named file that does not exist and the "no test file exists" false-negative
+          // class that previously slipped through. Soft-gated by the same firedCompletionGuards key.
+          const proseFails = validateProseReferences(cleanContent, { readLines, fileExists });
+          if (proseFails.length > 0) {
+            const key = 'prose-ref-validation';
+            if (!toolContext.firedCompletionGuards?.has(key)) {
+              (toolContext.firedCompletionGuards ??= new Set<string>()).add(key);
+              console.log(dim(`\n  [CHECK] Review references ${proseFails.length} file(s) whose existence does not check out against the codebase.`));
+              toolContext.selfCorrectionCount = (toolContext.selfCorrectionCount ?? 0) + 1;
+              messages.push({ role: 'assistant', content: cleanContent });
+              messages.push({
+                role: 'user',
+                content: proseRefWarning(proseFails),
               } as ChatMessage);
               continue;
             }
