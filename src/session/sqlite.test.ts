@@ -18,6 +18,7 @@ import {
   getTodos,
   saveState,
   getState,
+  maintainDatabase,
 } from './sqlite.js';
 
 describe('SQLite session database (index)', () => {
@@ -188,4 +189,13 @@ describe('SQLite session database (session)', () => {
     expect(turns[0].model).toBe('gpt-4');
   });
 
+  it('runs maintainDatabase without error (optimize and vacuum)', () => {
+    expect(() => maintainDatabase(db, true)).not.toThrow();
+  });
+
+  it('safely handles closed database in maintainDatabase', () => {
+    const closedDb = new Database(':memory:');
+    closedDb.close();
+    expect(() => maintainDatabase(closedDb, true)).not.toThrow();
+  });
 });

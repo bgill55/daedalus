@@ -160,4 +160,9 @@ describe('SessionManager', () => {
     expect(() => freshManager.importSessionFromJsonl('test.jsonl')).toThrow('No active session');
   });
 
+  it('closes cleanly with vacuum maintenance enabled', () => {
+    manager.init();
+    manager.startSession();
+    expect(() => manager.close(true)).not.toThrow();
+  });
 });

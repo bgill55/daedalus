@@ -27,6 +27,7 @@ import {
   incrementLessonUsed,
   saveProjectStatus,
   getProjectStatus,
+  maintainDatabase,
   SqliteTurn,
   SqliteTodo,
   FailureLesson,
@@ -322,17 +323,20 @@ export class SessionManager {
     return getProjectStatus(this.sessionDb);
   }
 
-  /** Close database connections */
-  public close(): void {
-    if (this.sessionDb) {
+  /** Close database connections with optional vacuum maintenance */
+  public close(vacuum: boolean = false): void {
+    if (this.sessionDb && this.sessionDb.open) {
+      maintainDatabase(this.sessionDb, vacuum);
       this.sessionDb.close();
       this.sessionDb = undefined;
     }
-    if (this.projectMemDb) {
+    if (this.projectMemDb && this.projectMemDb.open) {
+      maintainDatabase(this.projectMemDb, vacuum);
       this.projectMemDb.close();
       this.projectMemDb = undefined;
     }
-    if (this.indexDb) {
+    if (this.indexDb && this.indexDb.open) {
+      maintainDatabase(this.indexDb, vacuum);
       this.indexDb.close();
     }
   }

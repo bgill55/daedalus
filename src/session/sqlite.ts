@@ -497,3 +497,19 @@ export function pruneLowSigmaMemories(db: Database.Database, minThreshold: numbe
   return result.changes;
 }
 
+/**
+ * Run standard SQLite maintenance on a database: pragma optimize, wal_checkpoint, and vacuum if requested.
+ */
+export function maintainDatabase(db: Database.Database, vacuum: boolean = false): void {
+  try {
+    if (!db.open) return;
+    db.pragma('optimize');
+    db.pragma('wal_checkpoint(TRUNCATE)');
+    if (vacuum) {
+      db.exec('VACUUM');
+    }
+  } catch {
+    // best-effort maintenance, never throw
+  }
+}
+
