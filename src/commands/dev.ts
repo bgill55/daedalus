@@ -413,7 +413,7 @@ Once you have finished making changes, I will automatically re-run the command t
 
       if (action === 'stop') {
         if (globalThis.__daedalusWatcher) {
-          globalThis.__daedalusWatcher.close();
+          void globalThis.__daedalusWatcher.close();
           delete globalThis.__daedalusWatcher;
           console.log(pc.green('\n[OK] Codebase file watcher stopped.'));
         } else {

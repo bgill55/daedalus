@@ -150,17 +150,22 @@ export function watchCodebase(
   }
 
   return {
-    close: () => {
+    close: (): Promise<void> => {
       isClosed = true;
       for (const timer of debounceTimers.values()) {
         clearTimeout(timer);
       }
       debounceTimers.clear();
 
-      for (const watcher of watchers.values()) {
-        watcher.close();
+      const closePromises: Promise<void>[] = [];
+      for (const w of watchers.values()) {
+        closePromises.push(new Promise<void>(resolve => {
+          w.once('close', resolve);
+          w.close();
+        }));
       }
       watchers.clear();
+      return Promise.all(closePromises).then(() => undefined);
     }
   };
 }

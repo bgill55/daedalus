@@ -39,10 +39,9 @@ describe('Watcher - Incremental Indexing', () => {
 
   afterEach(async () => {
     if (watcher) {
-      watcher.close();
+      await watcher.close();
       watcher = undefined;
     }
-    await sleep(100);
     db.close();
     for (let i = 0; i < 5; i++) {
       try {
@@ -193,9 +192,9 @@ describe('Watcher - Incremental Indexing', () => {
     expect(findDefinitions(db, 'standardFunc', projectHash)).toHaveLength(0);
   });
 
-  it('closes cleanly without leaving active debounce timers or watchers', () => {
+  it('closes cleanly without leaving active debounce timers or watchers', async () => {
     watcher = watchCodebase(db, tmpDir, projectHash);
-    expect(() => watcher!.close()).not.toThrow();
+    await expect(watcher.close()).resolves.toBeUndefined();
     watcher = undefined;
   });
 });
