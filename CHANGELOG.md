@@ -1,3 +1,10 @@
+## [3.65.8](https://github.com/bgill55/daedalus/compare/v3.65.7...v3.65.8) (2026-09-01)
+
+
+### Bug Fixes
+
+* **watcher:** unref fs.FSWatcher on Windows to prevent event-loop stall and CI worker crash ([33c79ab](https://github.com/bgill55/daedalus/commit/33c79ab6154a4c418e9e4c838f9ab0e21c968b37))
+
 ## [3.65.7](https://github.com/bgill55/daedalus/compare/v3.65.6...v3.65.7) (2026-09-01)
 
 
