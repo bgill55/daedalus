@@ -46,7 +46,9 @@ export class REPL {
       this.executeCommand(trimmed);
     }).on('close', () => {
       this.logger.log('REPL session ended.');
-      process.exit(0);
+      if (!process.env.VITEST) {
+        process.exit(0);
+      }
     });
   }
 

@@ -708,7 +708,9 @@ export const contextCommands: Command[] = [
       console.log(pc.gray(`Session saved: ${ctx.sessionManager.sessionId}`));
       console.log(pc.yellow('\nEnding session. Goodbye!\n'));
       ctx.rl.close();
-      process.exit(0);
+      if (!process.env.VITEST) {
+        process.exit(0);
+      }
     }
   }
 ]

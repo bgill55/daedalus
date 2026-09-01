@@ -251,7 +251,10 @@ export async function startLoopDaemon(ctx: ToolContext, config: DaedalusConfig, 
 
   if (!repoInfo || !token) {
     console.error(pc.red('[ERROR] Daemon requires a Git repository with GITHUB_TOKEN/GH_TOKEN or gh CLI authenticated.'));
-    process.exit(1);
+    if (!process.env.VITEST) {
+      process.exit(1);
+    }
+    throw new Error('Daemon requires a Git repository with GITHUB_TOKEN/GH_TOKEN or gh CLI authenticated.');
   }
 
   const repo = repoInfo!;
