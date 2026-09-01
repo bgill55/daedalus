@@ -66,6 +66,7 @@
     "pdf-parse": "^2.4.5",
     "picocolors": "^1.1.1",
     "puppeteer-core": "^25.1.0",
+    "typescript": "^5.8.3",
     "zod": "^3.23.8"
   },
   "devDependencies": {
@@ -87,7 +88,6 @@
     "semantic-release": "^25.0.5",
     "tsx": "^4.19.4",
     "typedoc": "^0.28.20",
-    "typescript": "^5.8.3",
     "typescript-eslint": "^8.61.1",
     "vitest": "^2.1.8"
   }

@@ -57,7 +57,7 @@ export interface ChatMessage {
   name?: string;
 }
 
-export interface ToolContext {
+export interface BaseToolContext {
   sessionId: string;
   projectRoot: string;
   projectHash: string;            // sha256 prefix of projectRoot — stable across calls
@@ -69,12 +69,31 @@ export interface ToolContext {
   autoApproveTools?: boolean;
   pauseSpinner?: () => void;
   resumeSpinner?: () => void;
+  askLine?: (prompt: string) => Promise<string>;
+  contextVariables?: Record<string, unknown>;
+}
+
+export interface PatchContext {
   patchHistory?: PatchEntry[];    // for /undo support
   sessionReadCache?: Map<string, number>;  // absPath -> mtime when last read
   patchFailureStreak?: Map<string, number>; // absPath -> consecutive failure count
   patchRepeatKey?: Map<string, string>; // absPath -> last revert signature (target+intent); same key across reverts flags a same-edit loop
   patchRepeatCount?: Map<string, number>; // absPath -> consecutive same-intent revert count (Munder Difflin "looping" signal)
   patchFailureTotal?: number; // session-wide count of patch syntax-reverts (loop guard, never reset by intervening reads)
+  allowTestEdits?: boolean;
+  // Set true when the user live-approved a test write via askLine. Once true,
+  // the test-suite lock stays open for the rest of the session even if a later
+  // sub-task goal doesn't signal test intent — distinguishes a deliberate
+  // approval from the goal-text regex match.
+  testApprovalGranted?: boolean;
+  // Test-file paths the agent already tried (and was blocked) to write this
+  // session. Used to detect a blocked write being re-attempted via a different
+  // tool (e.g. write_file blocked -> terminal cat >) and force the agent to
+  // report the blocker instead of silently routing around the lock.
+  blockedTestWrites?: Set<string>;
+}
+
+export interface TerminalContext {
   terminalFailureStreak?: Map<string, number>; // normalized command prefix -> consecutive failure count
   terminalRepeatStreak?: Map<string, number>; // full normalized command -> consecutive identical-run count (no-progress loop guard)
   terminalConsecutiveFails?: number; // consecutive terminal failures across ALL commands (diversifying retry-loop guard)
@@ -90,6 +109,9 @@ export interface ToolContext {
   // the terminal circuit breaker, so a later turn cannot falsely claim "build/tests pass"
   // without a fresh successful run (see loop-guards.ts verification-claim guard).
   verifyBreakerTrippedLastTurn?: boolean;
+}
+
+export interface GuardContext {
   // Diagnosis of WHY a single-agent task hit the max-tool-turns checkpoint, captured at the
   // checkpoint so it can be recorded into the task's sigma memory (instead of a bare
   // "Agent reached max turns" stub). Empty/undefined means a natural checkpoint.
@@ -110,25 +132,19 @@ export interface ToolContext {
   // so we don't re-escalate into a model-swap churn on the next turn (which silently
   // resets escalatedThisStreak to false each turn).
   escalatedStreak?: boolean;
-  askLine?: (prompt: string) => Promise<string>;
-  allowTestEdits?: boolean;
-  // Set true when the user live-approved a test write via askLine. Once true,
-  // the test-suite lock stays open for the rest of the session even if a later
-  // sub-task goal doesn't signal test intent — distinguishes a deliberate
-  // approval from the goal-text regex match.
-  testApprovalGranted?: boolean;
-  // Test-file paths the agent already tried (and was blocked) to write this
-  // session. Used to detect a blocked write being re-attempted via a different
-  // tool (e.g. write_file blocked -> terminal cat >) and force the agent to
-  // report the blocker instead of silently routing around the lock.
-  blockedTestWrites?: Set<string>;
-  contextVariables?: Record<string, unknown>;
   // Claim-grounding ledger (session-scoped): records every file the agent actually
   // inspected this session (read/search/terminal) so factual claims about those files
   // are credited even across turns. MUST be persisted on the context (not recreated per
   // turn) — see model.ts runSingleAgentTurn. Lives here to match verifyBreakerTrippedLastTurn.
   claimLedger?: ClaimLedger;
 }
+
+export interface MemoryContext {
+  contextVariables?: Record<string, unknown>;
+  claimLedger?: ClaimLedger;
+}
+
+export interface ToolContext extends BaseToolContext, PatchContext, TerminalContext, GuardContext {}
 
 export interface PatchEntry {
   filePath: string;

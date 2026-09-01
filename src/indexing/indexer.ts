@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import ts from 'typescript';
 import Database from 'better-sqlite3';
 import {
   clearFileIndex,
@@ -72,139 +73,158 @@ function yieldToEventLoop(): Promise<void> {
   });
 }
 
-/** Extract symbols and references from TypeScript/JavaScript file */
+/** Extract symbols and references from TypeScript/JavaScript file using TypeScript AST */
 export function parseTypeScript(content: string, relPath: string, projectHash: string): { symbols: SymbolRow[]; references: ReferenceRow[] } {
   const symbols: SymbolRow[] = [];
   const references: ReferenceRow[] = [];
-  const lines = content.split(/\r?\n/);
-  
-  let currentCaller: string | null = null;
-  let callerStartLine = 0;
-  let callerBraceCount = 0;
-  
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const lineNum = i + 1;
-    
-    // Track braces to see when a function body ends
-    if (currentCaller) {
-      const openBraces = (line.match(/\{/g) || []).length;
-      const closeBraces = (line.match(/\}/g) || []).length;
-      callerBraceCount += openBraces - closeBraces;
-      
-      if (callerBraceCount <= 0) {
-        // Find the index of the symbol and update line_end
-        const sym = symbols.find(s => s.name === currentCaller && s.file_path === relPath && s.line_start === callerStartLine);
-        if (sym) sym.line_end = lineNum;
-        currentCaller = null;
-      }
-    }
 
-    // Class definition
-    let match = line.match(/(?:export\s+)?(?:default\s+)?class\s+(\w+)/);
-    if (match) {
+  const sourceFile = ts.createSourceFile(
+    relPath,
+    content,
+    ts.ScriptTarget.Latest,
+    true,
+    relPath.endsWith('.tsx') || relPath.endsWith('.jsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS
+  );
+
+  const getLine = (pos: number): number => {
+    return sourceFile.getLineAndCharacterOfPosition(pos).line + 1;
+  };
+
+  const getSignature = (node: ts.Node, body?: ts.Node): string => {
+    const start = node.getStart(sourceFile);
+    const end = body ? body.getStart(sourceFile) : node.getEnd();
+    let sig = content.slice(start, end).trim();
+    sig = sig.replace(/[\s={;]+$/, '').trim();
+    return sig.replace(/\s+/g, ' ');
+  };
+
+  const reservedCallees = new Set([
+    'if', 'for', 'while', 'catch', 'switch', 'require', 'super', 'import',
+    'expect', 'describe', 'it', 'beforeEach', 'afterEach'
+  ]);
+
+  const visit = (node: ts.Node, currentCaller?: string) => {
+    let newCaller = currentCaller;
+
+    if (ts.isClassDeclaration(node) && node.name) {
+      const name = node.name.text;
+      const lineStart = getLine(node.getStart(sourceFile));
+      const lineEnd = getLine(node.getEnd());
       symbols.push({
-        name: match[1],
+        name,
         kind: 'class',
         file_path: relPath,
-        line_start: lineNum,
-        line_end: lineNum,
-        signature: line.trim().replace(/\s*\{.*$/, ''),
+        line_start: lineStart,
+        line_end: lineEnd,
+        signature: getSignature(node),
         project_hash: projectHash,
       });
-      continue;
-    }
-
-    // Interface definition
-    match = line.match(/(?:export\s+)?interface\s+(\w+)/);
-    if (match) {
+    } else if (ts.isInterfaceDeclaration(node) && node.name) {
+      const name = node.name.text;
+      const lineStart = getLine(node.getStart(sourceFile));
+      const lineEnd = getLine(node.getEnd());
       symbols.push({
-        name: match[1],
+        name,
         kind: 'interface',
         file_path: relPath,
-        line_start: lineNum,
-        line_end: lineNum,
-        signature: line.trim().replace(/\s*\{.*$/, ''),
+        line_start: lineStart,
+        line_end: lineEnd,
+        signature: getSignature(node),
         project_hash: projectHash,
       });
-      continue;
-    }
-
-    // Type definition
-    match = line.match(/(?:export\s+)?type\s+(\w+)\s*=/);
-    if (match) {
+    } else if (ts.isTypeAliasDeclaration(node) && node.name) {
+      const name = node.name.text;
+      const lineStart = getLine(node.getStart(sourceFile));
+      const lineEnd = getLine(node.getEnd());
       symbols.push({
-        name: match[1],
+        name,
         kind: 'type',
         file_path: relPath,
-        line_start: lineNum,
-        line_end: lineNum,
-        signature: line.trim().replace(/\s*=.*$/, ''),
+        line_start: lineStart,
+        line_end: lineEnd,
+        signature: getSignature(node, node.type),
         project_hash: projectHash,
       });
-      continue;
-    }
-
-    // Normal Function definition
-    match = line.match(/(?:export\s+)?(?:default\s+)?(?:async\s+)?function\s+(\w+)\s*\(/);
-    if (match) {
-      const funcName = match[1];
+    } else if (ts.isEnumDeclaration(node) && node.name) {
+      const name = node.name.text;
+      const lineStart = getLine(node.getStart(sourceFile));
+      const lineEnd = getLine(node.getEnd());
       symbols.push({
-        name: funcName,
+        name,
+        kind: 'enum',
+        file_path: relPath,
+        line_start: lineStart,
+        line_end: lineEnd,
+        signature: getSignature(node),
+        project_hash: projectHash,
+      });
+    } else if (ts.isFunctionDeclaration(node) && node.name) {
+      const name = node.name.text;
+      const lineStart = getLine(node.getStart(sourceFile));
+      const lineEnd = getLine(node.getEnd());
+      symbols.push({
+        name,
         kind: 'function',
         file_path: relPath,
-        line_start: lineNum,
-        line_end: lineNum,
-        signature: line.trim().replace(/\s*\{.*$/, ''),
+        line_start: lineStart,
+        line_end: lineEnd,
+        signature: getSignature(node, node.body),
         project_hash: projectHash,
       });
-      currentCaller = funcName;
-      callerStartLine = lineNum;
-      callerBraceCount = (line.match(/\{/g) || []).length - (line.match(/\}/g) || []).length;
-      continue;
-    }
-
-    // Arrow Function / Variable assignment function definition
-    match = line.match(/(?:export\s+)?const\s+(\w+)\s*=\s*(?:async\s*)?\(([^)]*)\)\s*(?::\s*[^=]+)?\s*=>/);
-    if (match) {
-      const funcName = match[1];
+      newCaller = name;
+    } else if (ts.isMethodDeclaration(node) && ts.isIdentifier(node.name)) {
+      const name = node.name.text;
+      const lineStart = getLine(node.getStart(sourceFile));
+      const lineEnd = getLine(node.getEnd());
       symbols.push({
-        name: funcName,
+        name,
+        kind: 'method',
+        file_path: relPath,
+        line_start: lineStart,
+        line_end: lineEnd,
+        signature: getSignature(node, node.body),
+        project_hash: projectHash,
+      });
+      newCaller = name;
+    } else if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer && (ts.isArrowFunction(node.initializer) || ts.isFunctionExpression(node.initializer))) {
+      const name = node.name.text;
+      const lineStart = getLine(node.getStart(sourceFile));
+      const lineEnd = getLine(node.getEnd());
+      symbols.push({
+        name,
         kind: 'function',
         file_path: relPath,
-        line_start: lineNum,
-        line_end: lineNum,
-        signature: line.trim().replace(/\s*=>.*$/, ''),
+        line_start: lineStart,
+        line_end: lineEnd,
+        signature: getSignature(node, ts.isArrowFunction(node.initializer) ? node.initializer.body : node.initializer.body),
         project_hash: projectHash,
       });
-      currentCaller = funcName;
-      callerStartLine = lineNum;
-      callerBraceCount = (line.match(/\{/g) || []).length - (line.match(/\}/g) || []).length;
-      continue;
-    }
-
-    // Extract references (calls)
-    if (currentCaller) {
-      // Find patterns like calleeName(arguments)
-      const callMatches = line.matchAll(/\b([a-zA-Z0-9_$]+)\s*\(/g);
-      for (const m of callMatches) {
-        const callee = m[1];
-        // Ignore language control structures
-        const reserved = ['if', 'for', 'while', 'catch', 'switch', 'require', 'super', 'import', 'expect', 'describe', 'it', 'beforeEach', 'afterEach'];
-        if (!reserved.includes(callee) && callee !== currentCaller) {
-          references.push({
-            caller_name: currentCaller,
-            caller_file: relPath,
-            caller_line: lineNum,
-            callee_name: callee,
-            callee_file: relPath,
-            callee_line: lineNum,
-            project_hash: projectHash,
-          });
-        }
+      newCaller = name;
+    } else if (ts.isCallExpression(node)) {
+      let calleeName = '';
+      if (ts.isIdentifier(node.expression)) {
+        calleeName = node.expression.text;
+      } else if (ts.isPropertyAccessExpression(node.expression) && ts.isIdentifier(node.expression.name)) {
+        calleeName = node.expression.name.text;
+      }
+      if (calleeName && currentCaller && !reservedCallees.has(calleeName) && calleeName !== currentCaller) {
+        const lineNum = getLine(node.getStart(sourceFile));
+        references.push({
+          caller_name: currentCaller,
+          caller_file: relPath,
+          caller_line: lineNum,
+          callee_name: calleeName,
+          callee_file: relPath,
+          callee_line: lineNum,
+          project_hash: projectHash,
+        });
       }
     }
-  }
+
+    ts.forEachChild(node, (child) => visit(child, newCaller));
+  };
+
+  visit(sourceFile);
 
   return { symbols, references };
 }

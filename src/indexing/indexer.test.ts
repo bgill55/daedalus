@@ -50,12 +50,14 @@ describe('Indexer - collectFiles', () => {
 describe('Indexer - parseTypeScript', () => {
   const projectHash = 'testhash';
 
-  it('parses class definitions', () => {
+  it('parses class definitions and methods', () => {
     const content = 'export class MyService {\n  doStuff() {}\n}\n';
     const { symbols } = parseTypeScript(content, 'src/service.ts', projectHash);
-    expect(symbols).toHaveLength(1);
+    expect(symbols).toHaveLength(2);
     expect(symbols[0].name).toBe('MyService');
     expect(symbols[0].kind).toBe('class');
+    expect(symbols[1].name).toBe('doStuff');
+    expect(symbols[1].kind).toBe('method');
   });
 
   it('parses function definitions', () => {
@@ -100,6 +102,64 @@ describe('Indexer - parseTypeScript', () => {
     const { symbols, references } = parseTypeScript('', 'empty.ts', projectHash);
     expect(symbols).toEqual([]);
     expect(references).toEqual([]);
+  });
+
+  it('handles multi-line generic function signatures cleanly', () => {
+    const content = `
+export async function transformData<
+  TInput extends Record<string, unknown>,
+  TOutput = TInput
+>(
+  input: TInput,
+  options?: { format: boolean }
+): Promise<TOutput> {
+  return input as unknown as TOutput;
+}
+`;
+    const { symbols } = parseTypeScript(content, 'src/transform.ts', projectHash);
+    expect(symbols).toHaveLength(1);
+    expect(symbols[0].name).toBe('transformData');
+    expect(symbols[0].kind).toBe('function');
+    expect(symbols[0].signature).toContain('transformData<');
+  });
+
+  it('ignores fake function definitions inside comments and string literals', () => {
+    const content = `
+// function commentedOut() { return { a: 1 }; }
+/*
+  class CommentedClass {}
+*/
+export function realFunction(): string {
+  const fake = "function notReal() { }";
+  return fake;
+}
+`;
+    const { symbols } = parseTypeScript(content, 'src/comments.ts', projectHash);
+    expect(symbols).toHaveLength(1);
+    expect(symbols[0].name).toBe('realFunction');
+  });
+
+  it('parses enums and class methods', () => {
+    const content = `
+export enum Direction {
+  Up = 'UP',
+  Down = 'DOWN'
+}
+
+export class Router {
+  navigate(url: string): void {
+    console.log(url);
+  }
+}
+`;
+    const { symbols } = parseTypeScript(content, 'src/enum.ts', projectHash);
+    const enumSym = symbols.find(s => s.kind === 'enum');
+    const classSym = symbols.find(s => s.kind === 'class');
+    const methodSym = symbols.find(s => s.kind === 'method');
+
+    expect(enumSym?.name).toBe('Direction');
+    expect(classSym?.name).toBe('Router');
+    expect(methodSym?.name).toBe('navigate');
   });
 
 });
