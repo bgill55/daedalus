@@ -1,3 +1,15 @@
+# [3.64.0](https://github.com/bgill55/daedalus/compare/v3.63.0...v3.64.0) (2026-09-01)
+
+
+### Bug Fixes
+
+* **indexing:** make incremental re-index timeout-safe on Windows CI ([fabe316](https://github.com/bgill55/daedalus/commit/fabe3164bcd3c87ae8dd6e18934f2cfbb83643b2))
+
+
+### Features
+
+* **router:** harden model fallback with tool capability gating, minModel floor enforcement, and multi-model failure diagnostics ([1577e4d](https://github.com/bgill55/daedalus/commit/1577e4d3e5d813900cc42549f5bb230567509aa7))
+
 ## [3.63.1](https://github.com/bgill55/daedalus/compare/v3.63.0...v3.63.1) (2026-09-01)
 
 
