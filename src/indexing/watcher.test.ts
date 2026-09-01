@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
@@ -25,15 +25,32 @@ async function waitFor(fn: () => boolean | Promise<boolean>, timeout = 5000, int
 }
 
 describe('Watcher - Incremental Indexing', () => {
+  let rootTmpDir: string;
   let tmpDir: string;
   let dbPath: string;
   let db: Database.Database;
-  let watcher: { close: () => void } | undefined;
+  let watcher: { close: () => Promise<void> } | undefined;
   const projectHash = 'watchertest';
+  let testCounter = 0;
+
+  beforeAll(() => {
+    rootTmpDir = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'daedalus-watcher-suite-')));
+  });
+
+  afterAll(async () => {
+    if (process.platform === 'win32') {
+      await sleep(500);
+    }
+    try {
+      fs.rmSync(rootTmpDir, { recursive: true, force: true });
+    } catch { /* ignore */ }
+  });
 
   beforeEach(() => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'daedalus-watcher-test-'));
-    dbPath = path.join(tmpDir, 'index.sqlite');
+    testCounter++;
+    tmpDir = path.join(rootTmpDir, `test-${testCounter}`);
+    fs.mkdirSync(tmpDir, { recursive: true });
+    dbPath = path.join(rootTmpDir, `index-${testCounter}.sqlite`);
     db = initIndexDb(dbPath);
   });
 
@@ -42,15 +59,16 @@ describe('Watcher - Incremental Indexing', () => {
       await watcher.close();
       watcher = undefined;
     }
-    db.close();
-    for (let i = 0; i < 5; i++) {
-      try {
-        fs.rmSync(tmpDir, { recursive: true, force: true });
-        break;
-      } catch {
-        await sleep(100);
-      }
+    if (process.platform === 'win32') {
+      await sleep(500);
     }
+    db.close();
+    try {
+      const entries = fs.readdirSync(tmpDir);
+      for (const entry of entries) {
+        fs.rmSync(path.join(tmpDir, entry), { recursive: true, force: true });
+      }
+    } catch { /* ignore */ }
   });
 
   it('indexes a newly created file and ignores excluded paths or non-matching extensions', async () => {
@@ -197,4 +215,5 @@ describe('Watcher - Incremental Indexing', () => {
     await expect(watcher.close()).resolves.toBeUndefined();
     watcher = undefined;
   });
+
 });
