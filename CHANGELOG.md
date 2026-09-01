@@ -1,3 +1,10 @@
+## [3.65.2](https://github.com/bgill55/daedalus/compare/v3.65.1...v3.65.2) (2026-09-01)
+
+
+### Bug Fixes
+
+* **terminal:** ensure correct cd drive syntax and scoped regex translation for Windows cmd.exe ([09f8d2c](https://github.com/bgill55/daedalus/commit/09f8d2c20e4f90a017e725de1ed6c51681c91fee))
+
 ## [3.65.1](https://github.com/bgill55/daedalus/compare/v3.65.0...v3.65.1) (2026-09-01)
 
 
