@@ -1,3 +1,10 @@
+## [3.63.2](https://github.com/bgill55/daedalus/compare/v3.63.1...v3.63.2) (2026-09-01)
+
+
+### Bug Fixes
+
+* **config:** demote lmstudio entries to priority 20/21, disabled by default ([4c014f1](https://github.com/bgill55/daedalus/commit/4c014f194034055599685e2f2f44402f675e83ee))
+
 ## [3.63.1](https://github.com/bgill55/daedalus/compare/v3.63.0...v3.63.1) (2026-08-31)
 
 
