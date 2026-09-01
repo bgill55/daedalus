@@ -1,3 +1,10 @@
+## [3.65.12](https://github.com/bgill55/daedalus/compare/v3.65.11...v3.65.12) (2026-09-01)
+
+
+### Bug Fixes
+
+* disable native file watchers on Windows to prevent fs-event assertion errors ([ff128e8](https://github.com/bgill55/daedalus/commit/ff128e87b1a3d59b5c256b6c8105c367baf03535))
+
 ## [3.65.11](https://github.com/bgill55/daedalus/compare/v3.65.10...v3.65.11) (2026-09-01)
 
 
