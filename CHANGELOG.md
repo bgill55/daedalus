@@ -1,3 +1,10 @@
+## [3.65.4](https://github.com/bgill55/daedalus/compare/v3.65.3...v3.65.4) (2026-09-01)
+
+
+### Bug Fixes
+
+* **test:** eliminate fake timer hijacking and enforce safe timer teardowns ([8a51396](https://github.com/bgill55/daedalus/commit/8a5139653ce966de1e2d09c6c138c6b6f6289f8e))
+
 ## [3.65.3](https://github.com/bgill55/daedalus/compare/v3.65.2...v3.65.3) (2026-09-01)
 
 
