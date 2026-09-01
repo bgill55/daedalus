@@ -171,18 +171,19 @@ export function translateUnixToCmd(command: string): string {
   // mkdir -p -> mkdir (cmd mkdir is already recursive)
   cmd = cmd.replace(/\bmkdir\s+-p\b/gi, 'mkdir');
   // touch <file> -> create empty file
-  cmd = cmd.replace(/\btouch\s+(\S+)/gi, (_m, f) => `type nul > "${f.replace(/"/g, '').replace(/\//g, '\\')}"`);
+  cmd = cmd.replace(/\btouch\s+([^\s;&|]+)/gi, (_m, f) => `type nul > "${f.replace(/"/g, '').replace(/\//g, '\\')}"`);
   // cat <file> -> type <file> (cmd type requires backslashes for relative paths)
   cmd = cmd.replace(/\bcat\s+([^\s;&|]+)/gi, (_m, p) => `type ${p.replace(/\//g, '\\')}`);
   cmd = cmd.replace(/\bcat\s+/gi, 'type ');
   // pwd -> cd (prints current dir)
   cmd = cmd.replace(/\bpwd\b/gi, 'cd');
   // ls [opts] [path] -> dir [path] (cmd dir parses / as switch, so paths must use \)
-  cmd = cmd.replace(/\bls\b([\s\S]*)/i, (_m, rest) => {
+  cmd = cmd.replace(/\bls\b([^;&|\r\n]*)/gi, (_m, rest) => {
     // Drop Unix ls flags (-l, -a, -la, --color, etc.) and convert forward slashes in path arguments
     const stripped = rest.replace(/\s+-+[a-zA-Z]+/g, ' ').trim();
+    if (!stripped) return 'dir';
     const converted = stripped.replace(/([A-Za-z0-9_.\-~]+)\/([A-Za-z0-9_.\-\/\\]*)/g, (match: string) => match.replace(/\//g, '\\'));
-    return `dir ${converted}`.trim();
+    return `dir ${converted}`;
   });
   // cp -> copy, mv -> move with backslash paths
   cmd = cmd.replace(/\bcp\s+([^\s;&|]+)\s+([^\s;&|]+)/gi, (_m, s, d) => `copy ${s.replace(/\//g, '\\')} ${d.replace(/\//g, '\\')}`);
@@ -545,24 +546,25 @@ export async function execute(args: { command: string; timeout?: number; workdir
 
   // Best-effort checkpoint before install, plus an npx footgun warning
   let execCommand = command;
-  // Normalize Windows cmd-style `cd /d <path>` to `cd <path>` so bash/PowerShell subshells don't error
-  execCommand = execCommand.replace(/\bcd\s+\/d\s+/gi, 'cd ');
-  // Normalize unquoted Windows drive paths in `cd` so bash (MSYS/git-bash) doesn't mangle
-  // backslashes. `cd D:\foo\bar` -> `cd "D:/foo/bar"`. Quoted paths (which already work in
-  // this shell) are left untouched. Stops the recurring "npm install failed" from a bad `cd`.
-  execCommand = execCommand.replace(/\bcd\s+([A-Za-z]:[\\/][^"'\s&|;]*)/g, (_m, p) => `cd "${p.replace(/\\/g, '/')}"`);
+  if (isBashShell()) {
+    // Normalize Windows cmd-style `cd /d <path>` to `cd <path>` so bash/PowerShell subshells don't error
+    execCommand = execCommand.replace(/\bcd\s+\/d\s+/gi, 'cd ');
+    // Normalize unquoted Windows drive paths in `cd` so bash (MSYS/git-bash) doesn't mangle backslashes
+    execCommand = execCommand.replace(/\bcd\s+([A-Za-z]:[\\/][^"'\s&|;]*)/g, (_m, p) => `cd "${p.replace(/\\/g, '/')}"`);
+  } else if (process.platform === 'win32') {
+    // In cmd.exe, ensure drive changes use /d and backslashes
+    execCommand = execCommand.replace(/\bcd\s+(?:(?:\/d\s+)?)"?([A-Za-z]:[^"'\s&|;]*)"?/gi, (_m, p) => `cd /d "${p.replace(/\//g, '\\')}"`);
+    // Agents routinely emit Unix-style commands (ls, cat, mkdir -p, cp, mv, grep, ...)
+    // even on Windows. When the active shell is cmd.exe (not bash/git-bash), translate the
+    // common Unix-isms to cmd equivalents so headless Windows runs don't die on `ls`.
+    execCommand = translateUnixToCmd(execCommand);
+  }
   if (process.platform === 'win32' && /^rm\s+/i.test(execCommand.trim())) {
     const rmMatch = execCommand.trim().match(/^rm\s+(?:-[a-z]+\s+)?(.+)$/i);
     if (rmMatch && rmMatch[1]) {
       const targetPath = rmMatch[1].trim().replace(/'/g, '');
       execCommand = `powershell -Command "Remove-Item -Recurse -Force '${targetPath}'"`;
     }
-  }
-  // Agents routinely emit Unix-style commands (ls, cat, mkdir -p, cp, mv, grep, ...)
-  // even on Windows. When the active shell is cmd.exe (not bash/git-bash), translate the
-  // common Unix-isms to cmd equivalents so headless Windows runs don't die on `ls`.
-  if (process.platform === 'win32' && !isBashShell()) {
-    execCommand = translateUnixToCmd(execCommand);
   }
 
   let notes = '';
