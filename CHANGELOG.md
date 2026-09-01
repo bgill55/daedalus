@@ -1,3 +1,10 @@
+## [3.65.1](https://github.com/bgill55/daedalus/compare/v3.65.0...v3.65.1) (2026-09-01)
+
+
+### Bug Fixes
+
+* **ci:** guard process.exit in tests and tune vitest tinypool worker pool options ([f2f764a](https://github.com/bgill55/daedalus/commit/f2f764a9d84e199c6a9d125ba4aafdab209b7054))
+
 # [3.65.0](https://github.com/bgill55/daedalus/compare/v3.64.0...v3.65.0) (2026-09-01)
 
 
