@@ -19,7 +19,7 @@ export function watchCodebase(
   options: WatcherOptions = {}
 ): { close: () => void } {
   const excludeSet = new Set([...DEFAULT_EXCLUDE, ...(options.exclude || [])]);
-  const extensionsSet = new Set([...DEFAULT_EXTENSIONS, ...(options.extensions || [])]);
+  const extensionsSet = new Set(options.extensions && options.extensions.length > 0 ? options.extensions : DEFAULT_EXTENSIONS);
 
   const watchers = new Map<string, fs.FSWatcher>();
   const debounceTimers = new Map<string, NodeJS.Timeout>();

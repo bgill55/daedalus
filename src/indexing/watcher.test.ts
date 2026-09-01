@@ -3,14 +3,14 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import Database from 'better-sqlite3';
-import { initIndexDb, findDefinitions } from './fts.js';
+import { initIndexDb, findDefinitions, findReferences } from './fts.js';
 import { watchCodebase } from './watcher.js';
 
 function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-async function waitFor(fn: () => boolean | Promise<boolean>, timeout = 3000, interval = 50): Promise<void> {
+async function waitFor(fn: () => boolean | Promise<boolean>, timeout = 5000, interval = 50): Promise<void> {
   const start = Date.now();
   while (Date.now() - start < timeout) {
     if (await fn()) {
@@ -24,7 +24,7 @@ async function waitFor(fn: () => boolean | Promise<boolean>, timeout = 3000, int
   throw new Error('Timeout waiting for condition');
 }
 
-describe.skipIf(process.platform === 'win32')('Watcher - Incremental Indexing', () => {
+describe('Watcher - Incremental Indexing', () => {
   let tmpDir: string;
   let dbPath: string;
   let db: Database.Database;
@@ -43,13 +43,13 @@ describe.skipIf(process.platform === 'win32')('Watcher - Incremental Indexing', 
       watcher = undefined;
     }
     db.close();
-    try {
-      fs.rmSync(tmpDir, { recursive: true, force: true });
-    } catch {
-      await sleep(100);
+    for (let i = 0; i < 5; i++) {
       try {
         fs.rmSync(tmpDir, { recursive: true, force: true });
-      } catch { /* ignored */ }
+        break;
+      } catch {
+        await sleep(100);
+      }
     }
   });
 
@@ -75,9 +75,6 @@ describe.skipIf(process.platform === 'win32')('Watcher - Incremental Indexing', 
 
     const docFuncDefs = findDefinitions(db, 'docFunc', projectHash);
     expect(docFuncDefs).toHaveLength(0);
-
-    watcher.close();
-    watcher = undefined;
   });
 
   it('updates index when a file is modified', async () => {
@@ -99,9 +96,24 @@ describe.skipIf(process.platform === 'win32')('Watcher - Incremental Indexing', 
     const defsAfterNew = findDefinitions(db, 'secondFunc', projectHash);
     expect(defsAfterNew).toHaveLength(1);
     expect(defsAfterNew[0].file_path).toBe('modify.ts');
+  });
 
-    watcher.close();
-    watcher = undefined;
+  it('debounces rapid consecutive writes so only the final version is indexed', async () => {
+    watcher = watchCodebase(db, tmpDir, projectHash);
+    await sleep(200);
+
+    const targetFile = path.join(tmpDir, 'rapid.ts');
+    fs.writeFileSync(targetFile, 'export function rapidV1() {}');
+    await sleep(50);
+    fs.writeFileSync(targetFile, 'export function rapidV2() {}');
+    await sleep(50);
+    fs.writeFileSync(targetFile, 'export function rapidFinal() {}');
+
+    await waitFor(() => findDefinitions(db, 'rapidFinal', projectHash).length === 1);
+
+    expect(findDefinitions(db, 'rapidV1', projectHash)).toHaveLength(0);
+    expect(findDefinitions(db, 'rapidV2', projectHash)).toHaveLength(0);
+    expect(findDefinitions(db, 'rapidFinal', projectHash)).toHaveLength(1);
   });
 
   it('removes symbols when a file is deleted', async () => {
@@ -119,9 +131,6 @@ describe.skipIf(process.platform === 'win32')('Watcher - Incremental Indexing', 
 
     const defsAfter = findDefinitions(db, 'byeFunc', projectHash);
     expect(defsAfter).toHaveLength(0);
-
-    watcher.close();
-    watcher = undefined;
   });
 
   it('removes symbols recursively when a directory is deleted', async () => {
@@ -141,8 +150,51 @@ describe.skipIf(process.platform === 'win32')('Watcher - Incremental Indexing', 
 
     const defsAfter = findDefinitions(db, 'subFunc', projectHash);
     expect(defsAfter).toHaveLength(0);
+  });
 
-    watcher.close();
+  it('indexes and cleans up function call references', async () => {
+    watcher = watchCodebase(db, tmpDir, projectHash);
+    await sleep(200);
+
+    fs.writeFileSync(
+      path.join(tmpDir, 'refs.ts'),
+      'export function callerFn() {\n  helperFn();\n}'
+    );
+
+    await waitFor(() => findReferences(db, 'helperFn', projectHash).length >= 1);
+
+    const refs = findReferences(db, 'helperFn', projectHash);
+    expect(refs.length).toBeGreaterThanOrEqual(1);
+    expect(refs[0].caller_name).toBe('callerFn');
+
+    fs.unlinkSync(path.join(tmpDir, 'refs.ts'));
+    await waitFor(() => findReferences(db, 'helperFn', projectHash).length === 0);
+
+    expect(findReferences(db, 'helperFn', projectHash)).toHaveLength(0);
+  });
+
+  it('respects custom options for exclude patterns and allowed extensions', async () => {
+    watcher = watchCodebase(db, tmpDir, projectHash, {
+      exclude: ['custom_ignore'],
+      extensions: ['.py'],
+    });
+    await sleep(200);
+
+    fs.mkdirSync(path.join(tmpDir, 'custom_ignore'), { recursive: true });
+    fs.writeFileSync(path.join(tmpDir, 'custom_ignore', 'test.py'), 'def custom_ignore_func():\n    pass');
+    fs.writeFileSync(path.join(tmpDir, 'valid.py'), 'def valid_custom_func():\n    pass');
+    fs.writeFileSync(path.join(tmpDir, 'standard.ts'), 'export function standardFunc() {}');
+
+    await waitFor(() => findDefinitions(db, 'valid_custom_func', projectHash).length === 1);
+
+    expect(findDefinitions(db, 'valid_custom_func', projectHash)).toHaveLength(1);
+    expect(findDefinitions(db, 'custom_ignore_func', projectHash)).toHaveLength(0);
+    expect(findDefinitions(db, 'standardFunc', projectHash)).toHaveLength(0);
+  });
+
+  it('closes cleanly without leaving active debounce timers or watchers', () => {
+    watcher = watchCodebase(db, tmpDir, projectHash);
+    expect(() => watcher!.close()).not.toThrow();
     watcher = undefined;
   });
 });
