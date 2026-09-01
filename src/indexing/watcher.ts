@@ -17,7 +17,7 @@ export function watchCodebase(
   root: string,
   projectHash: string,
   options: WatcherOptions = {}
-): { close: () => void } {
+): { close: () => Promise<void> } {
   const excludeSet = new Set([...DEFAULT_EXCLUDE, ...(options.exclude || [])]);
   const extensionsSet = new Set(options.extensions && options.extensions.length > 0 ? options.extensions : DEFAULT_EXTENSIONS);
 
