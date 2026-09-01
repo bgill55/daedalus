@@ -248,8 +248,13 @@ export const DEFAULT_CONFIG: DaedalusConfig = {
     chain: [
       // FreeLLMAPI - local proxy on port 3001
       { name: 'freellmapi', endpoint: 'http://127.0.0.1:3001/v1', model: 'auto', priority: 0, enabled: true, supportsVision: true, supportsTools: true, tier: 'intelligence' },
-      // LM Studio with gemma-4-e4b - vision-capable local fallback
-      { name: 'lmstudio-gemma', endpoint: 'http://127.0.0.1:1234/v1', model: 'google/gemma-4-e4b', priority: 1, enabled: true, supportsVision: true, supportsTools: true, tier: 'intelligence' },
+      // LM Studio with gemma-4-e4b - vision-capable local fallback (demoted;
+      // lmstudio:1234 hangs in Daedalus tool-calls, so it sits low to avoid
+      // stealing turns from the remote freellmapi chain).
+      { name: 'lmstudio-gemma', endpoint: 'http://127.0.0.1:1234/v1', model: 'google/gemma-4-e4b', priority: 20, enabled: false, supportsVision: true, supportsTools: true, tier: 'intelligence' },
+      // LM Studio with qwen2.5.1-coder-7b-instruct - code-focused local fallback
+      // (demoted; same hang issue — see lmstudio-gemma note above).
+      { name: 'lmstudio-qwen-coder', endpoint: 'http://127.0.0.1:1234/v1', model: 'qwen2.5.1-coder-7b-instruct', priority: 21, enabled: false, supportsTools: true, supportsVision: false, tier: 'intelligence' },
     ],
     healthCheckInterval: 30000,
     requestTimeout: 120000,
