@@ -405,6 +405,18 @@ const NON_FILE_TOKENS = new Set([
   'docker', 'kubectl', 'vim', 'bash', 'sh', 'powershell', 'cmd',
 ]);
 
+// Words and phrases indicating a hypothetical proposal, suggestion, or future design.
+// A sentence proposing a new file (e.g., "Each agent role would declare a capability.json")
+// is not asserting a factual property of an existing repo file and must not trip the
+// ungrounded-claim guard.
+export const HYPOTHETICAL_OR_PROPOSAL_RE =
+  /\b(?:would|could|might|may)\s+(?:\w+\s+){0,3}(?:be|have|use|include|contain|declare|define|add|create|export|import|need|hold|store)\b|\b(?:propos(?:e|ed|al|ing)|suggest(?:ed|ion|ing)?|idea|feature idea|hypothetical|for example|e\.g\.)\b|\b(?:create|creating|add|adding|introduce|introducing|new)\s+(?:a\s+|an\s+)?[\w.-]+\.\w+/i;
+
+export function isHypotheticalOrProposal(text: string): boolean {
+  if (!text) return false;
+  return HYPOTHETICAL_OR_PROPOSAL_RE.test(text);
+}
+
 /**
  * Detects a factual claim about a repo artifact the agent never observed this session.
  * Returns the first ungrounded file mention, or null when every claimed file was actually
@@ -417,6 +429,7 @@ export function detectUngroundedClaim(text: string, ledger: ClaimLedger): string
     .map((s) => s.trim())
     .filter(Boolean);
   for (const sentence of sentences) {
+    if (isHypotheticalOrProposal(sentence)) continue;
     const mentioned = fileMentions(sentence);
     if (mentioned.length === 0) continue;
     if (!CG_CLAIM_VERB_RE.test(sentence)) continue;
@@ -502,6 +515,7 @@ export function isUngroundedProjectClaim(text: string, ledger: ClaimLedger): str
     // Check a window around the term for a possession verb.
     const idx = lower.indexOf(term);
     const window = lower.slice(Math.max(0, idx - 40), idx + term.length + 40);
+    if (isHypotheticalOrProposal(window)) continue;
     if (FEATURE_ASSERT_RE.test(window)) return term;
   }
   return null;

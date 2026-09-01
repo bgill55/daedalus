@@ -325,6 +325,21 @@ describe('ClaimLedger + detectUngroundedClaim', () => {
     const claim = 'Program.cs defines the entry point of the service.';
     expect(detectUngroundedClaim(claim, ledger)).toBe('Program.cs');
   });
+
+  it('does NOT flag a hypothetical proposal naming a future file (e.g. capability.json)', () => {
+    const ledger = new ClaimLedger();
+    const proposal =
+      'Agent Capability Contracts (proposed) — Each agent role would declare a capability.json (tools, file patterns, max turns).';
+    expect(detectUngroundedClaim(proposal, ledger)).toBeNull();
+  });
+
+  it('does NOT flag suggestions proposing to add/create new files', () => {
+    const ledger = new ClaimLedger();
+    expect(detectUngroundedClaim('We could add a router.ts to handle dispatching.', ledger)).toBeNull();
+    expect(detectUngroundedClaim('I propose creating config.json for user preferences.', ledger)).toBeNull();
+    expect(detectUngroundedClaim('Feature idea: auth.ts handles OAuth tokens.', ledger)).toBeNull();
+    expect(detectUngroundedClaim('For example, schema.prisma defines the user model.', ledger)).toBeNull();
+  });
 });
 
 describe('isGreenStateClaim', () => {
