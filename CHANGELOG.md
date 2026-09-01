@@ -1,3 +1,10 @@
+## [3.65.3](https://github.com/bgill55/daedalus/compare/v3.65.2...v3.65.3) (2026-09-01)
+
+
+### Bug Fixes
+
+* **ci:** ensure singleFork execution mode and restore original working directory in tests ([adb0c46](https://github.com/bgill55/daedalus/commit/adb0c46d15d2eaa6a5fa07f6ff88e7d35209771d))
+
 ## [3.65.2](https://github.com/bgill55/daedalus/compare/v3.65.1...v3.65.2) (2026-09-01)
 
 
