@@ -1,3 +1,10 @@
+## [3.65.7](https://github.com/bgill55/daedalus/compare/v3.65.6...v3.65.7) (2026-09-01)
+
+
+### Bug Fixes
+
+* **ci:** remove singleFork to prevent OOM worker crash on Windows runners ([181a710](https://github.com/bgill55/daedalus/commit/181a71048af5f2e928ac3e8f4515881e495cbc50))
+
 ## [3.65.6](https://github.com/bgill55/daedalus/compare/v3.65.5...v3.65.6) (2026-09-01)
 
 
