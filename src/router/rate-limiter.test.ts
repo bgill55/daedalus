@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
   createTokenBucket,
   consumeTokens,
@@ -28,37 +28,28 @@ describe('TokenBucket rate limiter', () => {
   });
 
   it('refills tokens over time', () => {
-    vi.useFakeTimers();
     const bucket = createTokenBucket(100, 60);
     consumeTokens(bucket, 60);
     expect(bucket.tokens).toBe(40);
 
-    vi.advanceTimersByTime(1000);
+    bucket.lastRefill -= 1000;
     refillBucket(bucket);
     expect(bucket.tokens).toBe(100);
-
-    vi.useRealTimers();
   });
 
   it('does not exceed capacity on refill', () => {
-    vi.useFakeTimers();
     const bucket = createTokenBucket(100, 10);
-    vi.advanceTimersByTime(20000);
+    bucket.lastRefill -= 20000;
     refillBucket(bucket);
     expect(bucket.tokens).toBe(100);
-
-    vi.useRealTimers();
   });
 
   it('getAvailableTokens returns floored token count', () => {
-    vi.useFakeTimers();
     const bucket = createTokenBucket(100, 1);
     consumeTokens(bucket, 99);
-    vi.advanceTimersByTime(500);
+    bucket.lastRefill -= 500;
     const avail = getAvailableTokens(bucket);
     expect(avail).toBe(1);
-
-    vi.useRealTimers();
   });
 
   it('getWaitTime returns 0 when enough tokens available', () => {
@@ -68,27 +59,21 @@ describe('TokenBucket rate limiter', () => {
   });
 
   it('getWaitTime calculates wait time for insufficient tokens', () => {
-    vi.useFakeTimers();
     const bucket = createTokenBucket(100, 10);
     consumeTokens(bucket, 100);
     const wait = getWaitTime(bucket, 30);
     expect(wait).toBeGreaterThan(0);
-
-    vi.useRealTimers();
   });
 
   it('handles consume and refill correctly', () => {
-    vi.useFakeTimers();
     const bucket = createTokenBucket(100, 50);
     consumeTokens(bucket, 80);
     expect(bucket.tokens).toBe(20);
 
-    vi.advanceTimersByTime(1000);
+    bucket.lastRefill -= 1000;
     refillBucket(bucket);
     consumeTokens(bucket, 40);
     expect(bucket.tokens).toBe(30);
-
-    vi.useRealTimers();
   });
 
   it('handles zero capacity edge case', () => {
@@ -98,7 +83,6 @@ describe('TokenBucket rate limiter', () => {
   });
 
   it('maintains total correctness with high-frequency consume', () => {
-    vi.useFakeTimers();
     const bucket = createTokenBucket(1000, 100);
     let totalConsumed = 0;
 
@@ -106,13 +90,11 @@ describe('TokenBucket rate limiter', () => {
       if (consumeTokens(bucket, 50)) {
         totalConsumed += 50;
       }
-      vi.advanceTimersByTime(100);
+      bucket.lastRefill -= 100;
     }
 
     expect(totalConsumed).toBeGreaterThan(0);
     expect(bucket.tokens).toBeLessThanOrEqual(1000);
-
-    vi.useRealTimers();
   });
 
 });

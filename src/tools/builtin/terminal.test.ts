@@ -58,6 +58,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   Object.defineProperty(process, 'platform', { value: originalPlatform, configurable: true });
   if (originalEnvShell !== undefined) {
     process.env.SHELL = originalEnvShell;

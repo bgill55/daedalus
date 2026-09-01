@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { EventEmitter } from 'events';
 
 vi.mock('child_process', () => ({
@@ -100,20 +100,27 @@ describe('StdioTransport', () => {
     expect(await resultPromise).toMatchObject({ result: { data: 'ok' } });
   });
 
+afterEach(() => {
+  vi.useRealTimers();
+});
+
   it('sendAndWait rejects on timeout', async () => {
     vi.useFakeTimers();
-    const mockProc = makeMockProcess();
-    (spawn as any).mockReturnValue(mockProc);
-    const transport = new StdioTransport(makeConfig());
+    try {
+      const mockProc = makeMockProcess();
+      (spawn as any).mockReturnValue(mockProc);
+      const transport = new StdioTransport(makeConfig());
 
-    (transport as any).process = mockProc;
-    attachStdoutHandler(transport, mockProc);
+      (transport as any).process = mockProc;
+      attachStdoutHandler(transport, mockProc);
 
-    const resultPromise = transport.sendAndWait({ method: 'slow' });
-    vi.advanceTimersByTime(30000);
+      const resultPromise = transport.sendAndWait({ method: 'slow' });
+      vi.advanceTimersByTime(30000);
 
-    await expect(resultPromise).rejects.toThrow('timeout');
-    vi.useRealTimers();
+      await expect(resultPromise).rejects.toThrow('timeout');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('callTool throws on error response', async () => {

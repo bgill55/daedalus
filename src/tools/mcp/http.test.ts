@@ -26,6 +26,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.useRealTimers();
   vi.unstubAllGlobals();
 });
 
@@ -97,17 +98,20 @@ describe('HttpTransport', () => {
 
   it('sendAndWait rejects on timeout', async () => {
     vi.useFakeTimers();
-    vi.stubGlobal('fetch', vi.fn());
+    try {
+      vi.stubGlobal('fetch', vi.fn());
 
-    const transport = new HttpTransport(makeConfig());
+      const transport = new HttpTransport(makeConfig());
 
-    (global.fetch as any).mockResolvedValue(makePostResponse({}));
+      (global.fetch as any).mockResolvedValue(makePostResponse({}));
 
-    const resultPromise = transport.sendAndWait({ method: 'slow' });
-    vi.advanceTimersByTime(30000);
+      const resultPromise = transport.sendAndWait({ method: 'slow' });
+      vi.advanceTimersByTime(30000);
 
-    await expect(resultPromise).rejects.toThrow('timeout');
-    vi.useRealTimers();
+      await expect(resultPromise).rejects.toThrow('timeout');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('callTool throws on error response', async () => {

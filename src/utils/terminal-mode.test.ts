@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { restoreTerminal, withRawMode } from './terminal-mode.js';
 
 // Build a fake TTY-ish stream so we can assert raw-mode on/off deterministically
@@ -20,6 +20,10 @@ function fakeStream(): any {
 }
 
 describe('terminal-mode', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('restoreTerminal forces raw mode off', () => {
     const s = fakeStream();
     const setRaw = vi.spyOn(s, 'setRawMode');
@@ -45,12 +49,15 @@ describe('terminal-mode', () => {
 
   it('withRawMode restores terminal on timeout', () => {
     vi.useFakeTimers();
-    const s = fakeStream();
-    const setRaw = vi.spyOn(s, 'setRawMode');
-    withRawMode(() => {}, 10, undefined, s);
-    vi.advanceTimersByTime(20);
-    expect(setRaw).toHaveBeenLastCalledWith(false);
-    vi.useRealTimers();
+    try {
+      const s = fakeStream();
+      const setRaw = vi.spyOn(s, 'setRawMode');
+      withRawMode(() => {}, 10, undefined, s);
+      vi.advanceTimersByTime(20);
+      expect(setRaw).toHaveBeenLastCalledWith(false);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('caller callback that stops on any key restores raw mode (no leak)', () => {
