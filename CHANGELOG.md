@@ -1,3 +1,10 @@
+## [3.65.10](https://github.com/bgill55/daedalus/compare/v3.65.9...v3.65.10) (2026-09-01)
+
+
+### Bug Fixes
+
+* **watcher:** async close() awaits FSWatcher drain to prevent libuv native assertion on Windows ([955dff2](https://github.com/bgill55/daedalus/commit/955dff215017bfe47a599d165c5b1293b1dad986))
+
 ## [3.65.9](https://github.com/bgill55/daedalus/compare/v3.65.8...v3.65.9) (2026-09-01)
 
 
