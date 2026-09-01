@@ -1,3 +1,10 @@
+## [3.65.9](https://github.com/bgill55/daedalus/compare/v3.65.8...v3.65.9) (2026-09-01)
+
+
+### Bug Fixes
+
+* **ci:** isolate each test file in a fresh worker process to prevent cross-file state contamination ([aadb986](https://github.com/bgill55/daedalus/commit/aadb9863d8919076cb9d74a001ced083248f15f8))
+
 ## [3.65.8](https://github.com/bgill55/daedalus/compare/v3.65.7...v3.65.8) (2026-09-01)
 
 
