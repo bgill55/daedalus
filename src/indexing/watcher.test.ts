@@ -42,6 +42,7 @@ describe('Watcher - Incremental Indexing', () => {
       watcher.close();
       watcher = undefined;
     }
+    await sleep(100);
     db.close();
     for (let i = 0; i < 5; i++) {
       try {
