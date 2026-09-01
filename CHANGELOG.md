@@ -1,3 +1,10 @@
+## [3.65.14](https://github.com/bgill55/daedalus/compare/v3.65.13...v3.65.14) (2026-09-01)
+
+
+### Bug Fixes
+
+* **guards:** relax ungrounded claim check on hypothetical proposals and future design suggestions ([4a5e211](https://github.com/bgill55/daedalus/commit/4a5e2111fa01d7c47c9de3b51746671716bf57f7))
+
 ## [3.65.13](https://github.com/bgill55/daedalus/compare/v3.65.12...v3.65.13) (2026-09-01)
 
 
