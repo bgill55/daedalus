@@ -4,8 +4,9 @@ import path from 'node:path';
 import { BUILTIN_TOOLS, POWER_TOOLS } from './tools/definitions.js';
 import { executeToolCalls } from './tools/executor.js';
 import { getSessionTodos } from './tools/builtin/todo.js';
-import { detectFalseCompletion, falseCompletionWarning, detectFalseCompletionOnDisk, isScopeOverstatedSummary, scopeOverstatementWarning, isUnsubstantiatedProgressReport, unsubstantiatedProgressWarning, countAchievementItems, ClaimLedger, detectUngroundedClaim, ungroundedClaimWarning, isGreenStateClaim, greenStateWarning, isUngroundedProjectClaim, ungroundedProjectClaimWarning, isNegativeExistenceClaim, negativeExistenceWarning, isReviewTask, isReviewDeliverable, reviewWithoutInspectionWarning, isReviewWithoutSourceInspection, reviewWithoutSourceInspectionWarning, claimedTestCountWithoutRun, claimedTestCountWithoutRunWarning, detectUngroundedWorksClaim, ungroundedWorksWarning, isUncitedArchClaim, uncitedArchClaimWarning, RUNTIME_EXERCISE_RE, validateCitations, citationValidationWarning, collectCitationClaims, buildJudgePrompt, parseJudgeResponse, judgeClaimWarning, validateProseReferences, proseRefWarning } from './agents/completion-guard.js';
-import { ReadStallDetector, isGreenBuildTestClaim, fabricatedTestCountCorrection, DivergenceDetector, isStaleReadFailure } from './agents/loop-guards.js';
+import { ClaimLedger, RUNTIME_EXERCISE_RE } from './agents/completion-guard.js';
+import { ReadStallDetector, DivergenceDetector, isStaleReadFailure } from './agents/loop-guards.js';
+import { checkTurnCompletionGuards } from './agents/turn-guards.js';
 import { mcpRegistry } from './tools/mcp/registry.js';
 import { DaedalusSpinner } from './tools/daedalus-spinner.js';
 import { calculateSessionTokens, pruneMessages } from './session/tokens.js';
@@ -581,457 +582,45 @@ export function createModelFunctions(deps: ModelDeps) {
       const cleanContent = stripToolCallMarkup(fullContent);
       lastContent = cleanContent;
 
-      // Divergence guard: if this assistant block is near-identical to one already emitted
-      // this turn (and it produced no new tool calls — i.e. it's just re-stating work), force
-      // the agent to either change the repo or report the blocker honestly. The FIRST repeat
-      // is a soft warning; a SECOND consecutive repeat is a runaway loop — halt the turn.
-      // NOTE: We exempt rewrites following guard warnings/file-missing errors and substantive
-      // review deliverables (audits/assessments), because the model is delivering the requested
-      // analysis and not trapped in an infinite modification loop.
-      const hasRecentGuardWarning = messages.slice(-6).some((m) =>
-        typeof m.content === 'string' &&
-        (m.content.startsWith('[SYSTEM WARNING]') || m.content.startsWith('[FILE-MISSING]') || m.content.startsWith('[CHECK]'))
-      );
-      const isReviewContent = isReviewDeliverable(cleanContent);
-      if (!hasRecentGuardWarning && !isReviewContent && toolCallArray.length === 0 && divergence.register(cleanContent)) {
-        const repeats = divergence.consecutiveRepeats;
-        if (repeats >= 2) {
-          openBlock();
-          closeAssistantBlock(cleanContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier, { showCost: config.ui?.showCost, selfCorrections: toolContext.selfCorrectionCount });
-          console.log(dim(`\n  [STOP] Runaway loop: same output re-emitted ${repeats} times with no progress. Closing turn.`));
-          toolContext.maxTurnsCause = 'repeated identical output without progress (repetition guard tripped) — the agent emitted the same response multiple times';
-          return { content: `${cleanContent}\n\n[SELF-CORRECT] I repeated the same output ${repeats} times without making progress. I am stopping this turn rather than looping.`, toolCalls: [] };
-        }
-        console.log(dim(`\n  [CHECK] Detected near-duplicate of prior output — not making progress.`));
-        toolContext.selfCorrectionCount = (toolContext.selfCorrectionCount ?? 0) + 1;
-        messages.push({ role: 'assistant', content: cleanContent });
-        messages.push({
-          role: 'user',
-          content: `[SYSTEM WARNING] This response is nearly identical to output you already produced this turn. You are looping on repeated text instead of making progress. Do NOT re-state completed work. Either (1) take a concrete next action (read the failing test, fix the code, verify), or (2) if you are blocked, report the blocker concisely and stop.`,
-        } as ChatMessage);
-        continue;
-      }
-
-      // Claim-grounding guard: flag a factual claim about a repo artifact the agent never
-      // inspected this session (no read/search/terminal on that file). Catches bare
-      // overclaims like "path/url are unused" or "rate limiting is already implemented"
-      // that have no tool evidence behind them. Forces the agent to verify before asserting.
       if (toolCallArray.length === 0) {
-        const ungrounded = detectUngroundedClaim(cleanContent, claimLedger);
-        if (ungrounded) {
-          const key = `claim:${ungrounded}`;
-          if (toolContext.firedCompletionGuards?.has(key)) continue;
-          (toolContext.firedCompletionGuards ??= new Set<string>()).add(key);
-          console.log(dim(`\n  [CHECK] Claim about ${ungrounded} is ungrounded (no inspection this session).`));
-          toolContext.selfCorrectionCount = (toolContext.selfCorrectionCount ?? 0) + 1;
-          messages.push({ role: 'assistant', content: cleanContent });
-          messages.push({
-            role: 'user',
-            content: ungroundedClaimWarning(ungrounded),
-          } as ChatMessage);
-          continue;
-        }
-      }
+        const guardResult = await checkTurnCompletionGuards({
+          cleanContent,
+          fullContent,
+          userTask,
+          messages,
+          toolContext,
+          router,
+          config,
+          claimLedger,
+          readStall,
+          divergence,
+          readLines,
+          fileExists,
+          verifyBreakerTrippedThisTurn,
+          verifyBreakerTrippedLastTurn,
+          currentComplexity,
+          taskComplexity,
+          totalCompletionTokens,
+          turnUsageOut,
+          escalationCount,
+        });
 
-      // Project-level claim guard (broadens #138): flag a claim that the project HAS a
-      // feature/dependency the agent never observed in tool output this session (no file
-      // read/search/terminal mentioning it). Catches the "review a codebase you never opened"
-      // failure where the agent invents helmet / circuit-breaker / favorites / glassmorphism
-      // etc. — none of which name a file, so the file-paired guard above cannot catch them.
-      if (toolCallArray.length === 0) {
-        const projClaim = isUngroundedProjectClaim(cleanContent, claimLedger);
-        if (projClaim) {
-          const key = `proj:${projClaim}`;
-          if (toolContext.firedCompletionGuards?.has(key)) continue;
-          (toolContext.firedCompletionGuards ??= new Set<string>()).add(key);
-          console.log(dim(`\n  [CHECK] Project claim about "${projClaim}" is ungrounded (never observed this session).`));
-          toolContext.selfCorrectionCount = (toolContext.selfCorrectionCount ?? 0) + 1;
-          messages.push({ role: 'assistant', content: cleanContent });
-          messages.push({
-            role: 'user',
-            content: ungroundedProjectClaimWarning(projClaim),
-          } as ChatMessage);
-          continue;
-        }
-        // Negative-existence guard: the agent asserts a config/dependency/file is
-        // MISSING/ABSENT without ever running a search/list/grep this session. Asserting
-        // absence requires the same grounding as asserting presence.
-        const negClaim = isNegativeExistenceClaim(cleanContent, claimLedger);
-        if (negClaim) {
-          const key = `neg:${negClaim}`;
-          if (toolContext.firedCompletionGuards?.has(key)) continue;
-          (toolContext.firedCompletionGuards ??= new Set<string>()).add(key);
-          console.log(dim(`\n  [CHECK] Claim that "${negClaim}" is missing is ungrounded (no search/list run this session).`));
-          toolContext.selfCorrectionCount = (toolContext.selfCorrectionCount ?? 0) + 1;
-          messages.push({ role: 'assistant', content: cleanContent });
-          messages.push({
-            role: 'user',
-            content: negativeExistenceWarning(negClaim),
-          } as ChatMessage);
-          continue;
-        }
-      }
-
-      if (toolCallArray.length === 0) {
-        // Only treat this as a "planned but omitted JSON" failure when the model
-        // actually emitted tool-call markup (the structured <tool_call> block) but
-        // no parseable JSON. A bare mention of tool names in prose (e.g. an audit
-        // report saying "I ran read_file and terminal") must NOT trip this — that
-        // is normal narration, and forcing a retry loops on a finished report.
-        const narratedToolCalls = parseTextToolCalls(fullContent);
-        if (narratedToolCalls.length >= 1) {
-          console.log(dim(`\n  [RETRY] Model planned tools but emitted no valid JSON. Re-issuing the request.`));
-          totalCompletionTokens += turnUsageOut ?? 0;
-          messages.push({
-            role: 'user',
-            content: `[SYSTEM WARNING] You emitted a <tool_call> block but it was not valid JSON. Please output the proper JSON array of tool calls now.`,
-          } as ChatMessage);
-          continue;
-        }
-
-        if (currentComplexity && process.env.DAEDALUS_DEBUG === 'true') {
-          console.log(dim(`  [ROUTE] Task summary: start ${taskComplexity ?? 'n/a'} → end ${currentComplexity} | ${totalCompletionTokens + (turnUsageOut ?? 0)} output tokens | ${escalationCount} escalation(s)`));
-        }
-
-        // Hard guard: do not let the agent end the turn claiming whole-task
-        // completion while its todo list still has open items. A false "done"
-        // report would mislead an end user who trusts it. Force reconciliation.
-        const closingTodos = getSessionTodos(toolContext.sessionId);
-        if (closingTodos.length > 0 && detectFalseCompletion(cleanContent, closingTodos)) {
-          const remaining = closingTodos.filter((t) => t.status !== 'completed').length;
-          console.log(dim(`\n  [CHECK] Verifying completion claim — ${remaining} todo(s) still open.`));
-          toolContext.selfCorrectionCount = (toolContext.selfCorrectionCount ?? 0) + 1;
-          messages.push({ role: 'assistant', content: cleanContent });
-          messages.push({
-            role: 'user',
-            content: falseCompletionWarning(remaining),
-          } as ChatMessage);
-          continue;
-        }
-
-        // Hard guard (on-disk): do not let the agent claim a fix/completion for a file it
-        // only ever reverted patches against this session and never successfully wrote.
-        // Catches the false "All issues resolved" report where the edit was attempted but
-        // reverted by the syntax guard and never actually landed on disk.
-        const falselyClaimed = detectFalseCompletionOnDisk(cleanContent, toolContext);
-        if (falselyClaimed) {
-          console.log(dim(`\n  [CHECK] Verifying completion claim — no successful patch to ${falselyClaimed} this session (only reverts).`));
-          toolContext.selfCorrectionCount = (toolContext.selfCorrectionCount ?? 0) + 1;
-          messages.push({ role: 'assistant', content: cleanContent });
-          messages.push({
-            role: 'user',
-            content: `[SYSTEM WARNING] You claimed a fix/completion involving ${falselyClaimed}, but this session has NO successful patch to that file — only patches the syntax guard reverted. Reconcile with disk reality: either (1) actually apply and verify the change (run build/test and confirm it on disk), or (2) report the blocker honestly instead of claiming it is done. Do NOT report completion for changes that were not written.`,
-          } as ChatMessage);
-          continue;
-        }
-
-        // Hard guard (scope): do not let a closing summary present a deliverable checklist
-        // ("Task 1 ... Task 3 ...") as complete while the todo list still has open items. That
-        // is a scope over-statement (e.g. relabeling a partial feature as fully shipped). Force
-        // the summary to be scoped to what actually landed or honestly mark the partial items.
-        const scopeTodos = getSessionTodos(toolContext.sessionId);
-        if (scopeTodos.length > 0 && isScopeOverstatedSummary(cleanContent, scopeTodos)) {
-          const remaining = scopeTodos.filter((t) => t.status !== 'completed').length;
-          console.log(dim(`\n  [CHECK] Verifying completion claim — summary enumerates tasks as done but ${remaining} todo(s) still open.`));
-          toolContext.selfCorrectionCount = (toolContext.selfCorrectionCount ?? 0) + 1;
-          messages.push({ role: 'assistant', content: cleanContent });
-          messages.push({
-            role: 'user',
-            content: scopeOverstatementWarning(remaining),
-          } as ChatMessage);
-          continue;
-        }
-
-        // Hard guard (unsubstantiated progress): do not let a turn end with a deliverable
-        // checklist of completed work (✅ lists / numbered / bulleted achievement lists) that
-        // has no task tracker reconciling it AND no on-disk verification per claim. This is the
-        // "Current State Analysis: ✅ X / ✅ Y / Key Improvements Made: 1... 2... 3..." shape that
-        // slips past the todo-gated guards whenever the agent didn't use the todo tool. Force the
-        // agent to reconcile each claimed item with disk reality before concluding.
-        if (isUnsubstantiatedProgressReport(cleanContent)) {
-          const key = 'unsubstantiated-progress';
-          if (!toolContext.firedCompletionGuards?.has(key)) {
-            (toolContext.firedCompletionGuards ??= new Set<string>()).add(key);
-            const itemCount = countAchievementItems(cleanContent);
-            console.log(dim(`\n  [CHECK] Verifying completion claim — ${itemCount} deliverables enumerated as done without a reconciling task list or per-item verification.`));
-            toolContext.selfCorrectionCount = (toolContext.selfCorrectionCount ?? 0) + 1;
-            messages.push({ role: 'assistant', content: cleanContent });
-            messages.push({
-              role: 'user',
-              content: unsubstantiatedProgressWarning(itemCount),
-            } as ChatMessage);
-            continue;
-          }
-        }
-
-        // Inspection-before-review gate: when the session is a "review the project" request
-        // and the agent produces a multi-section review deliverable with ZERO file observations
-        // this session, it is reviewing a codebase it never opened. Halt the turn and force a
-        // real inspection instead of letting a fabricated review loop. (Catches the runaway
-        // "fabricated review from a single passing typecheck" failure at the first deliverable.)
-        if (isReviewTask(userTask) && isReviewDeliverable(cleanContent) && claimLedger.totalObservations === 0) {
-          openBlock();
-          closeAssistantBlock(cleanContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier, { showCost: config.ui?.showCost, selfCorrections: toolContext.selfCorrectionCount });
-          toolContext.maxTurnsCause = 'produced a review deliverable with zero file inspections this session (review-without-inspection guard)';
-          console.log(dim(`\n  [STOP] Review produced with zero file inspections this session — halting.`));
-          return { content: `${cleanContent}\n\n[SELF-CORRECT] I described the project's architecture/features but have not inspected a single file this session. I am stopping rather than fabricating a review. I should read the code before reviewing.`, toolCalls: [] };
-        }
-
-        // Fix 1: Upgraded review gate — reading only walkthrough.md / README.md does NOT
-        // satisfy the inspection requirement. Require at least MIN_SOURCE_READS real source
-        // files (.ts/.js/.py/etc.) before a multi-section review deliverable is allowed.
-        if (isReviewTask(userTask) && isReviewWithoutSourceInspection(cleanContent, claimLedger)) {
-          const srcCount = claimLedger.sourceFileObservations;
-          console.log(dim(`\n  [CHECK] Review deliverable produced after reading only ${srcCount} source file(s) — insufficient inspection.`));
-          toolContext.selfCorrectionCount = (toolContext.selfCorrectionCount ?? 0) + 1;
-          messages.push({ role: 'assistant', content: cleanContent });
-          messages.push({
-            role: 'user',
-            content: reviewWithoutSourceInspectionWarning(srcCount),
-          } as ChatMessage);
-          continue;
-        }
-
-        // Audit-hallucination hardening: a review deliverable that makes structural claims
-        // (architecture / type-safety / entry point / "no any leakage" / "patch tool used
-        // for all modifications" / etc.) but cites NO source location must be challenged.
-        // Vague, uncited praise is exactly what a self-audit fabricates; force a file:line or
-        // an explicit "this is a high-level impression" framing. Gate on the OUTPUT shape
-        // (isReviewDeliverable) so it fires whenever a review-shaped report is emitted,
-        // regardless of how the user phrased the request.
-        // NOTE: this guard must NOT use a permanent de-dup key. A model can dodge a one-shot
-        // warning by adding cosmetic labels ("... (Verified)") that are NOT citations — the
-        // guard would see it already fired and stay silent. Instead it re-fires whenever the
-        // content still makes uncited structural claims; CITATION_RE naturally stops it once
-        // a real file:line appears. Hard-cap retries so a stubborn model cannot loop forever.
-        if (isReviewTask(userTask) || isReviewDeliverable(cleanContent)) {
-          const archTerm = isUncitedArchClaim(cleanContent);
-          if (archTerm) {
-            if ((toolContext.archGuardHits ?? 0) >= 3) {
-              // Give up gracefully: the model refuses to cite; let it finish but mark the cause.
-              toolContext.maxTurnsCause = 'repeated uncited architectural claims despite 3 citation warnings (audit guard)';
-            } else {
-              toolContext.archGuardHits = (toolContext.archGuardHits ?? 0) + 1;
-              console.log(dim(`\n  [CHECK] Review makes uncited structural claim "${archTerm}" (no file:line).`));
-              toolContext.selfCorrectionCount = (toolContext.selfCorrectionCount ?? 0) + 1;
-              messages.push({ role: 'assistant', content: cleanContent });
-              messages.push({
-                role: 'user',
-                content: uncitedArchClaimWarning(archTerm),
-              } as ChatMessage);
-              continue;
-            }
-          }
-        }
-
-        // Layer-1 citation validator (audit hardening): citations must point at REAL code, not
-        // just exist as text. If the report cites file:NN anchors that fail verification
-        // (file missing, line out of range, or the claimed symbol absent from the cited line),
-        // force a correction. This is what turns "citations required" into "citations checked" —
-        // the difference between a real audit and decorated prose. Gated on the same review shape.
-        if (isReviewTask(userTask) || isReviewDeliverable(cleanContent)) {
-          const citationFails = validateCitations(cleanContent, { readLines });
-          if (citationFails.length > 0) {
-            const key = 'citation-validation';
-            if (!toolContext.firedCompletionGuards?.has(key)) {
-              (toolContext.firedCompletionGuards ??= new Set<string>()).add(key);
-              console.log(dim(`\n  [CHECK] Review cites ${citationFails.length} source location(s) that do not check out against the codebase.`));
-              toolContext.selfCorrectionCount = (toolContext.selfCorrectionCount ?? 0) + 1;
-              messages.push({ role: 'assistant', content: cleanContent });
-              messages.push({
-                role: 'user',
-                content: citationValidationWarning(citationFails),
-              } as ChatMessage);
-              continue;
-            }
-          }
-
-          // Layer-1b prose file-reference validator (audit hardening): catches referenced files
-          // by NAME (the format audits actually use) that Layer 1's inline `path:NN` scan misses —
-          // both a named file that does not exist and the "no test file exists" false-negative
-          // class that previously slipped through. Soft-gated by the same firedCompletionGuards key.
-          const proseFails = validateProseReferences(cleanContent, { readLines, fileExists });
-          if (proseFails.length > 0) {
-            const key = 'prose-ref-validation';
-            if (!toolContext.firedCompletionGuards?.has(key)) {
-              (toolContext.firedCompletionGuards ??= new Set<string>()).add(key);
-              console.log(dim(`\n  [CHECK] Review references ${proseFails.length} file(s) whose existence does not check out against the codebase.`));
-              toolContext.selfCorrectionCount = (toolContext.selfCorrectionCount ?? 0) + 1;
-              messages.push({ role: 'assistant', content: cleanContent });
-              messages.push({
-                role: 'user',
-                content: proseRefWarning(proseFails),
-              } as ChatMessage);
-              continue;
-            }
-          }
-
-          // Layer-2 semantic judge (audit hardening): Layer 1 confirms a citation points at a real
-          // symbol on a real line. Layer 2 asks ONE model call to judge whether the PROSE CLAIM actually
-          // follows from the cited code — catching a correct anchor with a wrong interpretation. Batched
-          // into a single completion per audit report (not per citation) to keep cost bounded. Soft guard:
-          // capped at 3 challenges so a misbehaving judge cannot trap the turn in a loop. If the judge
-          // call itself fails, we degrade to Layer 1 only (do NOT block the audit on a judge error).
-          if ((isReviewTask(userTask) || isReviewDeliverable(cleanContent)) && (toolContext.judgeGuardHits ?? 0) < 3) {
-            const claims = collectCitationClaims(cleanContent, { readLines }, 8);
-            if (claims.length > 0) {
-              try {
-                const judgePrompt = buildJudgePrompt(claims);
-                const jr = await router.chat.completions.create({
-                  model: config.modelOverride || 'auto',
-                  messages: [{ role: 'user', content: judgePrompt }],
-                  temperature: 0,
-                  max_tokens: 1024,
-                });
-                const judgeRaw = messageText(jr.choices?.[0]?.message?.content ?? '');
-                const verdicts = parseJudgeResponse(judgeRaw, claims);
-                const unsupported = verdicts.filter((v) => !v.supported);
-                if (unsupported.length > 0) {
-                  toolContext.judgeGuardHits = (toolContext.judgeGuardHits ?? 0) + 1;
-                  console.log(dim(`\n  [CHECK] Semantic judge found ${unsupported.length} claim(s) not supported by cited code.`));
-                  toolContext.selfCorrectionCount = (toolContext.selfCorrectionCount ?? 0) + 1;
-                  messages.push({ role: 'assistant', content: cleanContent });
-                  messages.push({
-                    role: 'user',
-                    content: judgeClaimWarning(unsupported),
-                  } as ChatMessage);
-                  continue;
-                }
-              } catch (judgeErr) {
-                // Judge unavailable (offline / rate-limited / parse failure): degrade to Layer 1 only.
-                if (process.env.DAEDALUS_DEBUG === 'true') {
-                  console.log(dim(`  [judge] Layer-2 verification skipped (${String(judgeErr)}).`));
-                }
-              }
-            }
-          }
-
-        }
-
-        // Fix 3: Test-count claim without any real npm test run this session. Fires when the
-        // agent asserts a specific passing count (e.g. "9 tests passing") but lastVerifyPassCount
-        // is undefined (no real test run was observed). Prevents walkthrough-sourced count invention.
-        const noRunClaimed = claimedTestCountWithoutRun(cleanContent, toolContext.lastVerifyPassCount);
-        if (noRunClaimed) {
-          console.log(dim(`\n  [CHECK] Test-count claim ("${noRunClaimed} passing") made with no real npm test run this session.`));
-          toolContext.selfCorrectionCount = (toolContext.selfCorrectionCount ?? 0) + 1;
-          messages.push({ role: 'assistant', content: cleanContent });
-          messages.push({
-            role: 'user',
-            content: claimedTestCountWithoutRunWarning(noRunClaimed),
-          } as ChatMessage);
-          continue;
-        }
-
-        // Runtime-exercise guard: block a "feature is wired in / working / verified" claim
-        // when no live integration probe (curl/HTTP/integration test) was recorded this
-        // session. A green typecheck/unit-test suite does NOT prove a newly-wired integration
-        // functions — the graded run built an endpoint, reported "wired in" after tests passed,
-        // and it was actually broken until the user exercised it. Forces real verification.
-        if (detectUngroundedWorksClaim(cleanContent, claimLedger)) {
-          // Debounce: the same "works/verified without a probe" claim must not be
-          // re-flagged every turn — that trains the user/model to ignore the guard.
-          // Fire once per session (recorded in firedCompletionGuards), then stop; the
-          // divergence/repetition guard closes any remaining loop.
-          const worksKey = 'works-claim';
-          if (toolContext.firedCompletionGuards?.has(worksKey)) {
-            continue;
-          }
-          (toolContext.firedCompletionGuards ??= new Set<string>()).add(worksKey);
-          console.log(dim(`\n  [CHECK] "Works/verified" claim made with no live runtime probe (curl/HTTP/integration test) this session.`));
-          toolContext.selfCorrectionCount = (toolContext.selfCorrectionCount ?? 0) + 1;
-          messages.push({ role: 'assistant', content: cleanContent });
-          messages.push({
-            role: 'user',
-            content: ungroundedWorksWarning(),
-          } as ChatMessage);
-          continue;
-        }
-
-        // Layer A2: runtime-failure-aware completion block. The agent's OWN terminal run of the
-        // built artifact (node dist/cli.js, npm run start, a runtime probe) exited non-zero with a
-        // hard error this session, yet it still claims the project "works" / "CLI executed" /
-        // "verified" / "build+tests pass". A failed run cannot be reported as success. Block once
-        // per session and force a real re-run or an honest blocker report. This is the gap that
-        // let the greenfield run declare "Project Complete ✅" from a crashed CLI.
-        if (toolContext.lastRuntimeFailure && (detectUngroundedWorksClaim(cleanContent, claimLedger) || isGreenBuildTestClaim(cleanContent))) {
-          const rfKey = 'runtime-failure';
-          if (!toolContext.firedCompletionGuards?.has(rfKey)) {
-            (toolContext.firedCompletionGuards ??= new Set<string>()).add(rfKey);
-            const rf = toolContext.lastRuntimeFailure;
-            console.log(dim(`\n  [CHECK] Completion claim conflicts with a FAILED run this session — \`${rf.command}\` exited non-zero.`));
-            toolContext.selfCorrectionCount = (toolContext.selfCorrectionCount ?? 0) + 1;
-            messages.push({ role: 'assistant', content: cleanContent });
-            messages.push({
-              role: 'user',
-              content:
-                `[SYSTEM WARNING] You reported the project works / the CLI ran / build+tests pass, but a terminal run you executed THIS session FAILED: ` +
-                `\`${rf.command}\` exited non-zero with: ${rf.error}. A failed run cannot be reported as a success. ` +
-                `Either (1) actually re-run the command and confirm a clean exit (code 0) before claiming it works, ` +
-                `or (2) report the blocker honestly (paste the error). Do NOT claim green/working from a run that errored.`,
-            } as ChatMessage);
-            continue;
-          }
-        }
-
-        // Layer B: idle re-read breaker. If the turn spent its budget re-reading the same
-        // file (the "fix was already present" spin) with no edit, force it to report the
-        // blocker honestly instead of looping. Close the turn with a concise note.
-        if (readStall.stalled) {
-          openBlock();
-          closeAssistantBlock(cleanContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier, { showCost: config.ui?.showCost, selfCorrections: toolContext.selfCorrectionCount });
-          console.log(dim(`\n  [DONE] Idle re-read stall: same file read ${readStall.readCount} times consecutively with no edit. Closing turn.`));
+        if (guardResult.updateVerifyBreaker) {
           toolContext.verifyBreakerTrippedLastTurn = verifyBreakerTrippedThisTurn || verifyBreakerTrippedLastTurn;
-          toolContext.maxTurnsCause = `stuck re-reading the same file without making changes (idle re-read guard, ${readStall.readCount} reads)`;
-          return { content: `${cleanContent}\n\n[SELF-CORRECT] I re-read the same file ${readStall.readCount} times without making changes — the change is likely already present on disk. Report the actual on-disk state to the user rather than continuing to read.`, toolCalls: [] };
         }
 
-        // Layer C: verification-claim guard. Block a green build/test claim when the verify
-        // command tripped the circuit breaker this turn (or last turn) and no fresh
-        // successful run cleared it — forces a real re-run or an honest blocker report.
-        if (isGreenBuildTestClaim(cleanContent) && (verifyBreakerTrippedThisTurn || verifyBreakerTrippedLastTurn)) {
-          console.log(dim(`\n  [CHECK] Verifying completion claim — build/test command tripped the circuit breaker; no fresh successful run observed.`));
-          toolContext.selfCorrectionCount = (toolContext.selfCorrectionCount ?? 0) + 1;
-          toolContext.verifyBreakerTrippedLastTurn = true;
-          messages.push({ role: 'assistant', content: cleanContent });
-          messages.push({
-            role: 'user',
-            content: `[SYSTEM WARNING] You reported the build/tests pass, but the verify command tripped the circuit breaker this session (no progress) and no fresh successful run was observed. Do NOT claim green without re-running the command and seeing a real pass. Either (1) run \`npm run build && npm run test\` again and confirm real output, or (2) report the blocker honestly (e.g. the command hung / was blocked).`,
-          } as ChatMessage);
-          continue;
-        }
-        toolContext.verifyBreakerTrippedLastTurn = verifyBreakerTrippedThisTurn || verifyBreakerTrippedLastTurn;
-
-        // Layer D: fabricated test-count guard. If the assistant's final summary asserts a
-        // specific passing-test count that disagrees with the last REAL `npm test` output,
-        // reject it and force the true number. Prevents inventing "21 tests passing" when the
-        // run actually reported 9.
-        const testCorrection = fabricatedTestCountCorrection(cleanContent, toolContext.lastVerifyPassCount);
-        if (testCorrection) {
-          console.log(dim(`\n  [CHECK] Verifying test-count claim — summary count disagrees with last real test run.`));
-          toolContext.selfCorrectionCount = (toolContext.selfCorrectionCount ?? 0) + 1;
-          messages.push({ role: 'assistant', content: cleanContent });
-          messages.push({
-            role: 'user',
-            content: testCorrection,
-          } as ChatMessage);
+        if (guardResult.status === 'continue') {
+          if (guardResult.addedTokens) {
+            totalCompletionTokens += guardResult.addedTokens;
+          }
           continue;
         }
 
-        // Layer D2: green-state / clean-state claim vs last real verify run. Catches the
-        // subset-omission overclaim: a true passing count ("9 validation tests passing")
-        // slips past the count-fabrication guard, but the overall `npm test` was RED. If the
-        // agent asserts tests/build pass or a clean state while the most recent actual verify
-        // run this session FAILED, force a re-run or an honest report of what actually failed.
-        if (isGreenStateClaim(cleanContent) && toolContext.lastVerifyPassed === false) {
-          console.log(dim(`\n  [CHECK] Verifying green-state claim — last real verify run this session FAILED.`));
-          toolContext.selfCorrectionCount = (toolContext.selfCorrectionCount ?? 0) + 1;
-          messages.push({ role: 'assistant', content: cleanContent });
-          messages.push({
-            role: 'user',
-            content: greenStateWarning(),
-          } as ChatMessage);
-          continue;
+        if (guardResult.status === 'halt') {
+          openBlock();
+          closeAssistantBlock(cleanContent.length, Date.now() - overallStart, totalToolCalls, router.lastRoutedModel, turnUsageOut, router.lastRoutedTier, { showCost: config.ui?.showCost, selfCorrections: toolContext.selfCorrectionCount });
+          toolContext.maxTurnsCause = guardResult.maxTurnsCause;
+          return { content: guardResult.content, toolCalls: [] };
         }
 
         openBlock();
