@@ -1,3 +1,10 @@
+## [3.65.13](https://github.com/bgill55/daedalus/compare/v3.65.12...v3.65.13) (2026-09-01)
+
+
+### Bug Fixes
+
+* **test:** skip watcher incremental indexing test suite on Windows to avoid libuv fs-event native abort ([8ac41ad](https://github.com/bgill55/daedalus/commit/8ac41ad8559aa34906f553a3d4d2a108be0ce204))
+
 ## [3.65.12](https://github.com/bgill55/daedalus/compare/v3.65.11...v3.65.12) (2026-09-01)
 
 
