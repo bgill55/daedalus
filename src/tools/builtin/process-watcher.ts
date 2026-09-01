@@ -1,4 +1,4 @@
-import { spawn, ChildProcess } from 'child_process';
+import { spawn, ChildProcess, execSync } from 'child_process';
 import { ToolContext, ToolResult } from '../../types.js';
 
 function formatError(error: string): ToolResult {
@@ -23,9 +23,27 @@ const state: {
   idCounter: 0,
 };
 
+function killProcSafe(proc: ChildProcess): void {
+  try {
+    if (proc.pid) {
+      if (process.platform === 'win32') {
+        try {
+          execSync(`taskkill /pid ${proc.pid} /T /F`, { stdio: 'ignore' });
+        } catch {
+          proc.kill();
+        }
+      } else {
+        proc.kill('SIGTERM');
+      }
+    }
+  } catch {
+    try { proc.kill(); } catch { /* ignored */ }
+  }
+}
+
 export function killAllWatchedProcesses(): void {
   for (const [, wp] of state.watched) {
-    try { wp.proc.kill(); } catch { /* ignored */ }
+    killProcSafe(wp.proc);
   }
   state.watched.clear();
 }
@@ -107,7 +125,7 @@ export async function killProcess(
   const wp = state.watched.get(args.id);
   if (!wp) return formatError(`No watched process with id '${args.id}'.`);
   try {
-    wp.proc.kill();
+    killProcSafe(wp.proc);
     wp.alive = false;
     state.watched.delete(args.id);
     return { toolCallId: '', name: 'kill_process', success: true, content: `Process '${args.id}' killed.` };

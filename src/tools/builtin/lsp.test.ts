@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { lspDiagnostics, lspHover, lspRename } from './lsp.js';
+import { lspDiagnostics, lspHover, lspRename, resetLspService } from './lsp.js';
 import type { ToolContext } from '../../types.js';
 
 describe('LSP tools', () => {
@@ -16,6 +16,7 @@ describe('LSP tools', () => {
   });
 
   afterEach(() => {
+    resetLspService();
     vi.restoreAllMocks();
   });
 

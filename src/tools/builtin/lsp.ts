@@ -49,6 +49,15 @@ function initService(projectRoot: string): ts.LanguageService {
   return languageService;
 }
 
+export function resetLspService(): void {
+  try {
+    languageService?.dispose?.();
+  } catch { /* ignore */ }
+  serviceHost = null;
+  languageService = null;
+  serviceRoot = null;
+}
+
 function resolveAbsPath(p: string, projectRoot: string): string {
   return path.isAbsolute(p) ? p : path.resolve(projectRoot, p);
 }

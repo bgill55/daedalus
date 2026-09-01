@@ -18,7 +18,7 @@ describe('Process watcher tools', () => {
   });
 
   it('watchProcess starts and returns an id', async () => {
-    const result = await watchProcess({ command: process.execPath + ' -e "setTimeout(() => {}, 10000)"' }, context);
+    const result = await watchProcess({ command: process.execPath + ' -e "setTimeout(() => {}, 1000)"' }, context);
     expect(result.success).toBe(true);
     expect(result.content).toContain('proc_');
   });
@@ -36,7 +36,7 @@ describe('Process watcher tools', () => {
   });
 
   it('readProcess returns output from running process', async () => {
-    const startResult = await watchProcess({ command: process.execPath + ' -e "console.log(\'hello from proc\'); setTimeout(()=>{},5000)"' }, context);
+    const startResult = await watchProcess({ command: process.execPath + ' -e "console.log(\'hello from proc\'); setTimeout(()=>{},1000)"' }, context);
     const idMatch = startResult.content.match(/proc_\d+/);
     expect(idMatch).not.toBeNull();
 
@@ -48,7 +48,7 @@ describe('Process watcher tools', () => {
   });
 
   it('killProcess terminates a running process', async () => {
-    const startResult = await watchProcess({ command: process.execPath + ' -e "setTimeout(() => {}, 60000)"' }, context);
+    const startResult = await watchProcess({ command: process.execPath + ' -e "setTimeout(() => {}, 1000)"' }, context);
     const idMatch = startResult.content.match(/proc_\d+/);
     expect(idMatch).not.toBeNull();
 
@@ -58,8 +58,8 @@ describe('Process watcher tools', () => {
   });
 
   it('killAllWatchedProcesses cleans up all processes', async () => {
-    await watchProcess({ command: process.execPath + ' -e "setTimeout(() => {}, 60000)"' }, context);
-    await watchProcess({ command: process.execPath + ' -e "setTimeout(() => {}, 60000)"' }, context);
+    await watchProcess({ command: process.execPath + ' -e "setTimeout(() => {}, 1000)"' }, context);
+    await watchProcess({ command: process.execPath + ' -e "setTimeout(() => {}, 1000)"' }, context);
 
     expect(() => killAllWatchedProcesses()).not.toThrow();
   });
