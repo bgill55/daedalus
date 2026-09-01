@@ -1,3 +1,10 @@
+## [3.63.1](https://github.com/bgill55/daedalus/compare/v3.63.0...v3.63.1) (2026-09-01)
+
+
+### Bug Fixes
+
+* **indexing:** make incremental re-index timeout-safe on Windows CI ([fabe316](https://github.com/bgill55/daedalus/commit/fabe3164bcd3c87ae8dd6e18934f2cfbb83643b2))
+
 # [3.63.0](https://github.com/bgill55/daedalus/compare/v3.62.0...v3.63.0) (2026-08-31)
 
 
