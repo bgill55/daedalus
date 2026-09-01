@@ -17,13 +17,14 @@
   <a href="https://www.npmjs.com/package/daedalus-cli"><img src="https://img.shields.io/npm/dw/daedalus-cli?color=blue" alt="npm weekly downloads" /></a>
   <a href="https://www.npmjs.com/package/daedalus-cli"><img src="https://img.shields.io/npm/dt/daedalus-cli?color=blue" alt="npm total downloads" /></a>
   <a href="https://github.com/bgill55/daedalus/stargazers"><img src="https://img.shields.io/github/stars/bgill55/daedalus?color=blue" alt="GitHub stars" /></a>
-  <a href="https://discord.gg/GPH2ZH57up"><img src="https://img.shields.io/badge/Discord-Join%20Community-5865F2?logo=discord&logoColor=white" alt="Discord Community" /></a>
+  <a href="https://discord.gg/74pCA68KGK"><img src="https://img.shields.io/badge/Discord-Join%20Community-5865F2?logo=discord&logoColor=white" alt="Discord Community" /></a>
   <a href="https://github.com/bgill55/daedalus/actions/workflows/ci.yml"><img src="https://github.com/bgill55/daedalus/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
   <a href="https://bgill55.github.io/daedalus/"><img src="https://img.shields.io/badge/docs-GitHub%20Pages-blue" alt="Documentation" /></a>
   <a href="media/LICENSE"><img src="https://img.shields.io/github/license/bgill55/daedalus?color=blue" alt="License" /></a>
   <a href="https://nodejs.org"><img src="https://img.shields.io/badge/node-%3E%3D20-brightgreen" alt="Node" /></a>
 </p>
 <p><strong>Local-first terminal-based AI coding assistant.</strong></p>
+<p>Read the design thesis in the <a href="media/manifesto.md">Daedalus Manifesto</a> — grounded output, honest failure, and a CLI that will absolutely roast your type errors on the way to fixing them.</p>
 <p>Daedalus connects to local LLM servers (LM Studio, Ollama, llama.cpp, vLLM) or remote providers (OpenAI, Groq, OpenRouter, Anthropic), routes requests across models, and gives your AI agent access to your file system, terminal, git, web search, and codebase indexing.</p>
 <p>For full guides, configuration reference, and examples, visit the documentation site: <a href="https://bgill55.github.io/daedalus/">https://bgill55.github.io/daedalus/</a></p>
 <pre><code class="text">╔═══════════════════════════════════════════════════════════════════╗
@@ -60,6 +61,11 @@
 <pre><code class="bash"><span class="hl-0">daedalus</span><span class="hl-1"> </span><span class="hl-3">--tui</span>
 </code><button type="button">Copy</button></pre>
 
+<p>To run a single autonomous task and exit (non-interactive / headless mode):</p>
+<pre><code class="bash"><span class="hl-0">daedalus</span><span class="hl-1"> </span><span class="hl-3">--goal</span><span class="hl-1"> </span><span class="hl-2">&quot;add a --dry-run flag to the build script and update the README&quot;</span><br/><span class="hl-4"># also:  daedalus run &quot;...&quot;   (alias)</span>
+</code><button type="button">Copy</button></pre>
+
+<p>The one-shot run auto-approves plans and tool calls so it completes without waiting for stdin, then exits with the turn's result.</p>
 <p>On first run, Daedalus scans for local LLM servers and guides you through setup. If none are found, it prompts for a remote provider.</p>
 <p>From source: <code>git clone https://github.com/bgill55/daedalus.git &amp;&amp; cd daedalus &amp;&amp; npm install &amp;&amp; npm run build</code></p>
 <hr>
@@ -78,9 +84,11 @@
 <li><strong>Interactive Terminal Dashboard (TUI)</strong> — premium side-by-side dashboard with real-time CPU/RAM monitor gauges, model selection overrides, and an interactive file tree to toggle prompt context dynamically.</li>
 <li><strong>Local-first</strong> — works entirely on your machine with local LLMs</li>
 <li><strong>Embedded model router</strong> — priority, round-robin, or fastest-response routing across multiple models with real-time tokens-per-second (<code>tok/s</code>) stream telemetry, plus <strong>Multi-Model Fallback</strong> for zero-interruption auto-failover on rate limits (429) or 5xx errors.</li>
-<li><strong>Smart model tier routing</strong> — routes planning, reviews, and context summarization calls to your configured <code>intelligence</code> tier model</li>
-<li><strong>Multi-agent orchestration</strong> — spawns planner, coder, reviewer, debugger, and researcher sub-agents</li>
+<li><strong>Dynamic complexity-based routing</strong> — classifies each task on arrival (quick/trivial → <code>fast</code> tier, heavy/multi-file → <code>intelligence</code> tier) and <strong>re-routes on the fly</strong> mid-task as the work evolves, with hysteresis to avoid flapping and a token budget that resets on downgrade so it never ping-pongs. Repeated tool failures trigger automatic escalation to the next model in the chain.</li>
+<li><strong>Multi-agent orchestration</strong> — spawns Metis (planner), Hephaestus (coder), Apollo (reviewer), Asclepius (debugger), and Mnemosyne (researcher) sub-agents — each carrying a divine callsign — with <strong>OpenAI Swarm-Style Dynamic Handoffs (<code>handoff_task</code>)</strong> and shared <strong>Context Variables (<code>contextVariables</code>)</strong> for seamless mid-turn role transfers. In single-agent REPL mode the active agent can also <strong>auto-route</strong> a large multi-phase task to helper agents in parallel via <code>route_task</code> (after explicit user approval through <code>ask_user</code>), so the user never has to spawn agents manually.</li>
 <li><strong>Autonomous Finn Loop</strong> — interactive requirements gathering (<code>/spec</code>), GitHub Issues tracking, background daemon execution (<code>daedalus --loop</code>), and Discord PR review webhook embeds.</li>
+<li><strong>CaSKG Procedural Skill Graph Engine</strong> — counterfactual-causal skill dependency graphs (<code>src/skills/graph.ts</code>) that resolve <code>prerequisites</code> and <code>leadsTo</code> relationships, retrieving <strong>topologically sorted, compact skill bundles</strong> to eliminate orphan execution and step thrashing.</li>
+<li><strong>Self-Healing &amp; Immunity Engine</strong> — Programmatic Codebase Constitution (<code>src/config/constitution.ts</code>), default Test Suite Read-Only Lock (<code>*.test.ts</code>, vitest/jest runner configs, CI workflows), Reviewer Diff Immunity Audit Checklist (protecting against type-loosening, error-swallowing, and assertion weakening), and Self-Generated Skill Synthesis (<code>.daedalus/skills/drafts/</code>).</li>
 <li><strong>Loop Engineering &amp; Self-Repair</strong> — automatic stack-aware compile/build verification checks (e.g., <code>npx tsc --noEmit</code>, <code>cargo check</code>, <code>go build</code>) with dynamic stdout/stderr feedback loops for self-repair, <strong>Automated Workspace Rollback</strong> to revert patches upon task failure, and <strong>Git-Aware Smart Testing (<code>/test -g</code>)</strong> to run only affected unit tests in &lt; 200ms.</li>
 <li><strong>Codebase indexing &amp; Live Watcher</strong> — FTS5-powered symbol search, definitions, and call-graph references across 10+ languages with background <strong>Live File-Watcher (<code>/watch</code>)</strong> for automatic re-indexing on save.</li>
 <li><strong>MCP Marketplace &amp; Explorer (<code>/mcp explore</code>)</strong> — Model Context Protocol server marketplace with one-click installation (<code>/mcp install &lt;name&gt;</code>) via stdio and HTTP/SSE.</li>
@@ -92,10 +100,20 @@
 <li><strong>MCP support</strong> — Model Context Protocol servers via stdio and HTTP/SSE</li>
 <li><strong>Windows + Unix</strong> — full cross-platform support</li>
 </ul>
+<h3 id="interface-experience" class="tsd-anchor-link">Interface &amp; Experience<a href="#interface-experience" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
+<ul>
+<li><strong>Syntax-highlighted responses</strong> — assistant code blocks render language-aware, line-numbered, and colorized in the terminal (via <code>cli-highlight</code>), so diffs and snippets are easy to scan.</li>
+<li><strong>Persistent command history</strong> — your REPL input history is saved to <code>~/.daedalus/history</code> and recalled with ↑/↓ across sessions (deduped, capped at 1000 entries).</li>
+<li><strong>Tip of the day</strong> — a rotating practical tip prints under the banner on startup to surface lesser-known workflows.</li>
+<li><strong>Themeable UI</strong> — <code>/theme [dark|light|auto]</code> switches the palette live (light mode stays legible on white terminals) and persists to config.</li>
+<li><strong>Cost-aware footer</strong> — with <code>ui.showCost</code> on, each reply shows an estimated per-turn cost for cloud models (local models stay $0).</li>
+<li><strong>Buffered or streaming replies</strong> — <code>ui.streaming</code> toggles token-by-token streaming vs. a single rendered block.</li>
+<li><strong>Side-by-side diffs</strong> — set <code>ui.diffStyle</code> to <code>side-by-side</code> for a two-column old-vs-new view in the patch approval UI.</li>
+</ul>
 <h3 id="tools" class="tsd-anchor-link">Tools<a href="#tools" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <ul>
 <li><strong>File tools</strong> — read, write, patch with interactive diff UI; fuzzy whitespace matching, syntax validation with auto-revert</li>
-<li><strong>Trust layer</strong> — write-without-read guardrail, circuit breaker, import/export validation, auto-test loop, large-rewrite annotation</li>
+<li><strong>Trust layer</strong> — write-without-read guardrail, terminal + patch circuit breakers, batch short-circuit on failed file edits, actionable edit hints, import/export validation, auto-test loop, large-rewrite annotation</li>
 <li><strong>Terminal</strong> — cross-platform shell execution (bash/cmd/powershell) with custom preference support, timeout, and abort</li>
 <li><strong>Git</strong> — status, diff, stage-all-and-commit, undo</li>
 <li><strong>Web</strong> — DuckDuckGo search and URL fetching (no API key needed)</li>
@@ -131,7 +149,7 @@
 </tr>
 <tr>
 <td><code>/task &lt;id&gt;</code></td>
-<td>Manage background task: /task <id></td>
+<td>Manage background task: /task <id> | /task kill <id></td>
 </tr>
 <tr>
 <td><code>/tasks</code></td>
@@ -147,7 +165,7 @@
 </tr>
 <tr>
 <td><code>/spec</code></td>
-<td>Flesh out a feature idea into a GitHub Issue spec (Finn Loop)</td>
+<td>Generate or view a SpecFirst contract (.daedalus/spec.json &amp; <a href="http://spec.md">spec.md</a>)</td>
 </tr>
 </tbody>
 </table>
@@ -161,8 +179,8 @@
 </thead>
 <tbody>
 <tr>
-<td>`/watch [start</td>
-<td>stop</td>
+<td><code>/watch [start|stop|status]</code> / <code>watch</code></td>
+<td>Start or stop background codebase file-watcher for automatic FTS5 symbol re-indexing</td>
 </tr>
 <tr>
 <td><code>/index</code></td>
@@ -179,6 +197,14 @@
 <tr>
 <td><code>/def &lt;symbol&gt;</code></td>
 <td>Get symbol definition</td>
+</tr>
+<tr>
+<td><code>/callgraph &lt;symbol&gt; [depth]</code></td>
+<td>Display bidirectional call graph for a symbol</td>
+</tr>
+<tr>
+<td><code>/impact &lt;symbol&gt;</code></td>
+<td>Analyze refactoring impact &amp; blast radius for a symbol</td>
 </tr>
 </tbody>
 </table>
@@ -208,8 +234,8 @@
 <td>Generate PR description Compared to base branch</td>
 </tr>
 <tr>
-<td>`/mcp &lt;explore</td>
-<td>search</td>
+<td><code>/mcp &lt;explore|search|install|list|rm&gt;</code></td>
+<td>Manage MCP servers: explore, search, install, list, remove, info</td>
 </tr>
 <tr>
 <td><code>/image</code></td>
@@ -217,7 +243,19 @@
 </tr>
 <tr>
 <td><code>/undo</code></td>
-<td>Undo file edits (usage: /undo [count</td>
+<td>Undo file edits (usage: /undo [count|list])</td>
+</tr>
+<tr>
+<td><code>/ci [review|fix]</code></td>
+<td>Run headless CI/CD PR review or auto-fix simulation locally</td>
+</tr>
+<tr>
+<td><code>/badge [custom &lt;label&gt; &lt;message&gt; [color]] [--write]</code></td>
+<td>Generate <a href="http://Shields.io">Shields.io</a> README badges or build custom badges</td>
+</tr>
+<tr>
+<td><code>/scan-ai-repos [--top N] [--query &quot;topic:...&quot;] [--issue] [--repo owner/name]</code></td>
+<td>Scan top AI repos on GitHub, diff their patterns against this project, and optionally open a GitHub issue with file-specific suggestions.</td>
 </tr>
 </tbody>
 </table>
@@ -264,7 +302,7 @@
 </tr>
 <tr>
 <td><code>/session [name]</code></td>
-<td>Manage chat sessions &amp; branches: /session &lt;list</td>
+<td>Manage chat sessions &amp; branches: /session &lt;list|load|new|branch|checkout|merge|export&gt;</td>
 </tr>
 </tbody>
 </table>
@@ -323,15 +361,19 @@
 </tr>
 <tr>
 <td><code>/help</code> / <code>?</code> / <code>help</code></td>
-<td>Show available commands or detailed info for a specific command</td>
+<td>Show available commands or detailed help for a specific command</td>
 </tr>
 <tr>
-<td><code>/exit</code> / <code>/exit</code> / <code>/quit</code> / <code>quit</code></td>
+<td><code>/exit</code> / <code>/quit</code> / <code>/bye</code></td>
 <td>Save session and exit</td>
 </tr>
 <tr>
 <td><code>/preview &lt;filepath-or-url&gt;</code></td>
 <td>Screenshot a local HTML file or URL and save the image</td>
+</tr>
+<tr>
+<td><code>/spinner [list | braille | tracker | aurora]</code> / <code>spin</code></td>
+<td>List or switch the &quot;thinking&quot; spinner style on the fly</td>
 </tr>
 </tbody>
 </table>
@@ -345,12 +387,16 @@
 </thead>
 <tbody>
 <tr>
+<td><code>/theme</code> / <code>theme</code></td>
+<td>Set or show the UI color theme (dark, light, auto).</td>
+</tr>
+<tr>
 <td><code>/lite</code></td>
 <td>Show Daedalus Lite documentation</td>
 </tr>
 <tr>
-<td><code>/stats</code> / <code>stats</code></td>
-<td>Display session analytics, token usage, index count, and router status</td>
+<td><code>/history</code> / <code>/h</code></td>
+<td>Show recent turns with tool calls from the session log</td>
 </tr>
 <tr>
 <td><code>/onboard</code></td>
@@ -360,6 +406,70 @@
 <td><code>/tui</code></td>
 <td>Toggle the Terminal User Interface (TUI) dashboard</td>
 </tr>
+<tr>
+<td><code>/hunt</code> / <code>/bug</code></td>
+<td>Autonomously hunt down and fix a bug: reproduce, locate root cause, fix, verify</td>
+</tr>
+<tr>
+<td><code>/sigma</code> / <code>/memory</code></td>
+<td>Inspect active Σ-Mem (Sigma-Memory) knowledge items &amp; scores</td>
+</tr>
+<tr>
+<td><code>/routing</code></td>
+<td>Explain the last routing decision and show skipped models</td>
+</tr>
+<tr>
+<td><code>/providers</code></td>
+<td>List supported model providers and BYOK setup hints</td>
+</tr>
+<tr>
+<td><code>/blacklist</code></td>
+<td>Show or clear the session model blacklist</td>
+</tr>
+<tr>
+<td><code>/stats</code> / <code>stats</code></td>
+<td>Display session analytics, token usage, index count, and router status</td>
+</tr>
+<tr>
+<td><code>/preset</code> / <code>preset</code></td>
+<td>View or apply preset LLM router configurations</td>
+</tr>
+<tr>
+<td><code>/model</code> / <code>models-manage</code></td>
+<td>Manage router models (list, select/switch, add, remove, enable, disable, sync)</td>
+</tr>
+<tr>
+<td><code>/shortcut</code> / <code>/sc</code></td>
+<td>Manage custom slash-command aliases</td>
+</tr>
+<tr>
+<td><code>/feedback</code> / <code>report</code></td>
+<td>Send bug reports or feature requests to the Daedalus team</td>
+</tr>
+<tr>
+<td><code>/skills</code></td>
+<td>List active skills and pending skill drafts; approve or discard agent-proposed drafts.</td>
+</tr>
+<tr>
+<td><code>/enhance</code> / <code>prompt</code> / <code>refine</code></td>
+<td>Auto-expand a casual user request into a structured, high-performing engineering prompt</td>
+</tr>
+<tr>
+<td><code>/cheatsheet</code> / <code>cheat</code> / <code>guide</code></td>
+<td>Display the Daedalus local-first onboarding cheat sheet</td>
+</tr>
+<tr>
+<td><code>/faq</code> / <code>questions</code> / <code>faqs</code></td>
+<td>Display the Daedalus local-first FAQ (setup, architecture, troubleshooting)</td>
+</tr>
+<tr>
+<td><code>/recipe</code></td>
+<td>Manage and run portable YAML recipes (/recipe [list | run <name> | create <name>])</td>
+</tr>
+<tr>
+<td><code>/gitautobranch</code> / <code>gitautobranch</code></td>
+<td>Toggle automatic branch-from-base for single-agent tasks</td>
+</tr>
 </tbody>
 </table>
 <!-- END_COMMANDS_TABLE -->
@@ -367,10 +477,11 @@
 <hr>
 <h2 id="configuration" class="tsd-anchor-link">Configuration<a href="#configuration" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
 <p>Daedalus stores config at <code>~/.daedalus/config.json</code>. Key sections:</p>
-<pre><code class="json"><span class="hl-1">{</span><br/><span class="hl-1">  </span><span class="hl-4">&quot;router&quot;</span><span class="hl-1">: {</span><br/><span class="hl-1">    </span><span class="hl-4">&quot;strategy&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;priority&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">    </span><span class="hl-4">&quot;chain&quot;</span><span class="hl-1">: [</span><br/><span class="hl-1">      { </span><br/><span class="hl-1">        </span><span class="hl-4">&quot;name&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;local&quot;</span><span class="hl-1">, </span><br/><span class="hl-1">        </span><span class="hl-4">&quot;endpoint&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;http://localhost:1234/v1&quot;</span><span class="hl-1">, </span><br/><span class="hl-1">        </span><span class="hl-4">&quot;model&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;auto&quot;</span><span class="hl-1">, </span><br/><span class="hl-1">        </span><span class="hl-4">&quot;enabled&quot;</span><span class="hl-1">: </span><span class="hl-3">true</span><span class="hl-1">, </span><br/><span class="hl-1">        </span><span class="hl-4">&quot;priority&quot;</span><span class="hl-1">: </span><span class="hl-5">1</span><span class="hl-1">,</span><br/><span class="hl-1">        </span><span class="hl-4">&quot;supportsTools&quot;</span><span class="hl-1">: </span><span class="hl-3">true</span><span class="hl-1">,</span><br/><span class="hl-1">        </span><span class="hl-4">&quot;tier&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;intelligence&quot;</span><br/><span class="hl-1">      }</span><br/><span class="hl-1">    ]</span><br/><span class="hl-1">  },</span><br/><span class="hl-1">  </span><span class="hl-4">&quot;indexing&quot;</span><span class="hl-1">: { </span><span class="hl-4">&quot;enabled&quot;</span><span class="hl-1">: </span><span class="hl-3">true</span><span class="hl-1">, </span><span class="hl-4">&quot;watch&quot;</span><span class="hl-1">: </span><span class="hl-3">true</span><span class="hl-1">, </span><span class="hl-4">&quot;exclude&quot;</span><span class="hl-1">: [</span><span class="hl-2">&quot;node_modules&quot;</span><span class="hl-1">, </span><span class="hl-2">&quot;dist&quot;</span><span class="hl-1">, </span><span class="hl-2">&quot;.git&quot;</span><span class="hl-1">] },</span><br/><span class="hl-1">  </span><span class="hl-4">&quot;tools&quot;</span><span class="hl-1">: { </span><span class="hl-4">&quot;sandbox&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;none&quot;</span><span class="hl-1">, </span><span class="hl-4">&quot;sandboxImage&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;node:20&quot;</span><span class="hl-1"> }</span><br/><span class="hl-1">}</span>
+<pre><code class="json"><span class="hl-1">{</span><br/><span class="hl-1">  </span><span class="hl-5">&quot;router&quot;</span><span class="hl-1">: {</span><br/><span class="hl-1">    </span><span class="hl-5">&quot;strategy&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;priority&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">    </span><span class="hl-5">&quot;autoEscalate&quot;</span><span class="hl-1">: </span><span class="hl-3">true</span><span class="hl-1">,</span><br/><span class="hl-1">    </span><span class="hl-5">&quot;complexityRouting&quot;</span><span class="hl-1">: </span><span class="hl-3">true</span><span class="hl-1">,</span><br/><span class="hl-1">    </span><span class="hl-5">&quot;minModel&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;your-strong-model&quot;</span><span class="hl-1">,</span><br/><span class="hl-1">    </span><span class="hl-5">&quot;chain&quot;</span><span class="hl-1">: [</span><br/><span class="hl-1">      { </span><br/><span class="hl-1">        </span><span class="hl-5">&quot;name&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;local&quot;</span><span class="hl-1">, </span><br/><span class="hl-1">        </span><span class="hl-5">&quot;endpoint&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;http://localhost:1234/v1&quot;</span><span class="hl-1">, </span><br/><span class="hl-1">        </span><span class="hl-5">&quot;model&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;auto&quot;</span><span class="hl-1">, </span><br/><span class="hl-1">        </span><span class="hl-5">&quot;enabled&quot;</span><span class="hl-1">: </span><span class="hl-3">true</span><span class="hl-1">, </span><br/><span class="hl-1">        </span><span class="hl-5">&quot;priority&quot;</span><span class="hl-1">: </span><span class="hl-6">1</span><span class="hl-1">,</span><br/><span class="hl-1">        </span><span class="hl-5">&quot;supportsTools&quot;</span><span class="hl-1">: </span><span class="hl-3">true</span><span class="hl-1">,</span><br/><span class="hl-1">        </span><span class="hl-5">&quot;tier&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;intelligence&quot;</span><br/><span class="hl-1">      }</span><br/><span class="hl-1">    ]</span><br/><span class="hl-1">  },</span><br/><span class="hl-1">  </span><span class="hl-5">&quot;indexing&quot;</span><span class="hl-1">: { </span><span class="hl-5">&quot;enabled&quot;</span><span class="hl-1">: </span><span class="hl-3">true</span><span class="hl-1">, </span><span class="hl-5">&quot;watch&quot;</span><span class="hl-1">: </span><span class="hl-3">true</span><span class="hl-1">, </span><span class="hl-5">&quot;exclude&quot;</span><span class="hl-1">: [</span><span class="hl-2">&quot;node_modules&quot;</span><span class="hl-1">, </span><span class="hl-2">&quot;dist&quot;</span><span class="hl-1">, </span><span class="hl-2">&quot;.git&quot;</span><span class="hl-1">] },</span><br/><span class="hl-1">  </span><span class="hl-5">&quot;tools&quot;</span><span class="hl-1">: { </span><span class="hl-5">&quot;sandbox&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;none&quot;</span><span class="hl-1">, </span><span class="hl-5">&quot;sandboxImage&quot;</span><span class="hl-1">: </span><span class="hl-2">&quot;node:20&quot;</span><span class="hl-1"> }</span><br/><span class="hl-1">}</span>
 </code><button type="button">Copy</button></pre>
 
 <p>Router strategies: <code>priority</code> (default), <code>round-robin</code>, <code>fastest</code>.</p>
+<p><code>router.complexityRouting</code> (default <code>true</code>) enables dynamic complexity-based routing — trivial tasks hit your <code>fast</code> tier, heavy tasks hit <code>intelligence</code>, and Daedalus re-routes mid-task as the work evolves. <code>router.autoEscalate</code> (default <code>true</code>) switches to the next chain model after repeated tool failures. Set <code>modelOverride</code> (via <code>/config set modelOverride = &lt;model&gt;</code> or <code>/model</code>) to pin one model and bypass routing entirely. Set <code>DAEDALUS_DEBUG=true</code> to enable verbose <code>[ROUTE]</code> telemetry (per-turn classification and end-of-turn routing summaries).</p>
 <p>Per-project config is stored at <code>~/.daedalus/config/&lt;project-hash&gt;.json</code> and can be set via <code>/project set &lt;key&gt; &lt;value&gt;</code>.</p>
 <hr>
 <h2 id="detailed-documentation-guides" class="tsd-anchor-link">Detailed Documentation Guides<a href="#detailed-documentation-guides" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
@@ -386,12 +497,12 @@
 </ul>
 <hr>
 <h2 id="development" class="tsd-anchor-link">Development<a href="#development" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h2>
-<pre><code class="bash"><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">dev</span><span class="hl-1">       </span><span class="hl-6"># hot-reload</span><br/><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">build</span><span class="hl-1">     </span><span class="hl-6"># compile TypeScript</span><br/><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-2">test</span><span class="hl-1">          </span><span class="hl-6"># vitest (470+ tests)</span><br/><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">lint</span><span class="hl-1">      </span><span class="hl-6"># eslint (flat config)</span><br/><span class="hl-0">npx</span><span class="hl-1"> </span><span class="hl-2">tsc</span><span class="hl-1"> </span><span class="hl-3">--noEmit</span><span class="hl-1">  </span><span class="hl-6"># type check</span><br/><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">audit</span><span class="hl-1">     </span><span class="hl-6"># full CI pipeline (lint + build + test + config validation)</span><br/><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">docs</span><span class="hl-1">      </span><span class="hl-6"># generate Typedoc HTML documentation</span>
+<pre><code class="bash"><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">dev</span><span class="hl-1">       </span><span class="hl-4"># hot-reload</span><br/><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">build</span><span class="hl-1">     </span><span class="hl-4"># compile TypeScript</span><br/><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-2">test</span><span class="hl-1">          </span><span class="hl-4"># vitest (470+ tests)</span><br/><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">lint</span><span class="hl-1">      </span><span class="hl-4"># eslint (flat config)</span><br/><span class="hl-0">npx</span><span class="hl-1"> </span><span class="hl-2">tsc</span><span class="hl-1"> </span><span class="hl-3">--noEmit</span><span class="hl-1">  </span><span class="hl-4"># type check</span><br/><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">audit</span><span class="hl-1">     </span><span class="hl-4"># full CI pipeline (lint + build + test + config validation)</span><br/><span class="hl-0">npm</span><span class="hl-1"> </span><span class="hl-2">run</span><span class="hl-1"> </span><span class="hl-2">docs</span><span class="hl-1">      </span><span class="hl-4"># generate Typedoc HTML documentation</span>
 </code><button type="button">Copy</button></pre>
 
 <h3 id="architecture" class="tsd-anchor-link">Architecture<a href="#architecture" aria-label="Permalink" class="tsd-anchor-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><use href="assets/icons.svg#icon-anchor"></use></svg></a></h3>
 <p align="center">
-  <img src="media/daedalus_evolution_infographic.jpg" alt="Daedalus Evolution: From Foundation to Fortress" width="100%" />
+  <img src="media/daedalus_mythic_intelligence_ecosystem.jpg" alt="The Daedalus Ecosystem: Mythic Intelligence, Local Power" width="100%" />
 </p>
 <pre><code><span class="hl-7">src</span><span class="hl-1">/</span><br/><span class="hl-1">├── </span><span class="hl-7">index</span><span class="hl-1">.</span><span class="hl-7">ts</span><span class="hl-1">           </span><span class="hl-8">CLI</span><span class="hl-1"> </span><span class="hl-7">entry</span><span class="hl-1">, </span><span class="hl-8">REPL</span><span class="hl-1">, </span><span class="hl-7">command</span><span class="hl-1"> </span><span class="hl-7">dispatch</span><br/><span class="hl-1">├── </span><span class="hl-7">config</span><span class="hl-1">/            </span><span class="hl-7">Zod</span><span class="hl-1">-</span><span class="hl-7">schema</span><span class="hl-1"> </span><span class="hl-7">validated</span><span class="hl-1"> </span><span class="hl-0">config</span><span class="hl-1"> (+ </span><span class="hl-7">validate</span><span class="hl-1">.</span><span class="hl-7">ts</span><span class="hl-1">)</span><br/><span class="hl-1">├── </span><span class="hl-7">router</span><span class="hl-1">/            </span><span class="hl-7">Model</span><span class="hl-1"> </span><span class="hl-7">routing</span><span class="hl-1">, </span><span class="hl-7">health</span><span class="hl-1"> </span><span class="hl-7">checks</span><span class="hl-1">, </span><span class="hl-7">rate</span><span class="hl-1"> </span><span class="hl-7">limiter</span><br/><span class="hl-1">├── </span><span class="hl-7">session</span><span class="hl-1">/           </span><span class="hl-7">SQLite</span><span class="hl-1"> </span><span class="hl-7">sessions</span><span class="hl-1">, </span><span class="hl-7">project</span><span class="hl-1"> </span><span class="hl-7">memory</span><span class="hl-1">, </span><span class="hl-8">JSONL</span><span class="hl-1"> </span><span class="hl-3">export</span><br/><span class="hl-1">├── </span><span class="hl-7">agents</span><span class="hl-1">/            </span><span class="hl-7">Multi</span><span class="hl-1">-</span><span class="hl-7">agent</span><span class="hl-1"> </span><span class="hl-0">orchestration</span><span class="hl-1"> (</span><span class="hl-7">planner</span><span class="hl-1">, </span><span class="hl-7">coder</span><span class="hl-1">, </span><span class="hl-7">et</span><span class="hl-1"> </span><span class="hl-7">al</span><span class="hl-1">.)</span><br/><span class="hl-1">├── </span><span class="hl-7">tools</span><span class="hl-1">/             </span><span class="hl-7">Logger</span><span class="hl-1">, </span><span class="hl-8">REPL</span><span class="hl-1">, </span><span class="hl-7">telemetry</span><span class="hl-1">, </span><span class="hl-7">deps</span><span class="hl-1"> </span><span class="hl-7">fallback</span><span class="hl-1">, </span><span class="hl-7">spinner</span><br/><span class="hl-1">├── </span><span class="hl-7">indexing</span><span class="hl-1">/          </span><span class="hl-8">FTS5</span><span class="hl-1"> </span><span class="hl-7">codebase</span><span class="hl-1"> </span><span class="hl-7">indexing</span><br/><span class="hl-1">└── </span><span class="hl-7">onboarding</span><span class="hl-1">/        </span><span class="hl-7">Setup</span><span class="hl-1"> </span><span class="hl-7">wizard</span>
 </code><button>Copy</button></pre>
@@ -434,6 +545,7 @@
 <li>
 <ul>
 <li><a href="#core"><span>Core</span></a></li>
+<li><a href="#interface-experience"><span>Interface &amp; <wbr/>Experience</span></a></li>
 <li><a href="#tools"><span>Tools</span></a></li>
 <li><a href="#commands"><span>Commands</span></a></li>
 <li><a href="#multi-agent-orchestration"><span>Multi-<wbr/>Agent &amp; <wbr/>Orchestration</span></a></li>

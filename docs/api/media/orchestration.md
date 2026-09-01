@@ -19,6 +19,40 @@ Each agent's system prompt speaks in its deity's voice. You can invoke any agent
 
 ---
 
+## Pre-Flight Codebase Audit & Task 0 Auto-Repair
+
+Before executing feature tasks, Daedalus performs an automated **Pre-Flight Codebase Audit**. If existing code in the repository contains pre-existing TypeScript compilation or build errors, Daedalus automatically prepends **Task 0** to the plan:
+
+```text
+[ ] Task 0: [asclepius] Fix pre-existing compilation/build error in codebase before implementing feature: ...
+```
+
+The `asclepius` agent (debugger) resolves all pre-existing syntax or type errors first, ensuring that new feature tasks are always built on a 100% healthy, bug-free codebase foundation.
+
+---
+
+## Unified SpecFirst Specification Workflow
+
+Before code is generated, `/spec` compiles both human-readable Markdown and machine-readable type contracts:
+
+```mermaid
+graph TD
+    UserSpec["/spec 'Flesh out feature X'"] --> BothDocs[Generates Both Output Formats]
+    
+    BothDocs --> SpecMD[".daedalus/spec.md<br/>(Human-readable Markdown for user review)"]
+    BothDocs --> SpecJSON[".daedalus/spec.json<br/>(Machine-readable Spec Contract for agents)"]
+    
+    SpecMD --> Execution["/autopilot or /orchestrate"]
+    SpecJSON --> Execution
+    
+    Execution --> PreFlight["Pre-Flight Codebase Audit<br/>(Checks workspace for pre-existing errors)"]
+    PreFlight -->|Errors Found| Task0["Task 0: Debugger Auto-Repair<br/>(Fixes existing bugs first)"]
+    PreFlight -->|Clean Workspace| Synthesis["Autonomous Code Synthesis & Contract Verification"]
+    Task0 --> Synthesis
+```
+
+---
+
 ## Orchestration Flow & Task Checklist
 
 Upon starting, the orchestrator prints a dynamically wrapped task checklist representing the current plan:
@@ -107,7 +141,83 @@ If the agent fails to resolve the errors after all repair attempts are exhausted
 
 ---
 
-## Non-Linear Session Branching & Merging
+## Dynamic Sub-Agent Handoffs & Shared Context Variables
+
+Inspired by OpenAI Swarm's ergonomic multi-agent orchestration, Daedalus supports mid-turn **Dynamic Sub-Agent Handoffs** and a shared **Context Variables** state bag:
+
+### 1. Dynamic Sub-Agent Handoffs (`handoff_task`)
+Any active agent can dynamically transfer the execution turn to another specialized sub-agent role without process restarts or losing conversation context:
+
+* **Target Roles**: `planner`, `coder`, `reviewer`, `debugger`, `researcher`.
+* **Handoff Notes**: Structured summary of what was accomplished and direct instructions for the next agent.
+* **Context Updates**: Optional dictionary updates merged directly into the shared state bag.
+
+```json
+{
+  "target_role": "reviewer",
+  "handoff_notes": "Implemented JWT auth in src/auth.ts. Please audit for type-safety and unhandled exceptions.",
+  "context_updates": {
+    "target_files": ["src/auth.ts"],
+    "tests_status": "green"
+  }
+}
+```
+
+### 2. Shared Context Variables (`set_context_variable` & `contextVariables`)
+Agents can store and query structured key-value metadata across turns using the `set_context_variable` tool. This allows agents to pass persistent state (such as `pr_number`, `benchmark_score`, or `affected_modules`) across handoffs and turns without relying on raw transcript scraping.
+
+---
+
+## Single-Agent Auto-Routing (`route_task`)
+
+In single-agent (REPL) mode the active agent can fan a large, multi-phase task out to helper sub-agents **without the user manually spawning them**. The agent stays the conductor: it proposes a routing plan, asks for permission, and only then delegates the independent pieces in parallel.
+
+Flow:
+1. The agent recognizes a big multi-phase task and calls `ask_user` to propose routing (e.g. *"This is a big task — want me to route the research to a researcher and the API contract to a planner in parallel?"*).
+2. The user approves (or declines).
+3. On approval, the agent calls `route_task` with `confirmed: true` and a `tasks` array of independent `{ role, goal }` pairs.
+4. Each sub-task runs in its own role (planner, coder, reviewer, debugger, researcher) **in parallel** via `Promise.allSettled`, then reports back a consolidated `[ROUTED]` summary.
+5. The agent synthesizes the results and finishes the user's original request.
+
+**Worked example.** A user types a multi-phase request in the REPL:
+
+> Build a rate-limited API client and add integration tests for it.
+
+The agent (nudged by the ROUTING NUDGE) proposes routing, asks for approval, and on "yes" calls `route_task`:
+
+```json
+{
+  "tool": "ask_user",
+  "arguments": {
+    "question": "This is a big task. Want me to route the API contract to a planner and the research to a researcher in parallel, then implement + test?",
+    "options": ["Yes", "No"]
+  }
+}
+```
+
+User answers `Yes`. The agent then routes:
+
+```json
+{
+  "tool": "route_task",
+  "arguments": {
+    "confirmed": true,
+    "tasks": [
+      { "role": "planner", "goal": "Design the API client interface and rate-limit strategy (token bucket). Output a SpecContract." },
+      { "role": "researcher", "goal": "Find the project's existing HTTP/retry conventions and the testing framework in use." }
+    ],
+    "handoff_notes": "Implement the client + tests after the plan and research return."
+  }
+}
+```
+
+`route_task` runs the planner and researcher **in parallel**, then returns a consolidated `[ROUTED]` summary. The agent reads it, implements the client, and adds the integration tests — all without the user ever typing a `/spawn` or `/agent` command. If the user had answered `No`, the agent would simply do the work itself.
+
+**Heuristic nudge:** the coder agent also gets a one-time *ROUTING NUDGE* in its system prompt when your request looks like a large multi-phase task (e.g. it contains an action verb *plus* a coordination cue like "and", "then", "multiple files", "with tests"). The nudge only reminds the agent it *may* propose routing — it never bypasses the `ask_user` permission gate. A small single-file fix or a question will not trigger it.
+
+The `confirmed` flag is a hard gate: calling `route_task` without `confirmed: true` is rejected, so sub-agents are never spawned without explicit user approval. Routing applies to single-agent REPL mode; multi-agent `/autopilot` orchestration uses the planner/executor path instead.
+
+---
 
 Daedalus supports non-linear session exploration. Rather than abandoning context when an experimental approach fails, you can snapshot, branch, checkout, and merge session trajectories.
 

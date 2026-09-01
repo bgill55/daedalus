@@ -1,3 +1,2154 @@
+# [3.64.0](https://github.com/bgill55/daedalus/compare/v3.63.0...v3.64.0) (2026-09-01)
+
+
+### Bug Fixes
+
+* **indexing:** make incremental re-index timeout-safe on Windows CI ([fabe316](https://github.com/bgill55/daedalus/commit/fabe3164bcd3c87ae8dd6e18934f2cfbb83643b2))
+
+
+### Features
+
+* **router:** harden model fallback with tool capability gating, minModel floor enforcement, and multi-model failure diagnostics ([1577e4d](https://github.com/bgill55/daedalus/commit/1577e4d3e5d813900cc42549f5bb230567509aa7))
+
+## [3.63.1](https://github.com/bgill55/daedalus/compare/v3.63.0...v3.63.1) (2026-09-01)
+
+
+### Bug Fixes
+
+* **indexing:** make incremental re-index timeout-safe on Windows CI ([fabe316](https://github.com/bgill55/daedalus/commit/fabe3164bcd3c87ae8dd6e18934f2cfbb83643b2))
+
+## [3.63.1](https://github.com/bgill55/daedalus/compare/v3.63.0...v3.63.1) (2026-09-01)
+
+
+### Bug Fixes
+
+* **indexing:** make incremental re-index timeout-safe on Windows CI ([fabe316](https://github.com/bgill55/daedalus/commit/fabe3164bcd3c87ae8dd6e18934f2cfbb83643b2))
+
+# [3.63.0](https://github.com/bgill55/daedalus/compare/v3.62.0...v3.63.0) (2026-08-31)
+
+
+### Features
+
+* **tools:** relocate generated root-level .md writes into gitignored .daedalus/generated/ ([9889f46](https://github.com/bgill55/daedalus/commit/9889f4633f73c09a8eeb1beba74b2420d7d16e00))
+
+# [3.62.0](https://github.com/bgill55/daedalus/compare/v3.61.1...v3.62.0) (2026-08-31)
+
+
+### Features
+
+* **completion-guard:** Layer-1b prose file-reference validator — closes the audit gap that slipped through ([4b45d78](https://github.com/bgill55/daedalus/commit/4b45d7847b47fb7a45d0b89d162f6ccb4378c11f))
+
+## [3.61.1](https://github.com/bgill55/daedalus/compare/v3.61.0...v3.61.1) (2026-08-31)
+
+
+### Bug Fixes
+
+* **sigma-mem:** stop leaking project-mem DB into cwd (repo root) ([45dc017](https://github.com/bgill55/daedalus/commit/45dc017e78627b98d85f747ee324c219714ff81b))
+
+# [3.61.0](https://github.com/bgill55/daedalus/compare/v3.60.0...v3.61.0) (2026-08-31)
+
+
+### Features
+
+* **completion-guard:** Layer-2 semantic judge — audit claims now verified against cited code ([807c677](https://github.com/bgill55/daedalus/commit/807c67724174c0c04219403096dba729210c16fa))
+
+# [3.60.0](https://github.com/bgill55/daedalus/compare/v3.59.1...v3.60.0) (2026-08-31)
+
+
+### Features
+
+* **completion-guard:** layer-1 citation validator — audit citations now checked against real code ([ddb0193](https://github.com/bgill55/daedalus/commit/ddb019322f9c1e18682ded04a5981c37b2d48c56))
+
+## [3.59.1](https://github.com/bgill55/daedalus/compare/v3.59.0...v3.59.1) (2026-08-31)
+
+
+### Bug Fixes
+
+* **completion-guard:** citation guard must re-fire past cosmetic labels and gate on output shape ([198222c](https://github.com/bgill55/daedalus/commit/198222cae4281d54ea5018f467114d3c4f73643f))
+
+# [3.59.0](https://github.com/bgill55/daedalus/compare/v3.58.1...v3.59.0) (2026-08-31)
+
+
+### Features
+
+* **completion-guard:** require file:line citations for uncited architectural claims in reviews ([7beeb2e](https://github.com/bgill55/daedalus/commit/7beeb2ed4ce1af6562153a7f846062f035146f7a)), closes [hi#level](https://github.com/hi/issues/level)
+
+## [3.58.1](https://github.com/bgill55/daedalus/compare/v3.58.0...v3.58.1) (2026-08-30)
+
+
+### Bug Fixes
+
+* **sigma-mem:** CritICL AVOID block must not be gated by minScore (regression) ([bc78140](https://github.com/bgill55/daedalus/commit/bc781403a2dce7bd5d1ed6c3ec329ac6b7670c3c))
+
+# [3.58.0](https://github.com/bgill55/daedalus/compare/v3.57.0...v3.58.0) (2026-08-30)
+
+
+### Features
+
+* **sigma-mem:** CritICL-inspired failure-mode critique injection ([#171](https://github.com/bgill55/daedalus/issues/171) follow-up) ([5beb18d](https://github.com/bgill55/daedalus/commit/5beb18d7d9d3a6d2c78727b8955dcfde0a41f6ee))
+
+# [3.57.0](https://github.com/bgill55/daedalus/compare/v3.56.0...v3.57.0) (2026-08-30)
+
+
+### Features
+
+* **commands:** guard /help categorization so new commands can't ship undocumented ([#171](https://github.com/bgill55/daedalus/issues/171) E) ([e83f449](https://github.com/bgill55/daedalus/commit/e83f4490120c195ecf2a85452f0c2ab7abf0126a))
+
+# [3.56.0](https://github.com/bgill55/daedalus/compare/v3.55.0...v3.56.0) (2026-08-30)
+
+
+### Features
+
+* **sigma-mem:** record verified pass/fail outcomes and rank by pass-rate ([#171](https://github.com/bgill55/daedalus/issues/171) B) ([aef97ca](https://github.com/bgill55/daedalus/commit/aef97cafb0463a528970fb04ae89b9c32f1b3251))
+
+# [3.55.0](https://github.com/bgill55/daedalus/compare/v3.54.1...v3.55.0) (2026-08-30)
+
+
+### Features
+
+* **cli:** one-shot --goal mode for non-interactive / headless runs ([#171](https://github.com/bgill55/daedalus/issues/171) A) ([67b254b](https://github.com/bgill55/daedalus/commit/67b254b9515f5183c97194ccc28bd27e22afe07a))
+* **router:** fall through to an independent provider when a pool is rate-limited or 429s ([5d52b1c](https://github.com/bgill55/daedalus/commit/5d52b1ce316968978779991bc1d62f5168d02641)), closes [#171](https://github.com/bgill55/daedalus/issues/171)
+
+## [3.54.1](https://github.com/bgill55/daedalus/compare/v3.54.0...v3.54.1) (2026-08-30)
+
+
+### Bug Fixes
+
+* **docs:** register /scan-ai-repos in the /help command category listing ([7c01409](https://github.com/bgill55/daedalus/commit/7c014098f6add891cb5cc588674f2fe629504e8c))
+
+# [3.54.0](https://github.com/bgill55/daedalus/compare/v3.53.15...v3.54.0) (2026-08-30)
+
+
+### Features
+
+* **scan-ai-repos:** built-in tool + /scan-ai-repos command, and fix piped multi-line truncation ([23bfe9a](https://github.com/bgill55/daedalus/commit/23bfe9a30c6e612ac479f29eaf175de16a89cca0)), closes [#175](https://github.com/bgill55/daedalus/issues/175)
+
+## [3.53.15](https://github.com/bgill55/daedalus/compare/v3.53.14...v3.53.15) (2026-08-30)
+
+
+### Bug Fixes
+
+* **security:** scope dotenv loading to ~/.daedalus, never the cwd .env ([72593a4](https://github.com/bgill55/daedalus/commit/72593a4363bb69c4d39f758761d471f06530866c))
+
+## [3.53.14](https://github.com/bgill55/daedalus/compare/v3.53.13...v3.53.14) (2026-08-30)
+
+
+### Bug Fixes
+
+* **tests:** make router unreachable-endpoint test deterministic (no real socket) ([44ff9a7](https://github.com/bgill55/daedalus/commit/44ff9a7341e068283fbdfcc0d54d3bfdebcca016))
+
+## [3.53.13](https://github.com/bgill55/daedalus/compare/v3.53.12...v3.53.13) (2026-08-30)
+
+
+### Bug Fixes
+
+* **security:** harden file + terminal tools to refuse credential files ([2553ab3](https://github.com/bgill55/daedalus/commit/2553ab3556cd88916720fa13b073603b38316e4a))
+
+## [3.53.12](https://github.com/bgill55/daedalus/compare/v3.53.11...v3.53.12) (2026-08-30)
+
+
+### Bug Fixes
+
+* **security:** mask GitHub fine-grained PATs (github_pat_ prefix) ([a9391d4](https://github.com/bgill55/daedalus/commit/a9391d42563698bba845095caf2e55836ba954e9))
+
+## [3.53.11](https://github.com/bgill55/daedalus/compare/v3.53.10...v3.53.11) (2026-08-29)
+
+
+### Bug Fixes
+
+* **constitution:** add root-cause-before-theory and secret-hygiene principles ([94ab885](https://github.com/bgill55/daedalus/commit/94ab88598e5cb76bb33d34471c5411fcd2238618))
+
+## [3.53.10](https://github.com/bgill55/daedalus/compare/v3.53.9...v3.53.10) (2026-08-29)
+
+
+### Bug Fixes
+
+* **verify:** include test suite in build verification gate ([1e9e458](https://github.com/bgill55/daedalus/commit/1e9e4585d60ccf71c7b59e6adb683d74962ead24))
+
+## [3.53.9](https://github.com/bgill55/daedalus/compare/v3.53.8...v3.53.9) (2026-08-29)
+
+
+### Bug Fixes
+
+* **sigma-mem:** gate single-agent reward on real build verification ([86ad93f](https://github.com/bgill55/daedalus/commit/86ad93f785b4ceab7ee184fe5310d8c6ee98c884))
+
+## [3.53.8](https://github.com/bgill55/daedalus/compare/v3.53.7...v3.53.8) (2026-08-29)
+
+
+### Bug Fixes
+
+* **sigma-mem:** stop frequency inflation of reliability score on re-record ([dad63cf](https://github.com/bgill55/daedalus/commit/dad63cf063f236de78ffd138cd109f6aa782fa2b))
+
+## [3.53.7](https://github.com/bgill55/daedalus/compare/v3.53.6...v3.53.7) (2026-08-29)
+
+
+### Bug Fixes
+
+* **skills:** tighten auto-synthesis gate against social/praise/correction turns ([24408e5](https://github.com/bgill55/daedalus/commit/24408e5f488bf45dd50acd60e969c8ebfe5f985a))
+
+## [3.53.6](https://github.com/bgill55/daedalus/compare/v3.53.5...v3.53.6) (2026-08-29)
+
+
+### Bug Fixes
+
+* **enhance:** don't crash when askLine is a closed readline (headless /prompt) ([2c8b11d](https://github.com/bgill55/daedalus/commit/2c8b11d6f92d02c1cb049a050b7f8d230bcd6c14))
+
+## [3.53.5](https://github.com/bgill55/daedalus/compare/v3.53.4...v3.53.5) (2026-08-29)
+
+
+### Bug Fixes
+
+* **git:** refuse branch switch that would delete tracked files ([56faf03](https://github.com/bgill55/daedalus/commit/56faf0305a137f6244854a77231537e66c9129c9))
+
+## [3.53.4](https://github.com/bgill55/daedalus/compare/v3.53.3...v3.53.4) (2026-08-28)
+
+
+### Bug Fixes
+
+* **orchestrator:** pass untruncated error line and full compilation logs to pre-flight debugger subagent ([88cfeaa](https://github.com/bgill55/daedalus/commit/88cfeaa97c0b47121b2d25bcae406246b6a74010))
+
+## [3.53.3](https://github.com/bgill55/daedalus/compare/v3.53.2...v3.53.3) (2026-08-28)
+
+
+### Bug Fixes
+
+* **guard:** prevent divergence repetition guard and claim-grounding from suppressing full audit and review deliverables ([689bed7](https://github.com/bgill55/daedalus/commit/689bed7ad4522c4277f7191feedafac561c2bf04))
+
+## [3.53.2](https://github.com/bgill55/daedalus/compare/v3.53.1...v3.53.2) (2026-08-28)
+
+
+### Bug Fixes
+
+* **repl:** proxy terminal size to readline output so Up/Down history recall works ([e097fd9](https://github.com/bgill55/daedalus/commit/e097fd9cfff2b6f635dfd4ec2e7951f4ae4220c6))
+* **windows:** eliminate popup console windows by disabling detached creation and enforcing windowsHide across all process spawns ([624b303](https://github.com/bgill55/daedalus/commit/624b303e108e2e8b06b9e2d2e82e03a17823bf94))
+
+## [3.53.1](https://github.com/bgill55/daedalus/compare/v3.53.0...v3.53.1) (2026-08-28)
+
+
+### Bug Fixes
+
+* **skills:** gate auto-synthesis against informational and how-to-test prompts ([9dbd09a](https://github.com/bgill55/daedalus/commit/9dbd09aa1f32f020e4948cd4ec161bc41fb486eb))
+
+# [3.53.0](https://github.com/bgill55/daedalus/compare/v3.52.0...v3.53.0) (2026-08-28)
+
+
+### Features
+
+* **skills:** Part B LLM classifier + wire request into prompt builder ([771c580](https://github.com/bgill55/daedalus/commit/771c5801fc734f612625e957b01c8e67d20389ee))
+
+# [3.52.0](https://github.com/bgill55/daedalus/compare/v3.51.0...v3.52.0) (2026-08-28)
+
+
+### Features
+
+* **skills:** intent-based seed matching so paraphrases activate the CaSKG bundle ([2c8c45f](https://github.com/bgill55/daedalus/commit/2c8c45f341be659c5bed9b3dfdccc24f057856ba))
+
+# [3.51.0](https://github.com/bgill55/daedalus/compare/v3.50.6...v3.51.0) (2026-08-28)
+
+
+### Features
+
+* **skills:** implement CaSKG procedural dependency graph & bundle retrieval ([3caffc3](https://github.com/bgill55/daedalus/commit/3caffc3576b1046ff38d6d87c50520164baf7c0c))
+
+## [3.50.6](https://github.com/bgill55/daedalus/compare/v3.50.5...v3.50.6) (2026-08-28)
+
+
+### Bug Fixes
+
+* **windows:** hide flashing child process console windows via windowsHide: true ([8023ef3](https://github.com/bgill55/daedalus/commit/8023ef37e2a5927e3807eec94d5228ab80b62eb8))
+
+## [3.50.5](https://github.com/bgill55/daedalus/compare/v3.50.4...v3.50.5) (2026-08-28)
+
+
+### Bug Fixes
+
+* **terminal/prompt:** translate Unix path slashes to backslashes for cmd.exe and separate informational queries from action plans ([533796b](https://github.com/bgill55/daedalus/commit/533796b5170e1e3be3aa0ee457fb3edabc3b72b5))
+
+## [3.50.4](https://github.com/bgill55/daedalus/compare/v3.50.3...v3.50.4) (2026-08-28)
+
+
+### Bug Fixes
+
+* **system-prompt:** instruct models never to mutate .js import extensions to .ts in Node ESM and enforce incremental verification ([283349c](https://github.com/bgill55/daedalus/commit/283349c0db6a2722568d3c41db5d8c61c2d301ad))
+
+## [3.50.3](https://github.com/bgill55/daedalus/compare/v3.50.2...v3.50.3) (2026-08-28)
+
+
+### Bug Fixes
+
+* **guards:** exempt system warning rewrites from divergence checks and refine works-claim regex ([6b706ee](https://github.com/bgill55/daedalus/commit/6b706eecfe9d6b568f036eb693060abed622f287))
+
+## [3.50.2](https://github.com/bgill55/daedalus/compare/v3.50.1...v3.50.2) (2026-08-27)
+
+
+### Bug Fixes
+
+* **terminal/executor:** Windows cmd shell translation & tool alias routing ([97a1385](https://github.com/bgill55/daedalus/commit/97a13856d989216f83148c0a9a1553a9b950be66))
+
+## [3.50.1](https://github.com/bgill55/daedalus/compare/v3.50.0...v3.50.1) (2026-08-27)
+
+
+### Bug Fixes
+
+* **repl:** engage readline history navigation by letting readline own the prompt ([aba2235](https://github.com/bgill55/daedalus/commit/aba22356196eb68c91d90ed36c3cc9545fdc0455))
+
+# [3.50.0](https://github.com/bgill55/daedalus/compare/v3.49.5...v3.50.0) (2026-08-27)
+
+
+### Features
+
+* **prompt:** add explicit deliverable completion contract to ensure models output full closing reports/findings after scans ([8d1e37a](https://github.com/bgill55/daedalus/commit/8d1e37ab407875694ffe326152c2776c6ef90816))
+
+## [3.49.5](https://github.com/bgill55/daedalus/compare/v3.49.4...v3.49.5) (2026-08-27)
+
+
+### Bug Fixes
+
+* **router/guard:** provider-level rate limit bucket sharing and natural progress disclaimer support ([9483678](https://github.com/bgill55/daedalus/commit/9483678f19c2a33b3163fea8101da3125687e446))
+
+## [3.49.4](https://github.com/bgill55/daedalus/compare/v3.49.3...v3.49.4) (2026-08-27)
+
+
+### Bug Fixes
+
+* **audit:** address 5 findings from codebase audit ([3b5700c](https://github.com/bgill55/daedalus/commit/3b5700c6a3748fbc34c95313a6ccb05f658f2e35))
+
+## [3.49.3](https://github.com/bgill55/daedalus/compare/v3.49.2...v3.49.3) (2026-08-27)
+
+
+### Bug Fixes
+
+* **prompt:** replace misleading Docker/WSL terminal note with accurate OS/shell guidance to prevent bash commands on Windows ([0c11f57](https://github.com/bgill55/daedalus/commit/0c11f57f85b8cd2d2c45f147db46fffd398f81f1))
+
+## [3.49.2](https://github.com/bgill55/daedalus/compare/v3.49.1...v3.49.2) (2026-08-27)
+
+
+### Bug Fixes
+
+* **git:** run git diff/status via execFileSync, not the terminal pipeline ([d75f484](https://github.com/bgill55/daedalus/commit/d75f484de240f3c40038e71f5e7307d29bc21022))
+
+## [3.49.1](https://github.com/bgill55/daedalus/compare/v3.49.0...v3.49.1) (2026-08-27)
+
+
+### Bug Fixes
+
+* **model:** honor safety.autoApprovePlans for tool-execution approval gate ([5b13669](https://github.com/bgill55/daedalus/commit/5b136697bb03c5dc8ba709194ceb0959bd582fa0))
+* **model:** resilient tool-call parsing + non-streaming retry for agentic endpoints ([b3a715c](https://github.com/bgill55/daedalus/commit/b3a715c8d416c48581c209afcd293ff72a0a2bf5))
+* **tools/repl:** headless Windows end-to-end run robustness ([7bd7ded](https://github.com/bgill55/daedalus/commit/7bd7deda425779b9df0d745b81d14b705987a3fc))
+* **tools:** allow runner config files + fresh-scaffold writes through the test/pre-flight gates ([2c8c00e](https://github.com/bgill55/daedalus/commit/2c8c00ec6a0a59fce8bee60401709a7a58a952fa))
+
+# [3.49.0](https://github.com/bgill55/daedalus/compare/v3.48.2...v3.49.0) (2026-08-27)
+
+
+### Features
+
+* **config:** add safety.autoApprovePlans for fully headless/automated runs ([9019ad0](https://github.com/bgill55/daedalus/commit/9019ad0db083a2570b9b4d765156a3839b2f147f))
+
+## [3.48.2](https://github.com/bgill55/daedalus/compare/v3.48.1...v3.48.2) (2026-08-27)
+
+
+### Bug Fixes
+
+* **router:** warn when a pinned modelOverride is unreachable instead of silent fallback ([5206de0](https://github.com/bgill55/daedalus/commit/5206de05726fd26a2cf046bb5b78eb14103ce5a8))
+
+## [3.48.1](https://github.com/bgill55/daedalus/compare/v3.48.0...v3.48.1) (2026-08-27)
+
+
+### Bug Fixes
+
+* **guard:** prevent deliverable completion claims when open todos remain without disclaimer ([87d3f6d](https://github.com/bgill55/daedalus/commit/87d3f6d30aed6932efba6ca20dd1684cfba93571))
+
+# [3.48.0](https://github.com/bgill55/daedalus/compare/v3.47.4...v3.48.0) (2026-08-26)
+
+
+### Features
+
+* **ui:** stream-buffer rejected drafts, eliminate duplicate blocks, and add auto-heal badge ([d59dd6b](https://github.com/bgill55/daedalus/commit/d59dd6b88a9598f116497cee91c135f71d3d0f45))
+
+## [3.47.4](https://github.com/bgill55/daedalus/compare/v3.47.3...v3.47.4) (2026-08-26)
+
+
+### Bug Fixes
+
+* **terminal:** distinguish local module paths from missing npm packages in diagnostic hint ([d27e4c7](https://github.com/bgill55/daedalus/commit/d27e4c7837470296aaef8c86e4bb8602a1bbef88))
+
+## [3.47.3](https://github.com/bgill55/daedalus/compare/v3.47.2...v3.47.3) (2026-08-26)
+
+
+### Bug Fixes
+
+* **agent:** parse bare-JSON tool calls so models can execute tools in single-agent mode ([bc6af94](https://github.com/bgill55/daedalus/commit/bc6af94a0bd4743fc234db42eb5082ef30694076))
+
+## [3.47.2](https://github.com/bgill55/daedalus/compare/v3.47.1...v3.47.2) (2026-08-26)
+
+
+### Bug Fixes
+
+* **autopilot:** actually verify the scaffolded project before commit/merge ([8c6e186](https://github.com/bgill55/daedalus/commit/8c6e18643c856e03f65e6005fc9700e69e11d560))
+
+## [3.47.1](https://github.com/bgill55/daedalus/compare/v3.47.0...v3.47.1) (2026-08-26)
+
+
+### Bug Fixes
+
+* **tools:** allow empty new_string in patch schema and add ESM entrypoint hints ([19f092c](https://github.com/bgill55/daedalus/commit/19f092c187f0ae01ab563f41bcd5c57ac895c052))
+
+# [3.47.0](https://github.com/bgill55/daedalus/compare/v3.46.7...v3.47.0) (2026-08-26)
+
+
+### Features
+
+* **router:** add provider-neutral `minModel` capability floor + harden terminal Windows `cd` paths ([e8a08cc](https://github.com/bgill55/daedalus/commit/e8a08ccd6ba6d6c4229b75f5a17d2bad40a8c6d1))
+
+## [3.46.7](https://github.com/bgill55/daedalus/compare/v3.46.6...v3.46.7) (2026-08-26)
+
+
+### Bug Fixes
+
+* **tools:** treat missing type-definition files (TS2688/TS2503) as environment noise in the patch type gate ([1d24354](https://github.com/bgill55/daedalus/commit/1d243542eb3933ac2850d81656516bdfc134b29c))
+
+## [3.46.6](https://github.com/bgill55/daedalus/compare/v3.46.5...v3.46.6) (2026-08-26)
+
+
+### Bug Fixes
+
+* **completion:** block "works/verified" claims contradicted by the agent's own failed run ([ad5cc18](https://github.com/bgill55/daedalus/commit/ad5cc18100ad7e8c7f2b355007275814045725eb))
+
+## [3.46.5](https://github.com/bgill55/daedalus/compare/v3.46.4...v3.46.5) (2026-08-26)
+
+
+### Bug Fixes
+
+* **tools:** support ESM .js-to-.ts import validation and normalize cd /d in terminal ([aace526](https://github.com/bgill55/daedalus/commit/aace526cdbad81455ef3ea56bd5f7c6a61248713))
+
+## [3.46.4](https://github.com/bgill55/daedalus/compare/v3.46.3...v3.46.4) (2026-08-26)
+
+
+### Bug Fixes
+
+* **tools:** prevent write_file feedback loop and detect TS syntax in JS files ([562c81a](https://github.com/bgill55/daedalus/commit/562c81acb132ff9f99da698bb5254780334e2ec3))
+
+## [3.46.3](https://github.com/bgill55/daedalus/compare/v3.46.2...v3.46.3) (2026-08-26)
+
+
+### Bug Fixes
+
+* **tools:** allow first-time test-file creation; keep terminal test-write bypass blocked ([550e356](https://github.com/bgill55/daedalus/commit/550e35680f7ee2532f72e96a1bc37877b6878c10))
+
+## [3.46.2](https://github.com/bgill55/daedalus/compare/v3.46.1...v3.46.2) (2026-08-26)
+
+
+### Bug Fixes
+
+* **tools:** allow runner config files + fresh-scaffold writes through the test/pre-flight gates ([7477d1b](https://github.com/bgill55/daedalus/commit/7477d1b9b60f5f6532ac18e036b71aa91e0d00e2))
+
+## [3.46.1](https://github.com/bgill55/daedalus/compare/v3.46.0...v3.46.1) (2026-08-26)
+
+
+### Bug Fixes
+
+* **tools:** stop circuit breaker keying on cd + do not revert Node-global typecheck noise ([03c1257](https://github.com/bgill55/daedalus/commit/03c12579d97bb87210fa4f3ea2ffa91c332d93a1))
+
+# [3.46.0](https://github.com/bgill55/daedalus/compare/v3.45.1...v3.46.0) (2026-08-25)
+
+
+### Features
+
+* **mcp:** auto-grant filesystem server read/write to the launch folder ([a0078a8](https://github.com/bgill55/daedalus/commit/a0078a80ab2afb6468a19ea1b568be11f5038ebb))
+
+## [3.45.1](https://github.com/bgill55/daedalus/compare/v3.45.0...v3.45.1) (2026-08-25)
+
+
+### Bug Fixes
+
+* **guards:** debounce repeated claim-guard [CHECK] + teach disk-based asset verification ([cb30335](https://github.com/bgill55/daedalus/commit/cb3033562357abbbe48ee8a55b77764dbdb48cca))
+
+# [3.45.0](https://github.com/bgill55/daedalus/compare/v3.44.1...v3.45.0) (2026-08-25)
+
+
+### Features
+
+* **git:** /gitautobranch toggle for automatic branch-from-base in single-agent mode ([a95235c](https://github.com/bgill55/daedalus/commit/a95235cf4db83fa8c0b09e0c9b3b055a050ecb06))
+
+## [3.44.1](https://github.com/bgill55/daedalus/compare/v3.44.0...v3.44.1) (2026-08-25)
+
+
+### Bug Fixes
+
+* **formatting:** collapse runs of blank assistant lines to kill dead space ([e1d4a53](https://github.com/bgill55/daedalus/commit/e1d4a53a0f1ed6dda3e9a6383734d68f69e0160c))
+
+# [3.44.0](https://github.com/bgill55/daedalus/compare/v3.43.2...v3.44.0) (2026-08-25)
+
+
+### Features
+
+* **ux:** hint in /models pointing to /model sync for discovery ([bc0df3f](https://github.com/bgill55/daedalus/commit/bc0df3f5e7e04bb9f4976d173153778de4120aa9))
+
+## [3.43.2](https://github.com/bgill55/daedalus/compare/v3.43.1...v3.43.2) (2026-08-25)
+
+
+### Bug Fixes
+
+* **router:** /models lists configured chain, not the upstream catalog ([013820f](https://github.com/bgill55/daedalus/commit/013820ff0c5c508f520266c9f43dbd47961cb9ad))
+
+## [3.43.1](https://github.com/bgill55/daedalus/compare/v3.43.0...v3.43.1) (2026-08-25)
+
+
+### Bug Fixes
+
+* **router:** dedupe /models catalog by endpoint to stop 12x repetition ([bebf935](https://github.com/bgill55/daedalus/commit/bebf9358981b0a22049436a246ff41baf127b3a2))
+
+# [3.43.0](https://github.com/bgill55/daedalus/compare/v3.42.4...v3.43.0) (2026-08-25)
+
+
+### Features
+
+* **autopilot:** branch from detected base and auto-merge back on success ([b76d98e](https://github.com/bgill55/daedalus/commit/b76d98ed66333f4f2317c0d51d5a0fa857683a8d))
+
+## [3.42.4](https://github.com/bgill55/daedalus/compare/v3.42.3...v3.42.4) (2026-08-24)
+
+
+### Bug Fixes
+
+* **autopilot:** stop forcing multi-task plans for single-feature goals ([faeb77e](https://github.com/bgill55/daedalus/commit/faeb77eca831a236fbb09722d56461f643ec5b50))
+
+## [3.42.3](https://github.com/bgill55/daedalus/compare/v3.42.2...v3.42.3) (2026-08-24)
+
+
+### Bug Fixes
+
+* **autopilot:** detect orphaned route modules so features aren't added to dead code ([4fe35b2](https://github.com/bgill55/daedalus/commit/4fe35b208a0dd239032ad4f2ce316b2b79e158e2))
+
+## [3.42.2](https://github.com/bgill55/daedalus/compare/v3.42.1...v3.42.2) (2026-08-24)
+
+
+### Bug Fixes
+
+* **autopilot:** stop scope inflation — fix broken/duplicate code in place, no parallel modules ([6e6b279](https://github.com/bgill55/daedalus/commit/6e6b27963778d175bddb30ceb350037220fdd2d7))
+
+## [3.42.1](https://github.com/bgill55/daedalus/compare/v3.42.0...v3.42.1) (2026-08-24)
+
+
+### Bug Fixes
+
+* **ux:** show divine callsigns in SPAWN lines, not machine keys ([9ceffad](https://github.com/bgill55/daedalus/commit/9ceffada414780768c77d18bf61be2af2fd873cf))
+
+# [3.42.0](https://github.com/bgill55/daedalus/compare/v3.41.1...v3.42.0) (2026-08-24)
+
+
+### Features
+
+* **agents:** record WHY a sub-agent (route/delegate) hit its turn budget ([c21bfcf](https://github.com/bgill55/daedalus/commit/c21bfcf098f07330b76f86ed129c1bbbb0395a96))
+
+## [3.41.1](https://github.com/bgill55/daedalus/compare/v3.41.0...v3.41.1) (2026-08-24)
+
+
+### Bug Fixes
+
+* **skills:** don't synthesize a skill draft from praise / verification-summary turns ([8b777fe](https://github.com/bgill55/daedalus/commit/8b777fe3ebb7073ca01b7633f60c0b2444c1efa3))
+
+# [3.41.0](https://github.com/bgill55/daedalus/compare/v3.40.13...v3.41.0) (2026-08-24)
+
+
+### Features
+
+* **model:** record WHY a task hit the max-turns/guard checkpoint into sigma memory ([cb615ce](https://github.com/bgill55/daedalus/commit/cb615ce810aa1a85a137130a06660daa9e1b4673))
+
+## [3.40.13](https://github.com/bgill55/daedalus/compare/v3.40.12...v3.40.13) (2026-08-24)
+
+
+### Bug Fixes
+
+* **router:** /model sync targets a keyed freellmapi entry + names the model in 401 ([ad6dc49](https://github.com/bgill55/daedalus/commit/ad6dc490cfd90608f6841691ebed600fecfe2418))
+
+## [3.40.12](https://github.com/bgill55/daedalus/compare/v3.40.11...v3.40.12) (2026-08-24)
+
+
+### Bug Fixes
+
+* **loop:** make guardrails stateful to stop token-wasting re-verification ([b3ac777](https://github.com/bgill55/daedalus/commit/b3ac777fd2f4840826235860a66783514036c145))
+
+## [3.40.11](https://github.com/bgill55/daedalus/compare/v3.40.10...v3.40.11) (2026-08-24)
+
+
+### Bug Fixes
+
+* **terminal:** block backgrounded/dev-server commands to stop runaway token burn ([7aad2c0](https://github.com/bgill55/daedalus/commit/7aad2c0f7ac34b6fda6aba855d0aab285a940ce8))
+
+## [3.40.10](https://github.com/bgill55/daedalus/compare/v3.40.9...v3.40.10) (2026-08-24)
+
+
+### Bug Fixes
+
+* **autopilot:** exclude 'do not modify' constraint files from fallback plan targets ([264c0f7](https://github.com/bgill55/daedalus/commit/264c0f77f56865fa8f74371ec6d3ceccd6aa3060))
+
+## [3.40.9](https://github.com/bgill55/daedalus/compare/v3.40.8...v3.40.9) (2026-08-24)
+
+
+### Bug Fixes
+
+* **autopilot:** correct explicit-file targeting + guard phantom-success at executePlan ([eeea035](https://github.com/bgill55/daedalus/commit/eeea035c55be2bfcb28a73a789bb76e1ba49024d))
+
+## [3.40.8](https://github.com/bgill55/daedalus/compare/v3.40.7...v3.40.8) (2026-08-24)
+
+
+### Bug Fixes
+
+* **autopilot:** parse divine callsigns in plan + abort on empty plan (phantom-success) ([94ec646](https://github.com/bgill55/daedalus/commit/94ec646c4aac409014800b7bb4ef9610f63f02d3))
+
+## [3.40.7](https://github.com/bgill55/daedalus/compare/v3.40.6...v3.40.7) (2026-08-24)
+
+
+### Bug Fixes
+
+* **sigma-mem:** close the recall loop — record memory usage on injection ([6673839](https://github.com/bgill55/daedalus/commit/6673839228a2f83fb9a2ab13bd5328679796217f))
+
+## [3.40.6](https://github.com/bgill55/daedalus/compare/v3.40.5...v3.40.6) (2026-08-24)
+
+
+### Bug Fixes
+
+* **autopilot:** strip leading /autopilot token from delegated task text ([d0ee480](https://github.com/bgill55/daedalus/commit/d0ee48034f3d9dfaac2744da7ee1aaa26e2c2682))
+
+## [3.40.5](https://github.com/bgill55/daedalus/compare/v3.40.4...v3.40.5) (2026-08-24)
+
+
+### Bug Fixes
+
+* **agents:** apply divine callsigns to /sigma display + injected memory context ([2ca0e86](https://github.com/bgill55/daedalus/commit/2ca0e86612fb4ef38ba07768ce05f8621c94e7f9))
+
+## [3.40.4](https://github.com/bgill55/daedalus/compare/v3.40.3...v3.40.4) (2026-08-24)
+
+
+### Bug Fixes
+
+* **agents:** show divine callsigns in orchestrator spinners, not machine keys ([6c58124](https://github.com/bgill55/daedalus/commit/6c581243790d4d91c5b1e168ced1da3a06d8a67d))
+
+## [3.40.3](https://github.com/bgill55/daedalus/compare/v3.40.2...v3.40.3) (2026-08-23)
+
+
+### Bug Fixes
+
+* **commands:** dedupe /session, backfill 25 missing helpTexts, fix omnivoice port ([cf0bf5c](https://github.com/bgill55/daedalus/commit/cf0bf5cdce4287c0e1b6064cdca555ab65b0aedb))
+
+## [3.40.2](https://github.com/bgill55/daedalus/compare/v3.40.1...v3.40.2) (2026-08-23)
+
+
+### Bug Fixes
+
+* **sigma-mem:** promote to project-level persistence, fix prune threshold bug ([e666963](https://github.com/bgill55/daedalus/commit/e666963b9f0b0b53b25243ebdfe00c889ca5b5af))
+
+## [3.40.1](https://github.com/bgill55/daedalus/compare/v3.40.0...v3.40.1) (2026-08-23)
+
+
+### Bug Fixes
+
+* **ui:** make /theme actually recolor the CLI (don't ship a no-op toggle) ([7ade63f](https://github.com/bgill55/daedalus/commit/7ade63fd67d8472e28227fc04d6e29798e8061eb))
+
+# [3.40.0](https://github.com/bgill55/daedalus/compare/v3.39.0...v3.40.0) (2026-08-22)
+
+
+### Features
+
+* **tools:** wire same-edit loop detector into the graduated patch breaker ([1fd2bd0](https://github.com/bgill55/daedalus/commit/1fd2bd01ce8a9b81d2debbafd65fc953171b0afa))
+
+# [3.39.0](https://github.com/bgill55/daedalus/compare/v3.38.0...v3.39.0) (2026-08-22)
+
+
+### Features
+
+* **tools:** graduate the patch circuit breaker into a steer→constrain→stop ladder ([0f7665a](https://github.com/bgill55/daedalus/commit/0f7665a49f7841211afb85a1805298ffc72d6e5e))
+
+# [3.38.0](https://github.com/bgill55/daedalus/compare/v3.37.6...v3.38.0) (2026-08-22)
+
+
+### Features
+
+* **agents:** give the forge its gods — divine callsigns for agent roles ([1328ad9](https://github.com/bgill55/daedalus/commit/1328ad9624b15d5c957c602c4f98b4be8e767103))
+
+## [3.37.6](https://github.com/bgill55/daedalus/compare/v3.37.5...v3.37.6) (2026-08-22)
+
+
+### Bug Fixes
+
+* **tools:** localize syntax-revert errors to the opening delimiter, not the parser recovery point ([#166](https://github.com/bgill55/daedalus/issues/166)) ([f42bb8c](https://github.com/bgill55/daedalus/commit/f42bb8cb403d61d3d2adda7d9b261dfb94ffd4b9))
+
+## [3.37.5](https://github.com/bgill55/daedalus/compare/v3.37.4...v3.37.5) (2026-08-22)
+
+
+### Bug Fixes
+
+* **skills:** require proof of work before auto-synthesizing a skill draft ([#165](https://github.com/bgill55/daedalus/issues/165)) ([17992f4](https://github.com/bgill55/daedalus/commit/17992f40e32bf2602304a194f5c364594e61f3ed))
+
+## [3.37.4](https://github.com/bgill55/daedalus/compare/v3.37.3...v3.37.4) (2026-08-22)
+
+
+### Bug Fixes
+
+* **guards:** allow honest 'not done, here is what remains' status updates ([#164](https://github.com/bgill55/daedalus/issues/164)) ([8702c64](https://github.com/bgill55/daedalus/commit/8702c64dde4078288198dfac5d22820d1f3d8668))
+* **ux:** show todo progress immediately on max-turn resume (kill dead space) ([#163](https://github.com/bgill55/daedalus/issues/163)) ([88dcf26](https://github.com/bgill55/daedalus/commit/88dcf267181e06579440c92b85aec34e57726165))
+
+## [3.37.3](https://github.com/bgill55/daedalus/compare/v3.37.2...v3.37.3) (2026-08-22)
+
+
+### Bug Fixes
+
+* **guards:** session-scope claim ledger + anchor MCP paths to cwd ([#162](https://github.com/bgill55/daedalus/issues/162)) ([1cac9c7](https://github.com/bgill55/daedalus/commit/1cac9c73c7128ee24fb3451a7d2371bcb5d9ab74))
+
+## [3.37.2](https://github.com/bgill55/daedalus/compare/v3.37.1...v3.37.2) (2026-08-22)
+
+
+### Bug Fixes
+
+* **diff-ui:** use regex ANSI strip instead of non-existent pc.stripColor ([#161](https://github.com/bgill55/daedalus/issues/161)) ([fbd1068](https://github.com/bgill55/daedalus/commit/fbd106804ec525d6c5e3584237e6903ac6f110f3))
+
+## [3.37.1](https://github.com/bgill55/daedalus/compare/v3.37.0...v3.37.1) (2026-08-22)
+
+
+### Bug Fixes
+
+* **enhance:** ground the /enhance prompt in real project context ([#160](https://github.com/bgill55/daedalus/issues/160)) ([60d3035](https://github.com/bgill55/daedalus/commit/60d3035c9d6f655727d71d91f31a6cc029d02771))
+
+# [3.37.0](https://github.com/bgill55/daedalus/compare/v3.36.8...v3.37.0) (2026-08-22)
+
+
+### Features
+
+* **ui:** CLI UI/UX overhaul — emoji cleanup, syntax highlighting, history, dead configs, richer stats, tip-of-day ([#158](https://github.com/bgill55/daedalus/issues/158)) ([ee70fc8](https://github.com/bgill55/daedalus/commit/ee70fc81e6c03716acfd065ade97c55ad6134f81))
+
+## [3.36.8](https://github.com/bgill55/daedalus/compare/v3.36.7...v3.36.8) (2026-08-21)
+
+
+### Bug Fixes
+
+* **guards:** require runtime probe for 'works/verified' claims ([#157](https://github.com/bgill55/daedalus/issues/157)) ([3371bea](https://github.com/bgill55/daedalus/commit/3371bea936a0434462ad060f618c5d35ec3fe5a1))
+
+## [3.36.7](https://github.com/bgill55/daedalus/compare/v3.36.6...v3.36.7) (2026-08-21)
+
+
+### Bug Fixes
+
+* **guards:** order file-extension alternation longest-first ([#156](https://github.com/bgill55/daedalus/issues/156)) ([2f5ea54](https://github.com/bgill55/daedalus/commit/2f5ea544f5c8b51c749303efdc981664273bf863))
+
+## [3.36.6](https://github.com/bgill55/daedalus/compare/v3.36.5...v3.36.6) (2026-08-21)
+
+
+### Bug Fixes
+
+* **guards:** stop flagging runtime/platform tokens as uninspected files ([#151](https://github.com/bgill55/daedalus/issues/151)) ([690146d](https://github.com/bgill55/daedalus/commit/690146dc2499d990934d7eb447f21d7c2e72f4ea))
+
+## [3.36.5](https://github.com/bgill55/daedalus/compare/v3.36.4...v3.36.5) (2026-08-21)
+
+
+### Bug Fixes
+
+* **patch:** treat async_hooks as a node built-in in pre-flight typecheck ([#150](https://github.com/bgill55/daedalus/issues/150)) ([07e8e4d](https://github.com/bgill55/daedalus/commit/07e8e4d3b92eb13b69d42469ca4a02f36b54352f))
+
+## [3.36.4](https://github.com/bgill55/daedalus/compare/v3.36.3...v3.36.4) (2026-08-21)
+
+
+### Bug Fixes
+
+* **ux:** distinguish command-exit failures from self-correction loops ([#149](https://github.com/bgill55/daedalus/issues/149)) ([c8b433d](https://github.com/bgill55/daedalus/commit/c8b433dc7f2d0414fe50d43ce41ea61fa6786497))
+
+## [3.36.3](https://github.com/bgill55/daedalus/compare/v3.36.2...v3.36.3) (2026-08-21)
+
+
+### Bug Fixes
+
+* **guards:** detect ungrounded negative-existence claims in reviews ([#148](https://github.com/bgill55/daedalus/issues/148)) ([ca95bbe](https://github.com/bgill55/daedalus/commit/ca95bbee6c94247823db7f864e5754111e93fce2))
+
+## [3.36.2](https://github.com/bgill55/daedalus/compare/v3.36.1...v3.36.2) (2026-08-21)
+
+
+### Bug Fixes
+
+* **guards:** harden against docs-only reviews and no-run test count fabrication ([#145](https://github.com/bgill55/daedalus/issues/145)) ([0d74be0](https://github.com/bgill55/daedalus/commit/0d74be0cff7df86933f87efe81434ea3b0d48155))
+
+## [3.36.1](https://github.com/bgill55/daedalus/compare/v3.36.0...v3.36.1) (2026-08-21)
+
+
+### Bug Fixes
+
+* **agent/router:** stop retry loops on missing files and disabled models ([#147](https://github.com/bgill55/daedalus/issues/147)) ([755a125](https://github.com/bgill55/daedalus/commit/755a1254731d67bbf606b219ad3c42ef4321d86a))
+
+# [3.36.0](https://github.com/bgill55/daedalus/compare/v3.35.0...v3.36.0) (2026-08-21)
+
+
+### Features
+
+* **hints:** make prompt tips project-aware via stack detection ([#146](https://github.com/bgill55/daedalus/issues/146)) ([d8b08b3](https://github.com/bgill55/daedalus/commit/d8b08b3ce047133b84c668ee857beab43ee0662f))
+
+# [3.35.0](https://github.com/bgill55/daedalus/compare/v3.34.3...v3.35.0) (2026-08-21)
+
+
+### Features
+
+* **security:** secret redaction, pre-commit leak guard, and explicit proxy support ([#144](https://github.com/bgill55/daedalus/issues/144)) ([2f13229](https://github.com/bgill55/daedalus/commit/2f13229436b5c59b3fd94b91a3ad1ff644632ffc))
+
+## [3.34.3](https://github.com/bgill55/daedalus/compare/v3.34.2...v3.34.3) (2026-08-20)
+
+
+### Bug Fixes
+
+* **agents:** harden against review-looping and ungrounded project claims ([#143](https://github.com/bgill55/daedalus/issues/143)) ([e4f5987](https://github.com/bgill55/daedalus/commit/e4f598788722c6ff322713a2eb6d59c6e1dcaf9e))
+
+## [3.34.2](https://github.com/bgill55/daedalus/compare/v3.34.1...v3.34.2) (2026-08-20)
+
+
+### Bug Fixes
+
+* **formatting:** keep streamed think content dimmed across chunk-split tags ([#142](https://github.com/bgill55/daedalus/issues/142)) ([90e7f67](https://github.com/bgill55/daedalus/commit/90e7f67ae44218353045021e3403d59762c50895))
+
+## [3.34.1](https://github.com/bgill55/daedalus/compare/v3.34.0...v3.34.1) (2026-08-20)
+
+
+### Bug Fixes
+
+* **agents:** add green-state claim guard for subset-omission overclaims ([#140](https://github.com/bgill55/daedalus/issues/140)) ([67c5452](https://github.com/bgill55/daedalus/commit/67c545263c0161233eceb5e7efe173cf7e3e821d)), closes [#131](https://github.com/bgill55/daedalus/issues/131)
+
+# [3.34.0](https://github.com/bgill55/daedalus/compare/v3.33.3...v3.34.0) (2026-08-20)
+
+
+### Features
+
+* **formatting:** render <think> reasoning in dimmed font, answers in white ([#139](https://github.com/bgill55/daedalus/issues/139)) ([b5f530a](https://github.com/bgill55/daedalus/commit/b5f530a32e324f73699d0807197f4144d1ae7717))
+
+## [3.33.3](https://github.com/bgill55/daedalus/compare/v3.33.2...v3.33.3) (2026-08-20)
+
+
+### Bug Fixes
+
+* **agents:** add claim-grounding guard for unverified factual claims ([#138](https://github.com/bgill55/daedalus/issues/138)) ([b3b80a0](https://github.com/bgill55/daedalus/commit/b3b80a06f9a020fee75eb1d9e585f2394afb8eca)), closes [#136](https://github.com/bgill55/daedalus/issues/136)
+
+## [3.33.2](https://github.com/bgill55/daedalus/compare/v3.33.1...v3.33.2) (2026-08-20)
+
+
+### Bug Fixes
+
+* **agents:** add loop divergence detector + stale-read auto-recovery ([#137](https://github.com/bgill55/daedalus/issues/137)) ([fc8dcab](https://github.com/bgill55/daedalus/commit/fc8dcab64baad8763fe8e4768ace62263deeb764))
+
+## [3.33.1](https://github.com/bgill55/daedalus/compare/v3.33.0...v3.33.1) (2026-08-20)
+
+
+### Bug Fixes
+
+* **agents:** add unsubstantiated-progress-report completion guard ([#136](https://github.com/bgill55/daedalus/issues/136)) ([daca13b](https://github.com/bgill55/daedalus/commit/daca13b40c836303d8aa99135fe7a172efb83807))
+
+# [3.33.0](https://github.com/bgill55/daedalus/compare/v3.32.0...v3.33.0) (2026-08-20)
+
+
+### Features
+
+* **orchestration:** heuristic routing nudge for multi-phase tasks ([#135](https://github.com/bgill55/daedalus/issues/135)) ([9845784](https://github.com/bgill55/daedalus/commit/984578433c9d377fce48494051921f801be37ca5)), closes [#134](https://github.com/bgill55/daedalus/issues/134)
+
+# [3.32.0](https://github.com/bgill55/daedalus/compare/v3.31.1...v3.32.0) (2026-08-20)
+
+
+### Features
+
+* **orchestration:** single-agent auto-routing via route_task (parallel helper agents, user-approved) ([#134](https://github.com/bgill55/daedalus/issues/134)) ([935ca42](https://github.com/bgill55/daedalus/commit/935ca429181afe38eb5fd6dd3368a154aee02fc7))
+
+## [3.31.1](https://github.com/bgill55/daedalus/compare/v3.31.0...v3.31.1) (2026-08-20)
+
+
+### Bug Fixes
+
+* **orchestration:** make handoff_task actually transfer control + add get_context_variable ([#133](https://github.com/bgill55/daedalus/issues/133)) ([57efda8](https://github.com/bgill55/daedalus/commit/57efda87cd3226410869532d0cab4151f471b26d))
+
+# [3.31.0](https://github.com/bgill55/daedalus/compare/v3.30.11...v3.31.0) (2026-08-20)
+
+
+### Features
+
+* **orchestration:** ship dynamic sub-agent handoffs (handoff_task) and shared context variables (contextVariables) ([98995f5](https://github.com/bgill55/daedalus/commit/98995f58799cc1f9739192eee14c7f7c6a43d00c))
+
+## [3.30.11](https://github.com/bgill55/daedalus/compare/v3.30.10...v3.30.11) (2026-08-18)
+
+
+### Bug Fixes
+
+* **agents:** catch patch<->test loops + block fabricated test-count claims ([#131](https://github.com/bgill55/daedalus/issues/131)) ([c068df2](https://github.com/bgill55/daedalus/commit/c068df216bd18bc9a3e8ab3405083e40befe4085)), closes [#129](https://github.com/bgill55/daedalus/issues/129)
+
+## [3.30.10](https://github.com/bgill55/daedalus/compare/v3.30.9...v3.30.10) (2026-08-18)
+
+
+### Bug Fixes
+
+* **ci:** export getResolvedShellType in terminal mock ([#130](https://github.com/bgill55/daedalus/issues/130)) ([c1f7983](https://github.com/bgill55/daedalus/commit/c1f79839f4c58bf09df9e3a2968c8ca87d6b8ff7)), closes [#128](https://github.com/bgill55/daedalus/issues/128) [#129](https://github.com/bgill55/daedalus/issues/129)
+
+## [3.30.9](https://github.com/bgill55/daedalus/compare/v3.30.8...v3.30.9) (2026-08-18)
+
+
+### Bug Fixes
+
+* **terminal:** catch diversifying retry loops + nudge wrong-shell commands ([#129](https://github.com/bgill55/daedalus/issues/129)) ([0521876](https://github.com/bgill55/daedalus/commit/052187625126139ab9e530031f9ae31f164c656e))
+
+## [3.30.8](https://github.com/bgill55/daedalus/compare/v3.30.7...v3.30.8) (2026-08-17)
+
+
+### Bug Fixes
+
+* **terminal:** exempt verification commands from circuit breakers + surface shell on tool desc ([#128](https://github.com/bgill55/daedalus/issues/128)) ([f6a5654](https://github.com/bgill55/daedalus/commit/f6a5654c559c8d08a351770bd540e8d39e5b5533)), closes [#121](https://github.com/bgill55/daedalus/issues/121) [#126](https://github.com/bgill55/daedalus/issues/126)
+
+## [3.30.7](https://github.com/bgill55/daedalus/compare/v3.30.6...v3.30.7) (2026-08-17)
+
+
+### Bug Fixes
+
+* **ci:** remove unused [@ts-expect-error](https://github.com/ts-expect-error) directives in terminal.test.ts ([#127](https://github.com/bgill55/daedalus/issues/127)) ([df7ec81](https://github.com/bgill55/daedalus/commit/df7ec814d01feb4f240feb0f678d8993bd9f6cdd)), closes [#126](https://github.com/bgill55/daedalus/issues/126)
+* **terminal:** surface the actual shell to the model to stop PowerShell-in-bash retry spirals ([#126](https://github.com/bgill55/daedalus/issues/126)) ([39065d3](https://github.com/bgill55/daedalus/commit/39065d3e5a55e5c14dc0be008df172009452c716))
+
+## [3.30.6](https://github.com/bgill55/daedalus/compare/v3.30.5...v3.30.6) (2026-08-17)
+
+
+### Bug Fixes
+
+* **agents:** stop stale SpecFirst contracts and the /prompt enhancer from fabricating findings ([#125](https://github.com/bgill55/daedalus/issues/125)) ([37681ba](https://github.com/bgill55/daedalus/commit/37681ba69b5211814dcb3a269b4eb2da88749866))
+
+## [3.30.5](https://github.com/bgill55/daedalus/compare/v3.30.4...v3.30.5) (2026-08-17)
+
+
+### Bug Fixes
+
+* **enhance:** bound open-ended 'improvements/ideas' lists to stop boilerplate rambles (Rule 9) ([#124](https://github.com/bgill55/daedalus/issues/124)) ([00e4e3e](https://github.com/bgill55/daedalus/commit/00e4e3ee976d89a7ed78db2f5f7387fdb4a2ec61)), closes [#121](https://github.com/bgill55/daedalus/issues/121) [#122](https://github.com/bgill55/daedalus/issues/122) [#123](https://github.com/bgill55/daedalus/issues/123)
+
+## [3.30.4](https://github.com/bgill55/daedalus/compare/v3.30.3...v3.30.4) (2026-08-17)
+
+
+### Bug Fixes
+
+* **enhance:** stop the /prompt enhancer from naming non-existent tools (Rule 8) ([#123](https://github.com/bgill55/daedalus/issues/123)) ([f6a96a3](https://github.com/bgill55/daedalus/commit/f6a96a3f872c83e369286b6c4dc12a33292d53e3))
+
+## [3.30.3](https://github.com/bgill55/daedalus/compare/v3.30.2...v3.30.3) (2026-08-17)
+
+
+### Bug Fixes
+
+* **enhance:** preserve user intent mode — don't expand a proposal ask into an implement mandate ([#122](https://github.com/bgill55/daedalus/issues/122)) ([e15f8d7](https://github.com/bgill55/daedalus/commit/e15f8d76027890ddea2be0d5d7cbe1008520d379))
+
+## [3.30.2](https://github.com/bgill55/daedalus/compare/v3.30.1...v3.30.2) (2026-08-16)
+
+
+### Bug Fixes
+
+* **loop:** stop misclassifying node: built-ins and terminal build failures as edit errors ([#121](https://github.com/bgill55/daedalus/issues/121)) ([8b84b20](https://github.com/bgill55/daedalus/commit/8b84b20e6130568ae80c0d4f2dfb74dd6070af11))
+
+## [3.30.1](https://github.com/bgill55/daedalus/compare/v3.30.0...v3.30.1) (2026-08-16)
+
+
+### Bug Fixes
+
+* **loop:** add idle re-read breaker and block green build/test claims after circuit breaker ([#117](https://github.com/bgill55/daedalus/issues/117)) ([b3a63ef](https://github.com/bgill55/daedalus/commit/b3a63efa161e09c75204f1bc68ec6f673b657bbb))
+* **skills:** skip auto-synthesis for trivial ack/transition turns and no-work summaries ([#116](https://github.com/bgill55/daedalus/issues/116)) ([69a7739](https://github.com/bgill55/daedalus/commit/69a77396f4dbc3ad9dc54fd9efcbebce1ab361e5))
+
+# [3.30.0](https://github.com/bgill55/daedalus/compare/v3.29.1...v3.30.0) (2026-08-14)
+
+
+### Features
+
+* **recipes:** add built-in default recipes (security-audit, refactor-clean, spec-first-feature, bug-fix-triage) and expand MCP bundles (full-stack, dev-ops) ([9d6e861](https://github.com/bgill55/daedalus/commit/9d6e861147f9c881d9647998a6dad99c6a7b119b))
+
+## [3.29.1](https://github.com/bgill55/daedalus/compare/v3.29.0...v3.29.1) (2026-08-13)
+
+
+### Bug Fixes
+
+* **tools:** enforce config tool-permission policy in executeToolCalls (PR [#114](https://github.com/bgill55/daedalus/issues/114)) ([d83ca6b](https://github.com/bgill55/daedalus/commit/d83ca6b7fefad68eef27444c96fb1ee8edb26389))
+
+# [3.29.0](https://github.com/bgill55/daedalus/compare/v3.28.12...v3.29.0) (2026-08-12)
+
+
+### Features
+
+* **recipes:** ship portable YAML recipes (/recipe), MCP tool bundles (/mcp bundle), and tool permission policies ([8e0dc6b](https://github.com/bgill55/daedalus/commit/8e0dc6b5a8ce44aa9472b16eabc0b4c95d856a63))
+
+## [3.28.12](https://github.com/bgill55/daedalus/compare/v3.28.11...v3.28.12) (2026-08-12)
+
+
+### Bug Fixes
+
+* **agents:** spec-contract-driven test intent ([#5](https://github.com/bgill55/daedalus/issues/5) of long-run plan) (PR [#113](https://github.com/bgill55/daedalus/issues/113)) ([41de74e](https://github.com/bgill55/daedalus/commit/41de74e151883d6410fa34d098b71d958a585070))
+
+## [3.28.11](https://github.com/bgill55/daedalus/compare/v3.28.10...v3.28.11) (2026-08-12)
+
+
+### Bug Fixes
+
+* **git:** never-destroy-working-tree invariant for autonomous runs (PR [#112](https://github.com/bgill55/daedalus/issues/112)) ([45007ed](https://github.com/bgill55/daedalus/commit/45007ed5fd5fd6af01cdc726662d1758ae21893e))
+
+## [3.28.10](https://github.com/bgill55/daedalus/compare/v3.28.9...v3.28.10) (2026-08-12)
+
+
+### Bug Fixes
+
+* **agents:** artifact completeness gate for sub-agent tasks (PR [#111](https://github.com/bgill55/daedalus/issues/111)) ([6a4ccd3](https://github.com/bgill55/daedalus/commit/6a4ccd3cf1ff24996af8cc09fd3f44a1af8183b6))
+
+## [3.28.9](https://github.com/bgill55/daedalus/compare/v3.28.8...v3.28.9) (2026-08-12)
+
+
+### Bug Fixes
+
+* **ui:** single calm render layer + structured run manifest (PR [#110](https://github.com/bgill55/daedalus/issues/110)) ([a5e4526](https://github.com/bgill55/daedalus/commit/a5e4526c1297cd8c60d777edfaca974546eff4f3))
+
+## [3.28.8](https://github.com/bgill55/daedalus/compare/v3.28.7...v3.28.8) (2026-08-12)
+
+
+### Bug Fixes
+
+* **agents:** per-task test lock for sub-agents + constructive output (PR [#109](https://github.com/bgill55/daedalus/issues/109)) ([951ebde](https://github.com/bgill55/daedalus/commit/951ebde44f852ae3499fec08a4aba29a99fe2bdd))
+
+## [3.28.7](https://github.com/bgill55/daedalus/compare/v3.28.6...v3.28.7) (2026-08-12)
+
+
+### Bug Fixes
+
+* **ui:** calm output tokens across all command modes (PR [#108](https://github.com/bgill55/daedalus/issues/108)) ([a62c67e](https://github.com/bgill55/daedalus/commit/a62c67e2347c1553ea55ed698de2b9bee753c578))
+
+## [3.28.6](https://github.com/bgill55/daedalus/compare/v3.28.5...v3.28.6) (2026-08-12)
+
+
+### Bug Fixes
+
+* **autopilot:** harden commit gating, secret staging, and local rollback (PR [#107](https://github.com/bgill55/daedalus/issues/107)) ([310c322](https://github.com/bgill55/daedalus/commit/310c322c117fa5d3382a5dfb3ecc16774c7d8d24))
+
+## [3.28.5](https://github.com/bgill55/daedalus/compare/v3.28.4...v3.28.5) (2026-08-11)
+
+
+### Bug Fixes
+
+* **ui:** calm output tiers (PR [#105](https://github.com/bgill55/daedalus/issues/105)) ([3f57c82](https://github.com/bgill55/daedalus/commit/3f57c825ffbb36b886b4d44000ce934d183de8c6)), closes [hi#volume](https://github.com/hi/issues/volume)
+
+## [3.28.4](https://github.com/bgill55/daedalus/compare/v3.28.3...v3.28.4) (2026-08-11)
+
+
+### Bug Fixes
+
+* **tools:** honor live user approval for test-file writes ([#104](https://github.com/bgill55/daedalus/issues/104)) ([c38315a](https://github.com/bgill55/daedalus/commit/c38315a13031de7f9862e154cb49f1d1360627b8))
+
+## [3.28.3](https://github.com/bgill55/daedalus/compare/v3.28.2...v3.28.3) (2026-08-11)
+
+
+### Bug Fixes
+
+* **tools:** forbid silent test-lock bypass — force report-or-explicit-turn ([#103](https://github.com/bgill55/daedalus/issues/103)) ([bb8f789](https://github.com/bgill55/daedalus/commit/bb8f789432b3ab8c6a284c89cfd91aeec0bc9644))
+
+## [3.28.2](https://github.com/bgill55/daedalus/compare/v3.28.1...v3.28.2) (2026-08-11)
+
+
+### Bug Fixes
+
+* **tools:** extend test-suite lock to the terminal tool ([#102](https://github.com/bgill55/daedalus/issues/102)) ([ede3475](https://github.com/bgill55/daedalus/commit/ede3475eeb03c932ef59ab7e6b40dbfe1fb773ed))
+
+## [3.28.1](https://github.com/bgill55/daedalus/compare/v3.28.0...v3.28.1) (2026-08-11)
+
+
+### Bug Fixes
+
+* **engine:** wire immunity engine — connect skill synthesis to draft store + inject constitution into system prompt ([#101](https://github.com/bgill55/daedalus/issues/101)) ([4f4c64a](https://github.com/bgill55/daedalus/commit/4f4c64a44da26cc70aadbf5bcd8dd4b35614d963))
+
+# [3.28.0](https://github.com/bgill55/daedalus/compare/v3.27.1...v3.28.0) (2026-08-11)
+
+
+### Features
+
+* **engine:** ship Self-Healing & Immunity Engine (constitution, reviewer checklist, auto skill synthesis) ([f4c35e1](https://github.com/bgill55/daedalus/commit/f4c35e10f2bd915341a674747a3e2d2165434eb0))
+
+## [3.27.1](https://github.com/bgill55/daedalus/compare/v3.27.0...v3.27.1) (2026-08-11)
+
+
+### Bug Fixes
+
+* **tools:** apply test-suite lock early in patchFile for all autoApply modes ([#100](https://github.com/bgill55/daedalus/issues/100)) ([25436b4](https://github.com/bgill55/daedalus/commit/25436b4ad069c7a1629a2a4c5d9ec933a7fa8b26))
+
+# [3.27.0](https://github.com/bgill55/daedalus/compare/v3.26.0...v3.27.0) (2026-08-10)
+
+
+### Features
+
+* **tools:** expand test-suite lock to protect test runner configs and CI workflow files ([885ac77](https://github.com/bgill55/daedalus/commit/885ac77a4bc0e06b7695b378cdaadcd70271ff06))
+
+# [3.26.0](https://github.com/bgill55/daedalus/compare/v3.25.7...v3.26.0) (2026-08-10)
+
+
+### Features
+
+* **tools:** ship default test suite read-only lock to prevent agent test-assertion weakening ([65f7438](https://github.com/bgill55/daedalus/commit/65f74386566bbdf280117053f96bd6f473b06c30))
+
+## [3.25.7](https://github.com/bgill55/daedalus/compare/v3.25.6...v3.25.7) (2026-08-10)
+
+
+### Bug Fixes
+
+* **agent:** diagnose git-hook failures instead of blindly retrying or escalating ([#98](https://github.com/bgill55/daedalus/issues/98)) ([8b729d8](https://github.com/bgill55/daedalus/commit/8b729d8741768d0dd1080b81c6384f83b1243e44))
+
+## [3.25.6](https://github.com/bgill55/daedalus/compare/v3.25.5...v3.25.6) (2026-08-10)
+
+
+### Bug Fixes
+
+* **agent:** add self-correction discipline and verify-before-claiming-success rules ([#94](https://github.com/bgill55/daedalus/issues/94)) ([4d4a12c](https://github.com/bgill55/daedalus/commit/4d4a12c05b9e57d790160a1b420890a80abb9551))
+* **enhance:** strip raw tool-call XML from enhanced prompts ([#96](https://github.com/bgill55/daedalus/issues/96)) ([e9bed08](https://github.com/bgill55/daedalus/commit/e9bed08645909e14af93ac7f1c8b50b9158ef566))
+
+## [3.25.5](https://github.com/bgill55/daedalus/compare/v3.25.4...v3.25.5) (2026-08-10)
+
+
+### Bug Fixes
+
+* **audit:** do not call a package redundant based on related packages ([#93](https://github.com/bgill55/daedalus/issues/93)) ([385bb48](https://github.com/bgill55/daedalus/commit/385bb48e282b9d43769fa4c5247d694ba6dc2193))
+
+## [3.25.4](https://github.com/bgill55/daedalus/compare/v3.25.3...v3.25.4) (2026-08-10)
+
+
+### Bug Fixes
+
+* **audit:** require verifying deps/config/imports before recommending changes ([#92](https://github.com/bgill55/daedalus/issues/92)) ([e4fc6df](https://github.com/bgill55/daedalus/commit/e4fc6df1ada2a3733cc22c723443d5eb7d9a8a65))
+
+## [3.25.3](https://github.com/bgill55/daedalus/compare/v3.25.2...v3.25.3) (2026-08-10)
+
+
+### Bug Fixes
+
+* **patch:** whitelist Node built-ins in pre-flight dependency check ([#91](https://github.com/bgill55/daedalus/issues/91)) ([bde4fe5](https://github.com/bgill55/daedalus/commit/bde4fe52b56364661cf7387da228b99c039e0469))
+
+## [3.25.2](https://github.com/bgill55/daedalus/compare/v3.25.1...v3.25.2) (2026-08-09)
+
+
+### Bug Fixes
+
+* **enhance:** rebuild execution-turn system prompt from rawQuery, not enhanced text ([#88](https://github.com/bgill55/daedalus/issues/88)) ([8a3978c](https://github.com/bgill55/daedalus/commit/8a3978cbb758a3f41d2e00827ecf8a9b9f0750da))
+* **guards:** stop false-positive completion/tool-plan guards on read-only reports ([#89](https://github.com/bgill55/daedalus/issues/89)) ([b224d17](https://github.com/bgill55/daedalus/commit/b224d177c9061fd894194586197749ec9865e9a0))
+
+## [3.25.1](https://github.com/bgill55/daedalus/compare/v3.25.0...v3.25.1) (2026-08-09)
+
+
+### Bug Fixes
+
+* **build:** copy skill playbooks to dist so they ship to npm users ([#86](https://github.com/bgill55/daedalus/issues/86)) ([56d6aa4](https://github.com/bgill55/daedalus/commit/56d6aa4cc0acd092694ca80b421d7592e8f48991)), closes [#85](https://github.com/bgill55/daedalus/issues/85)
+
+# [3.25.0](https://github.com/bgill55/daedalus/compare/v3.24.0...v3.25.0) (2026-08-09)
+
+
+### Features
+
+* **tools:** add pre-flight dependency check to prevent patch reverts ([#84](https://github.com/bgill55/daedalus/issues/84)) ([7d180e1](https://github.com/bgill55/daedalus/commit/7d180e1bdbc6a416aee3355cef35fbdfc0753814))
+
+# [3.24.0](https://github.com/bgill55/daedalus/compare/v3.23.1...v3.24.0) (2026-08-09)
+
+
+### Features
+
+* **commands:** add /faq command and drift-guard both embedded docs against docs/ ([#80](https://github.com/bgill55/daedalus/issues/80)) ([6358cfa](https://github.com/bgill55/daedalus/commit/6358cfad07b7897462c0c5769cfea401ca7c5ab1)), closes [#79](https://github.com/bgill55/daedalus/issues/79)
+
+## [3.23.1](https://github.com/bgill55/daedalus/compare/v3.23.0...v3.23.1) (2026-08-09)
+
+
+### Bug Fixes
+
+* **commands:** sync /cheatsheet output with docs/cheat-sheet.md ([#79](https://github.com/bgill55/daedalus/issues/79)) ([2614988](https://github.com/bgill55/daedalus/commit/2614988f5ae5795669d162804f2d4db666a5c60f))
+
+# [3.23.0](https://github.com/bgill55/daedalus/compare/v3.22.7...v3.23.0) (2026-08-09)
+
+
+### Features
+
+* **docs:** add Daedalus Local-First Onboarding Cheat Sheet and /cheatsheet slash command ([d297b33](https://github.com/bgill55/daedalus/commit/d297b333ebe4508eef67b43d813d9ba1bdb726ce))
+
+## [3.22.7](https://github.com/bgill55/daedalus/compare/v3.22.6...v3.22.7) (2026-08-09)
+
+
+### Bug Fixes
+
+* **model:** loosen repetition breaker so legitimate reports are not aborted ([#78](https://github.com/bgill55/daedalus/issues/78)) ([85faa5b](https://github.com/bgill55/daedalus/commit/85faa5b0448b261970ea6bc7be1dfa741ac689ca))
+
+## [3.22.6](https://github.com/bgill55/daedalus/compare/v3.22.5...v3.22.6) (2026-08-09)
+
+
+### Bug Fixes
+
+* **commands:** stop /enhance from leaking the enhanced prompt into chat history ([#77](https://github.com/bgill55/daedalus/issues/77)) ([4072156](https://github.com/bgill55/daedalus/commit/407215608d29c2551a63ce2bcff11967b0785138))
+
+## [3.22.5](https://github.com/bgill55/daedalus/compare/v3.22.4...v3.22.5) (2026-08-09)
+
+
+### Bug Fixes
+
+* **commands:** dispatch enhanced prompt as a task to execute, not re-enhance ([#76](https://github.com/bgill55/daedalus/issues/76)) ([52560ae](https://github.com/bgill55/daedalus/commit/52560aee04e97c28c0f5ec8945fb2a397ee80e88))
+
+## [3.22.4](https://github.com/bgill55/daedalus/compare/v3.22.3...v3.22.4) (2026-08-09)
+
+
+### Bug Fixes
+
+* **commands:** enforce filled-in analytical directives in ENHANCE_SYSTEM_PROMPT to prevent text-reprinting loops ([5b4ffa2](https://github.com/bgill55/daedalus/commit/5b4ffa25ae28b11783204bd7509ec1ee8fd793ca))
+
+## [3.22.3](https://github.com/bgill55/daedalus/compare/v3.22.2...v3.22.3) (2026-08-09)
+
+
+### Bug Fixes
+
+* **commands:** prohibit empty template placeholders in ENHANCE_SYSTEM_PROMPT to prevent LLM text-echo repetition loops ([42695d7](https://github.com/bgill55/daedalus/commit/42695d766f12c62b13254a8fbaa6bc03253a4cd8))
+
+## [3.22.2](https://github.com/bgill55/daedalus/compare/v3.22.1...v3.22.2) (2026-08-09)
+
+
+### Bug Fixes
+
+* **commands:** enforce markdown tables in ENHANCE_SYSTEM_PROMPT and trigger full model execution turn with session saving ([a4c26bc](https://github.com/bgill55/daedalus/commit/a4c26bc8d9f3633f40ab48527f2d9a14e6ac7b04))
+
+## [3.22.1](https://github.com/bgill55/daedalus/compare/v3.22.0...v3.22.1) (2026-08-09)
+
+
+### Bug Fixes
+
+* **commands:** normalize leading slash on command aliases and trigger model execution when user accepts /enhance prompt ([1c49f17](https://github.com/bgill55/daedalus/commit/1c49f1768163de3519301ca65ef6c6c376b01976))
+
+# [3.22.0](https://github.com/bgill55/daedalus/compare/v3.21.1...v3.22.0) (2026-08-09)
+
+
+### Features
+
+* **cli:** add /enhance slash command and REPL startup prompt tip banner ([cedbbb7](https://github.com/bgill55/daedalus/commit/cedbbb72e22ce46cee7ecb1d5e69724fd67eb1bc))
+
+## [3.21.1](https://github.com/bgill55/daedalus/compare/v3.21.0...v3.21.1) (2026-08-09)
+
+
+### Bug Fixes
+
+* **agent:** add CONCISE REVIEWS guardrail to system-prompt to prevent exhaustive API enumeration spirals ([9fc9031](https://github.com/bgill55/daedalus/commit/9fc9031439243747f0a6825a7302617bdbe5d325))
+
+# [3.21.0](https://github.com/bgill55/daedalus/compare/v3.20.10...v3.21.0) (2026-08-08)
+
+
+### Features
+
+* **ui:** replace lightning bolt ⚡ with winged emblem 🪽 in Daedalus CLI header ([ce3ad14](https://github.com/bgill55/daedalus/commit/ce3ad1416477f3e55a17436ac15fb611e3ac85c5))
+
+## [3.20.10](https://github.com/bgill55/daedalus/compare/v3.20.9...v3.20.10) (2026-08-08)
+
+
+### Bug Fixes
+
+* **prompt:** instruct agent to verify project state with tools before assuming errors ([#73](https://github.com/bgill55/daedalus/issues/73)) ([ede60db](https://github.com/bgill55/daedalus/commit/ede60dbe8ef062b6f2d9cb6049589261d3bbcac0))
+
+## [3.20.9](https://github.com/bgill55/daedalus/compare/v3.20.8...v3.20.9) (2026-08-08)
+
+
+### Bug Fixes
+
+* **ui:** render assistant box as two aligned straight rules (no curves, no side rails) ([#72](https://github.com/bgill55/daedalus/issues/72)) ([6c8f577](https://github.com/bgill55/daedalus/commit/6c8f57793f392c32883f5d134f9f60b1acde01a4))
+
+## [3.20.8](https://github.com/bgill55/daedalus/compare/v3.20.7...v3.20.8) (2026-08-08)
+
+
+### Bug Fixes
+
+* **tools:** label patch failures by real category (Syntax vs Type) with file:line ([#71](https://github.com/bgill55/daedalus/issues/71)) ([6db3d9c](https://github.com/bgill55/daedalus/commit/6db3d9c22b953b1a99b995ce3e3d900c8c8f6a1c))
+
+## [3.20.7](https://github.com/bgill55/daedalus/compare/v3.20.6...v3.20.7) (2026-08-08)
+
+
+### Bug Fixes
+
+* **tools:** normalize Unicode punctuation variants when matching patch old_string ([#70](https://github.com/bgill55/daedalus/issues/70)) ([5f40031](https://github.com/bgill55/daedalus/commit/5f4003127c0e93603f2b99251095417fe17003dc))
+
+## [3.20.6](https://github.com/bgill55/daedalus/compare/v3.20.5...v3.20.6) (2026-08-08)
+
+
+### Bug Fixes
+
+* **tools:** dedupe the removed-symbol patch hint (was emitted once per diagnostic) ([#69](https://github.com/bgill55/daedalus/issues/69)) ([be7b329](https://github.com/bgill55/daedalus/commit/be7b32905c01cf1454e7c64d2bd0c17693a6d074))
+
+## [3.20.5](https://github.com/bgill55/daedalus/compare/v3.20.4...v3.20.5) (2026-08-08)
+
+
+### Bug Fixes
+
+* **tools:** point the patch guard at the real cause when a removed symbol is still referenced ([#68](https://github.com/bgill55/daedalus/issues/68)) ([5642bd5](https://github.com/bgill55/daedalus/commit/5642bd55fd047d0cd767c6a4733c12e7858d5092))
+
+## [3.20.4](https://github.com/bgill55/daedalus/compare/v3.20.3...v3.20.4) (2026-08-08)
+
+
+### Bug Fixes
+
+* **agents:** block patch-failure loops and false completion claims on disk ([#67](https://github.com/bgill55/daedalus/issues/67)) ([46a7855](https://github.com/bgill55/daedalus/commit/46a78558027446a66b2ac1a30279e8feecd7ff15))
+
+## [3.20.3](https://github.com/bgill55/daedalus/compare/v3.20.2...v3.20.3) (2026-08-07)
+
+
+### Bug Fixes
+
+* **ui:** adjust top header prefixVis to 16 for exact character length parity with bottom footer line ([476698a](https://github.com/bgill55/daedalus/commit/476698a4a6e8c16057b0a8d110629ba66d6402c0))
+
+## [3.20.2](https://github.com/bgill55/daedalus/compare/v3.20.1...v3.20.2) (2026-08-07)
+
+
+### Bug Fixes
+
+* **ui:** account for 2-column emoji display width of ⚡ in openAssistantBlock for 100% pixel-perfect right corner alignment ([0a4db6d](https://github.com/bgill55/daedalus/commit/0a4db6dfa01f94c4c7ce621943d1097722572c9b))
+
+## [3.20.1](https://github.com/bgill55/daedalus/compare/v3.20.0...v3.20.1) (2026-08-07)
+
+
+### Bug Fixes
+
+* **ui:** synchronize top and bottom box width via shared state for 100% character alignment ([702c4c9](https://github.com/bgill55/daedalus/commit/702c4c99a8661b42f23313d1d2c0189ba2a08ac0))
+
+# [3.20.0](https://github.com/bgill55/daedalus/compare/v3.19.0...v3.20.0) (2026-08-07)
+
+
+### Features
+
+* **ui:** simplify response panel to top/bottom curved borders, removing side lines for bulletproof text wrapping ([64d63e9](https://github.com/bgill55/daedalus/commit/64d63e9d0a0f333e03d66cff42ca27513c831657))
+
+# [3.19.0](https://github.com/bgill55/daedalus/compare/v3.18.7...v3.19.0) (2026-08-07)
+
+
+### Features
+
+* **ui:** format Daedalus responses inside framed text box panel with tree-guided tool outputs ([285049e](https://github.com/bgill55/daedalus/commit/285049e192b2ac32658f358dd943e2a28b853450))
+
+## [3.18.7](https://github.com/bgill55/daedalus/compare/v3.18.6...v3.18.7) (2026-08-07)
+
+
+### Bug Fixes
+
+* **formatting:** strip raw tool call markup tags from assistant output responses ([084deb8](https://github.com/bgill55/daedalus/commit/084deb8c2d41ca7f2799992f243c8bb097caeedb))
+
+## [3.18.6](https://github.com/bgill55/daedalus/compare/v3.18.5...v3.18.6) (2026-08-07)
+
+
+### Bug Fixes
+
+* **bot:** configure IntegrationTypes and Contexts so slash commands display in DMs and Group DMs ([4f76973](https://github.com/bgill55/daedalus/commit/4f7697384342faae537d15543df0786804bf20c9))
+
+## [3.18.5](https://github.com/bgill55/daedalus/compare/v3.18.4...v3.18.5) (2026-08-07)
+
+
+### Bug Fixes
+
+* **bot:** add Partials.Channel and Partials.Message so discord.js emits direct message events ([fe5e82e](https://github.com/bgill55/daedalus/commit/fe5e82e73f1f84c292100ad8047e8d685f12b688))
+
+## [3.18.4](https://github.com/bgill55/daedalus/compare/v3.18.3...v3.18.4) (2026-08-07)
+
+
+### Bug Fixes
+
+* **agent:** restrict propose_skill tool usage to successful workflows only ([cf400eb](https://github.com/bgill55/daedalus/commit/cf400eb96ff261012c5c9e0331d359f01e9c2c20))
+
+## [3.18.3](https://github.com/bgill55/daedalus/compare/v3.18.2...v3.18.3) (2026-08-07)
+
+
+### Bug Fixes
+
+* **diff-ui:** ignore leading whitespace in raw keypress mode so pasted text does not reject patches ([5c2a1db](https://github.com/bgill55/daedalus/commit/5c2a1db7f960325570f35c44a852824ebbaddb9b))
+
+## [3.18.2](https://github.com/bgill55/daedalus/compare/v3.18.1...v3.18.2) (2026-08-07)
+
+
+### Bug Fixes
+
+* **agent:** add atomic imports and type dependency guardrails ([3a43691](https://github.com/bgill55/daedalus/commit/3a436916cd757f3994c05b288aedb21aaf7500a6))
+
+## [3.18.1](https://github.com/bgill55/daedalus/compare/v3.18.0...v3.18.1) (2026-08-07)
+
+
+### Bug Fixes
+
+* **agent:** prohibit re-proposing plans after user approval ([df8f760](https://github.com/bgill55/daedalus/commit/df8f76044503dad0dc337cddec733c4f7e71ce02))
+
+# [3.18.0](https://github.com/bgill55/daedalus/compare/v3.17.3...v3.18.0) (2026-08-06)
+
+
+### Bug Fixes
+
+* **agent:** normalize tool arg aliases and prevent thinking block repetition loops ([638dc96](https://github.com/bgill55/daedalus/commit/638dc96aa362dd01c912133262a785157c46040f))
+* **ci:** allow workflow_dispatch event in pr-title job condition ([f74e78f](https://github.com/bgill55/daedalus/commit/f74e78f16cd8d087f5dfca0a53db122f0becf99e))
+
+
+### Features
+
+* **commands:** add model selection/switching to /model command ([dc36ed2](https://github.com/bgill55/daedalus/commit/dc36ed22a6c04e3375cedb1a2ea0c2ceddaa3d18))
+
+## [3.17.3](https://github.com/bgill55/daedalus/compare/v3.17.2...v3.17.3) (2026-08-06)
+
+
+### Bug Fixes
+
+* **formatting:** parse pipe-style tool call syntax <|toolcall>call:func{...}<tool_call|> ([a4940cd](https://github.com/bgill55/daedalus/commit/a4940cd11424c6dc7574d9b488987932199ec5d8))
+
+## [3.17.2](https://github.com/bgill55/daedalus/compare/v3.17.1...v3.17.2) (2026-08-06)
+
+
+### Bug Fixes
+
+* **agent:** enforce client-server boundary and CSS/UI button wire-up rules ([a18e189](https://github.com/bgill55/daedalus/commit/a18e1893c049038c3f190bcb60cd8cb84b5edc0c))
+
+## [3.17.1](https://github.com/bgill55/daedalus/compare/v3.17.0...v3.17.1) (2026-08-06)
+
+
+### Bug Fixes
+
+* **agent:** enforce clear plan headers and instant tool execution on proceed ([3f6aa1a](https://github.com/bgill55/daedalus/commit/3f6aa1af7dfac97793e8a5522e60ee8375d7e0b6))
+
+# [3.17.0](https://github.com/bgill55/daedalus/compare/v3.16.1...v3.17.0) (2026-08-06)
+
+
+### Features
+
+* **commands:** add /model sync to expand an endpoint catalog into selectable models ([#66](https://github.com/bgill55/daedalus/issues/66)) ([c3136bf](https://github.com/bgill55/daedalus/commit/c3136bf5213922acac4ba56d436c0941fddab5e2))
+
+## [3.16.1](https://github.com/bgill55/daedalus/compare/v3.16.0...v3.16.1) (2026-08-06)
+
+
+### Bug Fixes
+
+* **test:** isolate test config directory in config.test.ts ([8cd38f7](https://github.com/bgill55/daedalus/commit/8cd38f77345a28ad1d8f118c1aacd3a33b80d706))
+
+# [3.16.0](https://github.com/bgill55/daedalus/compare/v3.15.7...v3.16.0) (2026-08-05)
+
+
+### Features
+
+* **config:** add router presets, minimal config, and interactive /preset and /model commands ([9a65336](https://github.com/bgill55/daedalus/commit/9a653363f5f3315e3404bd2b8485c4e33e19dfc0))
+
+## [3.15.7](https://github.com/bgill55/daedalus/compare/v3.15.6...v3.15.7) (2026-08-05)
+
+
+### Bug Fixes
+
+* **tools:** surface all introduced type errors + nested-import hint in patch validation ([#65](https://github.com/bgill55/daedalus/issues/65)) ([8126d9d](https://github.com/bgill55/daedalus/commit/8126d9d3f8e14b7ef3caf2f3aac8d304f35313f8))
+
+## [3.15.6](https://github.com/bgill55/daedalus/compare/v3.15.5...v3.15.6) (2026-08-05)
+
+
+### Bug Fixes
+
+* **tools:** add terminal repeat circuit breaker for no-progress loops ([#64](https://github.com/bgill55/daedalus/issues/64)) ([6041a02](https://github.com/bgill55/daedalus/commit/6041a024d45b1a5837cad8409259908305225429))
+
+## [3.15.5](https://github.com/bgill55/daedalus/compare/v3.15.4...v3.15.5) (2026-08-05)
+
+
+### Bug Fixes
+
+* **tools:** add terminal streak breaker, batch short-circuit, and actionable edit hints ([#62](https://github.com/bgill55/daedalus/issues/62)) ([6d7e605](https://github.com/bgill55/daedalus/commit/6d7e605d14a12ca6aea22e66d3a6992380e9788a))
+
+## [3.15.4](https://github.com/bgill55/daedalus/compare/v3.15.3...v3.15.4) (2026-08-05)
+
+
+### Bug Fixes
+
+* **tools:** harden patch verification — block only real breaks, never env noise ([#61](https://github.com/bgill55/daedalus/issues/61)) ([26016c4](https://github.com/bgill55/daedalus/commit/26016c4c51d0b3c4e1ef7235ee6432e17cd47c84))
+
+## [3.15.3](https://github.com/bgill55/daedalus/compare/v3.15.2...v3.15.3) (2026-08-05)
+
+
+### Bug Fixes
+
+* **tools:** stop false-reverting correct edits on module-resolution errors ([#60](https://github.com/bgill55/daedalus/issues/60)) ([2ffda6b](https://github.com/bgill55/daedalus/commit/2ffda6b7f5ee350c204e3b2c4f1f7cdb4963bed5))
+
+## [3.15.2](https://github.com/bgill55/daedalus/compare/v3.15.1...v3.15.2) (2026-08-05)
+
+
+### Bug Fixes
+
+* **terminal:** restore canonical mode on every exit path so Ctrl+C/keys work ([#59](https://github.com/bgill55/daedalus/issues/59)) ([36f419f](https://github.com/bgill55/daedalus/commit/36f419f5397631131ee80a136d1c7e22ac40ca1b))
+
+## [3.15.1](https://github.com/bgill55/daedalus/compare/v3.15.0...v3.15.1) (2026-08-05)
+
+
+### Bug Fixes
+
+* **agents:** block false 'task complete' reports while todos remain open ([#58](https://github.com/bgill55/daedalus/issues/58)) ([e7435ee](https://github.com/bgill55/daedalus/commit/e7435eee47eb27f5ffb95eca0a1e24525a7879e4))
+
+# [3.15.0](https://github.com/bgill55/daedalus/compare/v3.14.2...v3.15.0) (2026-08-04)
+
+
+### Features
+
+* **skills:** add /skills command to review and approve agent-proposed skill drafts (bidirectional loop, part 2) ([#55](https://github.com/bgill55/daedalus/issues/55)) ([8053c2c](https://github.com/bgill55/daedalus/commit/8053c2c4104fd43d5c9cb48aa54be230e9e303c5))
+* **skills:** agent can propose learned skills as inactive drafts (bidirectional loop, part 1) ([#54](https://github.com/bgill55/daedalus/issues/54)) ([3a44c49](https://github.com/bgill55/daedalus/commit/3a44c49c5a1a10d3ec80533f44cb663e80c83dbd))
+
+## [3.14.2](https://github.com/bgill55/daedalus/compare/v3.14.1...v3.14.2) (2026-08-04)
+
+
+### Bug Fixes
+
+* **tools:** centralize crash-hardened process spawning in src/utils/spawn.ts ([#50](https://github.com/bgill55/daedalus/issues/50)) ([4e3b864](https://github.com/bgill55/daedalus/commit/4e3b864a575457574bcaf3ddc215874c9f0b66f9))
+
+## [3.14.1](https://github.com/bgill55/daedalus/compare/v3.14.0...v3.14.1) (2026-08-04)
+
+
+### Bug Fixes
+
+* **skills:** prefer 'npm run build' over 'npx tsc' in fix-typescript-build skill ([#46](https://github.com/bgill55/daedalus/issues/46)) ([532cb43](https://github.com/bgill55/daedalus/commit/532cb430250100d3de53c21b02970046c0daff98))
+
+# [3.14.0](https://github.com/bgill55/daedalus/compare/v3.13.3...v3.14.0) (2026-08-04)
+
+
+### Features
+
+* **skills:** merge load-only skill system + add skills documentation ([#44](https://github.com/bgill55/daedalus/issues/44)) ([f0c0060](https://github.com/bgill55/daedalus/commit/f0c0060f9d20c6b8a3c76fb23887f13513a51612))
+
+## [3.13.3](https://github.com/bgill55/daedalus/compare/v3.13.2...v3.13.3) (2026-08-04)
+
+
+### Bug Fixes
+
+* **tools:** spawn terminal child detached with stdin ignored to stop Windows 0xC0000142 crashes ([#42](https://github.com/bgill55/daedalus/issues/42)) ([6839a4d](https://github.com/bgill55/daedalus/commit/6839a4de46e7fdf167febef3823ca9bafd1cfd5d))
+
+## [3.13.2](https://github.com/bgill55/daedalus/compare/v3.13.1...v3.13.2) (2026-08-04)
+
+
+### Bug Fixes
+
+* **router:** keep build-fix / refactor / multi-file tasks on the intelligence tier ([#41](https://github.com/bgill55/daedalus/issues/41)) ([6d89e9c](https://github.com/bgill55/daedalus/commit/6d89e9c5cbd3dc33870a409b12c530bc743b5062))
+
+## [3.13.1](https://github.com/bgill55/daedalus/compare/v3.13.0...v3.13.1) (2026-08-04)
+
+
+### Bug Fixes
+
+* **tools:** prevent false-revert of valid edits on lines with pre-existing errors ([#40](https://github.com/bgill55/daedalus/issues/40)) ([ce2cc8b](https://github.com/bgill55/daedalus/commit/ce2cc8bdc253afaae8dc4f040606c6744e6d7169))
+
+# [3.13.0](https://github.com/bgill55/daedalus/compare/v3.12.0...v3.13.0) (2026-08-04)
+
+
+### Features
+
+* **commands:** add /spinner command to list and switch thinking-spinner on the fly ([#39](https://github.com/bgill55/daedalus/issues/39)) ([94494d9](https://github.com/bgill55/daedalus/commit/94494d9d84f9704a0b7127bd65943b8f7a2095c7))
+
+# [3.12.0](https://github.com/bgill55/daedalus/compare/v3.11.3...v3.12.0) (2026-08-04)
+
+
+### Features
+
+* **ui:** add tracker and aurora thinking-spinner styles (user-selectable) ([#38](https://github.com/bgill55/daedalus/issues/38)) ([add2294](https://github.com/bgill55/daedalus/commit/add229438ced588036a11df108bc0cc9cdc848e5))
+
+## [3.11.3](https://github.com/bgill55/daedalus/compare/v3.11.2...v3.11.3) (2026-08-04)
+
+
+### Bug Fixes
+
+* robust syntax check and keep refactor turns on intelligence tier ([#37](https://github.com/bgill55/daedalus/issues/37)) ([68a0a75](https://github.com/bgill55/daedalus/commit/68a0a75761399db0a1edbf9f1b689f7629fe86a7))
+
+## [3.11.2](https://github.com/bgill55/daedalus/compare/v3.11.1...v3.11.2) (2026-08-04)
+
+
+### Bug Fixes
+
+* **agent:** also suppress escalation on patch circuit-breaker loops ([#36](https://github.com/bgill55/daedalus/issues/36)) ([8f5f968](https://github.com/bgill55/daedalus/commit/8f5f968c9e07d48feb832f26f985db00ea6e22b3)), closes [#35](https://github.com/bgill55/daedalus/issues/35)
+
+## [3.11.1](https://github.com/bgill55/daedalus/compare/v3.11.0...v3.11.1) (2026-08-04)
+
+
+### Bug Fixes
+
+* **agent:** recover from syntax-error-revert loops without model escalation ([#35](https://github.com/bgill55/daedalus/issues/35)) ([0608ccb](https://github.com/bgill55/daedalus/commit/0608ccbfffed4bdaaf4e89d6d2d29b3b130ad4a2))
+
+# [3.11.0](https://github.com/bgill55/daedalus/compare/v3.10.1...v3.11.0) (2026-08-04)
+
+
+### Features
+
+* **spinner:** visible braille 'thinking' indicator with min-duration ([#34](https://github.com/bgill55/daedalus/issues/34)) ([2d36d92](https://github.com/bgill55/daedalus/commit/2d36d920691ae5efb2640af73617da1908591a13))
+
+## [3.10.1](https://github.com/bgill55/daedalus/compare/v3.10.0...v3.10.1) (2026-08-04)
+
+
+### Bug Fixes
+
+* **ci:** graceful skip when no model servers are reachable in PR review ([#33](https://github.com/bgill55/daedalus/issues/33)) ([9439157](https://github.com/bgill55/daedalus/commit/9439157c845f0ac55df269876aa10f60c7f64d4a))
+
+# [3.10.0](https://github.com/bgill55/daedalus/compare/v3.9.1...v3.10.0) (2026-08-03)
+
+
+### Features
+
+* **ci:** deterministic static PR checks + full-coverage AI review ([#30](https://github.com/bgill55/daedalus/issues/30)) ([49523c3](https://github.com/bgill55/daedalus/commit/49523c31a990ad57e228b5520487e5458f77fb42)), closes [22/#25](https://github.com/bgill55/daedalus/issues/25)
+
+## [3.9.1](https://github.com/bgill55/daedalus/compare/v3.9.0...v3.9.1) (2026-08-03)
+
+
+### Bug Fixes
+
+* **config:** register blacklist TTL/persist in schema and sync API-doc reference ([#29](https://github.com/bgill55/daedalus/issues/29)) ([d70f115](https://github.com/bgill55/daedalus/commit/d70f115ffdc91b915fcc05d02207ec1064428c84))
+
+# [3.9.0](https://github.com/bgill55/daedalus/compare/v3.8.0...v3.9.0) (2026-08-03)
+
+
+### Features
+
+* **router:** persist model blacklist to SQLite with TTL decay ([#27](https://github.com/bgill55/daedalus/issues/27)) ([e1e7fcb](https://github.com/bgill55/daedalus/commit/e1e7fcb5a796ea773130ba4f2f417e0748150766))
+
+# [3.8.0](https://github.com/bgill55/daedalus/compare/v3.7.3...v3.8.0) (2026-08-03)
+
+
+### Features
+
+* **router:** structured routing-decision log + history in /routing ([#25](https://github.com/bgill55/daedalus/issues/25)) ([ad31142](https://github.com/bgill55/daedalus/commit/ad311429710cc0e01466a986ecbc567e756a4982))
+
+## [3.7.3](https://github.com/bgill55/daedalus/compare/v3.7.2...v3.7.3) (2026-08-03)
+
+
+### Bug Fixes
+
+* clean up CI PR review comments and validate PR titles ([#23](https://github.com/bgill55/daedalus/issues/23)) ([78717bd](https://github.com/bgill55/daedalus/commit/78717bdc36e82338bb9436fff910421b47a06eb8))
+
+## [3.7.2](https://github.com/bgill55/daedalus/compare/v3.7.1...v3.7.2) (2026-08-03)
+
+
+### Bug Fixes
+
+* remove stray debug file and trigger release of Phase 1-3 changes ([0fea254](https://github.com/bgill55/daedalus/commit/0fea254bd9720ef87a1565d70b3808796ea795f2))
+
+## [3.7.1](https://github.com/bgill55/daedalus/compare/v3.7.0...v3.7.1) (2026-08-03)
+
+
+### Bug Fixes
+
+* **router:** skip failed pinned models on retry and cap cascade downgrades ([65c0f3d](https://github.com/bgill55/daedalus/commit/65c0f3df54a200d619141603d708f67602532a0a))
+
+# [3.7.0](https://github.com/bgill55/daedalus/compare/v3.6.0...v3.7.0) (2026-08-03)
+
+
+### Features
+
+* **transparency:** surface tier reclassifications and tool failure details ([62f0ecf](https://github.com/bgill55/daedalus/commit/62f0ecfc35b236df927a5719c02222d60d3907cd))
+
+# [3.6.0](https://github.com/bgill55/daedalus/compare/v3.5.0...v3.6.0) (2026-08-03)
+
+This release bundles 15 commits of reliability work from the `beta` branch: weak models finally execute tools instead of narrating them, escalation actually fires, memory accumulates in every session, and patches stop silently breaking unrelated files.
+
+### Features
+
+* **Executes narrated tool plans from weak models** — models that answer with a bracket-style plan like `[listfiles, gitstatus, readfile(path="package.json")]` now have that plan converted into real tool calls, with alias resolution (`listfiles` → `list_files`) against the tool registry.
+* **Behavior-based escalation** — when a model names three or more tools in a turn but calls none, the task escalates to a stronger model instead of waiting for a token counter that never grows. Audit/todo-list style requests ("give me a todo list", "what needs fixing", "audit the project") route to the complex tier up front.
+* **Language-independent complexity routing** — prompts with two or more sentences classify as complex regardless of phrasing or trigger words, so natural wording ("look at the project, tell me what's wrong, fix the worst issues") gets the intelligence tier instead of a weak model.
+* **On-the-fly re-routing mid-task** — `reclassifyTurn` re-evaluates complexity live using real signals (token growth, tool failures, trivial turns) with hysteresis, and the cumulative token ratchet resets on tier downgrade to stop complex/standard oscillation.
+* **Sigma-Mem in every session** — the Sigma-Mem memory engine now records verified knowledge from ordinary single-agent sessions (test commands, build rules, file conventions), not just `/autopilot` orchestration. Memories are scored, decayed, and injected into future prompts.
+* **Model-tier footer tags and ROUTE telemetry** — routing decisions are visible per task with the model tier on the turn footer and a `[ROUTE]` summary.
+
+### Fixes
+
+* **Cross-file patch breakage caught at the source** — `syntaxCheck` now diffs `tsc --noEmit` output against a cached per-tsconfig baseline, so a patch that type-breaks an unrelated file is flagged immediately instead of passing silently or causing false reverts on pre-existing errors.
+* **Never-escalates bug** — providers that don't stream `completion_tokens` (e.g. the FreeLLMAPI proxy) left the escalation ratchet and trivial-turn detection dead at `0 out`. A content-length fallback revives both, and the footer now shows real token counts.
+* **Explicit intent required before writing pasted code** — the heuristic that auto-wrote any pasted code block when a file path appeared anywhere in the text is removed; only an explicit `use the write_file tool to create <path>` intent writes. Audits and TODO requests present findings and ask before implementing.
+* **Single-model configs are safe** — tier filtering and escalation bypass cleanly when a chain has exactly one model.
+* **Configuration reference repaired** — container keys no longer pollute the General Settings section, `(Description needed)` placeholders stopped clobbering real descriptions, and missing entries (`version`, `ui.compactMode`, `ui.collapseCommentary`) were added.
+
+### Developer Notes
+
+* `RouterConfigSchema` gains `autoEscalate` and `complexityRouting` (both default `true`); see `docs/routing-and-tuning.md`.
+* Verbose ROUTE logging suppressed; tool-starvation triggers retry.
+
+Verified: 577 tests passing, lint clean, `tsc --noEmit` clean, CI green on Windows/macOS/Ubuntu.
+
+# [3.5.0](https://github.com/bgill55/daedalus/compare/v3.4.0...v3.5.0) (2026-08-02)
+
+
+### Features
+
+* **router:** auto-escalate to next model after repeated tool failures ([a27496b](https://github.com/bgill55/daedalus/commit/a27496b89b27dc5ff2e228c372b69645181c44a2))
+
+# [3.4.0](https://github.com/bgill55/daedalus/compare/v3.3.5...v3.4.0) (2026-08-02)
+
+
+### Features
+
+* **model:** print todo progress in single-agent mode ([93df6c1](https://github.com/bgill55/daedalus/commit/93df6c190f9caf9f21df608334e6537041e6261e))
+
+## [3.3.5](https://github.com/bgill55/daedalus/compare/v3.3.4...v3.3.5) (2026-08-02)
+
+
+### Bug Fixes
+
+* **model:** surface tool errors to the agent to end blind retry spirals ([2a486ec](https://github.com/bgill55/daedalus/commit/2a486ec11622436001579e32ae65a6e19184c2a6))
+
+## [3.3.4](https://github.com/bgill55/daedalus/compare/v3.3.3...v3.3.4) (2026-08-02)
+
+
+### Bug Fixes
+
+* **model:** break patch retry spirals via failure-signature tracking ([735f3cf](https://github.com/bgill55/daedalus/commit/735f3cff60bc92bea3ee6a3671ed2c5822f0c9ee))
+
+## [3.3.3](https://github.com/bgill55/daedalus/compare/v3.3.2...v3.3.3) (2026-08-02)
+
+
+### Bug Fixes
+
+* **memory:** keep tool messages valid on session reload ([4f16d8a](https://github.com/bgill55/daedalus/commit/4f16d8a9e2cc52668918c45945abf3196e8c3fed))
+
+## [3.3.2](https://github.com/bgill55/daedalus/compare/v3.3.1...v3.3.2) (2026-08-01)
+
+
+### Bug Fixes
+
+* **tools:** support directory paths in lsp_diagnostics and auto-initialize patchFailureStreak ([3bb92af](https://github.com/bgill55/daedalus/commit/3bb92affb70ef616e557caeea3428a6ca8aca136))
+
+## [3.3.1](https://github.com/bgill55/daedalus/compare/v3.3.0...v3.3.1) (2026-08-01)
+
+
+### Bug Fixes
+
+* **test:** reset DaedalusSpinner stack in test teardown ([7eced60](https://github.com/bgill55/daedalus/commit/7eced601ec7a870f64dba794dbdb746867ed132d))
+* **tools:** auto-translate POSIX rm on Windows and enforce circuit breaker on patch revert streaks ([9c995e2](https://github.com/bgill55/daedalus/commit/9c995e27e0410d9c07698070afe619ba967662d7))
+
+# [3.3.0](https://github.com/bgill55/daedalus/compare/v3.2.1...v3.3.0) (2026-08-01)
+
+
+### Features
+
+* **agent:** harden tool loop, add git checkpoints and npx guards ([8b4b5b8](https://github.com/bgill55/daedalus/commit/8b4b5b8e45852dd735653cdf90f176d102a9f71b))
+
+## [3.2.1](https://github.com/bgill55/daedalus/compare/v3.2.0...v3.2.1) (2026-08-01)
+
+
+### Bug Fixes
+
+* **memory:** route Sigma-Mem to the session DB instead of the index DB ([cd8c953](https://github.com/bgill55/daedalus/commit/cd8c953b714af81b4b257343756b05105cd418d7))
+
+# [3.2.0](https://github.com/bgill55/daedalus/compare/v3.1.0...v3.2.0) (2026-08-01)
+
+
+### Features
+
+* **memory:** harden Sigma-Mem engine with dedup, tag retrieval, decay, and single-agent wiring ([dd7b14a](https://github.com/bgill55/daedalus/commit/dd7b14aa0f962454f333b741a10749a7d1cf91d0))
+
+# [3.1.0](https://github.com/bgill55/daedalus/compare/v3.0.1...v3.1.0) (2026-08-01)
+
+
+### Features
+
+* **memory:** implement Sigma-Mem (Σ-Mem) reliable multi-agent memory engine ([8b2cb12](https://github.com/bgill55/daedalus/commit/8b2cb12428c3bf6f7cd1898b7d1c76886669fd58))
+
+## [3.0.1](https://github.com/bgill55/daedalus/compare/v3.0.0...v3.0.1) (2026-07-31)
+
+
+### Bug Fixes
+
+* **bot:** strip <think> reasoning blocks in Discord bot responses ([b16345a](https://github.com/bgill55/daedalus/commit/b16345a52d2d9626ec81fe81198f5be3274c8bd1))
+
+# [3.0.0](https://github.com/bgill55/daedalus/compare/v1.104.2...v3.0.0) (2026-07-31)
+
+### Features
+
+* **autopilot:** non-git auto-initialization, non-blocking zero-prompt npm installs, and `.daedalus/walkthrough.md` project isolation
+* **engine:** tag-level `<svg>` CSS rules, fixed backdrop-blur modal overlays, and Express static path resolution
+* **resilience:** `EISDIR` directory guards, 8k tool payload truncation (eliminating 413 errors), and pre-flight audit `TS18003` bypass
+* **examples:** added PromptVault dark-mode glassmorphic web app benchmark demo in `examples/prompt-vault/`
+
+## [1.104.2](https://github.com/bgill55/daedalus/compare/v1.104.1...v1.104.2) (2026-07-31)
+
+
+### Bug Fixes
+
+* **orchestrator:** cap sub-agent concurrency to max 2 parallel tasks to prevent 429 rate-limit storms ([af4717b](https://github.com/bgill55/daedalus/commit/af4717b5ea229bf9e7c1b5b49f52c4c000d51d57))
+
+## [1.104.1](https://github.com/bgill55/daedalus/compare/v1.104.0...v1.104.1) (2026-07-31)
+
+
+### Bug Fixes
+
+* **router:** parse 429 rate limit backoff seconds and failover immediately on 400 invalid model errors ([baad8ec](https://github.com/bgill55/daedalus/commit/baad8eca3699e5aa1d806c44b37bf07dbf5efc7b))
+
+# [1.104.0](https://github.com/bgill55/daedalus/compare/v1.103.0...v1.104.0) (2026-07-31)
+
+
+### Features
+
+* **architecture:** enforce DOM/CSS selector sync contract in SpecFirst and add cross-agent style reviewer gate ([b2be4ce](https://github.com/bgill55/daedalus/commit/b2be4ce7e23d7ab940169cbdaaf1341934bdda40))
+
+# [1.103.0](https://github.com/bgill55/daedalus/compare/v1.102.0...v1.103.0) (2026-07-31)
+
+
+### Features
+
+* **agent:** mandate rich seed data, hero onboarding banners, and default dark glassmorphism styling for all generated web UIs ([360f8a3](https://github.com/bgill55/daedalus/commit/360f8a3b4501717e923c82f93547927b9a397c69))
+
+# [1.102.0](https://github.com/bgill55/daedalus/compare/v1.101.0...v1.102.0) (2026-07-31)
+
+
+### Features
+
+* **ux:** format Autopilot Post-Mortem Report using native Daedalus divider styling ([3d632c3](https://github.com/bgill55/daedalus/commit/3d632c33671d1630df5daea0ae2b1cedfd2306e2))
+
+# [1.101.0](https://github.com/bgill55/daedalus/compare/v1.100.3...v1.101.0) (2026-07-31)
+
+
+### Features
+
+* **autopilot:** add self-evaluating Autopilot Post-Mortem Diagnostic Report on rollback ([89bd146](https://github.com/bgill55/daedalus/commit/89bd146b2a0db1371376c23e21289dd6d470f13c))
+
+## [1.100.3](https://github.com/bgill55/daedalus/compare/v1.100.2...v1.100.3) (2026-07-31)
+
+
+### Bug Fixes
+
+* **coder:** add single-file focus mandate to prevent sub-agent scope confusion during file creation ([8b9db91](https://github.com/bgill55/daedalus/commit/8b9db91d9b366e14226e62cbcd86357b4d857c37))
+
+## [1.100.2](https://github.com/bgill55/daedalus/compare/v1.100.1...v1.100.2) (2026-07-31)
+
+
+### Bug Fixes
+
+* **cli:** enforce compact progress updates regardless of task list length ([804f4b0](https://github.com/bgill55/daedalus/commit/804f4b01b844037e713b371e91742270089bf64f))
+
+## [1.100.1](https://github.com/bgill55/daedalus/compare/v1.100.0...v1.100.1) (2026-07-31)
+
+
+### Bug Fixes
+
+* **cli:** compact task list printing to prevent log spam and mandate strict tool execution for coder sub-agents ([f1299dc](https://github.com/bgill55/daedalus/commit/f1299dc2f4c4ef27360fe80d28804e171691f99f))
+
+# [1.100.0](https://github.com/bgill55/daedalus/compare/v1.99.3...v1.100.0) (2026-07-31)
+
+
+### Features
+
+* **ux:** add animated DaedalusSpinner for third-party npm package installations ([77a631c](https://github.com/bgill55/daedalus/commit/77a631c99f949087c9ac1d280feac30dc9cf9935))
+
+## [1.99.3](https://github.com/bgill55/daedalus/compare/v1.99.2...v1.99.3) (2026-07-31)
+
+
+### Bug Fixes
+
+* **verification:** enforce isRealFile check to prevent 30-byte placeholder comments from passing file existence checks ([109aaf4](https://github.com/bgill55/daedalus/commit/109aaf4ef49b977dcc34413e930c4eba199c47db))
+
+## [1.99.2](https://github.com/bgill55/daedalus/compare/v1.99.1...v1.99.2) (2026-07-31)
+
+
+### Bug Fixes
+
+* **orchestration:** filter re-planned tasks by physical disk file existence instead of string matching ([ab3bae0](https://github.com/bgill55/daedalus/commit/ab3bae05ec2a5cc58394829ccf2611ca48eb3b58))
+
+## [1.99.1](https://github.com/bgill55/daedalus/compare/v1.99.0...v1.99.1) (2026-07-31)
+
+
+### Bug Fixes
+
+* **verification:** track initialHistoryStartIndex in attemptRepair to correctly verify artifacts across repair passes ([c0e6aa2](https://github.com/bgill55/daedalus/commit/c0e6aa21a49794af16d87788cb10bfc6ba2d2c7e))
+
+# [1.99.0](https://github.com/bgill55/daedalus/compare/v1.98.2...v1.99.0) (2026-07-31)
+
+
+### Features
+
+* **orchestration:** add pre-flight codebase audit and auto-repair task 0 for pre-existing errors ([c974797](https://github.com/bgill55/daedalus/commit/c97479700513e6d19c98e3ba207830f914a94848))
+
+## [1.98.2](https://github.com/bgill55/daedalus/compare/v1.98.1...v1.98.2) (2026-07-31)
+
+
+### Bug Fixes
+
+* **verification:** ignore build failures in untouched files to prevent false-positive repair loops ([c11b4e5](https://github.com/bgill55/daedalus/commit/c11b4e5bff55479cf7090654e0db37a15a2f6892))
+
+## [1.98.1](https://github.com/bgill55/daedalus/compare/v1.98.0...v1.98.1) (2026-07-31)
+
+
+### Bug Fixes
+
+* **orchestration:** truncate reviewer context to prevent 413 entity too large & decompose fallback tasks by file targets ([b0cfb50](https://github.com/bgill55/daedalus/commit/b0cfb507a77447d41debae7c1f2eaa31731fe95a))
+
+# [1.98.0](https://github.com/bgill55/daedalus/compare/v1.97.3...v1.98.0) (2026-07-31)
+
+
+### Features
+
+* **orchestration:** auto-install missing npm packages during verification & sanitize tool path quotes ([4892b68](https://github.com/bgill55/daedalus/commit/4892b68605eca7244c187a1870dcff74da42342c))
+
+## [1.97.3](https://github.com/bgill55/daedalus/compare/v1.97.2...v1.97.3) (2026-07-31)
+
+
+### Bug Fixes
+
+* **bot:** prioritize directly answering user questions in system prompt over canned opening greetings ([52bf801](https://github.com/bgill55/daedalus/commit/52bf801af5dc513ad26ac6eafd09823502a27cbf))
+
+## [1.97.2](https://github.com/bgill55/daedalus/compare/v1.97.1...v1.97.2) (2026-07-30)
+
+
+### Bug Fixes
+
+* **sys-stats:** resolve Qodo review findings - replace df/wmic with fs.statfsSync, guard formatBytes against invalid ranges, and remove redundant JSDoc ([2350dc3](https://github.com/bgill55/daedalus/commit/2350dc3f39ce64f376756644cec35c9420c753b5))
+
+## [1.97.1](https://github.com/bgill55/daedalus/compare/v1.97.0...v1.97.1) (2026-07-30)
+
+
+### Bug Fixes
+
+* **formatting:** add formatMarkdownPRReply helper to sanitize PR comments and automated review reports ([cb851f4](https://github.com/bgill55/daedalus/commit/cb851f423ede38d080c6cfc30bc5c8a36a43fc79))
+
+# [1.97.0](https://github.com/bgill55/daedalus/compare/v1.96.0...v1.97.0) (2026-07-30)
+
+
+### Features
+
+* Add a system stats memory and disk usage utility in srcutilssysstatsts with unit tests ([d440f03](https://github.com/bgill55/daedalus/commit/d440f0301eab554d24b32ebc56dbfb32a76b3a91))
+* **sys-stats:** add system memory and disk usage utility with SpecFirst contract ([f00defc](https://github.com/bgill55/daedalus/commit/f00defc8d65da658c7c2d66e460875abcb7d370e))
+
+# [1.96.0](https://github.com/bgill55/daedalus/compare/v1.95.4...v1.96.0) (2026-07-30)
+
+
+### Features
+
+* **spec:** add SpecFirst architecture, spec contract generator, and verification engine ([336a2cb](https://github.com/bgill55/daedalus/commit/336a2cbfd4e7fba29883aec8a83cfceb17fc4e71))
+
+## [1.95.4](https://github.com/bgill55/daedalus/compare/v1.95.3...v1.95.4) (2026-07-30)
+
+
+### Bug Fixes
+
+* **demo:** write exit to outer PowerShell so terminalizer saves recording automatically ([785017a](https://github.com/bgill55/daedalus/commit/785017afb5aab48c3a70f3ee752623f864639d42))
+
+## [1.95.3](https://github.com/bgill55/daedalus/compare/v1.95.2...v1.95.3) (2026-07-30)
+
+
+### Bug Fixes
+
+* **demo:** add exit pause so terminalizer saves recording before PTY exits ([35c883b](https://github.com/bgill55/daedalus/commit/35c883bb7f6ba4fa89f5afe8817b803b0b1d2407))
+
+## [1.95.2](https://github.com/bgill55/daedalus/compare/v1.95.1...v1.95.2) (2026-07-30)
+
+
+### Bug Fixes
+
+* **demo:** type all spec answers as single line, increase API wait pauses, drop loop from demo ([d10b1d8](https://github.com/bgill55/daedalus/commit/d10b1d8e76aa8b84590224f4fb421f66564f9406))
+
+## [1.95.1](https://github.com/bgill55/daedalus/compare/v1.95.0...v1.95.1) (2026-07-30)
+
+
+### Bug Fixes
+
+* **demo:** use absolute paths in terminalizer.yml for Windows compatibility ([67e69cb](https://github.com/bgill55/daedalus/commit/67e69cbe2e52dcf1bbdc3f1e5d1239372dfa0fa4))
+
+# [1.95.0](https://github.com/bgill55/daedalus/compare/v1.94.4...v1.95.0) (2026-07-30)
+
+
+### Features
+
+* **demo:** add terminalizer auto-typer demo recording setup for YouTube showcase ([7e58c31](https://github.com/bgill55/daedalus/commit/7e58c3184137a51eabef2bbfb0aa6cc432939c0f))
+
+## [1.94.4](https://github.com/bgill55/daedalus/compare/v1.94.3...v1.94.4) (2026-07-30)
+
+
+### Bug Fixes
+
+* **docs:** resolve super-imposed code block labels and fix Docsify Mermaid rendering integration ([df942fe](https://github.com/bgill55/daedalus/commit/df942fe24bd8bee80c7aed9b6d368a142b934bf1))
+
+## [1.94.3](https://github.com/bgill55/daedalus/compare/v1.94.2...v1.94.3) (2026-07-30)
+
+
+### Bug Fixes
+
+* **docs:** update Docsify Mermaid configuration to startOnLoad:false and quote message strings ([c5e3197](https://github.com/bgill55/daedalus/commit/c5e3197130040d93dfd36fa9c8e31a9700ae67ed))
+
+## [1.94.2](https://github.com/bgill55/daedalus/compare/v1.94.1...v1.94.2) (2026-07-30)
+
+
+### Bug Fixes
+
+* **docs:** fix Mermaid sequence diagram syntax for Docsify rendering ([05cee21](https://github.com/bgill55/daedalus/commit/05cee21bd9cefb5461f6f334bdb431c08ef5c89c))
+
+## [1.94.1](https://github.com/bgill55/daedalus/compare/v1.94.0...v1.94.1) (2026-07-30)
+
+
+### Bug Fixes
+
+* **ci:** prevent HTTP 422 Body cannot be blank when posting GitHub Action PR review comments ([12d5cc6](https://github.com/bgill55/daedalus/commit/12d5cc6acc992ec8dd8fa25f6a0ee9f5eaf367fa))
+
+# [1.94.0](https://github.com/bgill55/daedalus/compare/v1.93.1...v1.94.0) (2026-07-30)
+
+
+### Features
+
+* **review:** add JSDoc contract mismatch and AGENTS.md comment rule audits to Reviewer agent, Self-Review Gate, and CI Reviewer ([2684a1c](https://github.com/bgill55/daedalus/commit/2684a1c19ac19826ba681f9b7c99d27361aa0347))
+
+## [1.93.1](https://github.com/bgill55/daedalus/compare/v1.93.0...v1.93.1) (2026-07-30)
+
+
+### Bug Fixes
+
+* **loop:** auto-approve reviewer repair passes in loop mode and add DISCORD_LOOP_WEBHOOK_URL precedence ([5af4194](https://github.com/bgill55/daedalus/commit/5af4194cc50885f80717cf308f755461f7a33233))
+
+# [1.93.0](https://github.com/bgill55/daedalus/compare/v1.92.1...v1.93.0) (2026-07-30)
+
+
+### Features
+
+* **bot:** add anti-repetition & banter variety guardrails to Discord bot prompt ([bbc0fcf](https://github.com/bgill55/daedalus/commit/bbc0fcfef58c8dadde154ab650180858e6779f89))
+
+## [1.92.1](https://github.com/bgill55/daedalus/compare/v1.92.0...v1.92.1) (2026-07-30)
+
+
+### Bug Fixes
+
+* **bot:** chunk slash command interaction replies so long responses follow up without truncating mid-sentence ([8392e46](https://github.com/bgill55/daedalus/commit/8392e46b53b7461f48e47dfe933f79e21262c824))
+
+# [1.92.0](https://github.com/bgill55/daedalus/compare/v1.91.0...v1.92.0) (2026-07-30)
+
+
+### Features
+
+* **bot:** dynamically inject current package version and recent changelog updates into Discord bot prompt ([3c0dd03](https://github.com/bgill55/daedalus/commit/3c0dd038eae8bf70f00da4e85a5e50c9d641960c))
+
+# [1.91.0](https://github.com/bgill55/daedalus/compare/v1.90.0...v1.91.0) (2026-07-30)
+
+
+### Bug Fixes
+
+* **loop:** sanitize Discord embed payload, resolve webhook from env/config, and fallback PR URL lookup ([a0e912c](https://github.com/bgill55/daedalus/commit/a0e912c464fc2893f17d1418687a632bc7fb17a6))
+
+
+### Features
+
+* **config:** add FreeLLMAPI to DEFAULT_CONFIG and auto-discovery candidates ([0f07b5f](https://github.com/bgill55/daedalus/commit/0f07b5f5a9c1790c8b71f8803430b7ee6fa91b75))
+
+# [1.90.0](https://github.com/bgill55/daedalus/compare/v1.89.0...v1.90.0) (2026-07-29)
+
+
+### Features
+
+* add /shortcut command for custom slash-command aliases ([9e83e46](https://github.com/bgill55/daedalus/commit/9e83e46d2825856a30611322ff145ee6d07d1c95))
+
+# [1.89.0](https://github.com/bgill55/daedalus/compare/v1.88.0...v1.89.0) (2026-07-29)
+
+
+### Features
+
+* add /badge command for automatic and custom Shields.io badges (closes [#12](https://github.com/bgill55/daedalus/issues/12)) ([2075122](https://github.com/bgill55/daedalus/commit/2075122ef0e6b6a6b0c16e078e495db372405ce8))
+
+# [1.88.0](https://github.com/bgill55/daedalus/compare/v1.87.0...v1.88.0) (2026-07-29)
+
+
+### Features
+
+* add headless CI/CD PR reviewer (daedalus --ci), /ci command, and GitHub Action workflow template ([bfd0488](https://github.com/bgill55/daedalus/commit/bfd0488d6cfb9d40b2f4f210a855f4d50e2796f2))
+* add headless CI/CD PR reviewer (daedalus --ci), /ci command, and GitHub Action workflow template ([1a0f734](https://github.com/bgill55/daedalus/commit/1a0f73498cec750f99aa00f1301578a338a21d5c))
+
+# [1.87.0](https://github.com/bgill55/daedalus/compare/v1.86.3...v1.87.0) (2026-07-29)
+
+
+### Features
+
+* add AST-aware call graph (/callgraph), impact engine (/impact), and get_call_graph tool ([6f722e6](https://github.com/bgill55/daedalus/commit/6f722e6c8ee0e6b0b5d180e8805f1c169df1f9ab))
+
+## [1.86.3](https://github.com/bgill55/daedalus/compare/v1.86.2...v1.86.3) (2026-07-29)
+
+
+### Bug Fixes
+
+* **types:** resolve TypeScript compiler errors in CI workflow ([82b618c](https://github.com/bgill55/daedalus/commit/82b618cbda7c0956df2ee55066a74af350d6bc31))
+
+## [1.86.2](https://github.com/bgill55/daedalus/compare/v1.86.1...v1.86.2) (2026-07-29)
+
+
+### Bug Fixes
+
+* add READ BEFORE WRITE hint to MCP system prompt to prevent model confusion ([8b08163](https://github.com/bgill55/daedalus/commit/8b08163db06999e037d5df1ba244abbf6651d694))
+
+## [1.86.1](https://github.com/bgill55/daedalus/compare/v1.86.0...v1.86.1) (2026-07-29)
+
+
+### Bug Fixes
+
+* expand ~ in file tool paths to support home directory access ([b8c366d](https://github.com/bgill55/daedalus/commit/b8c366db088067899dc468097005dc5e99b336b6))
+
+# [1.86.0](https://github.com/bgill55/daedalus/compare/v1.85.1...v1.86.0) (2026-07-29)
+
+
+### Features
+
+* sub-agents can now use MCP tools ([fb5cfe9](https://github.com/bgill55/daedalus/commit/fb5cfe97f59acaba0f3389b454f35bb5a95cdac1))
+
+## [1.85.1](https://github.com/bgill55/daedalus/compare/v1.85.0...v1.85.1) (2026-07-29)
+
+
+### Bug Fixes
+
+* update mcp help with npm template, add filesystem to local config ([c875992](https://github.com/bgill55/daedalus/commit/c8759920a92e49a750fcd7b3e7fb72848ced52e4))
+
+# [1.85.0](https://github.com/bgill55/daedalus/compare/v1.84.0...v1.85.0) (2026-07-29)
+
+
+### Bug Fixes
+
+* replace require() calls with ESM import in feedback.ts ([e024af8](https://github.com/bgill55/daedalus/commit/e024af83ba4bc4cb5e8723f6c45b4217298e3221))
+* resolve TypeScript build errors (diff.Hunk -> diff.StructuredPatchHunk, mock type fix) ([66aa80f](https://github.com/bgill55/daedalus/commit/66aa80f09cd007014cab4ce36a657e38cf413af9))
+* update docs and tests for /feedback command and help categorization ([b203a63](https://github.com/bgill55/daedalus/commit/b203a63c4bf111e8f2bf2ca36c06879c0727dc0b))
+* use local DiffHunk type instead of diff.StructuredPatchHunk for CI compat ([13c13d2](https://github.com/bgill55/daedalus/commit/13c13d2f5c17ab974edab24157f55b492a6faa07))
+
+
+### Features
+
+* add Smithery.ai as a second MCP server registry ([cf6854a](https://github.com/bgill55/daedalus/commit/cf6854a2c09c2dbd02115d96aa0fc7d6131472c3))
+
+## [1.84.1](https://github.com/bgill55/daedalus/compare/v1.84.0...v1.84.1) (2026-07-29)
+
+
+### Bug Fixes
+
+* replace require() calls with ESM import in feedback.ts ([e024af8](https://github.com/bgill55/daedalus/commit/e024af83ba4bc4cb5e8723f6c45b4217298e3221))
+* resolve TypeScript build errors (diff.Hunk -> diff.StructuredPatchHunk, mock type fix) ([66aa80f](https://github.com/bgill55/daedalus/commit/66aa80f09cd007014cab4ce36a657e38cf413af9))
+* update docs and tests for /feedback command and help categorization ([b203a63](https://github.com/bgill55/daedalus/commit/b203a63c4bf111e8f2bf2ca36c06879c0727dc0b))
+* use local DiffHunk type instead of diff.StructuredPatchHunk for CI compat ([13c13d2](https://github.com/bgill55/daedalus/commit/13c13d2f5c17ab974edab24157f55b492a6faa07))
+
+## [1.84.1](https://github.com/bgill55/daedalus/compare/v1.84.0...v1.84.1) (2026-07-28)
+
+
+### Bug Fixes
+
+* update docs and tests for /feedback command and help categorization ([b203a63](https://github.com/bgill55/daedalus/commit/b203a63c4bf111e8f2bf2ca36c06879c0727dc0b))
+
+# [1.84.0](https://github.com/bgill55/daedalus/compare/v1.83.8...v1.84.0) (2026-07-28)
+
+
+### Features
+
+* add /feedback command with GitHub label support and tests ([a3b3df8](https://github.com/bgill55/daedalus/commit/a3b3df8119a6cee14d1f785fcc8f95a26f9fbb06))
+* add /hunt command for autonomous bug fixing ([dbba7a0](https://github.com/bgill55/daedalus/commit/dbba7a013d55745f3a96d106c529cf253a7ea2d0))
+
+## [1.83.8](https://github.com/bgill55/daedalus/compare/v1.83.7...v1.83.8) (2026-07-28)
+
+
+### Bug Fixes
+
+* consolidate multiple tool-turn blocks into one per user turn ([0801d2d](https://github.com/bgill55/daedalus/commit/0801d2def4fe37a2ba9ee2e2c35583752745125a))
+
+## [1.83.7](https://github.com/bgill55/daedalus/compare/v1.83.6...v1.83.7) (2026-07-28)
+
+
+### Bug Fixes
+
+* **docs:** set explicit dark bg on table cells, fix white background readability ([fa31f24](https://github.com/bgill55/daedalus/commit/fa31f24249639c63a342d2f95446a1d49d35fdd6))
+
+## [1.83.6](https://github.com/bgill55/daedalus/compare/v1.83.5...v1.83.6) (2026-07-28)
+
+
+### Bug Fixes
+
+* **docs:** resolve 404s — copy root docs into docs/, disable unused navbar ([923683c](https://github.com/bgill55/daedalus/commit/923683cb86c3b53a42235b8999d6929df12b55d8))
+
+## [1.83.5](https://github.com/bgill55/daedalus/compare/v1.83.4...v1.83.5) (2026-07-28)
+
+
+### Bug Fixes
+
+* **docs:** rename sidebar link to NotebookLM so users can find it ([ee9f50f](https://github.com/bgill55/daedalus/commit/ee9f50f8ec571da8b0be4cc00037af18f2db0d07))
+
+## [1.83.4](https://github.com/bgill55/daedalus/compare/v1.83.3...v1.83.4) (2026-07-28)
+
+
+### Bug Fixes
+
+* **docs:** move sidebar toggle to right side to fix overlap with search bar ([b452e75](https://github.com/bgill55/daedalus/commit/b452e75e03d6bbebc4563e706b8384acd003e97e))
+
+## [1.83.3](https://github.com/bgill55/daedalus/compare/v1.83.2...v1.83.3) (2026-07-28)
+
+
+### Bug Fixes
+
+* **docs:** remove GitHub corner ribbon, top border-line, move sidebar toggle to top ([2b914b0](https://github.com/bgill55/daedalus/commit/2b914b02e8549fbaabb7f35fb9d28cd3e7629e80))
+
 ## [1.83.2](https://github.com/bgill55/daedalus/compare/v1.83.1...v1.83.2) (2026-07-27)
 
 

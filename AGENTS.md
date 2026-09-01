@@ -21,11 +21,12 @@
 - `src/session/` — SQLite-backed session persistence, project memory, JSONL export; DB opened via `initIndexDb()` factory, not at import time; `sigma-mem.ts` = Σ-Mem reliable memory engine (dedup via `content_hash`, tag-ranked retrieval, time decay), used by BOTH orchestration and single-agent paths
 - `src/agents/` — Multi-agent orchestration (Daedalus/orchestrator, Themis/spec, Metis/planner, Hephaestus/coder, Apollo/reviewer, Asclepius/debugger, Mnemosyne/researcher — each role carries a divine callsign, machine key in parentheses); `/autopilot` command orchestrates end-to-end feature branches; `loop.ts` uses dynamic `import()` for `Orchestrator`, no circular dependency
 - `src/tools/` — 16 built-in tools + MCP transport (stdio + HTTP/SSE)
+- `src/commands/` — Slash command definitions and domain handlers (`autopilot.ts`, `mcp.ts`, `hunt.ts`, `onboard.ts`, `agents.ts`)
 - `src/indexing/` — FTS5 codebase indexing (TS/JS, Python, Go, Rust, Java, C/C++, C#, PHP, Ruby, Elixir)
 
 ## Testing
 - Framework: vitest
-- Run: `npm test` (vitest run, 1326+ tests across 106 files)
+- Run: `npm test` (vitest run, 1631+ tests across 119 files)
 - Tests co-located as `*.test.ts` under `src/`
 
 ## Lint
