@@ -462,9 +462,11 @@ export class LocalRouter {
     }
 
     if (requiresTools) {
-      const toolSupporting = candidateModels.filter(m => m.supportsTools);
+      const toolSupporting = candidateModels.filter(m => m.supportsTools !== false);
       if (toolSupporting.length > 0) {
         candidateModels = toolSupporting;
+      } else {
+        throw new Error('No tool-capable models available in the configured model chain.');
       }
     }
 
@@ -530,7 +532,11 @@ export class LocalRouter {
       if (floor) {
         const floorPriority = floor.priority;
         const aboveFloor = rankedCandidates.filter(m => m.priority <= floorPriority);
-        if (aboveFloor.length > 0) rankedCandidates = aboveFloor;
+        if (aboveFloor.length > 0) {
+          rankedCandidates = aboveFloor;
+        } else if (isComplexTask || request.complexity === 'complex') {
+          throw new Error(`All models meeting capability floor '${this.config.minModel}' (priority <= ${floorPriority}) are currently unavailable.`);
+        }
       }
     }
     let rateLimitError: Error | undefined;
@@ -631,6 +637,7 @@ export class LocalRouter {
     const maxAttempts = 3;
     let lastError: unknown;
     const excludedModels = new Set<string>();
+    const attemptFailures: string[] = [];
     let warnedPinnedUnreachable = false;
 
     while (attempts < maxAttempts) {
@@ -686,6 +693,8 @@ export class LocalRouter {
         lastError = err;
         if (err instanceof Error && (err.name === 'AbortError' || err.name === 'APIUserAbortError')) throw err;
         if (selectedModel) {
+          const errMsg = (err instanceof Error ? err.message : String(err)).split('\n')[0];
+          attemptFailures.push(`${selectedModel.name}: ${errMsg}`);
           if (isHardFailure(err)) {
             this.blacklistModel(selectedModel, err instanceof Error ? err.message : String(err));
           } else {
@@ -718,6 +727,10 @@ export class LocalRouter {
       }
     }
 
+    if (attemptFailures.length > 0) {
+      const diag = attemptFailures.map((f, i) => `[${i + 1}] ${f}`).join(', ');
+      throw new Error(`All model attempts failed: ${diag}`);
+    }
     throw lastError || new Error('All model attempts failed.');
   }
 
@@ -726,6 +739,7 @@ export class LocalRouter {
     const maxAttempts = 3;
     let lastError: unknown;
     const excludedModels = new Set<string>();
+    const attemptFailures: string[] = [];
     let warnedPinnedUnreachable = false;
 
     while (attempts < maxAttempts) {
@@ -790,6 +804,8 @@ export class LocalRouter {
         lastError = err;
         if (err instanceof Error && (err.name === 'AbortError' || err.name === 'APIUserAbortError')) throw err;
         if (selectedModel) {
+          const errMsg = (err instanceof Error ? err.message : String(err)).split('\n')[0];
+          attemptFailures.push(`${selectedModel.name}: ${errMsg}`);
           if (isHardFailure(err)) {
             this.blacklistModel(selectedModel, err instanceof Error ? err.message : String(err));
           } else {
@@ -822,6 +838,10 @@ export class LocalRouter {
       }
     }
 
+    if (attemptFailures.length > 0) {
+      const diag = attemptFailures.map((f, i) => `[${i + 1}] ${f}`).join(', ');
+      throw new Error(`All model streaming attempts failed: ${diag}`);
+    }
     throw lastError || new Error('All model streaming attempts failed.');
   }
 

@@ -86,4 +86,81 @@ describe('Multi-Model Fallback Chain (Sprint 1)', () => {
     expect(response.choices[0].message.content).toBe('Fallback response');
     expect(router.lastRoutedModelName).toBe('working-secondary');
   });
+
+  it('fails fast when tools are required but no tool-supporting model is enabled/available', async () => {
+    const config: RouterConfig = {
+      strategy: 'priority',
+      chain: [
+        { name: 'no-tools-model', endpoint: 'http://localhost:1111/v1', model: 'm1', priority: 1, enabled: true, supportsTools: false },
+      ],
+      healthCheckInterval: 30000,
+      requestTimeout: 120000,
+      defaultRateLimit: { rpm: 60, tpm: 100000 },
+    };
+
+    for (const m of config.chain) {
+      health.markHealthy(m, 10);
+    }
+
+    const router = new LocalRouter(config);
+    await expect(router.route({
+      messages: [{ role: 'user', content: 'Use a tool' }],
+      tools: [{ type: 'function', function: { name: 'read_file', description: 'test', parameters: { type: 'object', properties: {} } } }],
+    })).rejects.toThrow(/No tool-capable models available/);
+  });
+
+  it('strictly enforces capability floor (minModel) for complex requests', async () => {
+    const config: RouterConfig = {
+      strategy: 'priority',
+      minModel: 'capable-floor',
+      chain: [
+        { name: 'capable-floor', endpoint: 'http://localhost:1111/v1', model: 'm1', priority: 1, enabled: true },
+        { name: 'weak-subfloor', endpoint: 'http://localhost:2222/v1', model: 'm2', priority: 5, enabled: true },
+      ],
+      healthCheckInterval: 30000,
+      requestTimeout: 120000,
+      defaultRateLimit: { rpm: 60, tpm: 100000 },
+    };
+
+    for (const m of config.chain) {
+      health.markHealthy(m, 10);
+    }
+
+    const router = new LocalRouter(config);
+    const excluded = new Set<string>(['capable-floor']);
+    await expect(router.route({
+      messages: [{ role: 'user', content: 'Complex architecture planning' }],
+      complexity: 'complex',
+    }, excluded)).rejects.toThrow(/All models meeting capability floor 'capable-floor'/);
+  });
+
+  it('aggregates diagnostic details when all fallback attempts fail in chatCompletion', async () => {
+    const config: RouterConfig = {
+      strategy: 'priority',
+      chain: [
+        { name: 'model-a', endpoint: 'http://localhost:1111/v1', model: 'ma', priority: 1, enabled: true },
+        { name: 'model-b', endpoint: 'http://localhost:2222/v1', model: 'mb', priority: 2, enabled: true },
+      ],
+      healthCheckInterval: 30000,
+      requestTimeout: 120000,
+      defaultRateLimit: { rpm: 60, tpm: 100000 },
+    };
+
+    for (const m of config.chain) {
+      health.markHealthy(m, 10);
+    }
+
+    const router = new LocalRouter(config);
+    (router as any).getOrCreateClient = (model: any) => ({
+      chat: {
+        completions: {
+          create: vi.fn().mockRejectedValue(new Error(`${model.name} endpoint timeout`)),
+        },
+      },
+      models: { list: vi.fn() },
+    });
+
+    await expect(router.chatCompletion({ messages: [{ role: 'user', content: 'Hi' }] }))
+      .rejects.toThrow(/All model attempts failed:.*model-a.*model-b/);
+  });
 });
