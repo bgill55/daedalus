@@ -1,6 +1,29 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { watchProcess, readProcess, killProcess, killAllWatchedProcesses } from './process-watcher.js';
 import type { ToolContext } from '../../types.js';
+
+vi.mock('child_process', async () => {
+  const EventEmitter = (await import('events')).EventEmitter;
+
+  const makeFakeProc = (pid: number) => {
+    const proc = new EventEmitter() as any;
+    proc.pid = pid;
+    proc.stdout = new EventEmitter();
+    proc.stderr = new EventEmitter();
+    proc.stdin = null;
+    proc.kill = vi.fn(() => {
+      setTimeout(() => proc.emit('exit', 0), 5);
+    });
+    return proc;
+  };
+
+  let pidCounter = 1000;
+  return {
+    spawn: vi.fn(() => makeFakeProc(pidCounter++)),
+    execSync: vi.fn(),
+  };
+});
+
+import { watchProcess, readProcess, killProcess, killAllWatchedProcesses } from './process-watcher.js';
 
 describe('Process watcher tools', () => {
   let context: ToolContext;
@@ -18,7 +41,7 @@ describe('Process watcher tools', () => {
   });
 
   it('watchProcess starts and returns an id', async () => {
-    const result = await watchProcess({ command: process.execPath + ' -e "setTimeout(() => {}, 1000)"' }, context);
+    const result = await watchProcess({ command: 'node -e "setTimeout(()=>{},100)"' }, context);
     expect(result.success).toBe(true);
     expect(result.content).toContain('proc_');
   });
@@ -35,20 +58,23 @@ describe('Process watcher tools', () => {
     expect(result.error).toContain('No watched process');
   });
 
-  it('readProcess returns output from running process', async () => {
-    const startResult = await watchProcess({ command: process.execPath + ' -e "console.log(\'hello from proc\'); setTimeout(()=>{},1000)"' }, context);
+  it('readProcess returns buffered output from a running process', async () => {
+    const startResult = await watchProcess({ command: 'node -e "console.log(\'hello from proc\')"' }, context);
     const idMatch = startResult.content.match(/proc_\d+/);
     expect(idMatch).not.toBeNull();
+    const id = idMatch![0];
 
-    await new Promise(r => setTimeout(r, 300));
+    const { spawn } = await import('child_process');
+    const fakeProc = (spawn as any).mock.results.at(-1).value;
+    fakeProc.stdout.emit('data', Buffer.from('hello from proc\n'));
 
-    const readResult = await readProcess({ id: idMatch![0] }, context);
+    const readResult = await readProcess({ id }, context);
     expect(readResult.success).toBe(true);
     expect(readResult.content).toContain('hello from proc');
   });
 
   it('killProcess terminates a running process', async () => {
-    const startResult = await watchProcess({ command: process.execPath + ' -e "setTimeout(() => {}, 1000)"' }, context);
+    const startResult = await watchProcess({ command: 'node -e "setTimeout(()=>{},100)"' }, context);
     const idMatch = startResult.content.match(/proc_\d+/);
     expect(idMatch).not.toBeNull();
 
@@ -58,9 +84,8 @@ describe('Process watcher tools', () => {
   });
 
   it('killAllWatchedProcesses cleans up all processes', async () => {
-    await watchProcess({ command: process.execPath + ' -e "setTimeout(() => {}, 1000)"' }, context);
-    await watchProcess({ command: process.execPath + ' -e "setTimeout(() => {}, 1000)"' }, context);
-
+    await watchProcess({ command: 'node -e "setTimeout(()=>{},100)"' }, context);
+    await watchProcess({ command: 'node -e "setTimeout(()=>{},100)"' }, context);
     expect(() => killAllWatchedProcesses()).not.toThrow();
   });
 

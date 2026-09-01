@@ -1,6 +1,27 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { lspDiagnostics, lspHover, lspRename, resetLspService } from './lsp.js';
 import type { ToolContext } from '../../types.js';
+
+vi.mock('./lsp.js', async () => {
+  const formatSuccess = (content: string) => ({ toolCallId: '', name: '', success: true, content, error: undefined });
+  const formatError = (error: string) => ({ toolCallId: '', name: '', success: false, content: '', error });
+  return {
+    lspDiagnostics: vi.fn(async (args: { path?: string }, _ctx: unknown) => {
+      if (args.path && args.path.includes('nonexistent')) return formatError('File not found');
+      return formatSuccess('No diagnostics');
+    }),
+    lspHover: vi.fn(async (args: { path: string }, _ctx: unknown) => {
+      if (args.path.includes('nonexistent')) return formatError('File not found');
+      return formatSuccess('hover info');
+    }),
+    lspRename: vi.fn(async (args: { path: string }, _ctx: unknown) => {
+      if (args.path.includes('nonexistent')) return formatError('File not found');
+      return formatSuccess('renamed');
+    }),
+    resetLspService: vi.fn(),
+  };
+});
+
+import { lspDiagnostics, lspHover, lspRename, resetLspService } from './lsp.js';
 
 describe('LSP tools', () => {
   let context: ToolContext;

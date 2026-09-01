@@ -64,4 +64,4 @@ jobs:
           node-version: '>=20.0.0'
           cache: npm
       - run: npm ci
-      - run: npm test
+      - run: npx vitest run --reporter=verbose
