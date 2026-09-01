@@ -1,3 +1,10 @@
+# [3.65.0](https://github.com/bgill55/daedalus/compare/v3.64.0...v3.65.0) (2026-09-01)
+
+
+### Features
+
+* **session:** add SQLite database maintenance and optional vacuuming on session close ([8debabf](https://github.com/bgill55/daedalus/commit/8debabf40c48e175a8f10b6edb621f76123b7aad))
+
 # [3.64.0](https://github.com/bgill55/daedalus/compare/v3.63.0...v3.64.0) (2026-09-01)
 
 
