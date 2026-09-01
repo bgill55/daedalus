@@ -1,3 +1,11 @@
+## [3.65.11](https://github.com/bgill55/daedalus/compare/v3.65.10...v3.65.11) (2026-09-01)
+
+
+### Bug Fixes
+
+* **watcher:** prevent libuv Windows IOCP assertion by keeping watched dir alive until afterAll ([31c2d4b](https://github.com/bgill55/daedalus/commit/31c2d4b0c38ccce5dc0861d7b6a6620b8e983030))
+* **watcher:** update watchCodebase return type annotation to Promise<void> ([0c774e4](https://github.com/bgill55/daedalus/commit/0c774e46d88edb13e05bbd8d7f5819fe7c93378e))
+
 ## [3.65.10](https://github.com/bgill55/daedalus/compare/v3.65.9...v3.65.10) (2026-09-01)
 
 
