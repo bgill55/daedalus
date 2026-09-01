@@ -25,16 +25,21 @@ describe('dotenv env loading (security)', () => {
     // dotenv.config() call.
     const proj = path.join(os.tmpdir(), `daedalus-env-leak-test-${Date.now()}`);
     fs.mkdirSync(proj, { recursive: true });
-    process.chdir(proj);
+    try {
+      process.chdir(proj);
 
-    await import('./loop.js');
+      await import('./loop.js');
 
-    expect(configMock).toHaveBeenCalled();
-    const call = configMock.mock.calls[0][0];
-    expect(call).toBeDefined();
-    expect(call.quiet).toBe(true);
-    // Must point at Daedalus's home env, NOT the cwd .env.
-    expect(call.path).toBe(path.join(os.homedir(), '.daedalus', '.env'));
-    expect(call.path.startsWith(proj)).toBe(false);
+      expect(configMock).toHaveBeenCalled();
+      const call = configMock.mock.calls[0][0];
+      expect(call).toBeDefined();
+      expect(call.quiet).toBe(true);
+      // Must point at Daedalus's home env, NOT the cwd .env.
+      expect(call.path).toBe(path.join(os.homedir(), '.daedalus', '.env'));
+      expect(call.path.startsWith(proj)).toBe(false);
+    } finally {
+      process.chdir(origCwd);
+      try { fs.rmSync(proj, { recursive: true, force: true }); } catch { /* ignore */ }
+    }
   });
 });

@@ -5,8 +5,7 @@ export default defineConfig({
     pool: 'forks',
     poolOptions: {
       forks: {
-        maxForks: process.env.CI ? 2 : undefined,
-        minForks: 1,
+        singleFork: true,
       },
     },
     testTimeout: 30000,

@@ -7,6 +7,7 @@ import { SessionManager } from './manager.js';
 describe('SessionManager', () => {
   let tmpDir: string;
   let manager: SessionManager;
+  const originalCwd = process.cwd();
 
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'daedalus-manager-test-'));
@@ -19,7 +20,7 @@ describe('SessionManager', () => {
   afterEach(() => {
     manager.close();
     manager = null!;
-    process.chdir(os.tmpdir());
+    process.chdir(originalCwd);
     for (let i = 0; i < 5; i++) {
       try { fs.rmSync(tmpDir, { recursive: true, force: true }); break; } catch { /* ignored */ }
     }
