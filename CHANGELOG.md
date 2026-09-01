@@ -1,3 +1,10 @@
+## [3.65.5](https://github.com/bgill55/daedalus/compare/v3.65.4...v3.65.5) (2026-09-01)
+
+
+### Bug Fixes
+
+* **process-watcher:** safe process tree termination on Windows and dispose LSP service ([f7e0f05](https://github.com/bgill55/daedalus/commit/f7e0f054bef18b11ff461a31c500457f3e6697ae))
+
 ## [3.65.4](https://github.com/bgill55/daedalus/compare/v3.65.3...v3.65.4) (2026-09-01)
 
 
