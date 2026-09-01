@@ -1,3 +1,10 @@
+## [3.65.6](https://github.com/bgill55/daedalus/compare/v3.65.5...v3.65.6) (2026-09-01)
+
+
+### Bug Fixes
+
+* **test:** mock OS-spawning tests to prevent CI worker crashes on Windows ([5eb7626](https://github.com/bgill55/daedalus/commit/5eb7626ded7c79eea334cca7a7d60212c2e3932b))
+
 ## [3.65.5](https://github.com/bgill55/daedalus/compare/v3.65.4...v3.65.5) (2026-09-01)
 
 
