@@ -1,3 +1,10 @@
+## [3.68.3](https://github.com/bgill55/daedalus/compare/v3.68.2...v3.68.3) (2026-09-02)
+
+
+### Bug Fixes
+
+* **orchestrator:** avoid running full test suite on pre-flight and increase test timeout to 240s ([336b350](https://github.com/bgill55/daedalus/commit/336b350a348edec80fc12883a36a656bdf26a561))
+
 ## [3.68.2](https://github.com/bgill55/daedalus/compare/v3.68.1...v3.68.2) (2026-09-02)
 
 
