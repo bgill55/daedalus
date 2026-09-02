@@ -1,6 +1,6 @@
 import pc from 'picocolors';
 import { MarathonEngine } from '../marathon/engine.js';
-import { renderRoadmapMarkdown } from '../marathon/state.js';
+import { renderRoadmapMarkdown, saveMarathonRun } from '../marathon/state.js';
 import type { Command } from './types.js';
 
 export const marathonCommand: Command = {
@@ -83,6 +83,8 @@ Key Pillars:
         return;
       }
       activeRun.status = 'running';
+      const root = ctx.toolContext.projectRoot || process.cwd();
+      saveMarathonRun(root, activeRun);
       console.log(pc.cyan(`\n[MARATHON] Resuming run at milestone ${activeRun.activeMilestoneIndex + 1}/${activeRun.milestones.length}...`));
       let done = false;
       while (!done) {

@@ -140,8 +140,12 @@ export class MarathonEngine {
 
   public async executeNextMilestone(): Promise<{ done: boolean; run: MarathonRun }> {
     const run = this.getActiveRun();
-    if (!run || run.status !== 'running') {
-      throw new Error('No running marathon to execute.');
+    if (!run || run.status === 'completed') {
+      throw new Error('No active marathon run to execute.');
+    }
+    if (run.status !== 'running') {
+      run.status = 'running';
+      saveMarathonRun(this.projectRoot, run);
     }
 
     const milestone = run.milestones[run.activeMilestoneIndex];
