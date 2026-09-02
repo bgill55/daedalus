@@ -8,6 +8,7 @@ import { ClaimLedger, RUNTIME_EXERCISE_RE } from './agents/completion-guard.js';
 import { ReadStallDetector, DivergenceDetector, isStaleReadFailure } from './agents/loop-guards.js';
 import { checkTurnCompletionGuards } from './agents/turn-guards.js';
 import { mcpRegistry } from './tools/mcp/registry.js';
+import { selectContextTools } from './tools/context-selector.js';
 import { DaedalusSpinner } from './tools/daedalus-spinner.js';
 import { calculateSessionTokens, pruneMessages } from './session/tokens.js';
 import { log } from './ui/log.js';
@@ -428,13 +429,26 @@ export function createModelFunctions(deps: ModelDeps) {
       };
       resetStreamReadTimer();
 
+      const activeTools = selectContextTools(allTools, {
+        userPrompt: userContent,
+        activeFiles: Array.from(toolContext.activeFiles?.keys() ?? []),
+        recentMessages: messages,
+        recentToolCalls: Array.from(executedToolNames),
+        agentRole: toolContext.agentRole,
+        enabled: config.tools?.dynamicSelection ?? true,
+      });
+
+      if (process.env.DAEDALUS_DEBUG === 'true' && activeTools.length !== allTools.length) {
+        console.log(dim(`  [TOOLS] Dynamic selector active: ${activeTools.length}/${allTools.length} tools presented`));
+      }
+
       try {
         const stream = await router.chatStream({
           model: pinnedModel || config.modelOverride || 'auto',
           complexity: pinnedModel ? undefined : currentComplexity,
           messages,
           temperature: 0.1,
-          tools: allTools,
+          tools: activeTools,
           tool_choice: 'auto',
           stream: true,
           max_tokens: 4096,
@@ -526,7 +540,7 @@ export function createModelFunctions(deps: ModelDeps) {
             complexity: pinnedModel ? undefined : currentComplexity,
             messages,
             temperature: 0.1,
-            tools: allTools,
+            tools: activeTools,
             tool_choice: 'auto',
             max_tokens: 4096,
             signal: retrySignal.signal,

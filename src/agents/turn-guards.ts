@@ -18,7 +18,6 @@ import {
   negativeExistenceWarning,
   isReviewTask,
   isIdeationOrProposalTask,
-  isHypotheticalOrProposal,
   isReviewDeliverable,
   isReviewWithoutSourceInspection,
   reviewWithoutSourceInspectionWarning,
