@@ -1,3 +1,10 @@
+# [3.66.0](https://github.com/bgill55/daedalus/compare/v3.65.15...v3.66.0) (2026-09-02)
+
+
+### Features
+
+* **guards:** implement mode-aware ideation intent filtering for brainstorming and creative proposals ([8cb3752](https://github.com/bgill55/daedalus/commit/8cb3752b25aafda55864655ac000583b21fad0a2))
+
 ## [3.65.15](https://github.com/bgill55/daedalus/compare/v3.65.14...v3.65.15) (2026-09-02)
 
 
