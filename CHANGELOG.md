@@ -1,3 +1,16 @@
+# [3.67.0](https://github.com/bgill55/daedalus/compare/v3.66.1...v3.67.0) (2026-09-02)
+
+
+### Bug Fixes
+
+* **config:** add dynamicSelection to privacy-strict preset tools override ([e9f6ff3](https://github.com/bgill55/daedalus/commit/e9f6ff371331a1b956c7cd859100b749a003f487))
+
+
+### Features
+
+* **session:** implement persistent anti-pattern learning engine in sigma-mem ([9f8965a](https://github.com/bgill55/daedalus/commit/9f8965a2cc5f4535bc70ee8fa6cbcad7c0f52925))
+* **tools:** implement context-aware dynamic tool selection and ranking ([90f4c55](https://github.com/bgill55/daedalus/commit/90f4c55890bc27f2b2c2e2f017510666eb3b55c7))
+
 ## [3.66.1](https://github.com/bgill55/daedalus/compare/v3.66.0...v3.66.1) (2026-09-02)
 
 
