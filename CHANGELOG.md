@@ -1,3 +1,10 @@
+## [3.68.2](https://github.com/bgill55/daedalus/compare/v3.68.1...v3.68.2) (2026-09-02)
+
+
+### Bug Fixes
+
+* **marathon:** loop continuously on resume and inject Apollo audit feedback on retries ([2e71d90](https://github.com/bgill55/daedalus/commit/2e71d9026f6bf6f153f82a3bc8ccd791b8d59da2))
+
 ## [3.68.1](https://github.com/bgill55/daedalus/compare/v3.68.0...v3.68.1) (2026-09-02)
 
 
