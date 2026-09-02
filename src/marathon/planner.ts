@@ -1,4 +1,4 @@
-﻿import { LocalRouter } from '../router/index.js';
+import { LocalRouter } from '../router/index.js';
 import { ChatMessage, messageText } from '../types.js';
 import { MarathonMilestone } from './types.js';
 
@@ -16,7 +16,8 @@ ${projectContext || '(New project or clean workspace)'}
 1. Atomic & Focused: Changes 1 to 5 files maximum per milestone.
 2. Ordered by Dependency: Foundation/Schema first, then Business Logic/APIs, then UI/Polish/Integration.
 3. Verifiable: Must have explicit, measurable acceptance criteria.
-4. Output Format: Pure JSON array of milestone objects with NO conversational wrapper:
+4. Host Preservation: If working in an existing project, NEVER overwrite root package.json, tsconfig.json, or existing main entrypoints. Build new features into dedicated subdirectories (e.g., src/<feature>/) or new command modules.
+5. Output Format: Pure JSON array of milestone objects with NO conversational wrapper:
 
 [
   {

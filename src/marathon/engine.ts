@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import pc from 'picocolors';
 import { LocalRouter } from '../router/index.js';
 import { ToolContext, ChatMessage } from '../types.js';
@@ -64,10 +66,15 @@ export class MarathonEngine {
 
     // Step 1: Metis macro-planning
     console.log(pc.blue(`\n[METIS] Synthesizing milestone roadmap...`));
+    const hasPkg = fs.existsSync(path.join(this.projectRoot, 'package.json'));
+    const projectContext = hasPkg
+      ? `Existing TypeScript/Node codebase at ${this.projectRoot} with active package.json, tsconfig.json, and src/. Do not recreate or overwrite root config files or main entrypoints; integrate new features cleanly into subdirectories (e.g. src/<feature>/) or new command modules.`
+      : `Project at ${this.projectRoot}`;
+
     const milestones = await planMarathonRoadmap(macroGoal, {
       router: this.router,
       modelOverride: this.modelOverride,
-      projectContext: `Project at ${this.projectRoot}`,
+      projectContext,
     });
 
     console.log(pc.green(`[OK] Generated ${milestones.length} verifiable milestone(s).`));
