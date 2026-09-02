@@ -12,6 +12,7 @@ import {
   isGreenStateClaim,
   isUngroundedProjectClaim,
   isReviewTask,
+  isIdeationOrProposalTask,
   isReviewDeliverable,
   isReviewWithoutSourceInspection,
   claimedTestCountWithoutRun,
@@ -441,11 +442,22 @@ describe('isNegativeExistenceClaim', () => {
   });
 });
 
-describe('isReviewTask / isReviewDeliverable', () => {
+describe('isReviewTask / isReviewDeliverable / isIdeationOrProposalTask', () => {
   it('detects a review request', () => {
     expect(isReviewTask('can you check out this project and give me your thoughts.')).toBe(true);
     expect(isReviewTask('review this codebase and tell me what you think')).toBe(true);
     expect(isReviewTask('hey how are you today')).toBe(false);
+  });
+
+  it('detects ideation / proposal requests and overrides review task classification', () => {
+    const upgradePrompt = 'can you look at the project and point out some worth upgrades/features that are Daedalus worthy';
+    expect(isIdeationOrProposalTask(upgradePrompt)).toBe(true);
+    expect(isReviewTask(upgradePrompt)).toBe(false); // review is overridden because user asked for upgrades/features
+
+    expect(isIdeationOrProposalTask('brainstorm 5 ideas for agent contracts')).toBe(true);
+    expect(isIdeationOrProposalTask('reprint the list since I lost it')).toBe(true);
+    expect(isIdeationOrProposalTask('what features should we add next?')).toBe(true);
+    expect(isIdeationOrProposalTask('fix the bug in router.ts')).toBe(false);
   });
 
   it('detects a multi-section review deliverable', () => {

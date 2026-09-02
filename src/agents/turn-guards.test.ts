@@ -137,4 +137,23 @@ This review covers all the main parts of the system thoroughly.`;
       expect(result.maxTurnsCause).toContain('review-without-inspection guard');
     }
   });
+
+  it('allows ideation and feature proposals without halting or triggering review/audit guards', async () => {
+    const claimLedger = new ClaimLedger();
+    const cleanContent = `Here are some upgrades and features worthy of Daedalus:
+1. Agent Capability Contracts: Each role would declare capability.json with max turns and allowed tools.
+2. Visual DAG Inspector: A live terminal dashboard showing inter-agent message flows.
+3. Memory Vector Caching: Adding semantic cache for session embeddings.`;
+
+    const ctx = createMockContext({
+      userTask: 'can you look at the project and point out some worth upgrades/features that are Daedalus worthy',
+      cleanContent,
+      fullContent: cleanContent,
+      claimLedger,
+    });
+
+    const result = await checkTurnCompletionGuards(ctx);
+    expect(result.status).toBe('pass');
+    expect(ctx.messages).toHaveLength(0);
+  });
 });

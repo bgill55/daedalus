@@ -17,6 +17,8 @@ import {
   isNegativeExistenceClaim,
   negativeExistenceWarning,
   isReviewTask,
+  isIdeationOrProposalTask,
+  isHypotheticalOrProposal,
   isReviewDeliverable,
   isReviewWithoutSourceInspection,
   reviewWithoutSourceInspectionWarning,
@@ -104,7 +106,8 @@ export async function checkTurnCompletionGuards(ctx: TurnGuardContext): Promise<
       typeof m.content === 'string' &&
       (m.content.startsWith('[SYSTEM WARNING]') || m.content.startsWith('[FILE-MISSING]') || m.content.startsWith('[CHECK]'))
   );
-  const isReviewContent = isReviewDeliverable(cleanContent);
+  const isIdeation = isIdeationOrProposalTask(userTask) || isHypotheticalOrProposal(cleanContent);
+  const isReviewContent = !isIdeation && isReviewDeliverable(cleanContent);
 
   if (!hasRecentGuardWarning && !isReviewContent && divergence.register(cleanContent)) {
     const repeats = divergence.consecutiveRepeats;
@@ -142,7 +145,7 @@ export async function checkTurnCompletionGuards(ctx: TurnGuardContext): Promise<
     }
   }
 
-  const projClaim = isUngroundedProjectClaim(cleanContent, claimLedger);
+  const projClaim = !isIdeation ? isUngroundedProjectClaim(cleanContent, claimLedger) : null;
   if (projClaim) {
     const key = `proj:${projClaim}`;
     if (!toolContext.firedCompletionGuards?.has(key)) {
@@ -158,7 +161,7 @@ export async function checkTurnCompletionGuards(ctx: TurnGuardContext): Promise<
     }
   }
 
-  const negClaim = isNegativeExistenceClaim(cleanContent, claimLedger);
+  const negClaim = !isIdeation ? isNegativeExistenceClaim(cleanContent, claimLedger) : null;
   if (negClaim) {
     const key = `neg:${negClaim}`;
     if (!toolContext.firedCompletionGuards?.has(key)) {
@@ -201,7 +204,7 @@ export async function checkTurnCompletionGuards(ctx: TurnGuardContext): Promise<
     return { status: 'continue' };
   }
 
-  const falselyClaimed = detectFalseCompletionOnDisk(cleanContent, toolContext);
+  const falselyClaimed = !isIdeation ? detectFalseCompletionOnDisk(cleanContent, toolContext) : null;
   if (falselyClaimed) {
     console.log(dim(`\n  [CHECK] Verifying completion claim — no successful patch to ${falselyClaimed} this session (only reverts).`));
     toolContext.selfCorrectionCount = (toolContext.selfCorrectionCount ?? 0) + 1;
@@ -226,7 +229,7 @@ export async function checkTurnCompletionGuards(ctx: TurnGuardContext): Promise<
     return { status: 'continue' };
   }
 
-  if (isUnsubstantiatedProgressReport(cleanContent)) {
+  if (!isIdeation && isUnsubstantiatedProgressReport(cleanContent)) {
     const key = 'unsubstantiated-progress';
     if (!toolContext.firedCompletionGuards?.has(key)) {
       (toolContext.firedCompletionGuards ??= new Set<string>()).add(key);
@@ -242,7 +245,7 @@ export async function checkTurnCompletionGuards(ctx: TurnGuardContext): Promise<
     }
   }
 
-  if (isReviewTask(userTask) && isReviewDeliverable(cleanContent) && claimLedger.totalObservations === 0) {
+  if (!isIdeation && isReviewTask(userTask) && isReviewDeliverable(cleanContent) && claimLedger.totalObservations === 0) {
     console.log(dim(`\n  [STOP] Review produced with zero file inspections this session — halting.`));
     return {
       status: 'halt',
@@ -251,7 +254,7 @@ export async function checkTurnCompletionGuards(ctx: TurnGuardContext): Promise<
     };
   }
 
-  if (isReviewTask(userTask) && isReviewWithoutSourceInspection(cleanContent, claimLedger)) {
+  if (!isIdeation && isReviewTask(userTask) && isReviewWithoutSourceInspection(cleanContent, claimLedger)) {
     const srcCount = claimLedger.sourceFileObservations;
     console.log(dim(`\n  [CHECK] Review deliverable produced after reading only ${srcCount} source file(s) — insufficient inspection.`));
     toolContext.selfCorrectionCount = (toolContext.selfCorrectionCount ?? 0) + 1;
@@ -263,7 +266,7 @@ export async function checkTurnCompletionGuards(ctx: TurnGuardContext): Promise<
     return { status: 'continue' };
   }
 
-  if (isReviewTask(userTask) || isReviewDeliverable(cleanContent)) {
+  if (!isIdeation && (isReviewTask(userTask) || isReviewDeliverable(cleanContent))) {
     const archTerm = isUncitedArchClaim(cleanContent);
     if (archTerm) {
       if ((toolContext.archGuardHits ?? 0) >= 3) {
@@ -359,7 +362,7 @@ export async function checkTurnCompletionGuards(ctx: TurnGuardContext): Promise<
     return { status: 'continue' };
   }
 
-  if (detectUngroundedWorksClaim(cleanContent, claimLedger)) {
+  if (!isIdeation && detectUngroundedWorksClaim(cleanContent, claimLedger)) {
     const worksKey = 'works-claim';
     if (!toolContext.firedCompletionGuards?.has(worksKey)) {
       (toolContext.firedCompletionGuards ??= new Set<string>()).add(worksKey);

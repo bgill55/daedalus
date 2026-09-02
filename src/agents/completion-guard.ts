@@ -205,7 +205,7 @@ export function isUnsubstantiatedProgressReport(text: string): boolean {
   // an unverified progress report. Without this, a reconciled status update that
   // enumerates verified ✅ items alongside explicit ❌/NOT-completed items loops the
   // guard and wastes tokens re-stating reality.
-  if (isHonestDisclaimer(text)) return false;
+  if (isHonestDisclaimer(text) || isHypotheticalOrProposal(text)) return false;
   // Require a substantive enumeration (≥2 items) so a single incidental "✅ done"
   // or one bullet doesn't trip the guard — only a deliverable checklist does.
   return countAchievementItems(text) >= 2;
@@ -554,6 +554,7 @@ export function ungroundedProjectClaimWarning(term: string): string {
  */
 export function isNegativeExistenceClaim(text: string, ledger: ClaimLedger): string | null {
   if (!text || !ledger) return null;
+  if (isHonestDisclaimer(text) || isHypotheticalOrProposal(text)) return null;
   const lower = text.toLowerCase();
   for (const term of NEG_EXISTENCE_TERMS) {
     if (!lower.includes(term)) continue;
@@ -583,6 +584,18 @@ export function negativeExistenceWarning(term: string): string {
   );
 }
 
+// Ideation / proposal / brainstorming task: queries asking for future upgrades,
+// feature ideas, recommendations, roadmap proposals, conceptual explanations, or list reprints.
+// These are creative, forward-looking requests rather than backward-looking code audits,
+// so they must NOT activate the source-inspection quota or citation-gate guards.
+export const IDEATION_OR_PROPOSAL_TASK_RE =
+  /\b(upgrade|upgrades|features?|suggest|suggested|suggestions?|recommend(?:ation)?s?|brainstorm|ideas?|propos(?:e|al|als|ing)|roadmap|what if|how (?:could|might|should|would) we|what (?:could|might|should|would) we|possibilit(?:y|ies)|future|reprint|repeat|summarize the list|tell me about|explain|concepts?|architecture ideas?)\b/i;
+
+export function isIdeationOrProposalTask(task: string): boolean {
+  if (!task) return false;
+  return IDEATION_OR_PROPOSAL_TASK_RE.test(task);
+}
+
 // Inspection-before-review gate: when the user asked for a review/audit of a project
 // ("check out this project and give me your thoughts"), a closing report that describes the
 // codebase's architecture/features with ZERO file observations this session is a review of a
@@ -594,6 +607,7 @@ const REVIEW_TASK_RE =
 
 export function isReviewTask(task: string): boolean {
   if (!task) return false;
+  if (isIdeationOrProposalTask(task)) return false;
   return REVIEW_TASK_RE.test(task);
 }
 
