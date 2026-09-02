@@ -14,6 +14,7 @@
   - [Skills (playbook injection)](skills.md)
   - [Multi-Agent Orchestration](orchestration.md)
   - [Autopilot v3.0.0 & Web UI Showcase](autopilot-showcase.md)
+  - [Marathon Engine (Harness-of-Harness)](marathon.md)
   - [Σ-Mem Reliable Memory Engine](sigma-mem.md)
   - [SpecFirst Architecture](specfirst-architecture.md)
   - [Autonomous Finn Loop](finn-loop.md)
