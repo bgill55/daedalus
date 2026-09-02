@@ -1,3 +1,10 @@
+## [3.68.1](https://github.com/bgill55/daedalus/compare/v3.68.0...v3.68.1) (2026-09-02)
+
+
+### Bug Fixes
+
+* **marathon:** enable auto-approve during sprints and suppress git diff stderr ([24846d7](https://github.com/bgill55/daedalus/commit/24846d7b93224d15c87cf9434e710ae76cf4565a))
+
 # [3.68.0](https://github.com/bgill55/daedalus/compare/v3.67.1...v3.68.0) (2026-09-02)
 
 
