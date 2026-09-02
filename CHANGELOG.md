@@ -1,3 +1,10 @@
+## [3.68.7](https://github.com/bgill55/daedalus/compare/v3.68.6...v3.68.7) (2026-09-02)
+
+
+### Bug Fixes
+
+* **marathon:** enable seamless auto-resume of paused marathon runs ([5b50ab7](https://github.com/bgill55/daedalus/commit/5b50ab72af4f99e305ac8a908a9390c4fb442899))
+
 ## [3.68.6](https://github.com/bgill55/daedalus/compare/v3.68.5...v3.68.6) (2026-09-02)
 
 
