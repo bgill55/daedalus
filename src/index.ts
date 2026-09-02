@@ -367,16 +367,35 @@ async function callModelWithTools(userContent: string, imageBase64?: string): Pr
       // old signal was evaluatePatchOutcome (patch-count based) — it rewarded mere
       // editing activity, so a task that committed broken code still scored up. Now
       // a broken fix fails runBuildVerification and is penalized instead.
-      if (newPatches > prevPatches && memoryIds.length > 0) {
+      if (newPatches > prevPatches) {
         const root = toolContext.projectRoot || sessionManager?.projectRoot;
         const buildResult = await runBuildVerification({
           ...toolContext,
           projectRoot: root,
         });
+        const affectedFiles = Array.from(toolContext.activeFiles?.keys() ?? []);
+        const primaryFile = affectedFiles[0] || '';
         if (buildResult.success) {
-          SigmaMemEngine.rewardSuccessfulPass(sessionManager.projectMemDb, memoryIds);
+          if (memoryIds.length > 0) {
+            SigmaMemEngine.rewardSuccessfulPass(sessionManager.projectMemDb, memoryIds);
+          }
+          if (primaryFile) {
+            SigmaMemEngine.resolveAntiPattern(
+              sessionManager.projectMemDb,
+              primaryFile,
+              'Verified passing build after fix'
+            );
+          }
         } else {
-          SigmaMemEngine.penalizeFailedAttempt(sessionManager.projectMemDb, memoryIds, buildResult.errorLogs?.slice(0, 280));
+          if (memoryIds.length > 0) {
+            SigmaMemEngine.penalizeFailedAttempt(sessionManager.projectMemDb, memoryIds, buildResult.errorLogs?.slice(0, 280));
+          }
+          SigmaMemEngine.recordAntiPattern(sessionManager.projectMemDb, {
+            taskCategory: 'build_verification',
+            targetFile: primaryFile,
+            attemptSummary: `Build verification failed for ${primaryFile || 'codebase'}`,
+            errorSignature: buildResult.errorLogs?.slice(0, 300) || 'Build failed',
+          });
         }
       }
     } catch {

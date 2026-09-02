@@ -36,6 +36,18 @@ export interface SessionMeta {
   updated_at: number;
 }
 
+export interface SqliteSigmaAntiPattern {
+  id: string;
+  task_category: string;
+  target_file: string;
+  attempt_summary: string;
+  error_signature: string;
+  suggested_alternative?: string;
+  occurrence_count: number;
+  last_occurred_at: number;
+  created_at: number;
+}
+
 /** Initialize the global sessions index database */
 export function initIndexDb(dbPath: string): Database.Database {
   const dir = path.dirname(dbPath);
@@ -179,6 +191,21 @@ export function initProjectMemDb(dbPath: string): Database.Database {
     );
     CREATE INDEX IF NOT EXISTS idx_sigma_score ON sigma_memories(sigma_score DESC);
     CREATE INDEX IF NOT EXISTS idx_sigma_content_hash ON sigma_memories(content_hash);
+
+    CREATE TABLE IF NOT EXISTS sigma_anti_patterns (
+      id TEXT PRIMARY KEY,
+      task_category TEXT NOT NULL,
+      target_file TEXT DEFAULT '',
+      attempt_summary TEXT NOT NULL,
+      error_signature TEXT NOT NULL,
+      suggested_alternative TEXT DEFAULT '',
+      occurrence_count INTEGER DEFAULT 1,
+      last_occurred_at INTEGER NOT NULL,
+      created_at INTEGER NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_anti_target_file ON sigma_anti_patterns(target_file);
+    CREATE INDEX IF NOT EXISTS idx_anti_error_sig ON sigma_anti_patterns(error_signature);
+    CREATE INDEX IF NOT EXISTS idx_anti_last_occurred ON sigma_anti_patterns(last_occurred_at DESC);
   `);
 
   const cols = db.prepare('PRAGMA table_info(sigma_memories)').all() as Array<{ name: string }>;
@@ -511,5 +538,84 @@ export function maintainDatabase(db: Database.Database, vacuum: boolean = false)
   } catch {
     // best-effort maintenance, never throw
   }
+}
+
+export function saveSigmaAntiPattern(db: Database.Database, ap: SqliteSigmaAntiPattern): void {
+  db.prepare(`
+    INSERT INTO sigma_anti_patterns (
+      id, task_category, target_file, attempt_summary, error_signature, suggested_alternative, occurrence_count, last_occurred_at, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      attempt_summary = excluded.attempt_summary,
+      suggested_alternative = CASE
+        WHEN excluded.suggested_alternative != '' THEN excluded.suggested_alternative
+        ELSE sigma_anti_patterns.suggested_alternative
+      END,
+      occurrence_count = sigma_anti_patterns.occurrence_count + 1,
+      last_occurred_at = excluded.last_occurred_at
+  `).run(
+    ap.id,
+    ap.task_category,
+    ap.target_file,
+    ap.attempt_summary,
+    ap.error_signature,
+    ap.suggested_alternative || '',
+    ap.occurrence_count,
+    ap.last_occurred_at,
+    ap.created_at
+  );
+}
+
+export function getSigmaAntiPatterns(
+  db: Database.Database,
+  opts: { targetFiles?: string[]; limit?: number } = {}
+): SqliteSigmaAntiPattern[] {
+  const limit = opts.limit ?? 5;
+  const targetFiles = (opts.targetFiles ?? []).filter(Boolean);
+
+  if (targetFiles.length > 0) {
+    const placeholders = targetFiles.map(() => '?').join(',');
+    return db.prepare(`
+      SELECT * FROM sigma_anti_patterns
+      WHERE target_file IN (${placeholders}) OR target_file = ''
+      ORDER BY occurrence_count DESC, last_occurred_at DESC
+      LIMIT ?
+    `).all(...targetFiles, limit) as SqliteSigmaAntiPattern[];
+  }
+
+  return db.prepare(`
+    SELECT * FROM sigma_anti_patterns
+    ORDER BY occurrence_count DESC, last_occurred_at DESC
+    LIMIT ?
+  `).all(limit) as SqliteSigmaAntiPattern[];
+}
+
+export function resolveSigmaAntiPattern(
+  db: Database.Database,
+  targetFile: string,
+  alternative: string
+): void {
+  const now = Date.now();
+  db.prepare(`
+    UPDATE sigma_anti_patterns
+    SET suggested_alternative = ?,
+        last_occurred_at = ?
+    WHERE target_file = ? AND (suggested_alternative IS NULL OR suggested_alternative = '')
+  `).run(alternative, now, targetFile);
+}
+
+export function pruneOldAntiPatterns(
+  db: Database.Database,
+  maxCount: number = 50
+): number {
+  const res = db.prepare(`
+    DELETE FROM sigma_anti_patterns
+    WHERE id NOT IN (
+      SELECT id FROM sigma_anti_patterns
+      ORDER BY occurrence_count DESC, last_occurred_at DESC
+      LIMIT ?
+    )
+  `).run(maxCount);
+  return res.changes;
 }
 

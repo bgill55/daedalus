@@ -434,5 +434,59 @@ describe('SigmaMemEngine (Σ-Mem)', () => {
     expect(prompt).toContain('Failure Mode Critiques (AVOID');
     expect(prompt).toContain('not assignable to "json" | "csv"');
   });
+
+  it('records and deduplicates anti-patterns, incrementing occurrence count', () => {
+    const ap1 = SigmaMemEngine.recordAntiPattern(db, {
+      taskCategory: 'build_verification',
+      targetFile: 'src/router/index.ts',
+      attemptSummary: 'Failed concurrent provider registry update',
+      errorSignature: 'Error: Concurrent map write',
+    });
+
+    expect(ap1.occurrence_count).toBe(1);
+
+    SigmaMemEngine.recordAntiPattern(db, {
+      taskCategory: 'build_verification',
+      targetFile: 'src/router/index.ts',
+      attemptSummary: 'Repeated concurrent write error',
+      errorSignature: 'Error: Concurrent map write',
+    });
+
+    const items = SigmaMemEngine.getAntiPatternsForContext(db, ['src/router/index.ts'], 5);
+    expect(items.length).toBe(1);
+    expect(items[0].occurrence_count).toBe(2);
+  });
+
+  it('surfaces anti-patterns in getPromptContext for matched targetFiles', () => {
+    SigmaMemEngine.recordAntiPattern(db, {
+      taskCategory: 'syntax_error',
+      targetFile: 'src/config.ts',
+      attemptSummary: 'Missing comma in Zod schema',
+      errorSignature: 'TS1005: comma expected',
+    });
+
+    const { prompt } = SigmaMemEngine.getPromptContext(db, 'coder', 0.60, 5, ['src/config.ts']);
+    expect(prompt).toContain('Σ-Mem Anti-Patterns (KNOWN PITFALLS ON THIS CODEBASE)');
+    expect(prompt).toContain('PITFALL · src/config.ts');
+    expect(prompt).toContain('TS1005: comma expected');
+  });
+
+  it('resolves anti-patterns with a successful alternative', () => {
+    SigmaMemEngine.recordAntiPattern(db, {
+      taskCategory: 'build_verification',
+      targetFile: 'src/router.ts',
+      attemptSummary: 'Attempted global lock',
+      errorSignature: 'TS2304: Cannot find name Mutex',
+    });
+
+    SigmaMemEngine.resolveAntiPattern(
+      db,
+      'src/router.ts',
+      'Use provider-scoped token bucket instead of global mutex'
+    );
+
+    const { prompt } = SigmaMemEngine.getPromptContext(db, 'coder', 0.60, 5, ['src/router.ts']);
+    expect(prompt).toContain('Resolution: Use provider-scoped token bucket instead of global mutex');
+  });
 });
 

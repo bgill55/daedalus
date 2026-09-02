@@ -17,10 +17,23 @@ import {
   setCritique,
   verifiedPassRate,
   SqliteSigmaMemory,
+  saveSigmaAntiPattern,
+  getSigmaAntiPatterns,
+  resolveSigmaAntiPattern,
+  pruneOldAntiPatterns,
+  SqliteSigmaAntiPattern,
 } from './sqlite.js';
 import { getProjectHash } from '../project-hash.js';
 import { maskSecrets } from '../security/secret-detector.js';
 import { roleLabel } from '../agents/roles.js';
+
+export interface AntiPatternRecordOptions {
+  taskCategory: string;
+  targetFile?: string;
+  attemptSummary: string;
+  errorSignature: string;
+  suggestedAlternative?: string;
+}
 
 export function computeSigmaContentHash(agentRole: string, category: string, summary: string, content: string): string {
   return crypto.createHash('sha256').update(`${agentRole}|${category}|${summary}|${content}`).digest('hex');
@@ -134,6 +147,51 @@ export class SigmaMemEngine {
     pruneLowSigmaMemories(db, 0.20);
   }
 
+  public static recordAntiPattern(
+    db: Database.Database,
+    opts: AntiPatternRecordOptions
+  ): SqliteSigmaAntiPattern {
+    const now = Date.now();
+    const targetFile = opts.targetFile || '';
+    const cleanError = maskSecrets(opts.errorSignature.trim().split('\n').slice(0, 3).join('\n'));
+    const cleanSummary = maskSecrets(opts.attemptSummary.trim());
+    const cleanAlt = opts.suggestedAlternative ? maskSecrets(opts.suggestedAlternative.trim()) : '';
+
+    const id = `anti_${crypto.createHash('sha256').update(`${targetFile}|${cleanError}`).digest('hex').slice(0, 16)}`;
+
+    const ap: SqliteSigmaAntiPattern = {
+      id,
+      task_category: opts.taskCategory,
+      target_file: targetFile,
+      attempt_summary: cleanSummary,
+      error_signature: cleanError,
+      suggested_alternative: cleanAlt,
+      occurrence_count: 1,
+      last_occurred_at: now,
+      created_at: now,
+    };
+
+    saveSigmaAntiPattern(db, ap);
+    return ap;
+  }
+
+  public static resolveAntiPattern(
+    db: Database.Database,
+    targetFile: string,
+    successfulAlternative: string
+  ): void {
+    if (!targetFile || !successfulAlternative) return;
+    resolveSigmaAntiPattern(db, targetFile, maskSecrets(successfulAlternative.trim()));
+  }
+
+  public static getAntiPatternsForContext(
+    db: Database.Database,
+    targetFiles?: string[],
+    limit: number = 3
+  ): SqliteSigmaAntiPattern[] {
+    return getSigmaAntiPatterns(db, { targetFiles, limit });
+  }
+
   /** Retrieve top high-scoring Σ-Memories formatted as a system prompt block */
   public static getPromptContext(
     db: Database.Database,
@@ -163,7 +221,8 @@ export class SigmaMemEngine {
     // minScore right after a failure) must still reach the agent while the mistake is
     // fresh, which is exactly when the steering matters most.
     const avoid = getTopFailureCritiques(db, 3);
-    if (selected.length === 0 && avoid.length === 0) {
+    const antiPatterns = SigmaMemEngine.getAntiPatternsForContext(db, matchTags, 3);
+    if (selected.length === 0 && avoid.length === 0 && antiPatterns.length === 0) {
       return { prompt: '', activeMemoryIds: [] };
     }
 
@@ -187,6 +246,19 @@ export class SigmaMemEngine {
         return `• [AVOID · ${role} · ${m.verified_fail}✗] ${m.summary}\n  ${m.critique.trim()}`;
       });
       prompt += `\n--- Σ-Mem Failure Mode Critiques (AVOID — learned from verified failures) ---\n${avoidLines.join('\n\n')}\n--- End AVOID ---\n`;
+    }
+
+    if (antiPatterns.length > 0) {
+      const antiLines = antiPatterns.map((ap) => {
+        const fileTag = ap.target_file ? ` · ${ap.target_file}` : '';
+        const countTag = ap.occurrence_count > 1 ? ` · ${ap.occurrence_count}x` : '';
+        let line = `• [PITFALL${fileTag}${countTag}] ${ap.attempt_summary}\n  Error: ${ap.error_signature}`;
+        if (ap.suggested_alternative) {
+          line += `\n  Resolution: ${ap.suggested_alternative}`;
+        }
+        return line;
+      });
+      prompt += `\n--- Σ-Mem Anti-Patterns (KNOWN PITFALLS ON THIS CODEBASE) ---\n${antiLines.join('\n\n')}\n--- End Anti-Patterns ---\n`;
     }
 
     const activeMemoryIds = selected.map((m) => m.id);
@@ -255,6 +327,7 @@ export class SigmaMemEngine {
 
   /** Background maintenance: prunes low-sigma memories and decays stale ones */
   public static consolidateAndPruneMemories(db: Database.Database, threshold = 0.20): number {
+    pruneOldAntiPatterns(db, 50);
     return pruneLowSigmaMemories(db, threshold);
   }
 }

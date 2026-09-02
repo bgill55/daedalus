@@ -112,7 +112,23 @@ Reward and penalty are now **attributed**: on failure only memories whose tags o
 
 ### 5. Single-Agent Mode
 
-The REPL injects the Σ-Mem context block into the main system prompt, refreshed each turn. After every model turn, `evaluatePatchOutcome` compares patch progress and failure streaks; a turn that applied new patches rewards the active memories, one that worsened failures penalizes them. Feedback is best-effort (never breaks the turn) and **never records new knowledge** from this weak proxy signal — single-agent turns only score existing memories, while the orchestrator remains the sole recorder of verified knowledge.
+The REPL injects the Σ-Mem context block into the main system prompt, refreshed each turn. After every model turn, build verification checks whether compilation or tests passed. A turn that introduced clean code rewards active memories, while a broken build penalizes them.
+
+### 6. Persistent Anti-Pattern & Pitfall Memory (Negative Learning Engine)
+
+Reliability scoring handles positive reinforcement, but complex development tasks also require **negative learning** to avoid repeating known mistakes. $\Sigma$-Mem includes a persistent Anti-Pattern Ledger in `project-mem.sqlite` (`sigma_anti_patterns` table):
+
+- **Error Signature Capture**: When a patch or verification check fails, $\Sigma$-Mem normalizes the compiler or runtime error (e.g. `TS2322`, `SyntaxError`, `Module not found`) and records it alongside the targeted file and an attempt summary.
+- **Deduplication & Recurrence Tracking**: Repeated failures on the same file increment `occurrence_count` and refresh `last_occurred_at`.
+- **Target-Matched Prompt Injection**: When preparing prompt context, active files are matched against the anti-pattern ledger to inject a high-priority warning block:
+  ```text
+  --- Σ-Mem Anti-Patterns (KNOWN PITFALLS ON THIS CODEBASE) ---
+  • [PITFALL · src/router/index.ts · 2x] Attempted direct modification of shared map
+    Error: "Concurrent map write"
+    Resolution: Use provider-scoped token bucket instead of global registry.
+  --- End Anti-Patterns ---
+  ```
+- **Automatic Solution Pairing**: When an edit subsequently passes verification on a file that previously suffered an anti-pattern, $\Sigma$-Mem annotates the record with the proven `suggested_alternative`, converting past mistakes into permanent solution recipes.
 
 ---
 

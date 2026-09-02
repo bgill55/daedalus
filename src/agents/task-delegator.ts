@@ -515,6 +515,10 @@ export class TaskDelegator {
           summary: cleanTaskText(task.goal),
           content: result.slice(0, 300),
         });
+        const targetFiles = extractFilePaths(task.goal);
+        for (const file of targetFiles) {
+          SigmaMemEngine.resolveAntiPattern(this.sessionManager.projectMemDb, file, result.slice(0, 200));
+        }
       }
     }
     task.status = success ? 'completed' : 'failed';
@@ -526,6 +530,13 @@ export class TaskDelegator {
         if (related.length > 0) {
           SigmaMemEngine.penalizeFailedAttempt(this.sessionManager.projectMemDb, related, task.error?.slice(0, 280));
         }
+        const targetFiles = extractFilePaths(task.goal);
+        SigmaMemEngine.recordAntiPattern(this.sessionManager.projectMemDb, {
+          taskCategory: task.role,
+          targetFile: targetFiles[0] || '',
+          attemptSummary: cleanTaskText(task.goal).slice(0, 150),
+          errorSignature: task.error?.slice(0, 280) || 'Task failed verification',
+        });
       }
 
       if (task.role === 'coder' || task.role === 'debugger') {
