@@ -1,3 +1,10 @@
+## [3.68.4](https://github.com/bgill55/daedalus/compare/v3.68.3...v3.68.4) (2026-09-02)
+
+
+### Bug Fixes
+
+* **marathon:** capture untracked files and working-tree diff for milestone evaluation ([aba1c74](https://github.com/bgill55/daedalus/commit/aba1c74f1321ff2706735491da2ee34c825700e4))
+
 ## [3.68.3](https://github.com/bgill55/daedalus/compare/v3.68.2...v3.68.3) (2026-09-02)
 
 
