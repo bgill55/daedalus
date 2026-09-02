@@ -205,3 +205,26 @@ Running local models on consumer hardware (such as an **8GB VRAM GPU** and **32G
     *   *Recommended Use*: Code generation and editing. Highly accurate for TypeScript, Python, Go, and Rust.
 2.  **Llama-3-8B-Instruct** (GGUF, using `Q4_K_M` or `Q5_K_M` quantization)
     *   *Recommended Use*: General chat, planning, and multi-agent orchestration.
+
+---
+
+## Context-Aware Dynamic Tool Selection & Token Optimization
+
+By default, Daedalus has over 35 built-in tools and can support arbitrary MCP servers. Passing every tool schema to the LLM on every turn consumes 2,000–3,500+ prompt tokens per request and dilutes model reasoning.
+
+Daedalus includes an automatic **Context-Aware Dynamic Tool Selector**:
+* **Permanent Core Safety**: The 10 essential coding tools (`read_file`, `write_file`, `patch`, `search_files`, `list_files`, `terminal`, `git_status`, `git_diff`, `todo`, and `ask_user`) are always present and never dropped.
+* **Contextual Specialist Promotion**:
+  * **LSP & Diagnostics**: When editing typed languages (`.ts`, `.py`, `.rs`, etc.) or when compiler errors (like `TS2322` or `SyntaxError`) are detected, LSP tools (`lsp_diagnostics`, `lsp_hover`, `lsp_rename`, `eval_code`) are promoted to the top rank.
+  * **Symbol Graph & Codebase Indexing**: When tracing references or refactoring, symbol and call graph tools are activated.
+  * **Web & Documentation**: When URLs or research prompts are provided, `web_search` and `fetch_url` are included.
+* **Configuration Toggle**:
+  You can toggle dynamic tool selection in `~/.daedalus/config.json`:
+  ```json
+  {
+    "tools": {
+      "dynamicSelection": true
+    }
+  }
+  ```
+  Set to `false` if you wish to pass the raw, unpruned tool catalog on every turn.

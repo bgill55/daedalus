@@ -122,6 +122,7 @@ AI assistance without:
 - **Side-by-side diffs** — set `ui.diffStyle` to `side-by-side` for a two-column old-vs-new view in the patch approval UI.
 
 ### Tools
+- **Context-Aware Dynamic Tool Selection** — dynamically prunes and ranks tool definitions per turn (prioritizing LSP on compiler diagnostics, symbol graphs on refactors, web on URLs), cutting prompt token overhead by 50%+ and sharpening model attention.
 - **File tools** — read, write, patch with interactive diff UI; fuzzy whitespace matching, syntax validation with auto-revert
 - **Trust layer** — write-without-read guardrail, terminal + patch circuit breakers, batch short-circuit on failed file edits, actionable edit hints, import/export validation, auto-test loop, large-rewrite annotation
 - **Terminal** — cross-platform shell execution (bash/cmd/powershell) with custom preference support, timeout, and abort
