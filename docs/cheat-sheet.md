@@ -35,6 +35,11 @@ Run these commands inside the active Daedalus REPL shell to configure models, tr
 * **`/skills`** – Lists active trusted skills and lets you review, accept, or discard agent-proposed playbook drafts stored in `~/.daedalus/skills/.drafts/`.
 * **`/shortcut <alias> = <command>`** – Create custom aliases for frequently executed workflows (e.g. `/shortcut qt = /test 1 -g`).
 
+####  Autonomous Orchestration & Multi-Day Development
+* **`/marathon <goal>`** – Initiates the Harness-of-Harness (HoH) multi-day autonomous development loop (Metis Milestone DAG $\rightarrow$ Hephaestus Sprint $\rightarrow$ Air-Gapped Apollo Audit $\rightarrow$ Git Checkpoint Rollback Arbitrator).
+* **`/marathon status | resume | rollback | abort`** – Inspects visual roadmap progress, resumes interrupted runs across days from the last verified git checkpoint tag, or hard-rolls back working tree on failure.
+* **`/autopilot <feature>`** – Autonomous single-feature branch implementation, verification, git commit, and GitHub Pull Request generation.
+
 ---
 
 ###  2. Essential Environment Variables
