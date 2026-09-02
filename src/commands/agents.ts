@@ -21,6 +21,7 @@ import {
   writeAutopilotManifest,
   type AutopilotManifest,
 } from './autopilot.js';
+import { marathonCommand } from './marathon.js';
 import { mcpCommand } from './mcp.js';
 import { huntCommand } from './hunt.js';
 import { onboardCommand } from './onboard.js';
@@ -30,6 +31,7 @@ export {
   runAutopilotVerify,
   writeAutopilotManifest,
   autopilotCommand,
+  marathonCommand,
   mcpCommand,
   huntCommand,
   onboardCommand,
@@ -396,6 +398,7 @@ export const agentCommands: Command[] = [
     }
   },
   autopilotCommand,
+  marathonCommand,
   huntCommand,
   {
     name: '/preview',
