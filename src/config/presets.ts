@@ -139,6 +139,7 @@ export const PRESETS: Record<string, ConfigPreset> = {
         permissions: { terminal: 'auto', files: 'auto' },
         sandbox: 'none',
         sandboxImage: 'node:20',
+        dynamicSelection: true,
       },
     },
   },
