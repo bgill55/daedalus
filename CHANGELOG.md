@@ -1,3 +1,10 @@
+## [3.68.5](https://github.com/bgill55/daedalus/compare/v3.68.4...v3.68.5) (2026-09-02)
+
+
+### Bug Fixes
+
+* **marathon:** instruct Metis planner to preserve host codebase config and entrypoints ([743305f](https://github.com/bgill55/daedalus/commit/743305fc11f0346cb4b0331c1308ac863dc7f7b6))
+
 ## [3.68.4](https://github.com/bgill55/daedalus/compare/v3.68.3...v3.68.4) (2026-09-02)
 
 
