@@ -583,10 +583,19 @@ export function createModelFunctions(deps: ModelDeps) {
       lastContent = cleanContent;
 
       if (toolCallArray.length === 0) {
+        const effectiveUserTask =
+          userContent ||
+          messageText(
+            messages
+              .slice()
+              .reverse()
+              .find((m) => m.role === 'user')?.content ?? ''
+          ) ||
+          userTask;
         const guardResult = await checkTurnCompletionGuards({
           cleanContent,
           fullContent,
-          userTask,
+          userTask: effectiveUserTask,
           messages,
           toolContext,
           router,

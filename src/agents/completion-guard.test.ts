@@ -253,6 +253,15 @@ describe('isUnsubstantiatedProgressReport', () => {
       'I cannot claim completion of work that hasn\'t been properly implemented and verified.';
     expect(isUnsubstantiatedProgressReport(report)).toBe(false);
   });
+
+  it('does NOT flag a list of proposed improvements or recommendations', () => {
+    const suggestions =
+      'Here are 3-5 improvements I would prioritize:\n' +
+      '1. SSE Reconnection: When connection drops, reconnect automatically with backoff.\n' +
+      '2. LSP Cache Invalidation: Invalidate symbols when files are updated on disk.\n' +
+      '3. Memory Indexing: Improved index ranking for semantic queries.';
+    expect(isUnsubstantiatedProgressReport(suggestions)).toBe(false);
+  });
 });
 
 describe('ClaimLedger + detectUngroundedClaim', () => {
@@ -457,6 +466,16 @@ describe('isReviewTask / isReviewDeliverable / isIdeationOrProposalTask', () => 
     expect(isIdeationOrProposalTask('brainstorm 5 ideas for agent contracts')).toBe(true);
     expect(isIdeationOrProposalTask('reprint the list since I lost it')).toBe(true);
     expect(isIdeationOrProposalTask('what features should we add next?')).toBe(true);
+    expect(
+      isIdeationOrProposalTask(
+        'lol, look at your source code aka this project, and come up with 3-5 improvements you would like to see or have at you disposal.'
+      )
+    ).toBe(true);
+    expect(
+      isReviewTask(
+        'lol, look at your source code aka this project, and come up with 3-5 improvements you would like to see or have at you disposal.'
+      )
+    ).toBe(false);
     expect(isIdeationOrProposalTask('fix the bug in router.ts')).toBe(false);
   });
 

@@ -206,6 +206,21 @@ export function isUnsubstantiatedProgressReport(text: string): boolean {
   // enumerates verified ✅ items alongside explicit ❌/NOT-completed items loops the
   // guard and wastes tokens re-stating reality.
   if (isHonestDisclaimer(text) || isHypotheticalOrProposal(text)) return false;
+  // If the text explicitly claims improvements / fixes were MADE / SHIPPED / COMPLETED,
+  // it is an achievement list, not a forward-looking proposal.
+  const hasClaimedPastAchievements =
+    /\b(?:improvements?|changes?|fixes?|deliverables?)\s+(?:made|completed|implemented|shipped|delivered)\b/i.test(text);
+  if (!hasClaimedPastAchievements) {
+    // Lists framed as recommendations, feature proposals, or desired improvements
+    // are forward-looking suggestions, not reports of completed work delivered.
+    if (
+      /\b(recommend(?:ation)?s?|suggest(?:ion)?s?|propos(?:al)?s?|wishlist|wish list|future work|next steps|roadmap|priorit(?:y|ize|ies)|would like to see|could add|could introduce|improvements? (?:to|we|i|you|could|would|to make|propos(?:ed|al)|suggest(?:ed|ion)))\b/i.test(
+        text
+      )
+    ) {
+      return false;
+    }
+  }
   // Require a substantive enumeration (≥2 items) so a single incidental "✅ done"
   // or one bullet doesn't trip the guard — only a deliverable checklist does.
   return countAchievementItems(text) >= 2;
@@ -411,7 +426,7 @@ const NON_FILE_TOKENS = new Set([
 // is not asserting a factual property of an existing repo file and must not trip the
 // ungrounded-claim guard.
 export const HYPOTHETICAL_OR_PROPOSAL_RE =
-  /\b(?:would|could|might|may)\s+(?:\w+\s+){0,3}(?:be|have|use|include|contain|declare|define|add|create|export|import|need|hold|store)\b|\b(?:propos(?:e|ed|al|ing)|suggest(?:ed|ion|ing)?|idea|feature idea|hypothetical|for example|e\.g\.)\b|\b(?:create|creating|add|adding|introduce|introducing|new)\s+(?:a\s+|an\s+)?[\w.-]+\.\w+/i;
+  /\b(?:would|could|might|may)\s+(?:\w+\s+){0,3}(?:be|have|use|include|contain|declare|define|add|create|export|import|need|hold|store|like|see|prioritize|benefit|improve)\b|\b(?:propos(?:e|ed|al|ing)|suggest(?:ed|ion|ing)?|idea|feature idea|hypothetical|for example|e\.g\.|wishlist|wish list|priorit(?:y|ize|ies))\b|\b(?:create|creating|add|adding|introduce|introducing|new)\s+(?:a\s+|an\s+)?[\w.-]+\.\w+/i;
 
 export function isHypotheticalOrProposal(text: string): boolean {
   if (!text) return false;
@@ -589,7 +604,7 @@ export function negativeExistenceWarning(term: string): string {
 // These are creative, forward-looking requests rather than backward-looking code audits,
 // so they must NOT activate the source-inspection quota or citation-gate guards.
 export const IDEATION_OR_PROPOSAL_TASK_RE =
-  /\b(upgrade|upgrades|features?|suggest|suggested|suggestions?|recommend(?:ation)?s?|brainstorm|ideas?|propos(?:e|al|als|ing)|roadmap|what if|how (?:could|might|should|would) we|what (?:could|might|should|would) we|possibilit(?:y|ies)|future|reprint|repeat|summarize the list|tell me about|explain|concepts?|architecture ideas?)\b/i;
+  /\b(upgrade|upgrades|features?|improvement|improvements|improve|suggest|suggested|suggestions?|recommend(?:ation)?s?|brainstorm|ideas?|propos(?:e|al|als|ing)|roadmap|what if|how (?:could|might|should|would) we|what (?:could|might|should|would) we|possibilit(?:y|ies)|future|reprint|repeat|summarize the list|tell me about|explain|concepts?|architecture ideas?|come up with|like to see|would like|disposal|wish list|wishlist)\b/i;
 
 export function isIdeationOrProposalTask(task: string): boolean {
   if (!task) return false;

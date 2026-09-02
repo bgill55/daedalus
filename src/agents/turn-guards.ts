@@ -106,7 +106,7 @@ export async function checkTurnCompletionGuards(ctx: TurnGuardContext): Promise<
       typeof m.content === 'string' &&
       (m.content.startsWith('[SYSTEM WARNING]') || m.content.startsWith('[FILE-MISSING]') || m.content.startsWith('[CHECK]'))
   );
-  const isIdeation = isIdeationOrProposalTask(userTask) || isHypotheticalOrProposal(cleanContent);
+  const isIdeation = isIdeationOrProposalTask(userTask);
   const isReviewContent = !isIdeation && isReviewDeliverable(cleanContent);
 
   if (!hasRecentGuardWarning && !isReviewContent && divergence.register(cleanContent)) {
