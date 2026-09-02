@@ -1,3 +1,10 @@
+## [3.68.6](https://github.com/bgill55/daedalus/compare/v3.68.5...v3.68.6) (2026-09-02)
+
+
+### Bug Fixes
+
+* **marathon:** run targeted milestone tests and respect Apollo diagnosis of unrelated failures ([41c068f](https://github.com/bgill55/daedalus/commit/41c068fbb7956f6cbb8b7b45732883bea32c3fa9))
+
 ## [3.68.5](https://github.com/bgill55/daedalus/compare/v3.68.4...v3.68.5) (2026-09-02)
 
 
