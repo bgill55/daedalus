@@ -1,0 +1,76 @@
+# Marathon Roadmap: Add a Companion Web UI to Daedalus under src/webui/ running on localhost:3888 with Server-Sent Events (SSE) for live telemetry streaming. Include a native node:http server in src/webui/server.ts, a single-page dark cyber-themed dashboard in src/webui/public/index.html, a slash command /webui in src/commands/webui.ts with start/stop/open/status subcommands, and unit tests in src/webui/server.test.ts. Do not modify root package.json.
+
+- **Status**: `EVALUATING`
+- **Progress**: 0/6 milestones passed (0%)
+- **Base Branch**: `main`
+- **Integration Branch**: `marathon/add-a-companion-web-ui-to-daed`
+- **Last Updated**: 2026-09-02T20:47:47.860Z
+
+## Milestones
+
+### [>] M-1: Setup Web UI Directory
+
+Create src/webui/ directory and initialize basic structure
+
+- **Target Files**: `src/webui/index.ts`, `src/webui/public/index.html`
+- **Attempts**: 3/3
+
+**Acceptance Criteria:**
+- [x] Directory src/webui/ exists
+- [x] File src/webui/index.ts exists
+- [x] File src/webui/public/index.html exists
+
+### [ ] M-2: Implement HTTP Server
+
+Add native node:http server in src/webui/server.ts
+
+- **Target Files**: `src/webui/server.ts`
+- **Attempts**: 0/3
+
+**Acceptance Criteria:**
+- [ ] Server starts and listens on localhost:3888
+- [ ] Server responds with 200 OK to GET /
+
+### [ ] M-3: Create SSE Endpoint
+
+Add Server-Sent Events (SSE) endpoint in src/webui/server.ts
+
+- **Target Files**: `src/webui/server.ts`
+- **Attempts**: 0/3
+
+**Acceptance Criteria:**
+- [ ] SSE endpoint available at /telemetry
+- [ ] SSE endpoint sends dummy telemetry data
+
+### [ ] M-4: Design Dashboard UI
+
+Create single-page dark cyber-themed dashboard in src/webui/public/index.html
+
+- **Target Files**: `src/webui/public/index.html`, `src/webui/public/styles.css`
+- **Attempts**: 0/3
+
+**Acceptance Criteria:**
+- [ ] Dashboard UI loads in browser
+- [ ] Dashboard UI matches design spec
+
+### [ ] M-5: Implement Slash Command
+
+Add /webui slash command in src/commands/webui.ts with start/stop/open/status subcommands
+
+- **Target Files**: `src/commands/webui.ts`
+- **Attempts**: 0/3
+
+**Acceptance Criteria:**
+- [ ] /webui command available in CLI
+- [ ] start, stop, open, status subcommands function as expected
+
+### [ ] M-6: Write Unit Tests
+
+Add unit tests for webui components in src/webui/server.test.ts
+
+- **Target Files**: `src/webui/server.test.ts`
+- **Attempts**: 0/3
+
+**Acceptance Criteria:**
+- [ ] Unit tests cover all webui components
+- [ ] Unit tests pass with 100% coverage
