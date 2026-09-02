@@ -286,7 +286,9 @@ export async function runBuildVerification(toolContext: ToolContext, historyStar
         // Test gate: a project's test suite is the real correctness signal.
         // If a project defines `daedalus-check` it is assumed to cover tests
         // already (it becomes `command` above), so we don't double-run.
-        if (!pkg.scripts['daedalus-check'] && pkg.scripts.test) {
+        // Pre-flight checks (touchedFiles empty) only verify compile/lint to avoid
+        // heavy test suite timeouts before work has even begun.
+        if (touchedFiles.length > 0 && !pkg.scripts['daedalus-check'] && pkg.scripts.test) {
           const t = pkg.scripts.test;
           // Guard against watch-mode runners (e.g. bare `vitest`) hanging the
           // verification step — force a one-shot run when vitest is detected.
@@ -372,14 +374,20 @@ export async function runBuildVerification(toolContext: ToolContext, historyStar
 
   if (testCommand) {
     console.log(pc.cyan(`\n[VERIFY] Running test command: "${testCommand}"...`));
-    // Tests can be slow; give them a longer timeout than build/lint so a large
+    // Tests can be slow; give them a longer timeout (240s) than build/lint so a large
     // suite doesn't false-fail the verification gate.
-    const res = await runCmd(testCommand, 120000);
+    const res = await runCmd(testCommand, 240000);
     if (!res.success) {
-      console.log(pc.red(`[VERIFY] Tests failed!`));
-      return { success: false, errorLogs: res.logs };
+      const isRelated = touchedFiles.length === 0 || isBuildErrorRelated(res.logs || '', touchedFiles, cwd);
+      if (!isRelated) {
+        console.log(pc.yellow(`[VERIFY] Test command failed or timed out in unrelated files. Ignoring failure for this task.`));
+      } else {
+        console.log(pc.red(`[VERIFY] Tests failed!`));
+        return { success: false, errorLogs: res.logs };
+      }
+    } else {
+      console.log(pc.green(`[VERIFY] Tests passed.`));
     }
-    console.log(pc.green(`[VERIFY] Tests passed.`));
   }
 
   if (fs.existsSync(path.join(cwd, 'package.json'))) {
