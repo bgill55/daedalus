@@ -192,8 +192,12 @@ export function translateUnixToCmd(command: string): string {
   cmd = cmd.replace(/\bmv\b/g, 'move');
   // grep -> findstr
   cmd = cmd.replace(/\bgrep\b/g, 'findstr');
+  // Select-String -> findstr
+  cmd = cmd.replace(/\bSelect-String\b/gi, 'findstr');
   // head -n N -> more +N (approximation)
   cmd = cmd.replace(/\bhead\s+-n\s+(\d+)/gi, 'more +$1');
+  // tail pipeline -> powershell Select-Object or more
+  cmd = cmd.replace(/\|\s*tail(?:\s+(?:-n\s*)?(\d+))?/gi, (_m, n) => n ? `| powershell -Command "$input | Select-Object -Last ${n}"` : '| more');
   return cmd;
 }
 

@@ -13,6 +13,7 @@ import {
   isUngroundedProjectClaim,
   isReviewTask,
   isIdeationOrProposalTask,
+  isCasualOrInformationalTask,
   isReviewDeliverable,
   isReviewWithoutSourceInspection,
   claimedTestCountWithoutRun,
@@ -546,6 +547,21 @@ describe('isReviewWithoutSourceInspection', () => {
   });
 });
 
+describe('isCasualOrInformationalTask', () => {
+  it('identifies casual and informational sharing prompts', () => {
+    expect(isCasualOrInformationalTask('ok here was what shipped and live')).toBe(true);
+    expect(isCasualOrInformationalTask('i was just showing you what i added and upgraded.')).toBe(true);
+    expect(isCasualOrInformationalTask('just chatting with you')).toBe(true);
+    expect(isCasualOrInformationalTask('hey daedalus, check this out')).toBe(true);
+    expect(isCasualOrInformationalTask('FYI here is what we did')).toBe(true);
+  });
+
+  it('does not classify action tasks as casual', () => {
+    expect(isCasualOrInformationalTask('fix the broken type error in model.ts')).toBe(false);
+    expect(isCasualOrInformationalTask('run the tests and verify')).toBe(false);
+  });
+});
+
 describe('claimedTestCountWithoutRun', () => {
   it('fires when agent claims "9 tests passing" with no real run', () => {
     expect(claimedTestCountWithoutRun('The project has 9 tests passing.', undefined)).toBe('9');
@@ -553,6 +569,37 @@ describe('claimedTestCountWithoutRun', () => {
 
   it('fires when agent claims "all 16 tests passing" with no real run', () => {
     expect(claimedTestCountWithoutRun('All 16 tests passing.', undefined)).toBe('16');
+  });
+
+  it('captures comma-formatted numbers like "1,641 passed" accurately', () => {
+    expect(claimedTestCountWithoutRun('Suite finished with 1,641 passed.', undefined)).toBe('1,641');
+  });
+
+  it('does NOT fire when userTask is casual or informational', () => {
+    expect(
+      claimedTestCountWithoutRun(
+        'The release shows 1,641 passed.',
+        undefined,
+        'ok here was what shipped and live'
+      )
+    ).toBeNull();
+    expect(
+      claimedTestCountWithoutRun(
+        '1,641 tests passed in that build',
+        undefined,
+        'i was just showing you what i added and upgraded.'
+      )
+    ).toBeNull();
+  });
+
+  it('does NOT fire when the user message already contains the test count', () => {
+    expect(
+      claimedTestCountWithoutRun(
+        'The 1,641 tests passing count is impressive.',
+        undefined,
+        'Here is the log: 1,641 passed'
+      )
+    ).toBeNull();
   });
 
   it('does NOT fire when lastActualPassCount is set (let existing guard handle it)', () => {

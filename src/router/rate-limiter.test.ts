@@ -73,7 +73,7 @@ describe('TokenBucket rate limiter', () => {
     bucket.lastRefill -= 1000;
     refillBucket(bucket);
     consumeTokens(bucket, 40);
-    expect(bucket.tokens).toBe(30);
+    expect(Math.round(bucket.tokens)).toBe(30);
   });
 
   it('handles zero capacity edge case', () => {

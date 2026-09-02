@@ -606,9 +606,25 @@ export function negativeExistenceWarning(term: string): string {
 export const IDEATION_OR_PROPOSAL_TASK_RE =
   /\b(upgrade|upgrades|features?|improvement|improvements|improve|suggest|suggested|suggestions?|recommend(?:ation)?s?|brainstorm|ideas?|propos(?:e|al|als|ing)|roadmap|what if|how (?:could|might|should|would) we|what (?:could|might|should|would) we|possibilit(?:y|ies)|future|reprint|repeat|summarize the list|tell me about|explain|concepts?|architecture ideas?|come up with|like to see|would like|disposal|wish list|wishlist)\b/i;
 
+const ACTION_IMPLEMENTATION_TASK_RE =
+  /\b(implement(?:ing|ed|s)?|fix(?:ing|ed)?)\s+(?:the\s+|a\s+|an\s+|this\s+)?(?:feature|code|bug|issue|tests?)\b/i;
+
 export function isIdeationOrProposalTask(task: string): boolean {
   if (!task) return false;
+  if (ACTION_IMPLEMENTATION_TASK_RE.test(task)) return false;
   return IDEATION_OR_PROPOSAL_TASK_RE.test(task);
+}
+
+// Casual, social, or informational sharing: greetings, casual check-ins, sharing release notes,
+// pasting summaries, status updates ("here was what shipped", "just showing you what I added").
+// These are collaborative conversations, not autonomous deliverable assignments, so they must
+// not be intercepted by completion gates or test-run enforcement guards.
+export const CASUAL_OR_INFORMATIONAL_TASK_RE =
+  /\b(just (?:showing|telling|chatting|checking in|sharing|saying|wanted to show|wanted to share|giving you|letting you know)|here (?:is|was) what|look at this|check this out|take a look at what|for your information|FYI|heads up|what do you think of this|look what (?:i|we)|sharing this|pasted|release notes|what shipped|already shipped|changelog|summary of what|talking to you|chat with|saying hi|hello|hey daedalus|hey there|how are you|good (?:morning|afternoon|evening)|cool|nice|awesome|sweet|good job|thank you|thanks|no need to run|dont run|do not run|just chatting|casual)\b/i;
+
+export function isCasualOrInformationalTask(task: string): boolean {
+  if (!task) return false;
+  return CASUAL_OR_INFORMATIONAL_TASK_RE.test(task);
 }
 
 // Inspection-before-review gate: when the user asked for a review/audit of a project
@@ -623,6 +639,7 @@ const REVIEW_TASK_RE =
 export function isReviewTask(task: string): boolean {
   if (!task) return false;
   if (isIdeationOrProposalTask(task)) return false;
+  if (isCasualOrInformationalTask(task)) return false;
   return REVIEW_TASK_RE.test(task);
 }
 
@@ -1107,19 +1124,48 @@ export function citationValidationWarning(failures: CitationCheck[]): string {
 // (i.e. a real npm test was observed). This companion guard fires unconditionally when the
 // agent claims a SPECIFIC test count (e.g. "9 tests passing") but no test run was recorded.
 const SPECIFIC_TEST_COUNT_RE =
-  /\b(\d+)\s*(?:\/\s*\d+\s*)?(?:tests?|specs?|suites?)\s+(?:pass(?:ing|ed)?|green)\b|\ball\s+(\d+)\s+tests?\s+pass(?:ing)?\b|(\d+)\s+(?:passing|passed)\b/i;
+  /\b((?:\d{1,3}(?:,\d{3})+|\d+))\s*(?:\/\s*(?:\d{1,3}(?:,\d{3})+|\d+)\s*)?(?:tests?|specs?|suites?)\s+(?:pass(?:ing|ed)?|green)\b|\ball\s+((?:\d{1,3}(?:,\d{3})+|\d+))\s+tests?\s+pass(?:ing)?\b|((?:\d{1,3}(?:,\d{3})+|\d+))\s+(?:passing|passed)\b/i;
 
 /**
  * Returns a correction string when the text claims a specific passing test count but
  * no `npm test` / vitest / jest run was actually observed this session (lastActualPassCount
- * is undefined). Returns null when no specific count is asserted or when a real run exists.
+ * is undefined). Returns null when no specific count is asserted, when a real run exists,
+ * or when the user is conversing casually or provided the numbers being referenced.
  */
-export function claimedTestCountWithoutRun(text: string, lastActualPassCount: number | undefined): string | null {
+export function claimedTestCountWithoutRun(
+  text: string,
+  lastActualPassCount: number | undefined,
+  userTask?: string,
+  messages?: Array<{ role: string; content?: unknown }>
+): string | null {
   if (lastActualPassCount !== undefined) return null; // real run exists, let the existing guard handle it
+  if (userTask && (isCasualOrInformationalTask(userTask) || isIdeationOrProposalTask(userTask))) {
+    return null;
+  }
   const m = text.match(SPECIFIC_TEST_COUNT_RE);
   if (!m) return null;
   const claimed = m[1] ?? m[2] ?? m[3];
   if (!claimed) return null;
+
+  // If the user's prompt or past messages already contain this number or mention tests/shipped/passed,
+  // the assistant is quoting, acknowledging, or discussing user-provided text — NOT fabricating a test run!
+  const normalizedClaim = claimed.replace(/,/g, '');
+  if (userTask) {
+    const normUser = userTask.replace(/,/g, '');
+    if (normUser.includes(normalizedClaim) || userTask.includes(claimed)) {
+      return null;
+    }
+  }
+  if (messages && messages.length > 0) {
+    const hasInUserMessages = messages.some((msg) => {
+      if (msg.role !== 'user' || !msg.content) return false;
+      const str = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
+      const normStr = str.replace(/,/g, '');
+      return normStr.includes(normalizedClaim) || str.includes(claimed);
+    });
+    if (hasInUserMessages) return null;
+  }
+
   return claimed;
 }
 
