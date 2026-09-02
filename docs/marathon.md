@@ -94,3 +94,8 @@ Marks the active marathon run as aborted.
 - `.daedalus/marathon.json`: Persistent run metadata, milestone states, audit reports, and iteration metrics.
 - `MARATHON_ROADMAP.md`: Human-readable, live-updated markdown roadmap in the repository root.
 - `~/.daedalus/sessions/<project-hash>/project-mem.sqlite`: Long-term $\Sigma$-Mem anti-pattern storage.
+
+---
+
+## Further Reading
+- [Case Study: Multi-Day Autonomy in Action — The Marathon Engine Walkthrough](marathon-case-study.md)

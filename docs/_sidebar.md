@@ -27,6 +27,7 @@
   - [MCP Integration](mcp.md)
 
 - **Case Studies**
+  - [Marathon Engine HoH Case Study](marathon-case-study.md)
   - [PromptVault Sandboxed Integration Case Study](prompt-vault-case-study.md)
   - [Finn Loop & CI Reviewer Case Study](finn-loop-case-study.md)
   - [Gold Standard Spec](example-spec-stats.md)
