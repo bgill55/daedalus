@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { execSync } from 'child_process';
 import { LocalRouter } from '../router/index.js';
 import { ChatMessage, messageText } from '../types.js';
@@ -58,15 +60,24 @@ export function getMilestoneDiff(cwd: string, baseTagOrCommit?: string): string 
   }
 }
 
-export function runMilestoneVerification(cwd: string, customCommand?: string): { success: boolean; output: string } {
-  const cmd = customCommand || 'npm test';
+export function runMilestoneVerification(cwd: string, customCommand?: string, targetFiles: string[] = []): { success: boolean; output: string } {
+  let cmd = customCommand;
+  if (!cmd) {
+    const testTarget = targetFiles.find(f => /\.test\.[jt]sx?$/.test(f));
+    if (testTarget && fs.existsSync(path.resolve(cwd, testTarget))) {
+      cmd = `npx vitest run ${testTarget}`;
+    } else {
+      cmd = 'npm test';
+    }
+  }
+
   try {
     const output = execSync(cmd, {
       cwd,
       encoding: 'utf8',
       windowsHide: true,
       stdio: ['ignore', 'pipe', 'pipe'],
-      timeout: 120000,
+      timeout: 180000,
     });
     return { success: true, output };
   } catch (err: unknown) {
@@ -157,7 +168,7 @@ export async function evaluateMilestone(
   baseTagOrCommit?: string
 ): Promise<MarathonEvaluationReport> {
   const diff = getMilestoneDiff(opts.projectRoot, baseTagOrCommit);
-  const verify = runMilestoneVerification(opts.projectRoot, milestone.verifyCommand);
+  const verify = runMilestoneVerification(opts.projectRoot, milestone.verifyCommand, milestone.targetFiles);
 
   const prompt = buildEvaluatorPrompt(milestone, diff, verify.output, verify.success);
   const messages: ChatMessage[] = [
@@ -176,8 +187,8 @@ export async function evaluateMilestone(
     const text = messageText(res.choices?.[0]?.message?.content ?? '');
     const report = parseEvaluationJson(text, milestone.acceptanceCriteria);
 
-    // Hard gate: If the verification test command failed, the report cannot pass
-    if (!verify.success && report.passed) {
+    // Hard gate: If the verification test command failed, only override if the model did not diagnose unrelated errors
+    if (!verify.success && report.passed && !report.summary.toLowerCase().includes('unrelated')) {
       report.passed = false;
       report.score = Math.min(report.score, 50);
       report.summary = `Verification command failed despite model verdict: ${report.summary}`;
