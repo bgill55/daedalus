@@ -1,3 +1,10 @@
+## [3.67.1](https://github.com/bgill55/daedalus/compare/v3.67.0...v3.67.1) (2026-09-02)
+
+
+### Bug Fixes
+
+* **guards:** prevent false test-count warnings on user-shared summaries and casual chat ([bde43d8](https://github.com/bgill55/daedalus/commit/bde43d87108b58b6c508d1ce1e62a8076e3d123f))
+
 # [3.67.0](https://github.com/bgill55/daedalus/compare/v3.66.1...v3.67.0) (2026-09-02)
 
 
