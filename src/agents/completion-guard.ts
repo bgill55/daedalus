@@ -131,6 +131,7 @@ function claimSegments(text: string): string[] {
 
 export function detectFalseCompletionOnDisk(text: string, context: ToolContext | undefined): string | null {
   if (!text || !context) return null;
+  if (isHonestDisclaimer(text) || isHypotheticalOrProposal(text)) return null;
   const history = context.patchHistory ?? [];
   const streak = context.patchFailureStreak ?? new Map<string, number>();
   const baseOf = (p: string): string =>
@@ -422,14 +423,18 @@ export function isHypotheticalOrProposal(text: string): boolean {
  * Returns the first ungrounded file mention, or null when every claimed file was actually
  * inspected (read/searched/terminal-touched) this session.
  */
-export function detectUngroundedClaim(text: string, ledger: ClaimLedger): string | null {
+export function detectUngroundedClaim(
+  text: string,
+  ledger: ClaimLedger,
+  fileExists?: (path: string) => boolean
+): string | null {
   if (!text || !ledger) return null;
   const sentences = text
     .split(/(?<=[.!?])\s+|\n+/)
     .map((s) => s.trim())
     .filter(Boolean);
   for (const sentence of sentences) {
-    if (isHypotheticalOrProposal(sentence)) continue;
+    if (isHypotheticalOrProposal(sentence) || isHonestDisclaimer(sentence)) continue;
     const mentioned = fileMentions(sentence);
     if (mentioned.length === 0) continue;
     if (!CG_CLAIM_VERB_RE.test(sentence)) continue;
@@ -438,6 +443,9 @@ export function detectUngroundedClaim(text: string, ledger: ClaimLedger): string
       // Skip runtime/platform/CLI tokens (node.js, tsx, npm, ...) — verified via commands,
       // not by reading a repo file. Flagging them as "uninspected" is a false positive.
       if (NON_FILE_TOKENS.has(base)) continue;
+      // If file existence check is available and the file doesn't exist in the project,
+      // it's a proposed/external/non-repo file, not an ungrounded claim about an existing repo file.
+      if (fileExists && !fileExists(raw) && !fileExists(base)) continue;
       const isObserved =
         ledger.observed(base) ||
         (base.endsWith('.js') && ledger.observed(base.slice(0, -3) + '.ts')) ||
@@ -1127,6 +1135,7 @@ export const RUNTIME_EXERCISE_RE =
 export function detectUngroundedWorksClaim(text: string, ledger: ClaimLedger): boolean {
   if (!text || !ledger) return false;
   if (ledger.didExerciseRuntime) return false; // real probe ran this session — grounded
+  if (isHonestDisclaimer(text) || isHypotheticalOrProposal(text)) return false;
   // Only fire when the text actually asserts the feature works/is wired/verified.
   return WORKS_CLAIM_RE.test(text);
 }

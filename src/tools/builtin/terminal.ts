@@ -552,8 +552,12 @@ export async function execute(args: { command: string; timeout?: number; workdir
     // Normalize unquoted Windows drive paths in `cd` so bash (MSYS/git-bash) doesn't mangle backslashes
     execCommand = execCommand.replace(/\bcd\s+([A-Za-z]:[\\/][^"'\s&|;]*)/g, (_m, p) => `cd "${p.replace(/\\/g, '/')}"`);
   } else if (process.platform === 'win32') {
-    // In cmd.exe, ensure drive changes use /d and backslashes
-    execCommand = execCommand.replace(/\bcd\s+(?:(?:\/d\s+)?)"?([A-Za-z]:[^"'\s&|;]*)"?/gi, (_m, p) => `cd /d "${p.replace(/\//g, '\\')}"`);
+    // In cmd.exe, ensure drive changes use /d and backslashes (only quote if path contains whitespace)
+    execCommand = execCommand.replace(/\bcd\s+(?:(?:\/d\s+)?)"?([A-Za-z]:[^"'\s&|;]*)"?/gi, (_m, p) => {
+      const normalized = p.trim().replace(/\//g, '\\');
+      const target = /\s/.test(normalized) ? `"${normalized}"` : normalized;
+      return `cd /d ${target}`;
+    });
     // Agents routinely emit Unix-style commands (ls, cat, mkdir -p, cp, mv, grep, ...)
     // even on Windows. When the active shell is cmd.exe (not bash/git-bash), translate the
     // common Unix-isms to cmd equivalents so headless Windows runs don't die on `ls`.

@@ -126,7 +126,7 @@ export async function checkTurnCompletionGuards(ctx: TurnGuardContext): Promise<
     return { status: 'continue' };
   }
 
-  const ungrounded = detectUngroundedClaim(cleanContent, claimLedger);
+  const ungrounded = detectUngroundedClaim(cleanContent, claimLedger, fileExists);
   if (ungrounded) {
     const key = `claim:${ungrounded}`;
     if (!toolContext.firedCompletionGuards?.has(key)) {

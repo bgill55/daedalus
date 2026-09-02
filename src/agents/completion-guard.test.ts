@@ -340,6 +340,15 @@ describe('ClaimLedger + detectUngroundedClaim', () => {
     expect(detectUngroundedClaim('Feature idea: auth.ts handles OAuth tokens.', ledger)).toBeNull();
     expect(detectUngroundedClaim('For example, schema.prisma defines the user model.', ledger)).toBeNull();
   });
+
+  it('does NOT flag files that do not exist in the project when fileExists is provided', () => {
+    const ledger = new ClaimLedger();
+    const fileExists = (p: string) => p.includes('existing.ts');
+    // capability.json does not exist in the repo
+    expect(detectUngroundedClaim('capability.json declares agent tools.', ledger, fileExists)).toBeNull();
+    // existing.ts exists in the repo but was never observed -> flagged
+    expect(detectUngroundedClaim('existing.ts defines the connection pool.', ledger, fileExists)).toBe('existing.ts');
+  });
 });
 
 describe('isGreenStateClaim', () => {
