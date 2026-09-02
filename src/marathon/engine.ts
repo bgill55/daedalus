@@ -170,6 +170,8 @@ export class MarathonEngine {
     const goal = `Milestone ${milestone.id.toUpperCase()}: ${milestone.title}\n${milestone.description}\nTarget files: ${milestone.targetFiles.join(', ') || 'as needed'}`;
     let sprintPassed = true;
 
+    const prevAutoApprove = process.env.DAEDALUS_AUTO_APPROVE;
+    process.env.DAEDALUS_AUTO_APPROVE = 'true';
     try {
       const result = await orchestrator.run(goal);
       if (result.includes('Orchestration failed') || result.includes('## Orchestration Hit Verification Failures')) {
@@ -177,6 +179,12 @@ export class MarathonEngine {
       }
     } catch {
       sprintPassed = false;
+    } finally {
+      if (prevAutoApprove !== undefined) {
+        process.env.DAEDALUS_AUTO_APPROVE = prevAutoApprove;
+      } else {
+        delete process.env.DAEDALUS_AUTO_APPROVE;
+      }
     }
 
     // Step B: Air-Gapped Apollo Evaluation

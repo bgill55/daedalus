@@ -1,4 +1,4 @@
-﻿import { execSync } from 'child_process';
+import { execSync } from 'child_process';
 import { LocalRouter } from '../router/index.js';
 import { ChatMessage, messageText } from '../types.js';
 import { MarathonMilestone, MarathonEvaluationReport } from './types.js';
@@ -10,12 +10,26 @@ export interface EvaluatorOptions {
 }
 
 export function getMilestoneDiff(cwd: string, baseTagOrCommit?: string): string {
+  if (baseTagOrCommit) {
+    try {
+      return execSync(`git diff ${baseTagOrCommit}..HEAD`, {
+        cwd,
+        encoding: 'utf8',
+        windowsHide: true,
+        stdio: ['ignore', 'pipe', 'pipe'],
+        maxBuffer: 1024 * 1024 * 4,
+      });
+    } catch {
+      // Fallback below
+    }
+  }
+
   try {
-    const target = baseTagOrCommit ? `${baseTagOrCommit}..HEAD` : 'HEAD~1';
-    return execSync(`git diff ${target}`, {
+    return execSync('git diff HEAD~1..HEAD', {
       cwd,
       encoding: 'utf8',
       windowsHide: true,
+      stdio: ['ignore', 'pipe', 'pipe'],
       maxBuffer: 1024 * 1024 * 4,
     });
   } catch {
@@ -24,6 +38,7 @@ export function getMilestoneDiff(cwd: string, baseTagOrCommit?: string): string 
         cwd,
         encoding: 'utf8',
         windowsHide: true,
+        stdio: ['ignore', 'pipe', 'pipe'],
         maxBuffer: 1024 * 1024 * 4,
       });
     } catch {
