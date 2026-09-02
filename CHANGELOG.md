@@ -1,3 +1,10 @@
+## [3.65.15](https://github.com/bgill55/daedalus/compare/v3.65.14...v3.65.15) (2026-09-02)
+
+
+### Bug Fixes
+
+* **guards:** prevent ungrounded checks on non-existent files and handle cmd.exe quote stripping ([4ba0962](https://github.com/bgill55/daedalus/commit/4ba09627edfdde42a7c7ab46a562a413fc36c1ca))
+
 ## [3.65.14](https://github.com/bgill55/daedalus/compare/v3.65.13...v3.65.14) (2026-09-01)
 
 
