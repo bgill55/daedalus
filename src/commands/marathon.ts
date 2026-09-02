@@ -84,7 +84,11 @@ Key Pillars:
       }
       activeRun.status = 'running';
       console.log(pc.cyan(`\n[MARATHON] Resuming run at milestone ${activeRun.activeMilestoneIndex + 1}/${activeRun.milestones.length}...`));
-      await engine.executeNextMilestone();
+      let done = false;
+      while (!done) {
+        const step = await engine.executeNextMilestone();
+        done = step.done;
+      }
       return;
     }
 
@@ -92,7 +96,11 @@ Key Pillars:
     try {
       await engine.startNewRun(trimmed);
       console.log(pc.cyan(`\n[MARATHON] Starting milestone execution...`));
-      await engine.executeNextMilestone();
+      let done = false;
+      while (!done) {
+        const step = await engine.executeNextMilestone();
+        done = step.done;
+      }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       console.log(pc.red(`\n[ERROR] Failed to execute marathon: ${msg}`));

@@ -167,7 +167,12 @@ export class MarathonEngine {
     );
 
     // Step A: Implementation Sprint
-    const goal = `Milestone ${milestone.id.toUpperCase()}: ${milestone.title}\n${milestone.description}\nTarget files: ${milestone.targetFiles.join(', ') || 'as needed'}`;
+    let goal = `Milestone ${milestone.id.toUpperCase()}: ${milestone.title}\n${milestone.description}\nTarget files: ${milestone.targetFiles.join(', ') || 'as needed'}\n\nAcceptance Criteria:\n${milestone.acceptanceCriteria.map((c, i) => `${i + 1}. ${c}`).join('\n')}`;
+
+    if (milestone.evalReport?.repairRecommendations?.length) {
+      goal += `\n\n[PRIOR AUDIT FEEDBACK]\nThe previous attempt failed evaluation with score ${milestone.evalReport.score}/100:\n• Summary: ${milestone.evalReport.summary}\n• Required fixes:\n${milestone.evalReport.repairRecommendations.map(r => `  - ${r}`).join('\n')}`;
+    }
+
     let sprintPassed = true;
 
     const prevAutoApprove = process.env.DAEDALUS_AUTO_APPROVE;
