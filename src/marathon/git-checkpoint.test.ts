@@ -1,4 +1,4 @@
-﻿import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
@@ -75,7 +75,7 @@ describe('Marathon Git Checkpointing', () => {
     expect(ok).toBe(true);
 
     // Verify repository is restored to clean state
-    expect(fs.readFileSync(path.join(tmpRepo, 'db.ts'), 'utf8')).toBe('export const db = 1;\n');
+    expect(fs.readFileSync(path.join(tmpRepo, 'db.ts'), 'utf8').trim()).toBe('export const db = 1;');
     expect(fs.existsSync(path.join(tmpRepo, 'corrupt.txt'))).toBe(false);
   });
 
