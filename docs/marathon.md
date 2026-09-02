@@ -1,6 +1,8 @@
 # Daedalus Marathon Engine: Harness-of-Harness (HoH) Architecture
 
-![Daedalus Marathon Engine: Harness-of-Harness Architecture](../assets/marathon-architecture.jpg)
+<p align="center">
+  <img src="images/Daedalus_Marathon_Engine_Architecture_Overview.png" alt="Daedalus Marathon Engine: Harness-of-Harness Architecture" width="100%"/>
+</p>
 
 The **Daedalus Marathon Engine** (`/marathon`) is a meta-orchestration framework designed for **multi-day autonomous software development**.
 
