@@ -1,3 +1,10 @@
+# [3.68.0](https://github.com/bgill55/daedalus/compare/v3.67.1...v3.68.0) (2026-09-02)
+
+
+### Features
+
+* **marathon:** implement Harness-of-Harness multi-day autonomous software development engine ([d5a97c2](https://github.com/bgill55/daedalus/commit/d5a97c241cd789d92999e61bc9cfbba5b3da3d82))
+
 ## [3.67.1](https://github.com/bgill55/daedalus/compare/v3.67.0...v3.67.1) (2026-09-02)
 
 
