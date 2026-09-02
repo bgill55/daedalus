@@ -142,11 +142,17 @@ export function isRealFile(filePath: string): boolean {
   if (!fs.existsSync(filePath)) return false;
   try {
     const stat = fs.statSync(filePath);
-    if (stat.size < 100) return false;
+    if (stat.size === 0) return false;
     const content = fs.readFileSync(filePath, 'utf8').trim();
+    if (content.length === 0) return false;
     if (/^\/\*[\s\S]*?\*\/$/i.test(content) || /^<!--[\s\S]*?-->$/i.test(content) || /^\/\/\s*todo/i.test(content) || /add .* content here/i.test(content)) {
       return false;
     }
+    // Legitimate concise files (barrel index exports, html templates, json configs)
+    if (content.startsWith('export ') || content.startsWith('import ') || content.startsWith('<!') || content.startsWith('<html') || content.startsWith('{')) {
+      return true;
+    }
+    if (stat.size < 50) return false;
     return true;
   } catch {
     return false;

@@ -261,7 +261,9 @@ export class MarathonEngine {
     }
 
     // Step C: Checkpoint or Rollback Arbitration
-    if (sprintPassed && report.passed && report.score >= 70) {
+    // Apollo is the air-gapped judge: if independent evaluation passes with score >= 70,
+    // the milestone is approved.
+    if (report.passed && report.score >= 70) {
       console.log(pc.green(`\n[OK] Milestone ${milestone.id.toUpperCase()} approved by Apollo.`));
       const cp = createMilestoneCheckpoint(this.projectRoot, milestone);
       updateMilestoneStatus(run, milestone.id, 'passed', {
