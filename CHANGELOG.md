@@ -1,3 +1,10 @@
+## [3.66.1](https://github.com/bgill55/daedalus/compare/v3.66.0...v3.66.1) (2026-09-02)
+
+
+### Bug Fixes
+
+* **guards:** compute effectiveUserTask per-turn and refine proposal vs past-achievement lists ([052c70b](https://github.com/bgill55/daedalus/commit/052c70b579d7b6f8317c0d8ebf428d5d5a9ed74d))
+
 # [3.66.0](https://github.com/bgill55/daedalus/compare/v3.65.15...v3.66.0) (2026-09-02)
 
 
