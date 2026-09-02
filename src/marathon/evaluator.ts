@@ -10,18 +10,39 @@ export interface EvaluatorOptions {
 }
 
 export function getMilestoneDiff(cwd: string, baseTagOrCommit?: string): string {
+  // Ensure untracked files appear in git diff
+  try {
+    execSync('git add -N .', { cwd, stdio: 'ignore', windowsHide: true });
+  } catch {
+    // Ignore if not in git repo
+  }
+
   if (baseTagOrCommit) {
     try {
-      return execSync(`git diff ${baseTagOrCommit}..HEAD`, {
+      const diff = execSync(`git diff ${baseTagOrCommit}`, {
         cwd,
         encoding: 'utf8',
         windowsHide: true,
         stdio: ['ignore', 'pipe', 'pipe'],
         maxBuffer: 1024 * 1024 * 4,
       });
+      if (diff && diff.trim().length > 0) return diff;
     } catch {
       // Fallback below
     }
+  }
+
+  try {
+    const workingDiff = execSync('git diff HEAD', {
+      cwd,
+      encoding: 'utf8',
+      windowsHide: true,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      maxBuffer: 1024 * 1024 * 4,
+    });
+    if (workingDiff && workingDiff.trim().length > 0) return workingDiff;
+  } catch {
+    // Fallback below
   }
 
   try {
@@ -33,17 +54,7 @@ export function getMilestoneDiff(cwd: string, baseTagOrCommit?: string): string 
       maxBuffer: 1024 * 1024 * 4,
     });
   } catch {
-    try {
-      return execSync('git diff HEAD', {
-        cwd,
-        encoding: 'utf8',
-        windowsHide: true,
-        stdio: ['ignore', 'pipe', 'pipe'],
-        maxBuffer: 1024 * 1024 * 4,
-      });
-    } catch {
-      return '';
-    }
+    return '';
   }
 }
 
