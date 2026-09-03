@@ -38,8 +38,12 @@ For full guides, configuration reference, and examples, visit the documentation 
 ```
 
 <p align="center">
-  <img src="assets/cli_view.png" width="49%" alt="Daedalus CLI View" />
-  <img src="assets/tui_view.png" width="49%" alt="Daedalus TUI View" />
+  <img src="assets/cli_view.png" width="32%" alt="Daedalus CLI View" />
+  <img src="assets/tui_view.png" width="32%" alt="Daedalus TUI View" />
+  <img src="assets/webui_view.png" width="32%" alt="Daedalus Web UI View" />
+</p>
+<p align="center">
+  <sub><b>Three Native Interfaces:</b> Standard REPL CLI · Interactive Terminal Dashboard (TUI) · Companion Web UI (SSE Stream)</sub>
 </p>
 
 <p align="center">
