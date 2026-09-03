@@ -173,29 +173,19 @@ export function handleRequest(req: IncomingMessage, res: ServerResponse): void {
       return;
     }
 
-    if (req.method === 'GET' && req.url === '/styles.css') {
-      const cssPath = resolvePublicAsset('styles.css');
-      if (cssPath) {
-        res.writeHead(200, { 'Content-Type': 'text/css; charset=utf-8' });
-        res.end(fs.readFileSync(cssPath, 'utf8'));
-        return;
-      }
-    }
-
-    if (req.method === 'GET' && req.url === '/script.js') {
-      const jsPath = resolvePublicAsset('script.js');
-      if (jsPath) {
-        res.writeHead(200, { 'Content-Type': 'application/javascript; charset=utf-8' });
-        res.end(fs.readFileSync(jsPath, 'utf8'));
-        return;
-      }
-    }
-
-    if (req.method === 'GET' && (req.url === '/favicon.svg' || req.url === '/favicon.ico')) {
-      const iconPath = resolvePublicAsset('favicon.svg');
-      if (iconPath) {
-        res.writeHead(200, { 'Content-Type': 'image/svg+xml; charset=utf-8' });
-        res.end(fs.readFileSync(iconPath, 'utf8'));
+    if (req.method === 'GET' && (req.url === '/styles.css' || req.url === '/script.js' || req.url === '/marked.min.js' || req.url === '/favicon.svg' || req.url === '/favicon.ico')) {
+      const filename = req.url.slice(1);
+      const assetPath = resolvePublicAsset(filename);
+      if (assetPath) {
+        const mimeTypes: Record<string, string> = {
+          '.css': 'text/css; charset=utf-8',
+          '.js': 'application/javascript; charset=utf-8',
+          '.svg': 'image/svg+xml; charset=utf-8',
+          '.ico': 'image/x-icon',
+        };
+        const ext = path.extname(assetPath);
+        res.writeHead(200, { 'Content-Type': mimeTypes[ext] || 'application/octet-stream' });
+        res.end(fs.readFileSync(assetPath));
         return;
       }
     }

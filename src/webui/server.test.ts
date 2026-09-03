@@ -64,12 +64,12 @@ describe('WebUI Server', () => {
       expect(endSpy).toHaveBeenCalledWith('<svg>icon</svg>');
     });
 
-    it('should serve /favicon.ico with image/svg+xml header', () => {
+    it('should serve /favicon.ico with image/x-icon header', () => {
       mockReq.url = '/favicon.ico';
       vi.mocked(fs.readFileSync).mockReturnValue('<svg>icon</svg>');
       handleRequest(mockReq as IncomingMessage, mockRes as ServerResponse);
 
-      expect(writeHeadSpy).toHaveBeenCalledWith(200, { 'Content-Type': 'image/svg+xml; charset=utf-8' });
+      expect(writeHeadSpy).toHaveBeenCalledWith(200, { 'Content-Type': 'image/x-icon' });
       expect(endSpy).toHaveBeenCalledWith('<svg>icon</svg>');
     });
   });

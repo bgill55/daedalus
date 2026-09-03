@@ -23,13 +23,20 @@ import { dim, info, ok, warn, err } from './ui/theme.js';
 // checkpoint pause, so the user gets an instant "where we are" signal instead of a
 // blank gap while the model thinks. Mirrors the inline block historically printed
 // after todo results.
-function printTodoProgress(sessionId: string): void {
+function printTodoProgress(sessionId: string, toolContext?: ToolContext): void {
   const todos = getSessionTodos(sessionId);
   if (todos.length === 0) return;
   const done = todos.filter(t => t.status === 'completed').length;
   const active = todos.find(t => t.status === 'in_progress');
   const activeText = active ? ` | Active: ${active.content.slice(0, 50)}${active.content.length > 50 ? '...' : ''}` : '';
   console.log(info(`\n  [TODO] Progress: ${done}/${todos.length} completed${activeText}`));
+  if (toolContext?.onTodoProgress) {
+    toolContext.onTodoProgress({
+      total: todos.length,
+      completed: done,
+      active: active ? active.content : undefined,
+    });
+  }
 }
 import type { DaedalusConfig } from './config/index.js';
 import { maskSecrets } from './security/secret-detector.js';
@@ -380,7 +387,7 @@ export function createModelFunctions(deps: ModelDeps) {
             // Surface immediate progress so the resume isn't a silent blank gap
             // while the model thinks (especially on slow models). Shows exactly
             // where the work resumes.
-            printTodoProgress(toolContext.sessionId);
+            printTodoProgress(toolContext.sessionId, toolContext);
             toolTurnsRemaining = MAX_TOOL_TURNS;
             consecutiveToolFailures = 0;
             continue;
@@ -725,6 +732,9 @@ export function createModelFunctions(deps: ModelDeps) {
 
       const toolNames = approvedCalls.map(c => c.function.name);
       printToolStart(approvedCalls.length, toolNames);
+      if (toolContext.onToolStart) {
+        toolContext.onToolStart(approvedCalls.length, toolNames);
+      }
 
       let results;
       try {
@@ -865,7 +875,10 @@ export function createModelFunctions(deps: ModelDeps) {
           verifyBreakerTrippedLastTurn = false;
         }
         if (result.success && result.name === 'todo') {
-          printTodoProgress(toolContext.sessionId);
+          printTodoProgress(toolContext.sessionId, toolContext);
+        }
+        if (toolContext.onToolResult) {
+          toolContext.onToolResult(result.name, result.success, result.error || (typeof result.content === 'string' ? result.content.slice(0, 100) : ''));
         }
         if (result.success && result.content) {
           printToolContentPreview(maskSecrets(typeof result.content === 'string' ? result.content : JSON.stringify(result.content)));

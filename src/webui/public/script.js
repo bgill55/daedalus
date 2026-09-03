@@ -30,6 +30,22 @@ const chatForm = document.getElementById('chat-form');
 const chatInput = document.getElementById('chat-input');
 const chatStatusBadge = document.getElementById('chat-status-badge');
 
+function renderMarkdown(text) {
+  if (typeof window.marked !== 'undefined' && typeof window.marked.parse === 'function') {
+    try {
+      return window.marked.parse(text, { breaks: true, gfm: true });
+    } catch {
+      // fallback
+    }
+  }
+  // Lightweight fallback
+  const escaped = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  return escaped.replace(/\n/g, '<br>');
+}
+
 function addChatMessage(role, text, roleBadge = null) {
   if (!chatMessages) return;
   const msgEl = document.createElement('div');
@@ -52,7 +68,12 @@ function addChatMessage(role, text, roleBadge = null) {
   
   const body = document.createElement('div');
   body.className = 'msg-body';
-  body.textContent = text;
+  body.dataset.raw = text;
+  if (role === 'assistant') {
+    body.innerHTML = renderMarkdown(text);
+  } else {
+    body.textContent = text;
+  }
   
   msgEl.appendChild(header);
   msgEl.appendChild(body);
@@ -158,7 +179,9 @@ function connectSSE() {
           if (!activeAssistantBody) {
             activeAssistantBody = addChatMessage('assistant', data.text || '', 'STREAM');
           } else if (data.text) {
-            activeAssistantBody.textContent += data.text;
+            const raw = (activeAssistantBody.dataset.raw || '') + data.text;
+            activeAssistantBody.dataset.raw = raw;
+            activeAssistantBody.innerHTML = renderMarkdown(raw);
             chatMessages.scrollTop = chatMessages.scrollHeight;
           }
           if (chatStatusBadge) chatStatusBadge.textContent = 'STREAMING...';
@@ -180,6 +203,9 @@ function connectSSE() {
 
       if (data.type === 'chat_done') {
         removeThinkingSpinner();
+        if (activeAssistantBody && activeAssistantBody.dataset.raw) {
+          activeAssistantBody.innerHTML = renderMarkdown(activeAssistantBody.dataset.raw);
+        }
         activeAssistantBody = null;
         if (chatStatusBadge) chatStatusBadge.textContent = 'READY';
         addLog('Chat completion finished.');

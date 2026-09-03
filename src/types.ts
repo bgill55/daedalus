@@ -71,6 +71,10 @@ export interface BaseToolContext {
   resumeSpinner?: () => void;
   askLine?: (prompt: string) => Promise<string>;
   contextVariables?: Record<string, unknown>;
+  onToolStart?: (count: number, names: string[]) => void;
+  onToolResult?: (name: string, success: boolean, summary?: string) => void;
+  onTodoProgress?: (progress: { total: number; completed: number; active?: string }) => void;
+  onBroadcast?: (event: any) => void;
 }
 
 export interface PatchContext {

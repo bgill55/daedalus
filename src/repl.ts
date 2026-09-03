@@ -245,7 +245,7 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
     try {
       registerChatHandler(async (webMsg, broadcast) => {
         try {
-          await runOneTurn(webMsg);
+          await runOneTurn(webMsg, { isWeb: true, broadcast });
           const lastMsg = messages.filter(m => m.role === 'assistant').pop();
           const replyText = typeof lastMsg?.content === 'string' ? lastMsg.content : (Array.isArray(lastMsg?.content) ? lastMsg.content.map(c => 'text' in c ? c.text : '').join(' ') : '');
           broadcast({
@@ -277,7 +277,7 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
         }
       }
 
-      const runOneTurn = async (rawInput: string): Promise<void> => {
+      const runOneTurn = async (rawInput: string, webOpts?: { isWeb?: boolean; broadcast?: (evt: any) => void }): Promise<void> => {
         const trimmedInput = rawInput.trim();
         if (!trimmedInput) return;
 
@@ -286,7 +286,44 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
         const oneShot = oneShotGoal !== undefined;
 
         resetTurnAborted();
-        toolContext.autoApproveTools = false;
+        const isWebTurn = webOpts?.isWeb === true;
+        toolContext.autoApproveTools = isWebTurn;
+
+        if (isWebTurn && webOpts?.broadcast) {
+          toolContext.onToolStart = (count, names) => {
+            webOpts.broadcast!({
+              type: 'chat_tool_start',
+              tool: names.join(', '),
+              timestamp: Date.now(),
+            });
+          };
+          toolContext.onToolResult = (name, success, summary) => {
+            webOpts.broadcast!({
+              type: 'chat_tool_result',
+              tool: name,
+              content: summary,
+              timestamp: Date.now(),
+            });
+          };
+          toolContext.onTodoProgress = (progress) => {
+            webOpts.broadcast!({
+              type: 'chat_token',
+              role: 'assistant',
+              text: `\n> **[TODO] Progress: ${progress.completed}/${progress.total} completed**${progress.active ? ` | Active: _${progress.active}_` : ''}\n\n`,
+              timestamp: Date.now(),
+            });
+          };
+        } else {
+          toolContext.onToolStart = undefined;
+          toolContext.onToolResult = undefined;
+          toolContext.onTodoProgress = undefined;
+        }
+
+        const effectiveAskLine = isWebTurn
+          ? async () => 'y'
+          : askLine;
+
+        toolContext.askLine = isWebTurn ? async () => 'y' : (headlessAutoApprove ? () => Promise.resolve('y') : askLine);
 
         // Construct CommandContext
         const cmdContext: CommandContext = {
@@ -306,14 +343,42 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
           rl,
           initializeSessionState,
           buildFileContext,
-          askLine,
+          askLine: effectiveAskLine,
           buildIndexContext,
           getIndexDbPath,
         };
 
         // Try executing as command first
-        const wasCommand = await executeCommand(trimmedInput, cmdContext);
-        if (wasCommand) return;
+        let capturedCommandOutput = '';
+        const originalLog = console.log;
+        if (isWebTurn) {
+          console.log = (...args: any[]) => {
+            const line = args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' ');
+            capturedCommandOutput += line + '\n';
+            originalLog(...args);
+          };
+        }
+
+        let wasCommand = false;
+        try {
+          wasCommand = Boolean(await executeCommand(trimmedInput, cmdContext));
+        } finally {
+          if (isWebTurn) {
+            console.log = originalLog;
+          }
+        }
+
+        if (wasCommand) {
+          if (isWebTurn && webOpts?.broadcast && capturedCommandOutput.trim()) {
+            webOpts.broadcast({
+              type: 'chat_token',
+              role: 'assistant',
+              text: capturedCommandOutput.trim(),
+              timestamp: Date.now(),
+            });
+          }
+          return;
+        }
 
         // User Message Processing (regular assistant chat)
         let activePrompt = trimmedInput;
@@ -344,7 +409,7 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
           // autoApprovePlans: if the assistant just proposed a plan and asked for
           // approval, queue a synthetic "Yes" so the next loop iteration proceeds
           // without waiting for stdin. Headless/CI runs complete autonomously.
-          if (config.safety?.autoApprovePlans || oneShot) {
+          if (config.safety?.autoApprovePlans || oneShot || isWebTurn) {
             const lastAssistant = messages.filter(m => m.role === 'assistant').pop()?.content;
             const lastText = typeof lastAssistant === 'string' ? lastAssistant : JSON.stringify(lastAssistant ?? '');
             if (/Would you like me to proceed with this plan\?|proceed with (the|this) plan/i.test(lastText)) {
