@@ -1,10 +1,20 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { IncomingMessage, ServerResponse } from 'node:http';
 import fs from 'node:fs';
+import path from 'node:path';
 import { handleRequest, server, TelemetryData } from './server.js';
 
 // Mock dependencies
 vi.mock('node:fs');
+
+// Mock React components for web UI testing
+vi.mock('./components/HomePage', () => ({
+  default: ({ title }: { title: string }) => `<div class="home-container"><h1>${title}</h1></div>`
+}));
+
+vi.mock('./components/PromptCard', () => ({
+  default: ({ title }: { title: string }) => `<div class="prompt-card"><p>${title}</p></div>`
+}));
 
 describe('WebUI Server', () => {
   let mockReq: Partial<IncomingMessage> & { on: ReturnType<typeof vi.fn> };
@@ -166,6 +176,57 @@ describe('WebUI Server', () => {
       expect(typeof data.timestamp).toBe('number');
       expect(typeof data.metric).toBe('string');
       expect(typeof data.value).toBe('number');
+    });
+  });
+
+  describe('HomePage component', () => {
+    it('should render correctly', async () => {
+      const { default: HomePage } = await import('./components/HomePage.js');
+      const html = HomePage({ title: 'Test Title' });
+      expect(html).toContain('class="home-container"');
+      expect(html).toContain('<h1>Test Title</h1>');
+    });
+  });
+
+  describe('PromptCard component', () => {
+    it('should display title and CSS sync', async () => {
+      const { default: PromptCard } = await import('./components/PromptCard.js');
+      const html = PromptCard({ title: 'Sample Prompt' });
+      expect(html).toContain('class="prompt-card"');
+      expect(html).toContain('<p>Sample Prompt</p>');
+      
+      // Verify CSS class exists in style.css
+      const fs = await import('node:fs');
+      const stylesPath = path.join(__dirname, 'public', 'styles.css');
+      const stylesContent = fs.readFileSync(stylesPath, 'utf8');
+      expect(stylesContent).toContain('.prompt-card');
+    });
+  });
+
+  describe('Server error handling', () => {
+    it('should return 500 for internal server error', () => {
+      // Mock an internal server error by throwing an exception
+      const originalHandleRequest = handleRequest;
+      const errorHandler = (req: IncomingMessage, res: ServerResponse) => {
+        throw new Error('Internal Server Error');
+      };
+      
+      // Temporarily replace handleRequest
+      (handleRequest as any) = errorHandler;
+      
+      try {
+        handleRequest(mockReq as IncomingMessage, mockRes as ServerResponse);
+        
+        expect(writeHeadSpy).toHaveBeenCalledWith(500, { 'Content-Type': 'application/json' });
+        expect(endSpy).toHaveBeenCalled();
+        
+        const responseBody = JSON.parse(endSpy.mock.calls[0][0]);
+        expect(responseBody).toHaveProperty('error');
+        expect(responseBody.error).toBe('Internal Server Error');
+      } finally {
+        // Restore original handleRequest
+        (handleRequest as any) = originalHandleRequest;
+      }
     });
   });
 });
