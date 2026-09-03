@@ -449,7 +449,7 @@ export class LocalRouter {
           this.recordRoutingDecision(selectedModel, `model override '${request.model}'`, skipped);
           return { model: selectedModel, health, reason: `model override '${request.model}'`, skipped: skipped.map(s => ({ ...s })) };
         } else if (!pinnedExcluded && hasImage && !pinned.supportsVision) {
-          skipped.push({ model: pinned.name, reason: `pinned model '${pinned.name}' does not support vision` });
+          noteSkipped(pinned, `pinned model '${pinned.name}' does not support vision`);
         }
       }
     }

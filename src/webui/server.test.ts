@@ -54,6 +54,26 @@ describe('WebUI Server', () => {
     });
   });
 
+  describe('GET /favicon.svg and /favicon.ico', () => {
+    it('should serve favicon.svg with image/svg+xml header', () => {
+      mockReq.url = '/favicon.svg';
+      vi.mocked(fs.readFileSync).mockReturnValue('<svg>icon</svg>');
+      handleRequest(mockReq as IncomingMessage, mockRes as ServerResponse);
+
+      expect(writeHeadSpy).toHaveBeenCalledWith(200, { 'Content-Type': 'image/svg+xml; charset=utf-8' });
+      expect(endSpy).toHaveBeenCalledWith('<svg>icon</svg>');
+    });
+
+    it('should serve /favicon.ico with image/svg+xml header', () => {
+      mockReq.url = '/favicon.ico';
+      vi.mocked(fs.readFileSync).mockReturnValue('<svg>icon</svg>');
+      handleRequest(mockReq as IncomingMessage, mockRes as ServerResponse);
+
+      expect(writeHeadSpy).toHaveBeenCalledWith(200, { 'Content-Type': 'image/svg+xml; charset=utf-8' });
+      expect(endSpy).toHaveBeenCalledWith('<svg>icon</svg>');
+    });
+  });
+
   describe('GET /telemetry', () => {
     beforeEach(() => {
       vi.useFakeTimers();

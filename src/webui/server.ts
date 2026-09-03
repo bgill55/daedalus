@@ -89,6 +89,15 @@ export function handleRequest(req: IncomingMessage, res: ServerResponse): void {
       }
     }
 
+    if (req.method === 'GET' && (req.url === '/favicon.svg' || req.url === '/favicon.ico')) {
+      const iconPath = resolvePublicAsset('favicon.svg');
+      if (iconPath) {
+        res.writeHead(200, { 'Content-Type': 'image/svg+xml; charset=utf-8' });
+        res.end(fs.readFileSync(iconPath, 'utf8'));
+        return;
+      }
+    }
+
     if (req.method === 'GET' && req.url === '/telemetry') {
       res.writeHead(200, {
         'Content-Type': 'text/event-stream',
