@@ -62,15 +62,14 @@ export function getMilestoneDiff(cwd: string, baseTagOrCommit?: string): string 
 
 export function runMilestoneVerification(cwd: string, customCommand?: string, targetFiles: string[] = []): { success: boolean; output: string } {
   let cmd = customCommand;
-  const directTestTarget = targetFiles.find(f => /\.test\.[jt]sx?$/.test(f));
-  const inferredTestTarget = targetFiles.map(f => f.replace(/\.([jt]sx?)$/, '.test.$1')).find(f => fs.existsSync(path.resolve(cwd, f)));
-  const testTarget = directTestTarget || inferredTestTarget;
+  if (!cmd || cmd === 'npm test') {
+    const directTestTarget = targetFiles.find(f => /\.test\.[jt]sx?$/.test(f));
+    const inferredTestTarget = targetFiles.map(f => f.replace(/\.([jt]sx?)$/, '.test.$1')).find(f => fs.existsSync(path.resolve(cwd, f)));
+    const testTarget = directTestTarget || inferredTestTarget;
 
-  if (testTarget && fs.existsSync(path.resolve(cwd, testTarget))) {
-    cmd = `npx vitest run ${testTarget}`;
-  } else if (!cmd || cmd === 'npm test') {
-    if (targetFiles.length > 0 && targetFiles.every(f => /\.(html|css|json|md|svg|png)$/.test(f))) {
-      // Pure UI assets / markup change: verify TypeScript compile integrity
+    if (testTarget && fs.existsSync(path.resolve(cwd, testTarget))) {
+      cmd = `npx vitest run ${testTarget}`;
+    } else if (targetFiles.length > 0 && targetFiles.every(f => /\.(html|css|json|md|svg|png)$/.test(f))) {
       cmd = 'npx tsc --noEmit';
     } else {
       cmd = 'npm test';

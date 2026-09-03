@@ -198,6 +198,12 @@ export interface StaticCheckResult {
   markdownReport: string;
 }
 
+export interface TelemetryData {
+  timestamp: number;
+  metric: string;
+  value: number;
+}
+
 declare global {
   var isTui: boolean | undefined;
   var originalStdoutWrite: typeof process.stdout.write | undefined;

@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Daedalus Web UI</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="dashboard">
+    <header class="header">
+      <div class="brand">
+        <span class="logo">⚡</span>
+        <h1>DAEDALUS <span class="subtitle">AUTONOMOUS TELEMETRY</span></h1>
+      </div>
+      <div class="status-bar">
+        <span id="connection-status" class="status disconnected">● DISCONNECTED</span>
+        <span id="last-update" class="timestamp">--:--:--</span>
+      </div>
+    </header>
+
+    <main class="grid">
+      <div class="panel">
+        <div class="panel-header">
+          <span class="metric-name">CPU USAGE</span>
+          <span id="cpu-value" class="metric-value">0%</span>
+        </div>
+        <div class="sparkline"></div>
+        <div class="panel-footer">
+          <span>Status</span>
+          <span id="cpu-status" class="metric-status">NORMAL</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <span class="metric-name">MEMORY USAGE</span>
+          <span id="memory-value" class="metric-value">0%</span>
+        </div>
+        <div class="sparkline"></div>
+        <div class="panel-footer">
+          <span>Status</span>
+          <span id="memory-status" class="metric-status">NORMAL</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <span class="metric-name">DISK I/O</span>
+          <span id="disk-value" class="metric-value">0%</span>
+        </div>
+        <div class="sparkline"></div>
+        <div class="panel-footer">
+          <span>Status</span>
+          <span id="disk-status" class="metric-status">NORMAL</span>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <span class="metric-name">NETWORK ACTIVITY</span>
+          <span id="network-value" class="metric-value">0%</span>
+        </div>
+        <div class="sparkline"></div>
+        <div class="panel-footer">
+          <span>Status</span>
+          <span id="network-status" class="metric-status">NORMAL</span>
+        </div>
+      </div>
+
+      <div class="panel log-panel">
+        <div class="panel-header">
+          <span class="metric-name">SYSTEM LOG STREAM</span>
+          <button id="clear-log" class="clear-btn">CLEAR</button>
+        </div>
+        <div id="log-container" class="log-container">
+          <div class="log-entry"><span class="time">[INIT]</span> Telemetry dashboard initialized.</div>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script src="/script.js"></script>
+</body>
+</html>

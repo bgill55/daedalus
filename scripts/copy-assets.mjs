@@ -1,3 +1,5 @@
+// Copies static assets (skills playbooks, webui html/css/js) into dist/
+// so they are bundled in npm packages and standalone distributions.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
