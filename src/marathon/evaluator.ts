@@ -130,6 +130,17 @@ ${diff.slice(0, 12000) || '(Empty diff)'}
 }`;
 }
 
+function cleanJson(str: string): string {
+  let cleaned = str.trim();
+  cleaned = cleaned.replace(/\/\*[\s\S]*?\*\/|([^\\:]|^)\/\/.*$/gm, '$1');
+  cleaned = cleaned.replace(/([{,\[]\s*)'([^']*)'\s*:/g, '$1"$2":');
+  cleaned = cleaned.replace(/:\s*'([^']*)'\s*([,}\]])/g, ':"$1"$2');
+  cleaned = cleaned.replace(/\[\s*'([^']*)'\s*([,\]])/g, '["$1"$2');
+  cleaned = cleaned.replace(/([{,]\s*)([a-zA-Z0-9_-]+)\s*:/g, '$1"$2":');
+  cleaned = cleaned.replace(/,\s*([}\]])/g, '$1');
+  return cleaned;
+}
+
 export function parseEvaluationJson(raw: string, fallbackCriteria: string[] = []): MarathonEvaluationReport {
   let cleaned = raw.trim();
   if (cleaned.startsWith('```json')) {
@@ -138,8 +149,36 @@ export function parseEvaluationJson(raw: string, fallbackCriteria: string[] = []
     cleaned = cleaned.replace(/^```\s*/, '').replace(/```\s*$/, '');
   }
 
+  let parsed: any;
   try {
-    const parsed = JSON.parse(cleaned);
+    parsed = JSON.parse(cleaned);
+  } catch {
+    try {
+      parsed = JSON.parse(cleanJson(cleaned));
+    } catch {
+      // If full parse failed, extract boolean passed and score using regex heuristics
+      const passedMatch = /"passed"\s*:\s*(true|false)/i.exec(cleaned);
+      const scoreMatch = /"score"\s*:\s*(\d+)/i.exec(cleaned);
+      const summaryMatch = /"summary"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/i.exec(cleaned);
+
+      if (passedMatch) {
+        const passed = passedMatch[1].toLowerCase() === 'true';
+        const score = scoreMatch ? parseInt(scoreMatch[1], 10) : (passed ? 90 : 20);
+        const summary = summaryMatch ? summaryMatch[1] : (passed ? 'Milestone passed verification.' : 'Milestone failed criteria.');
+        return {
+          passed,
+          score,
+          summary,
+          regressions: [],
+          criteriaResults: fallbackCriteria.map(c => ({ criterion: c, satisfied: passed })),
+          repairRecommendations: passed ? [] : ['Review acceptance criteria'],
+          evaluatedAt: new Date().toISOString(),
+        };
+      }
+    }
+  }
+
+  if (parsed && typeof parsed === 'object') {
     return {
       passed: Boolean(parsed.passed),
       score: typeof parsed.score === 'number' ? parsed.score : (parsed.passed ? 100 : 0),
@@ -149,17 +188,17 @@ export function parseEvaluationJson(raw: string, fallbackCriteria: string[] = []
       repairRecommendations: Array.isArray(parsed.repairRecommendations) ? parsed.repairRecommendations : [],
       evaluatedAt: new Date().toISOString(),
     };
-  } catch {
-    return {
-      passed: false,
-      score: 0,
-      summary: 'Evaluator response failed to parse as valid JSON.',
-      regressions: [],
-      criteriaResults: fallbackCriteria.map(c => ({ criterion: c, satisfied: false, note: 'Evaluation parse failure' })),
-      repairRecommendations: ['Re-run evaluation with cleaner prompt'],
-      evaluatedAt: new Date().toISOString(),
-    };
   }
+
+  return {
+    passed: false,
+    score: 0,
+    summary: 'Evaluator response failed to parse as valid JSON.',
+    regressions: [],
+    criteriaResults: fallbackCriteria.map(c => ({ criterion: c, satisfied: false, note: 'Evaluation parse failure' })),
+    repairRecommendations: ['Re-run evaluation with cleaner prompt'],
+    evaluatedAt: new Date().toISOString(),
+  };
 }
 
 export async function evaluateMilestone(
@@ -181,7 +220,7 @@ export async function evaluateMilestone(
       model: opts.modelOverride || 'intelligence',
       messages,
       temperature: 0.1,
-      max_tokens: 1500,
+      max_tokens: 2500,
     });
 
     const text = messageText(res.choices?.[0]?.message?.content ?? '');
