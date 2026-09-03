@@ -62,11 +62,14 @@ export function getMilestoneDiff(cwd: string, baseTagOrCommit?: string): string 
 
 export function runMilestoneVerification(cwd: string, customCommand?: string, targetFiles: string[] = []): { success: boolean; output: string } {
   let cmd = customCommand;
-  if (!cmd) {
-    const testTarget = targetFiles.find(f => /\.test\.[jt]sx?$/.test(f));
-    if (testTarget && fs.existsSync(path.resolve(cwd, testTarget))) {
-      cmd = `npx vitest run ${testTarget}`;
-    } else if (targetFiles.length > 0 && targetFiles.every(f => /\.(html|css|json|md|svg|png)$/.test(f))) {
+  const directTestTarget = targetFiles.find(f => /\.test\.[jt]sx?$/.test(f));
+  const inferredTestTarget = targetFiles.map(f => f.replace(/\.([jt]sx?)$/, '.test.$1')).find(f => fs.existsSync(path.resolve(cwd, f)));
+  const testTarget = directTestTarget || inferredTestTarget;
+
+  if (testTarget && fs.existsSync(path.resolve(cwd, testTarget))) {
+    cmd = `npx vitest run ${testTarget}`;
+  } else if (!cmd || cmd === 'npm test') {
+    if (targetFiles.length > 0 && targetFiles.every(f => /\.(html|css|json|md|svg|png)$/.test(f))) {
       // Pure UI assets / markup change: verify TypeScript compile integrity
       cmd = 'npx tsc --noEmit';
     } else {
@@ -175,11 +178,17 @@ function cleanJson(str: string): string {
 }
 
 export function parseEvaluationJson(raw: string, fallbackCriteria: string[] = []): MarathonEvaluationReport {
-  let cleaned = raw.trim();
-  if (cleaned.startsWith('```json')) {
-    cleaned = cleaned.replace(/^```json\s*/i, '').replace(/```\s*$/, '');
-  } else if (cleaned.startsWith('```')) {
-    cleaned = cleaned.replace(/^```\s*/, '').replace(/```\s*$/, '');
+  let cleaned = raw.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+
+  const jsonBlock = cleaned.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+  if (jsonBlock) {
+    cleaned = jsonBlock[1].trim();
+  } else {
+    const firstBrace = cleaned.indexOf('{');
+    const lastBrace = cleaned.lastIndexOf('}');
+    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+      cleaned = cleaned.slice(firstBrace, lastBrace + 1).trim();
+    }
   }
 
   let parsed: any;
@@ -263,7 +272,25 @@ export async function evaluateMilestone(
     };
   }
 
-  // Pre-evaluation Gate 2: Check for empty git diff
+  // Pre-evaluation Gate 2: Run verification test command
+  const verify = runMilestoneVerification(opts.projectRoot, milestone.verifyCommand, milestone.targetFiles);
+  if (!verify.success) {
+    return {
+      passed: false,
+      score: 0,
+      summary: `Verification command failed: ${verify.output.slice(0, 500)}`,
+      regressions: [],
+      criteriaResults: milestone.acceptanceCriteria.map(c => ({
+        criterion: c,
+        satisfied: false,
+        note: 'Verification command failed',
+      })),
+      repairRecommendations: ['Fix failing verification command output'],
+      evaluatedAt: new Date().toISOString(),
+    };
+  }
+
+  // Pre-evaluation Gate 3: Check for empty git diff
   const diff = getMilestoneDiff(opts.projectRoot, baseTagOrCommit);
   if (!diff || diff.trim().length === 0) {
     return {
@@ -283,8 +310,6 @@ export async function evaluateMilestone(
     };
   }
 
-  const verify = runMilestoneVerification(opts.projectRoot, milestone.verifyCommand, milestone.targetFiles);
-
   const prompt = buildEvaluatorPrompt(milestone, diff, verify.output, verify.success);
   const messages: ChatMessage[] = [
     { role: 'system', content: 'You are Apollo, the air-gapped auditor. Output pure JSON only.' },
@@ -302,8 +327,8 @@ export async function evaluateMilestone(
     const text = messageText(res.choices?.[0]?.message?.content ?? '');
     const report = parseEvaluationJson(text, milestone.acceptanceCriteria);
 
-    // Hard gate: If the verification test command failed, only override if the model did not diagnose unrelated errors
-    if (!verify.success && report.passed && !report.summary.toLowerCase().includes('unrelated')) {
+    // Hard gate: If the verification test command failed, the report cannot pass
+    if (!verify.success && report.passed) {
       report.passed = false;
       report.score = Math.min(report.score, 50);
       report.summary = `Verification command failed despite model verdict: ${report.summary}`;
