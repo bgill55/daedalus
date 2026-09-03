@@ -240,6 +240,7 @@ AI assistance without:
 | `/faq` / `questions` / `faqs` | Display the Daedalus local-first FAQ (setup, architecture, troubleshooting) |
 | `/recipe` | Manage and run portable YAML recipes (/recipe [list \| run <name> \| create <name>]) |
 | `/gitautobranch` / `gitautobranch` | Toggle automatic branch-from-base for single-agent tasks |
+| `/webui` | Companion Web UI dashboard manager |
 
 <!-- END_COMMANDS_TABLE -->
 
