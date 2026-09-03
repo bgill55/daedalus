@@ -1,3 +1,10 @@
+# [3.71.0](https://github.com/bgill55/daedalus/compare/v3.70.2...v3.71.0) (2026-09-03)
+
+
+### Features
+
+* **webui:** add /webui rate <ms> command for dynamic SSE telemetry stream throttling ([d43f89d](https://github.com/bgill55/daedalus/commit/d43f89d9cd5a1204d1d00cbc21191f10bdcae4c5))
+
 ## [3.70.2](https://github.com/bgill55/daedalus/compare/v3.70.1...v3.70.2) (2026-09-03)
 
 
