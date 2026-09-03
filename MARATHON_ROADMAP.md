@@ -1,10 +1,10 @@
 # Marathon Roadmap: Add a Companion Web UI to Daedalus under src/webui/ running on localhost:3888 with Server-Sent Events (SSE) for live telemetry streaming. Include a native node:http server in src/webui/server.ts, a single-page dark cyber-themed dashboard in src/webui/public/index.html, a slash command /webui in src/commands/webui.ts with start/stop/open/status subcommands, and unit tests in src/webui/server.test.ts. Do not modify root package.json.
 
 - **Status**: `EVALUATING`
-- **Progress**: 1/6 milestones passed (17%)
+- **Progress**: 2/6 milestones passed (33%)
 - **Base Branch**: `main`
 - **Integration Branch**: `marathon/add-a-companion-web-ui-to-daed`
-- **Last Updated**: 2026-09-02T21:08:26.171Z
+- **Last Updated**: 2026-09-03T04:35:33.622Z
 
 ## Milestones
 
@@ -21,23 +21,24 @@ Create src/webui/ directory and initialize basic structure
 - [x] File src/webui/index.ts exists
 - [x] File src/webui/public/index.html exists
 
-### [>] M-2: Implement HTTP Server
+### [x] M-2: Implement HTTP Server
 
 Add native node:http server in src/webui/server.ts
 
 - **Target Files**: `src/webui/server.ts`
+- **Git Tag**: `daedalus-checkpoint/m-2`
 - **Attempts**: 2/3
 
 **Acceptance Criteria:**
-- [ ] Server starts and listens on localhost:3888
-- [ ] Server responds with 200 OK to GET /
+- [x] Server starts and listens on localhost:3888
+- [x] Server responds with 200 OK to GET /
 
-### [ ] M-3: Create SSE Endpoint
+### [>] M-3: Create SSE Endpoint
 
 Add Server-Sent Events (SSE) endpoint in src/webui/server.ts
 
 - **Target Files**: `src/webui/server.ts`
-- **Attempts**: 0/3
+- **Attempts**: 2/3
 
 **Acceptance Criteria:**
 - [ ] SSE endpoint available at /telemetry
