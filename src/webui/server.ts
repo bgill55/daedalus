@@ -12,11 +12,22 @@ const HOST = 'localhost';
 
 const activeClients = new Set<ServerResponse>();
 
+function resolvePublicAsset(filename: string): string | null {
+  const primary = path.join(__dirname, 'public', filename);
+  if (fs.existsSync(primary)) return primary;
+
+  // Fallback for development / uncompiled runner environments
+  const fallback = path.join(__dirname, '..', '..', 'src', 'webui', 'public', filename);
+  if (fs.existsSync(fallback)) return fallback;
+
+  return null;
+}
+
 export function handleRequest(req: IncomingMessage, res: ServerResponse): void {
   try {
     if (req.method === 'GET' && req.url === '/') {
-      const htmlPath = path.join(__dirname, 'public', 'index.html');
-      if (fs.existsSync(htmlPath)) {
+      const htmlPath = resolvePublicAsset('index.html');
+      if (htmlPath) {
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
         res.end(fs.readFileSync(htmlPath, 'utf8'));
         return;
@@ -27,8 +38,8 @@ export function handleRequest(req: IncomingMessage, res: ServerResponse): void {
     }
 
     if (req.method === 'GET' && req.url === '/styles.css') {
-      const cssPath = path.join(__dirname, 'public', 'styles.css');
-      if (fs.existsSync(cssPath)) {
+      const cssPath = resolvePublicAsset('styles.css');
+      if (cssPath) {
         res.writeHead(200, { 'Content-Type': 'text/css; charset=utf-8' });
         res.end(fs.readFileSync(cssPath, 'utf8'));
         return;
@@ -36,8 +47,8 @@ export function handleRequest(req: IncomingMessage, res: ServerResponse): void {
     }
 
     if (req.method === 'GET' && req.url === '/script.js') {
-      const jsPath = path.join(__dirname, 'public', 'script.js');
-      if (fs.existsSync(jsPath)) {
+      const jsPath = resolvePublicAsset('script.js');
+      if (jsPath) {
         res.writeHead(200, { 'Content-Type': 'application/javascript; charset=utf-8' });
         res.end(fs.readFileSync(jsPath, 'utf8'));
         return;
