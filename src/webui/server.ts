@@ -8,7 +8,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const PORT = 3888;
-const HOST = 'localhost';
+const HOST = '127.0.0.1';
 
 const activeClients = new Set<ServerResponse>();
 
