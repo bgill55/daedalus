@@ -30,6 +30,24 @@ export function handleRequest(req: IncomingMessage, res: ServerResponse): void {
       return;
     }
 
+    if (req.method === 'GET' && req.url === '/styles.css') {
+      const cssPath = path.join(__dirname, 'public', 'styles.css');
+      if (fs.existsSync(cssPath)) {
+        res.writeHead(200, { 'Content-Type': 'text/css; charset=utf-8' });
+        res.end(fs.readFileSync(cssPath, 'utf8'));
+        return;
+      }
+    }
+
+    if (req.method === 'GET' && req.url === '/script.js') {
+      const jsPath = path.join(__dirname, 'public', 'script.js');
+      if (fs.existsSync(jsPath)) {
+        res.writeHead(200, { 'Content-Type': 'application/javascript; charset=utf-8' });
+        res.end(fs.readFileSync(jsPath, 'utf8'));
+        return;
+      }
+    }
+
     if (req.method === 'GET' && req.url === '/telemetry') {
       res.writeHead(200, {
         'Content-Type': 'text/event-stream',
