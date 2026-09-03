@@ -29,6 +29,11 @@ ${pc.bold('Playbooks & Task Delegation')}
   ${pc.bold('/skills')}                         List trusted skills & review proposed drafts (~/.daedalus/skills/.drafts/)
   ${pc.bold('/shortcut <alias> = <command>')}   Create custom command aliases (e.g. /shortcut qt = /test 1 -g)
 
+${pc.bold('Autonomous Development & Companion Web UI')}
+  ${pc.bold('/marathon <goal>')}                Multi-day autonomous milestone DAG execution
+  ${pc.bold('/marathon pr')}                    Push checkpoint stack & create/update PR on GitHub
+  ${pc.bold('/webui <start|stop|open|status>')} Launch local real-time telemetry dashboard (port 3888)
+
 ${pc.bold(pc.yellow('2. ESSENTIAL ENVIRONMENT VARIABLES'))}
   ${pc.bold('DAEDALUS_ALLOW_INSTALL=true')}     Auto-approve package installs (npm/pip) in autopilot
   ${pc.bold('DAEDALUS_AUTO_APPROVE=true')}     Non-interactive auto-approval for shell commands & refactors

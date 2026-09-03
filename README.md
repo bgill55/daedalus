@@ -98,7 +98,8 @@ AI assistance without:
 - **Embedded model router** — priority, round-robin, or fastest-response routing across multiple models with real-time tokens-per-second (`tok/s`) stream telemetry, plus **Multi-Model Fallback** for zero-interruption auto-failover on rate limits (429) or 5xx errors.
 - **Dynamic complexity-based routing** — classifies each task on arrival (quick/trivial → `fast` tier, heavy/multi-file → `intelligence` tier) and **re-routes on the fly** mid-task as the work evolves, with hysteresis to avoid flapping and a token budget that resets on downgrade so it never ping-pongs. Repeated tool failures trigger automatic escalation to the next model in the chain.
 - **Multi-agent orchestration** — spawns Metis (planner), Hephaestus (coder), Apollo (reviewer), Asclepius (debugger), and Mnemosyne (researcher) sub-agents — each carrying a divine callsign — with **OpenAI Swarm-Style Dynamic Handoffs (`handoff_task`)** and shared **Context Variables (`contextVariables`)** for seamless mid-turn role transfers. In single-agent REPL mode the active agent can also **auto-route** a large multi-phase task to helper agents in parallel via `route_task` (after explicit user approval through `ask_user`), so the user never has to spawn agents manually.
-- **Harness-of-Harness (HoH) Marathon Engine (`/marathon`)** — multi-day autonomous software development meta-loop; Metis milestone DAG planning, air-gapped Apollo evaluation (isolated prompt context), git checkpoint rollbacks (`daedalus-checkpoint/m-*`), and $\Sigma$-Mem anti-pattern persistence across days.
+- **Harness-of-Harness (HoH) Marathon Engine (`/marathon`)** — multi-day autonomous software development meta-loop; Metis milestone DAG planning, air-gapped Apollo evaluation (isolated prompt context), git checkpoint rollbacks (`daedalus-checkpoint/m-*`), $\Sigma$-Mem anti-pattern persistence across days, and automated **Stacked PR generation (`/marathon pr`)** on GitHub.
+- **Companion Web UI (`/webui`)** — native local HTTP & Server-Sent Events telemetry dashboard (`http://localhost:3888`) featuring a sleek dark cyber UI with real-time gauges for CPU, memory, disk, network, and live system log streams.
 - **Autonomous Finn Loop** — interactive requirements gathering (`/spec`), GitHub Issues tracking, background daemon execution (`daedalus --loop`), and Discord PR review webhook embeds.
 - **CaSKG Procedural Skill Graph Engine** — counterfactual-causal skill dependency graphs (`src/skills/graph.ts`) that resolve `prerequisites` and `leadsTo` relationships, retrieving **topologically sorted, compact skill bundles** to eliminate orphan execution and step thrashing.
 - **Self-Healing & Immunity Engine** — Programmatic Codebase Constitution (`src/config/constitution.ts`), default Test Suite Read-Only Lock (`*.test.ts`, vitest/jest runner configs, CI workflows), Reviewer Diff Immunity Audit Checklist (protecting against type-loosening, error-swallowing, and assertion weakening), and Self-Generated Skill Synthesis (`.daedalus/skills/drafts/`).
@@ -140,12 +141,14 @@ AI assistance without:
 
 <!-- START_COMMANDS_TABLE -->
 
-### Multi-Agent & Orchestration
+### Multi-Agent, Orchestration & Autonomous Marathon
 
 | Command | Description |
 |---------|-------------|
 | `/orchestrate <goal>` / `/orc` / `/run` / `/o` | Orchestrate agents for a goal |
+| `/marathon <goal> \| status \| resume \| pr \| rollback \| abort` | Multi-day autonomous software development (Harness-of-Harness meta-loop) |
 | `/autopilot <feature>` | Autonomously implement a feature: branch, code, test, commit, and PR |
+| `/hunt <bug description>` / `/bug` | Autonomously hunt down and fix a bug: reproduce, locate root cause, fix, verify |
 | `/spawn [--bg] <role> <task>` / `/delegate` | Spawn sub-agent: /spawn [--bg] <role> <task> |
 | `/task <id>` | Manage background task: /task <id> \| /task kill <id> |
 | `/tasks` | List background agent tasks |
@@ -165,10 +168,11 @@ AI assistance without:
 | `/callgraph <symbol> [depth]` | Display bidirectional call graph for a symbol |
 | `/impact <symbol>` | Analyze refactoring impact & blast radius for a symbol |
 
-### Developer Tools, Git & MCP
+### Developer Tools, Git, MCP & Web UI
 
 | Command | Description |
 |---------|-------------|
+| `/webui [start\|stop\|open\|status]` | Companion Web UI dashboard manager |
 | `/test [n] [-g]` / `test` | Run test loop and fix failures (supports --git-aware / -g for smart test selection) |
 | `/commit [msg]` | Stage and commit changes |
 | `/branch [name]` | Git branch operations |
@@ -223,8 +227,6 @@ AI assistance without:
 | `/history` / `/h` | Show recent turns with tool calls from the session log |
 | `/onboard` | First-time setup — discover local models, configure, and test |
 | `/tui` | Toggle the Terminal User Interface (TUI) dashboard |
-| `/marathon` | Multi-day autonomous software development (Harness-of-Harness meta-loop) |
-| `/hunt` / `/bug` | Autonomously hunt down and fix a bug: reproduce, locate root cause, fix, verify |
 | `/sigma` / `/memory` | Inspect active Σ-Mem (Sigma-Memory) knowledge items & scores |
 | `/routing` | Explain the last routing decision and show skipped models |
 | `/providers` | List supported model providers and BYOK setup hints |
@@ -240,7 +242,6 @@ AI assistance without:
 | `/faq` / `questions` / `faqs` | Display the Daedalus local-first FAQ (setup, architecture, troubleshooting) |
 | `/recipe` | Manage and run portable YAML recipes (/recipe [list \| run <name> \| create <name>]) |
 | `/gitautobranch` / `gitautobranch` | Toggle automatic branch-from-base for single-agent tasks |
-| `/webui` | Companion Web UI dashboard manager |
 
 <!-- END_COMMANDS_TABLE -->
 

@@ -103,20 +103,23 @@ describe('Documentation Sync Verification', () => {
       '/badge': '/badge [custom <label> <message> [color]] [--write]',
       '/spinner': '/spinner [list | braille | tracker | aurora]',
       '/scan-ai-repos': '/scan-ai-repos [--top N] [--query "topic:..."] [--issue] [--repo owner/name]',
+      '/marathon': '/marathon <goal> | status | resume | pr | rollback | abort',
+      '/webui': '/webui [start|stop|open|status]',
+      '/hunt': '/hunt <bug description>',
     };
 
     const COMMAND_GROUPS: { name: string; commands: string[] }[] = [
       {
-        name: 'Multi-Agent & Orchestration',
-        commands: ['/orchestrate', '/autopilot', '/spawn', '/task', '/tasks', '/ensemble', '/debug', '/spec']
+        name: 'Multi-Agent, Orchestration & Autonomous Marathon',
+        commands: ['/orchestrate', '/marathon', '/autopilot', '/hunt', '/spawn', '/task', '/tasks', '/ensemble', '/debug', '/spec']
       },
       {
         name: 'Codebase Search & Live Watcher',
         commands: ['/watch', '/index', '/find', '/refs', '/def', '/callgraph', '/impact']
       },
       {
-        name: 'Developer Tools, Git & MCP',
-        commands: ['/test', '/commit', '/branch', '/pr', '/mcp', '/image', '/undo', '/ci', '/badge', '/scan-ai-repos']
+        name: 'Developer Tools, Git, MCP & Web UI',
+        commands: ['/webui', '/test', '/commit', '/branch', '/pr', '/mcp', '/image', '/undo', '/ci', '/badge', '/scan-ai-repos']
       },
       {
         name: 'Memory, Conventions & Config',
