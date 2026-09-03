@@ -1,10 +1,10 @@
 # Marathon Roadmap: Add a Companion Web UI to Daedalus under src/webui/ running on localhost:3888 with Server-Sent Events (SSE) for live telemetry streaming. Include a native node:http server in src/webui/server.ts, a single-page dark cyber-themed dashboard in src/webui/public/index.html, a slash command /webui in src/commands/webui.ts with start/stop/open/status subcommands, and unit tests in src/webui/server.test.ts. Do not modify root package.json.
 
-- **Status**: `EVALUATING`
-- **Progress**: 5/6 milestones passed (83%)
+- **Status**: `COMPLETED`
+- **Progress**: 6/6 milestones passed (100%)
 - **Base Branch**: `main`
 - **Integration Branch**: `marathon/add-a-companion-web-ui-to-daed`
-- **Last Updated**: 2026-09-03T07:39:35.106Z
+- **Last Updated**: 2026-09-03T07:39:54.568Z
 
 ## Milestones
 
@@ -69,13 +69,14 @@ Add /webui slash command in src/commands/webui.ts with start/stop/open/status su
 - [x] /webui command available in CLI
 - [x] start, stop, open, status subcommands function as expected
 
-### [>] M-6: Write Unit Tests
+### [x] M-6: Write Unit Tests
 
 Add unit tests for webui components in src/webui/server.test.ts
 
 - **Target Files**: `src/webui/server.test.ts`
+- **Git Tag**: `daedalus-checkpoint/m-6`
 - **Attempts**: 1/3
 
 **Acceptance Criteria:**
-- [ ] Unit tests cover all webui components
-- [ ] Unit tests pass with 100% coverage
+- [x] Unit tests cover all webui components
+- [x] Unit tests pass with 100% coverage
