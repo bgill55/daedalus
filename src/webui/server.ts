@@ -17,49 +17,54 @@ export interface TelemetryData {
 }
 
 export function handleRequest(req: IncomingMessage, res: ServerResponse): void {
-  if (req.method === 'GET' && req.url === '/') {
-    const htmlPath = path.join(__dirname, 'public', 'index.html');
-    if (fs.existsSync(htmlPath)) {
-      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-      res.end(fs.readFileSync(htmlPath, 'utf8'));
+  try {
+    if (req.method === 'GET' && req.url === '/') {
+      const htmlPath = path.join(__dirname, 'public', 'index.html');
+      if (fs.existsSync(htmlPath)) {
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(fs.readFileSync(htmlPath, 'utf8'));
+        return;
+      }
+      res.writeHead(200, { 'Content-Type': 'text/plain' });
+      res.end('OK');
       return;
     }
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('OK');
-    return;
+
+    if (req.method === 'GET' && req.url === '/telemetry') {
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'Access-Control-Allow-Origin': '*'
+      });
+
+      // Send initial connection message
+      res.write('data: {"type":"connected"}\n\n');
+
+      // Generate and send dummy telemetry data every second
+      const interval = setInterval(() => {
+        const data: TelemetryData = {
+          timestamp: Date.now(),
+          metric: ['cpu', 'memory', 'disk', 'network'][Math.floor(Math.random() * 4)],
+          value: Math.floor(Math.random() * 100)
+        };
+        res.write(`data: ${JSON.stringify(data)}\n\n`);
+      }, 1000);
+
+      // Clean up interval on client disconnect
+      req.on('close', () => {
+        clearInterval(interval);
+        res.end();
+      });
+      return;
+    }
+
+    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    res.end('Not Found');
+  } catch (err: any) {
+    res.writeHead(500, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: err?.message || 'Internal Server Error' }));
   }
-
-  if (req.method === 'GET' && req.url === '/telemetry') {
-    res.writeHead(200, {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive',
-      'Access-Control-Allow-Origin': '*'
-    });
-
-    // Send initial connection message
-    res.write('data: {"type":"connected"}\n\n');
-
-    // Generate and send dummy telemetry data every second
-    const interval = setInterval(() => {
-      const data: TelemetryData = {
-        timestamp: Date.now(),
-        metric: ['cpu', 'memory', 'disk', 'network'][Math.floor(Math.random() * 4)],
-        value: Math.floor(Math.random() * 100)
-      };
-      res.write(`data: ${JSON.stringify(data)}\n\n`);
-    }, 1000);
-
-    // Clean up interval on client disconnect
-    req.on('close', () => {
-      clearInterval(interval);
-      res.end();
-    });
-    return;
-  }
-
-  res.writeHead(404, { 'Content-Type': 'text/plain' });
-  res.end('Not Found');
 }
 
 const server = createServer(handleRequest);
