@@ -1,4 +1,4 @@
-﻿import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   buildEvaluatorPrompt,
   parseEvaluationJson,
@@ -82,9 +82,10 @@ describe('Air-Gapped Evaluator (Apollo Out-of-Band)', () => {
       },
     } as any;
 
-    // We pass verifyCommand that fails (exit 1)
+    // We pass verifyCommand that fails (exit 1) on existing target file
     const milestoneWithFailingCmd: MarathonMilestone = {
       ...sampleMilestone,
+      targetFiles: ['package.json'],
       verifyCommand: 'node -e "process.exit(1)"',
     };
 
@@ -99,5 +100,31 @@ describe('Air-Gapped Evaluator (Apollo Out-of-Band)', () => {
     // Hard gate must force passed to false because verifyCommand exited 1
     expect(report.passed).toBe(false);
     expect(report.summary).toContain('Verification command failed');
+  });
+
+  it('immediately rejects milestone if deliverable target files are missing on disk', async () => {
+    const mockRouter = {
+      chat: {
+        completions: {
+          create: vi.fn().mockResolvedValue({
+            choices: [{ message: { content: '{"passed": true, "score": 100, "summary": "fake pass"}' } }],
+          }),
+        },
+      },
+    } as any;
+
+    const report = await evaluateMilestone(
+      sampleMilestone,
+      {
+        router: mockRouter,
+        projectRoot: process.cwd(),
+      }
+    );
+
+    expect(report.passed).toBe(false);
+    expect(report.score).toBe(0);
+    expect(report.summary).toContain('Missing file: src/auth.ts');
+    // Ensure the LLM wasn't even called
+    expect(mockRouter.chat.completions.create).not.toHaveBeenCalled();
   });
 });

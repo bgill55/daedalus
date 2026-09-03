@@ -133,11 +133,15 @@ ${diff.slice(0, 12000) || '(Empty diff)'}
 }`;
 }
 
-export function findEmptyOrStubFiles(cwd: string, targetFiles: string[] = []): string[] {
+export function findMissingOrStubFiles(cwd: string, targetFiles: string[] = []): { missing: string[]; stubs: string[] } {
+  const missing: string[] = [];
   const stubs: string[] = [];
   for (const rel of targetFiles) {
     const full = path.resolve(cwd, rel);
-    if (!fs.existsSync(full)) continue;
+    if (!fs.existsSync(full)) {
+      missing.push(rel);
+      continue;
+    }
     try {
       const stat = fs.statSync(full);
       if (stat.size === 0) {
@@ -153,10 +157,10 @@ export function findEmptyOrStubFiles(cwd: string, targetFiles: string[] = []): s
         stubs.push(rel);
       }
     } catch {
-      // ignore read error
+      missing.push(rel);
     }
   }
-  return stubs;
+  return { missing, stubs };
 }
 
 function cleanJson(str: string): string {
@@ -235,27 +239,50 @@ export async function evaluateMilestone(
   opts: EvaluatorOptions,
   baseTagOrCommit?: string
 ): Promise<MarathonEvaluationReport> {
-  // Pre-evaluation Gate 1: Check for 0-byte stubs or empty placeholder files in deliverables
-  const stubFiles = findEmptyOrStubFiles(opts.projectRoot, milestone.targetFiles);
-  if (stubFiles.length > 0) {
+  // Pre-evaluation Gate 1: Check for missing target files or empty placeholder stubs
+  const { missing, stubs } = findMissingOrStubFiles(opts.projectRoot, milestone.targetFiles);
+  if (missing.length > 0 || stubs.length > 0) {
+    const issues = [
+      ...missing.map(f => `Missing file: ${f}`),
+      ...stubs.map(f => `Empty stub: ${f}`),
+    ];
     return {
       passed: false,
-      score: 10,
-      summary: `Milestone rejected: Contains empty or placeholder stub file(s): ${stubFiles.join(', ')}. Deliverables must contain complete, functional implementations.`,
+      score: 0,
+      summary: `Milestone rejected: ${issues.join('; ')}. All deliverable files must exist and contain working implementations.`,
       regressions: [],
       criteriaResults: milestone.acceptanceCriteria.map(c => ({
         criterion: c,
         satisfied: false,
-        note: `Empty stub detected: ${stubFiles.join(', ')}`,
+        note: issues.join('; '),
       })),
       repairRecommendations: [
-        `Implement full functional logic in ${stubFiles.join(', ')} — do not leave 0-byte or placeholder files.`,
+        `Create and implement all required target files: ${[...missing, ...stubs].join(', ')}.`,
       ],
       evaluatedAt: new Date().toISOString(),
     };
   }
 
+  // Pre-evaluation Gate 2: Check for empty git diff
   const diff = getMilestoneDiff(opts.projectRoot, baseTagOrCommit);
+  if (!diff || diff.trim().length === 0) {
+    return {
+      passed: false,
+      score: 0,
+      summary: 'Milestone rejected: Git diff is completely empty (no code changes were produced).',
+      regressions: [],
+      criteriaResults: milestone.acceptanceCriteria.map(c => ({
+        criterion: c,
+        satisfied: false,
+        note: 'No changes found in git diff',
+      })),
+      repairRecommendations: [
+        'Directly execute file writes or patches to create the required changes.',
+      ],
+      evaluatedAt: new Date().toISOString(),
+    };
+  }
+
   const verify = runMilestoneVerification(opts.projectRoot, milestone.verifyCommand, milestone.targetFiles);
 
   const prompt = buildEvaluatorPrompt(milestone, diff, verify.output, verify.success);
