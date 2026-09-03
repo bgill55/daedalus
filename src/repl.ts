@@ -351,6 +351,7 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
         // Try executing as command first
         let capturedCommandOutput = '';
         const originalLog = console.log;
+        const stripAnsi = (s: string) => s.replace(/\x1B\[[0-9;]*[mGKHFABCDEsu]|\x1B\][^\x07]*\x07/g, '');
         if (isWebTurn) {
           console.log = (...args: any[]) => {
             const line = args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' ');
@@ -373,7 +374,7 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
             webOpts.broadcast({
               type: 'chat_token',
               role: 'assistant',
-              text: capturedCommandOutput.trim(),
+              text: stripAnsi(capturedCommandOutput.trim()),
               timestamp: Date.now(),
             });
           }
