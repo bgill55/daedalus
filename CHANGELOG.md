@@ -1,3 +1,10 @@
+## [3.70.1](https://github.com/bgill55/daedalus/compare/v3.70.0...v3.70.1) (2026-09-03)
+
+
+### Bug Fixes
+
+* **webui:** bind explicitly to 127.0.0.1 to avoid Windows dual-stack IPv6 port conflicts ([3e25f85](https://github.com/bgill55/daedalus/commit/3e25f85f429e54a0c5e63e80ecc14183e8701db4))
+
 # [3.70.0](https://github.com/bgill55/daedalus/compare/v3.69.0...v3.70.0) (2026-09-03)
 
 
