@@ -79,23 +79,62 @@
         </div>
       </div>
 
-      <div class="panel chat-panel">
-        <div class="panel-header">
-          <span class="metric-name">⚡ INTERACTIVE CHAT CONSOLE</span>
-          <div class="chat-badges">
-            <span class="badge" id="chat-status-badge">READY</span>
+      <div class="chat-section-wrapper">
+        <div class="panel chat-panel">
+          <div class="panel-header">
+            <span class="metric-name">⚡ INTERACTIVE CHAT CONSOLE</span>
+            <div class="chat-badges">
+              <span class="badge" id="chat-status-badge">READY</span>
+            </div>
           </div>
-        </div>
-        <div id="chat-messages" class="chat-messages">
-          <div class="chat-msg assistant">
-            <div class="msg-header"><span class="sender">DAEDALUS</span> <span class="badge-role">ORCHESTRATOR</span></div>
-            <div class="msg-body">Companion Web Console active. You can chat with Daedalus or run slash commands like <code>/health</code>, <code>/models</code>, <code>/autopilot</code>, or <code>/marathon</code>.</div>
+          <div id="chat-messages" class="chat-messages">
+            <div class="chat-msg assistant">
+              <div class="msg-header"><span class="sender">DAEDALUS</span> <span class="badge-role">ORCHESTRATOR</span></div>
+              <div class="msg-body">Companion Web Console active. You can chat with Daedalus or run slash commands like <code>/health</code>, <code>/models</code>, <code>/autopilot</code>, or <code>/marathon</code>.</div>
+            </div>
           </div>
+          <form id="chat-form" class="chat-form">
+            <input id="chat-input" type="text" placeholder="Type a message or click a command from the cheat sheet..." autocomplete="off" />
+            <button type="submit" id="chat-send-btn" class="send-btn">SEND ⚡</button>
+          </form>
         </div>
-        <form id="chat-form" class="chat-form">
-          <input id="chat-input" type="text" placeholder="Type a message or slash command (/health, /models, /marathon)..." autocomplete="off" />
-          <button type="submit" id="chat-send-btn" class="send-btn">SEND ⚡</button>
-        </form>
+
+        <aside class="panel cheatsheet-panel">
+          <div class="panel-header">
+            <span class="metric-name">⚡ QUICK COMMANDS</span>
+            <span class="cheatsheet-hint">CLICK TO INSERT</span>
+          </div>
+          <div class="cheatsheet-content">
+            <div class="cmd-group">
+              <div class="cmd-group-title">AUTONOMOUS & SPRINT</div>
+              <button type="button" class="cmd-chip" data-cmd="/marathon " title="Harness-of-Harness autonomous DAG development"><code>/marathon &lt;goal&gt;</code></button>
+              <button type="button" class="cmd-chip" data-cmd="/autopilot " title="End-to-end autonomous feature branch delivery"><code>/autopilot &lt;prompt&gt;</code></button>
+              <button type="button" class="cmd-chip" data-cmd="/ci review" title="Headless CI PR reviewer simulation"><code>/ci review</code></button>
+            </div>
+
+            <div class="cmd-group">
+              <div class="cmd-group-title">ROUTER & DIAGNOSTICS</div>
+              <button type="button" class="cmd-chip" data-cmd="/health" title="Check model router latency & provider status"><code>/health</code></button>
+              <button type="button" class="cmd-chip" data-cmd="/models" title="List healthy, available models"><code>/models</code></button>
+              <button type="button" class="cmd-chip" data-cmd="/doctor" title="Diagnose environment and discovery"><code>/doctor</code></button>
+            </div>
+
+            <div class="cmd-group">
+              <div class="cmd-group-title">CONTEXT & CODEBASE</div>
+              <button type="button" class="cmd-chip" data-cmd="/find " title="Search indexed symbols in FTS5 database"><code>/find &lt;query&gt;</code></button>
+              <button type="button" class="cmd-chip" data-cmd="/context" title="Show active files in turn context"><code>/context</code></button>
+              <button type="button" class="cmd-chip" data-cmd="/memory" title="Inspect persistent project memories & conventions"><code>/memory</code></button>
+              <button type="button" class="cmd-chip" data-cmd="/system" title="View active system prompt and rules"><code>/system</code></button>
+            </div>
+
+            <div class="cmd-group">
+              <div class="cmd-group-title">INTERFACE & UTILITIES</div>
+              <button type="button" class="cmd-chip" data-cmd="/webui rate 500" title="Adjust telemetry refresh rate in ms"><code>/webui rate &lt;ms&gt;</code></button>
+              <button type="button" class="cmd-chip" data-cmd="/spinner aurora" title="Switch thinking spinner style"><code>/spinner &lt;style&gt;</code></button>
+              <button type="button" class="cmd-chip" data-cmd="/clear" title="Clear chat history"><code>/clear</code></button>
+            </div>
+          </div>
+        </aside>
       </div>
     </main>
   </div>

@@ -117,6 +117,16 @@ if (chatForm && chatInput) {
   });
 }
 
+// Cheat Sheet Click-to-Insert Handler
+document.querySelectorAll('.cmd-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    const cmd = chip.getAttribute('data-cmd');
+    if (!cmd || !chatInput) return;
+    chatInput.value = cmd;
+    chatInput.focus();
+  });
+});
+
 function connectSSE() {
   const eventSource = new EventSource('/telemetry');
 

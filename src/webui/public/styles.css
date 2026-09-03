@@ -218,12 +218,90 @@ h1 {
   margin-right: 8px;
 }
 
-/* Chat Console */
-.chat-panel {
+/* Chat Console & Quick Commands Layout */
+.chat-section-wrapper {
   grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .chat-section-wrapper {
+    grid-template-columns: 1fr;
+  }
+}
+
+.chat-panel {
   background: var(--bg-secondary);
   display: flex;
   flex-direction: column;
+}
+
+.cheatsheet-panel {
+  background: var(--bg-secondary);
+  display: flex;
+  flex-direction: column;
+  max-height: 400px;
+}
+
+.cheatsheet-hint {
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+
+.cheatsheet-content {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-right: 4px;
+}
+
+.cmd-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cmd-group-title {
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  font-weight: 700;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding-bottom: 3px;
+  margin-top: 2px;
+}
+
+.cmd-chip {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 6px 10px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  font-family: inherit;
+  font-size: 12px;
+}
+
+.cmd-chip code {
+  color: var(--accent-cyan);
+  background: transparent;
+}
+
+.cmd-chip:hover {
+  border-color: var(--accent-cyan);
+  background: rgba(0, 240, 255, 0.08);
+  transform: translateX(2px);
+  box-shadow: 0 0 8px rgba(0, 240, 255, 0.2);
+}
+
+.cmd-chip:active {
+  transform: scale(0.98);
 }
 
 .chat-badges .badge {
