@@ -1,3 +1,10 @@
+## [3.68.8](https://github.com/bgill55/daedalus/compare/v3.68.7...v3.68.8) (2026-09-03)
+
+
+### Bug Fixes
+
+* **marathon:** resilient 3-tier JSON parsing and targeted verification in Apollo evaluator ([96edc53](https://github.com/bgill55/daedalus/commit/96edc5384bba9b622745d43eb736756bc12a91e4))
+
 ## [3.68.7](https://github.com/bgill55/daedalus/compare/v3.68.6...v3.68.7) (2026-09-02)
 
 
