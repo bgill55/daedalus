@@ -16,7 +16,7 @@ export interface TelemetryData {
   value: number;
 }
 
-function handleRequest(req: IncomingMessage, res: ServerResponse): void {
+export function handleRequest(req: IncomingMessage, res: ServerResponse): void {
   if (req.method === 'GET' && req.url === '/') {
     const htmlPath = path.join(__dirname, 'public', 'index.html');
     if (fs.existsSync(htmlPath)) {
