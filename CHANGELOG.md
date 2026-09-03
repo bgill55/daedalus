@@ -1,3 +1,10 @@
+## [3.70.2](https://github.com/bgill55/daedalus/compare/v3.70.1...v3.70.2) (2026-09-03)
+
+
+### Bug Fixes
+
+* **webui:** auto-free port 3888 on EADDRINUSE and register process exit teardown hook ([4659797](https://github.com/bgill55/daedalus/commit/46597975feb926f298afa98ce71055fdd5ea3971))
+
 ## [3.70.1](https://github.com/bgill55/daedalus/compare/v3.70.0...v3.70.1) (2026-09-03)
 
 
