@@ -1,6 +1,13 @@
 import { createServer, IncomingMessage, ServerResponse } from 'node:http';
 
-const PORT = 3000;
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const PORT = 3888;
 const HOST = 'localhost';
 
 export interface TelemetryData {
@@ -10,6 +17,18 @@ export interface TelemetryData {
 }
 
 function handleRequest(req: IncomingMessage, res: ServerResponse): void {
+  if (req.method === 'GET' && req.url === '/') {
+    const htmlPath = path.join(__dirname, 'public', 'index.html');
+    if (fs.existsSync(htmlPath)) {
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+      res.end(fs.readFileSync(htmlPath, 'utf8'));
+      return;
+    }
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('OK');
+    return;
+  }
+
   if (req.method === 'GET' && req.url === '/telemetry') {
     res.writeHead(200, {
       'Content-Type': 'text/event-stream',
