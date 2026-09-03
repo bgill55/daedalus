@@ -1,3 +1,10 @@
+## [3.68.11](https://github.com/bgill55/daedalus/compare/v3.68.10...v3.68.11) (2026-09-03)
+
+
+### Bug Fixes
+
+* **marathon:** enforce strict pre-evaluation 0-byte stub gate and explicit stub rejection in Apollo ([7b5dce2](https://github.com/bgill55/daedalus/commit/7b5dce26e057efa8e5c9ee05b0477893c9a00253))
+
 ## [3.68.10](https://github.com/bgill55/daedalus/compare/v3.68.9...v3.68.10) (2026-09-03)
 
 
