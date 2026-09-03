@@ -115,4 +115,5 @@ Marks the active marathon run as aborted.
 ---
 
 ## Further Reading
+- [Technical Whitepaper: The B.R.A.G. Autonomous Framework & The Marathon Engine](whitepaper-brag-marathon.md)
 - [Case Study: Multi-Day Autonomy in Action — The Marathon Engine Walkthrough](marathon-case-study.md)
