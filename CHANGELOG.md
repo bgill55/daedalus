@@ -1,3 +1,10 @@
+## [3.68.13](https://github.com/bgill55/daedalus/compare/v3.68.12...v3.68.13) (2026-09-03)
+
+
+### Bug Fixes
+
+* **marathon:** run verification before diff gate to pass CI suite ([2eadc57](https://github.com/bgill55/daedalus/commit/2eadc57cce62338dbbc6341d3b865f3091e9dd89))
+
 ## [3.68.12](https://github.com/bgill55/daedalus/compare/v3.68.11...v3.68.12) (2026-09-03)
 
 
