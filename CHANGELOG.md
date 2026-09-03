@@ -1,3 +1,10 @@
+## [3.68.10](https://github.com/bgill55/daedalus/compare/v3.68.9...v3.68.10) (2026-09-03)
+
+
+### Bug Fixes
+
+* **marathon:** smart UI verification ([d813fde](https://github.com/bgill55/daedalus/commit/d813fde834727225d2be974fd132ea30c87860b3))
+
 ## [3.68.9](https://github.com/bgill55/daedalus/compare/v3.68.8...v3.68.9) (2026-09-03)
 
 
