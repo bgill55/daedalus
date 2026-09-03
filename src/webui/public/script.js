@@ -62,6 +62,26 @@ function addChatMessage(role, text, roleBadge = null) {
 }
 
 let activeAssistantBody = null;
+let thinkingEl = null;
+
+function showThinkingSpinner() {
+  removeThinkingSpinner();
+  thinkingEl = document.createElement('div');
+  thinkingEl.className = 'chat-msg thinking';
+  thinkingEl.innerHTML = `
+    <div class="thinking-dots"><span></span><span></span><span></span></div>
+    <span>Daedalus is formulating response...</span>
+  `;
+  chatMessages.appendChild(thinkingEl);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function removeThinkingSpinner() {
+  if (thinkingEl && thinkingEl.parentNode) {
+    thinkingEl.parentNode.removeChild(thinkingEl);
+  }
+  thinkingEl = null;
+}
 
 if (chatForm && chatInput) {
   chatForm.addEventListener('submit', async (e) => {
@@ -74,6 +94,7 @@ if (chatForm && chatInput) {
     
     addChatMessage('user', text);
     activeAssistantBody = null;
+    showThinkingSpinner();
     
     try {
       const res = await fetch('/api/chat', {
@@ -83,11 +104,13 @@ if (chatForm && chatInput) {
       });
       
       if (!res.ok) {
+        removeThinkingSpinner();
         const errData = await res.json().catch(() => ({}));
         addChatMessage('error', `Error: ${errData.error || res.statusText}`);
         if (chatStatusBadge) chatStatusBadge.textContent = 'ERROR';
       }
     } catch (err) {
+      removeThinkingSpinner();
       addChatMessage('error', `Network Error: ${err.message}`);
       if (chatStatusBadge) chatStatusBadge.textContent = 'ERROR';
     }
@@ -121,6 +144,7 @@ function connectSSE() {
         if (data.role === 'user') {
           // already added locally or by another client
         } else {
+          removeThinkingSpinner();
           if (!activeAssistantBody) {
             activeAssistantBody = addChatMessage('assistant', data.text || '', 'STREAM');
           } else if (data.text) {
@@ -133,6 +157,7 @@ function connectSSE() {
       }
 
       if (data.type === 'chat_tool_start') {
+        removeThinkingSpinner();
         addLog(`⚡ Agent tool started: <strong>${data.tool}</strong>`);
         if (chatStatusBadge) chatStatusBadge.textContent = `TOOL: ${data.tool}`;
         return;
@@ -144,6 +169,7 @@ function connectSSE() {
       }
 
       if (data.type === 'chat_done') {
+        removeThinkingSpinner();
         activeAssistantBody = null;
         if (chatStatusBadge) chatStatusBadge.textContent = 'READY';
         addLog('Chat completion finished.');
@@ -151,6 +177,7 @@ function connectSSE() {
       }
 
       if (data.type === 'chat_error') {
+        removeThinkingSpinner();
         addChatMessage('error', `Execution error: ${data.content}`);
         if (chatStatusBadge) chatStatusBadge.textContent = 'ERROR';
         return;
