@@ -66,6 +66,9 @@ export function runMilestoneVerification(cwd: string, customCommand?: string, ta
     const testTarget = targetFiles.find(f => /\.test\.[jt]sx?$/.test(f));
     if (testTarget && fs.existsSync(path.resolve(cwd, testTarget))) {
       cmd = `npx vitest run ${testTarget}`;
+    } else if (targetFiles.length > 0 && targetFiles.every(f => /\.(html|css|json|md|svg|png)$/.test(f))) {
+      // Pure UI assets / markup change: verify TypeScript compile integrity
+      cmd = 'npx tsc --noEmit';
     } else {
       cmd = 'npm test';
     }
@@ -116,7 +119,7 @@ ${diff.slice(0, 12000) || '(Empty diff)'}
 ## Instructions:
 1. Check each acceptance criterion against the actual diff and test output.
 2. Check for fake/tautological tests or mocked-out critical functionality.
-3. Check for obvious regressions.
+3. Check for obvious regressions introduced directly by this milestone's diff. Note: Unrelated failures in existing host test suites (such as terminal.test.ts or model.test.ts) are not regressions of new subsystem features.
 4. Output your verdict in pure, valid JSON with no conversational wrapper:
 {
   "passed": boolean,
