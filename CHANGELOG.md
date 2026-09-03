@@ -1,3 +1,15 @@
+# [3.72.0](https://github.com/bgill55/daedalus/compare/v3.71.0...v3.72.0) (2026-09-03)
+
+
+### Bug Fixes
+
+* **router:** route to vision-capable model when image is present even if text-only model is pinned ([8aae125](https://github.com/bgill55/daedalus/commit/8aae125415ee228d9d77b12ee71ca72b3cc26017))
+
+
+### Features
+
+* **webui:** add cyber-themed SVG favicon and endpoint handler ([40eee63](https://github.com/bgill55/daedalus/commit/40eee636f3c8ac3273766f6b56c95d6c242b0da7))
+
 # [3.71.0](https://github.com/bgill55/daedalus/compare/v3.70.2...v3.71.0) (2026-09-03)
 
 
