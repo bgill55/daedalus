@@ -104,6 +104,15 @@ function removeThinkingSpinner() {
   thinkingEl = null;
 }
 
+function updateThinkingSpinner(text) {
+  if (thinkingEl && chatMessages) {
+    const label = thinkingEl.querySelector('span:last-child');
+    if (label) label.textContent = text;
+    chatMessages.appendChild(thinkingEl);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+}
+
 if (chatForm && chatInput) {
   chatForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -175,7 +184,6 @@ function connectSSE() {
         if (data.role === 'user') {
           // already added locally or by another client
         } else {
-          removeThinkingSpinner();
           if (!activeAssistantBody) {
             activeAssistantBody = addChatMessage('assistant', data.text || '', 'STREAM');
           } else if (data.text) {
@@ -185,19 +193,21 @@ function connectSSE() {
             chatMessages.scrollTop = chatMessages.scrollHeight;
           }
           if (chatStatusBadge) chatStatusBadge.textContent = 'STREAMING...';
+          updateThinkingSpinner('Daedalus is responding...');
         }
         return;
       }
 
       if (data.type === 'chat_tool_start') {
-        removeThinkingSpinner();
         addLog(`⚡ Agent tool started: <strong>${data.tool}</strong>`);
         if (chatStatusBadge) chatStatusBadge.textContent = `TOOL: ${data.tool}`;
+        updateThinkingSpinner(`Running: ${data.tool}...`);
         return;
       }
 
       if (data.type === 'chat_tool_result') {
         addLog(`✔ Agent tool finished: <strong>${data.tool}</strong>`);
+        updateThinkingSpinner('Daedalus is processing results...');
         return;
       }
 
