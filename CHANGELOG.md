@@ -1,3 +1,10 @@
+## [3.68.9](https://github.com/bgill55/daedalus/compare/v3.68.8...v3.68.9) (2026-09-03)
+
+
+### Bug Fixes
+
+* **agents:** support relative subdirectory paths in verifyArtifactsThoroughly ([fe35cc5](https://github.com/bgill55/daedalus/commit/fe35cc59a28363a2512643fe3a47f7ed2c4c1d05))
+
 ## [3.68.8](https://github.com/bgill55/daedalus/compare/v3.68.7...v3.68.8) (2026-09-03)
 
 
