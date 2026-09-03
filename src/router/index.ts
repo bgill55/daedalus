@@ -411,6 +411,11 @@ export class LocalRouter {
     let selectedModel: ModelEntry | undefined;
     let candidateModels = healthyModels;
 
+    const requiresTools = !!(request.tools && request.tools.length > 0);
+    const hasImage = request.messages.some((msg: ChatMessage) =>
+      Array.isArray(msg.content) && msg.content.some((c: MessageContentPart) => c.type === 'image_url')
+    );
+
     if (request.model && request.model !== 'auto') {
       if (['intelligence', 'fast', 'standard'].includes(request.model)) {
         const tierModels = healthyModels.filter(m => m.tier === request.model);
@@ -426,7 +431,7 @@ export class LocalRouter {
         }
         const pinnedExcluded = !!excludedModels && excludedModels.size > 0 &&
           (excludedModels.has(pinned.name) || excludedModels.has(pinned.model));
-        if (!pinnedExcluded) {
+        if (!pinnedExcluded && (!hasImage || pinned.supportsVision)) {
           selectedModel = pinned;
           if (!isLocalEndpoint(selectedModel.endpoint)) {
             const rateLimiter = this.rateLimiters.get(this.getRateLimiterKey(selectedModel));
@@ -443,14 +448,12 @@ export class LocalRouter {
           this.lastRoutedTier = selectedModel.tier;
           this.recordRoutingDecision(selectedModel, `model override '${request.model}'`, skipped);
           return { model: selectedModel, health, reason: `model override '${request.model}'`, skipped: skipped.map(s => ({ ...s })) };
+        } else if (!pinnedExcluded && hasImage && !pinned.supportsVision) {
+          skipped.push({ model: pinned.name, reason: `pinned model '${pinned.name}' does not support vision` });
         }
       }
     }
 
-    const requiresTools = !!(request.tools && request.tools.length > 0);
-    const hasImage = request.messages.some((msg: ChatMessage) =>
-      Array.isArray(msg.content) && msg.content.some((c: MessageContentPart) => c.type === 'image_url')
-    );
     const estimatedTokens = this.estimateTokens(request);
     const isComplexTask = requiresTools || estimatedTokens > 8000;
 
