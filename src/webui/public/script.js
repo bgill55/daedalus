@@ -65,6 +65,24 @@ function addChatMessage(role, text, roleBadge = null) {
     badge.textContent = roleBadge;
     header.appendChild(badge);
   }
+
+  if (role === 'assistant') {
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'copy-btn';
+    copyBtn.textContent = 'COPY';
+    copyBtn.addEventListener('click', () => {
+      const raw = body.dataset.raw || body.textContent || '';
+      navigator.clipboard.writeText(raw).then(() => {
+        copyBtn.textContent = 'COPIED!';
+        copyBtn.classList.add('copied');
+        setTimeout(() => {
+          copyBtn.textContent = 'COPY';
+          copyBtn.classList.remove('copied');
+        }, 1800);
+      });
+    });
+    header.appendChild(copyBtn);
+  }
   
   const body = document.createElement('div');
   body.className = 'msg-body';

@@ -388,6 +388,7 @@ h1 {
   align-items: center;
   gap: 8px;
   margin-bottom: 4px;
+  width: 100%;
 }
 
 .msg-header .sender {
@@ -410,6 +411,38 @@ h1 {
   border-radius: 3px;
   background: rgba(255, 255, 255, 0.08);
   color: var(--text-muted);
+}
+
+.copy-btn {
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid rgba(0, 240, 255, 0.2);
+  border-radius: 3px;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: 1px 6px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s, border-color 0.15s;
+  line-height: 1.6;
+}
+
+.chat-msg.assistant:hover .copy-btn {
+  opacity: 1;
+}
+
+.copy-btn:hover {
+  color: var(--accent-cyan);
+  border-color: var(--accent-cyan);
+}
+
+.copy-btn.copied {
+  opacity: 1;
+  color: var(--accent-green);
+  border-color: var(--accent-green);
 }
 
 .msg-body {
