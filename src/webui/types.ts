@@ -22,3 +22,18 @@ export interface IResponse {
   /** JSON payload returned to the client */
   data: any;
 }
+
+export interface WebuiChatMessageEvent {
+  type: 'chat_token' | 'chat_tool_start' | 'chat_tool_result' | 'chat_done' | 'chat_error';
+  id?: string;
+  text?: string;
+  role?: 'user' | 'assistant' | 'system';
+  tool?: string;
+  content?: string;
+  timestamp: number;
+}
+
+export interface WebuiChatRequest {
+  message: string;
+  role?: string;
+}

@@ -147,6 +147,52 @@ describe('WebUI Server', () => {
     });
   });
 
+  describe('POST /api/chat', () => {
+    it('should reject missing message with 400', async () => {
+      mockReq.url = '/api/chat';
+      mockReq.method = 'POST';
+      
+      const onHandlers: Record<string, (...args: any[]) => void> = {};
+      mockReq.on = vi.fn().mockImplementation((evt, cb) => {
+        onHandlers[evt] = cb;
+        return mockReq;
+      });
+
+      handleRequest(mockReq as IncomingMessage, mockRes as ServerResponse);
+      
+      // Emit empty body
+      onHandlers['data']?.(Buffer.from(JSON.stringify({})));
+      onHandlers['end']?.();
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      expect(writeHeadSpy).toHaveBeenCalledWith(400, { 'Content-Type': 'application/json' });
+      expect(endSpy).toHaveBeenCalled();
+    });
+
+    it('should process chat message with echo fallback when no handler registered', async () => {
+      mockReq.url = '/api/chat';
+      mockReq.method = 'POST';
+      
+      const onHandlers: Record<string, (...args: any[]) => void> = {};
+      mockReq.on = vi.fn().mockImplementation((evt, cb) => {
+        onHandlers[evt] = cb;
+        return mockReq;
+      });
+
+      handleRequest(mockReq as IncomingMessage, mockRes as ServerResponse);
+      
+      onHandlers['data']?.(Buffer.from(JSON.stringify({ message: 'Hello Daedalus' })));
+      onHandlers['end']?.();
+
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      expect(writeHeadSpy).toHaveBeenCalledWith(200, { 'Content-Type': 'application/json' });
+      const responseData = JSON.parse(endSpy.mock.calls[0][0]);
+      expect(responseData.status).toBe('ok');
+    });
+  });
+
   describe('Other routes', () => {
     it('should return 404 for unknown routes', () => {
       mockReq.url = '/unknown';

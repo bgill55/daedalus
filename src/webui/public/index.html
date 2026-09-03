@@ -78,6 +78,25 @@
           <div class="log-entry"><span class="time">[INIT]</span> Telemetry dashboard initialized.</div>
         </div>
       </div>
+
+      <div class="panel chat-panel">
+        <div class="panel-header">
+          <span class="metric-name">⚡ INTERACTIVE CHAT CONSOLE</span>
+          <div class="chat-badges">
+            <span class="badge" id="chat-status-badge">READY</span>
+          </div>
+        </div>
+        <div id="chat-messages" class="chat-messages">
+          <div class="chat-msg assistant">
+            <div class="msg-header"><span class="sender">DAEDALUS</span> <span class="badge-role">ORCHESTRATOR</span></div>
+            <div class="msg-body">Companion Web Console active. You can chat with Daedalus or run slash commands like <code>/health</code>, <code>/models</code>, <code>/autopilot</code>, or <code>/marathon</code>.</div>
+          </div>
+        </div>
+        <form id="chat-form" class="chat-form">
+          <input id="chat-input" type="text" placeholder="Type a message or slash command (/health, /models, /marathon)..." autocomplete="off" />
+          <button type="submit" id="chat-send-btn" class="send-btn">SEND ⚡</button>
+        </form>
+      </div>
     </main>
   </div>
   <script src="/script.js"></script>

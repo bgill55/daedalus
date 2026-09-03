@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { TelemetryData } from '../types.js';
+import type { WebuiChatMessageEvent, WebuiChatRequest } from './types.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -57,8 +58,109 @@ function resolvePublicAsset(filename: string): string | null {
   return null;
 }
 
+export type ChatHandler = (message: string, broadcast: (evt: WebuiChatMessageEvent) => void) => Promise<void>;
+
+let activeChatHandler: ChatHandler | null = null;
+
+export function registerChatHandler(handler: ChatHandler | null): void {
+  activeChatHandler = handler;
+}
+
+export function broadcastChatEvent(evt: WebuiChatMessageEvent): void {
+  const payload = `data: ${JSON.stringify(evt)}\n\n`;
+  for (const client of activeClientRecords) {
+    try {
+      client.res.write(payload);
+    } catch {
+      // client disconnected
+    }
+  }
+}
+
+function parseJsonBody<T = any>(req: IncomingMessage): Promise<T> {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    req.on('data', chunk => {
+      body += chunk;
+      if (body.length > 1024 * 1024) { // 1MB limit
+        req.destroy();
+        reject(new Error('Payload too large'));
+      }
+    });
+    req.on('end', () => {
+      if (!body) {
+        resolve({} as T);
+        return;
+      }
+      try {
+        resolve(JSON.parse(body));
+      } catch (err) {
+        reject(err);
+      }
+    });
+    req.on('error', reject);
+  });
+}
+
+function handleChatRequest(req: IncomingMessage, res: ServerResponse): void {
+  parseJsonBody<WebuiChatRequest>(req)
+    .then(async data => {
+      const message = data.message?.trim();
+      if (!message) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Message content is required' }));
+        return;
+      }
+
+      broadcastChatEvent({
+        type: 'chat_token',
+        role: 'user',
+        text: message,
+        timestamp: Date.now(),
+      });
+
+      if (!activeChatHandler) {
+        broadcastChatEvent({
+          type: 'chat_token',
+          role: 'assistant',
+          text: `[Daedalus WebUI] Echo: "${message}". (Interactive agent execution bridge ready)`,
+          timestamp: Date.now(),
+        });
+        broadcastChatEvent({
+          type: 'chat_done',
+          timestamp: Date.now(),
+        });
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ status: 'ok', handled: 'echo' }));
+        return;
+      }
+
+      res.writeHead(202, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ status: 'running' }));
+
+      try {
+        await activeChatHandler(message, broadcastChatEvent);
+      } catch (err: any) {
+        broadcastChatEvent({
+          type: 'chat_error',
+          content: err.message || 'Chat processing error',
+          timestamp: Date.now(),
+        });
+      }
+    })
+    .catch(err => {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message || 'Invalid JSON body' }));
+    });
+}
+
 export function handleRequest(req: IncomingMessage, res: ServerResponse): void {
   try {
+    if (req.method === 'POST' && req.url === '/api/chat') {
+      handleChatRequest(req, res);
+      return;
+    }
+
     if (req.method === 'GET' && req.url === '/') {
       const htmlPath = resolvePublicAsset('index.html');
       if (htmlPath) {

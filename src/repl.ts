@@ -23,6 +23,7 @@ import { parseAgentTag } from './agents/roles.js';
 import { SigmaMemEngine } from './session/sigma-mem.js';
 import { synthesizeSkillFromTurn } from './skills/auto-synthesis.js';
 import { brand, dim, info, warn, err } from './ui/theme.js';
+import { registerChatHandler } from './webui/server.js';
 
 /**
  * Pure reduction for piped (non-TTY) multi-line input. Appends each line to the
@@ -242,6 +243,30 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
 
   async function chatLoop(): Promise<void> {
     try {
+      registerChatHandler(async (webMsg, broadcast) => {
+        try {
+          await runOneTurn(webMsg);
+          const lastMsg = messages.filter(m => m.role === 'assistant').pop();
+          const replyText = typeof lastMsg?.content === 'string' ? lastMsg.content : (Array.isArray(lastMsg?.content) ? lastMsg.content.map(c => 'text' in c ? c.text : '').join(' ') : '');
+          broadcast({
+            type: 'chat_token',
+            role: 'assistant',
+            text: replyText || 'Task completed.',
+            timestamp: Date.now(),
+          });
+          broadcast({
+            type: 'chat_done',
+            timestamp: Date.now(),
+          });
+        } catch (err: any) {
+          broadcast({
+            type: 'chat_error',
+            content: err.message || 'Turn execution failed',
+            timestamp: Date.now(),
+          });
+        }
+      });
+
       if (isFirstTurn && process.stdin.isTTY) {
         isFirstTurn = false;
         try {
