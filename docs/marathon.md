@@ -12,7 +12,20 @@ The Marathon Engine sits above the individual agent roles, organizing work into 
 
 ---
 
-## The 4 Architectural Pillars
+## The B.R.A.G. Architectural Framework
+
+Daedalus structures multi-day autonomy through the **B.R.A.G.** framework:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      THE B.R.A.G. AUTONOMOUS FRAMEWORK                      │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  B — BUILD    : Metis Milestone DAG Task Decomposition                      │
+│  R — RETRIEVE : Σ-Mem & FTS5 Semantic Codebase RAG                          │
+│  A — AUDIT    : Apollo Air-Gapped Verification & Zero-Byte Gates            │
+│  G — GENERATE : Hephaestus Production Code Delivery & Stacked PRs           │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -20,6 +33,7 @@ The Marathon Engine sits above the individual agent roles, organizing work into 
 │  - Roadmap DAG & State Machine (.daedalus/marathon.json + SQLite)           │
 │  - Checkpoint & Rollback Arbitrator (Git Tags: daedalus-checkpoint/m-*)      │
 │  - Σ-Mem Anti-Pattern & Capability Ledger                                    │
+│  - Automated Stacked PR Generator (/marathon pr)                             │
 └──────────────────────────────────────┬──────────────────────────────────────┘
                                        │
             ┌──────────────────────────┴──────────────────────────┐
@@ -27,11 +41,14 @@ The Marathon Engine sits above the individual agent roles, organizing work into 
 ┌──────────────────────────────────────┐  ┌───────────────────────────────────┐
 │        WORKER SPRINT HARNESS         │  │   AIR-GAPPED EVALUATION HARNESS   │
 │  - Metis (Milestone Decomposition)   │  │  - Apollo (Isolated Context)      │
-│  - Hephaestus (Coder / Builder)      │  │  - Independent Test & Lint Probes │
-│  - Asclepius (Targeted Healer)       │  │  - Acceptance Criteria Scoring    │
-│  - Σ-Mem Pitfall Injection           │  │  - Regression & Debt Detection    │
+│  - Hephaestus (Coder / Builder)      │  │  - Deterministic Pre-LLM Gates    │
+│  - Asclepius (Targeted Healer)       │  │  - Independent Test & Lint Probes │
+│  - Σ-Mem Pitfall Injection           │  │  - Acceptance Criteria Scoring    │
+│  - Ground-Truth Codebase RAG         │  │  - Regression & Debt Detection    │
 └──────────────────────────────────────┘  └───────────────────────────────────┘
 ```
+
+> **Note on Architecture:** *Daedalus pairs **DAG** (Directed Acyclic Graph) task scheduling with **RAG** (Retrieval-Augmented Generation) memory retrieval so agents never execute out-of-order, loop infinitely, or repeat past compiler errors.*
 
 ### 1. Metis Macro-Planner (Milestone DAG Decomposition)
 - Deconstructs an ambitious project vision into 3 to 12 atomic, verifiable milestones.
