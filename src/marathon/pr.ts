@@ -56,7 +56,8 @@ export async function createMarathonStackedPR(opts: CreateStackedPROptions): Pro
     return `- [x] **M-${idx + 1}: ${m.title}**${scoreText}${tagText}\n  - _${m.description}_\n  - **Deliverables:** ${m.targetFiles.join(', ') || 'N/A'}`;
   }).join('\n\n');
 
-  const title = `[Marathon] ${run.macroGoal.slice(0, 70)}`;
+  const cleanGoal = run.macroGoal.replace(/^(\/marathon|feat|fix|add)\s*/i, '').trim();
+  const title = `feat(webui): ${cleanGoal.slice(0, 60)}`;
   const body = `## 🏃 Daedalus Autonomous Marathon Stacked PR
 
 ### Macro Goal:
