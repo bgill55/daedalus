@@ -1,8 +1,8 @@
-import { createServer, IncomingMessage, ServerResponse } from 'node:http';
-
+import { createServer, IncomingMessage, ServerResponse, Server } from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import type { TelemetryData } from '../types.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -10,11 +10,7 @@ const __dirname = path.dirname(__filename);
 const PORT = 3888;
 const HOST = 'localhost';
 
-export interface TelemetryData {
-  timestamp: number;
-  metric: string;
-  value: number;
-}
+const activeClients = new Set<ServerResponse>();
 
 export function handleRequest(req: IncomingMessage, res: ServerResponse): void {
   try {
@@ -56,10 +52,9 @@ export function handleRequest(req: IncomingMessage, res: ServerResponse): void {
         'Access-Control-Allow-Origin': '*'
       });
 
-      // Send initial connection message
       res.write('data: {"type":"connected"}\n\n');
+      activeClients.add(res);
 
-      // Generate and send dummy telemetry data every second
       const interval = setInterval(() => {
         const data: TelemetryData = {
           timestamp: Date.now(),
@@ -69,9 +64,9 @@ export function handleRequest(req: IncomingMessage, res: ServerResponse): void {
         res.write(`data: ${JSON.stringify(data)}\n\n`);
       }, 1000);
 
-      // Clean up interval on client disconnect
       req.on('close', () => {
         clearInterval(interval);
+        activeClients.delete(res);
         res.end();
       });
       return;
@@ -85,11 +80,39 @@ export function handleRequest(req: IncomingMessage, res: ServerResponse): void {
   }
 }
 
-const server = createServer(handleRequest);
+const server: Server = createServer(handleRequest);
 
-export function startServer(port = PORT, host = HOST) {
-  return server.listen(port, host, () => {
-    console.info(`[webui] Server listening on http://${host}:${port}`);
+export function startServer(port = PORT, host = HOST): Promise<Server> {
+  return new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(port, host, () => {
+      server.removeListener('error', reject);
+      console.info(`[webui] Server listening on http://${host}:${port}`);
+      resolve(server);
+    });
+  });
+}
+
+export function stopServer(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    for (const client of activeClients) {
+      try {
+        client.end();
+      } catch {
+        // ignore client termination error
+      }
+    }
+    activeClients.clear();
+
+    if (!server.listening) {
+      resolve();
+      return;
+    }
+
+    server.close((err) => {
+      if (err) reject(err);
+      else resolve();
+    });
   });
 }
 

@@ -1,9 +1,9 @@
 import pc from 'picocolors';
 import { exec } from 'node:child_process';
-import { startServer, PORT, HOST } from '../webui/server.js';
+import { startServer, stopServer, PORT, HOST } from '../webui/server.js';
 import type { Command } from './types.js';
 
-let runningServer: ReturnType<typeof startServer> | null = null;
+let isServerRunning = false;
 
 export const webuiCommand: Command = {
   name: '/webui',
@@ -18,35 +18,46 @@ export const webuiCommand: Command = {
     const sub = args.trim().toLowerCase() || 'status';
 
     if (sub === 'start') {
-      if (runningServer) {
+      if (isServerRunning) {
         console.log(pc.green(`\n[webui] Server already running at http://${HOST}:${PORT}`));
         return;
       }
       try {
-        runningServer = startServer();
+        await startServer();
+        isServerRunning = true;
         console.log(pc.bold(pc.green(`\n[webui] Companion Web UI started at http://${HOST}:${PORT}`)));
       } catch (err: any) {
+        isServerRunning = false;
         console.log(pc.red(`\n[webui] Failed to start server: ${err.message}`));
       }
       return;
     }
 
     if (sub === 'stop') {
-      if (!runningServer) {
+      if (!isServerRunning) {
         console.log(pc.yellow('\n[webui] Server is not running.'));
         return;
       }
-      runningServer.close(() => {
-        runningServer = null;
+      try {
+        await stopServer();
+        isServerRunning = false;
         console.log(pc.cyan('\n[webui] Companion Web UI server stopped.'));
-      });
+      } catch (err: any) {
+        console.log(pc.red(`\n[webui] Error stopping server: ${err.message}`));
+      }
       return;
     }
 
     if (sub === 'open') {
       const url = `http://${HOST}:${PORT}`;
-      if (!runningServer) {
-        runningServer = startServer();
+      if (!isServerRunning) {
+        try {
+          await startServer();
+          isServerRunning = true;
+        } catch (err: any) {
+          console.log(pc.red(`\n[webui] Failed to start server: ${err.message}`));
+          return;
+        }
       }
       console.log(pc.cyan(`\n[webui] Opening ${url} in your browser...`));
       const opener = process.platform === 'win32' ? 'start' : process.platform === 'darwin' ? 'open' : 'xdg-open';
@@ -55,9 +66,8 @@ export const webuiCommand: Command = {
     }
 
     if (sub === 'status') {
-      const isRunning = Boolean(runningServer);
       console.log(pc.bold(`\n=== DAEDALUS WEB UI STATUS ===`));
-      console.log(`  ${pc.bold('Status:')}  ${isRunning ? pc.green('● ACTIVE') : pc.gray('○ STOPPED')}`);
+      console.log(`  ${pc.bold('Status:')}  ${isServerRunning ? pc.green('● ACTIVE') : pc.gray('○ STOPPED')}`);
       console.log(`  ${pc.bold('URL:')}     http://${HOST}:${PORT}`);
       console.log(`  ${pc.bold('Stream:')}  http://${HOST}:${PORT}/telemetry`);
       console.log();

@@ -1,5 +1,4 @@
 import { execSync } from 'node:child_process';
-import pc from 'picocolors';
 import { getGitRepoInfo } from '../agents/loop.js';
 import type { MarathonRun } from './types.js';
 
@@ -38,8 +37,7 @@ export async function createMarathonStackedPR(opts: CreateStackedPROptions): Pro
   }
 
   try {
-    // Push marathon branch to remote
-    execSync(`git push -u origin ${run.marathonBranch} --force`, {
+    execSync(`git push -u origin ${run.marathonBranch} --force-with-lease`, {
       cwd: projectRoot,
       stdio: ['ignore', 'pipe', 'pipe'],
       windowsHide: true,
@@ -58,6 +56,7 @@ export async function createMarathonStackedPR(opts: CreateStackedPROptions): Pro
     return `- [x] **M-${idx + 1}: ${m.title}**${scoreText}${tagText}\n  - _${m.description}_\n  - **Deliverables:** ${m.targetFiles.join(', ') || 'N/A'}`;
   }).join('\n\n');
 
+  const title = `[Marathon] ${run.macroGoal.slice(0, 70)}`;
   const body = `## 🏃 Daedalus Autonomous Marathon Stacked PR
 
 ### Macro Goal:
@@ -75,16 +74,50 @@ All milestones were independently evaluated, audited for zero empty stubs, and c
 
 _Generated autonomously by [Daedalus Marathon Engine](https://github.com/bgill55/daedalus)_`;
 
+  const headers = {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json',
+    'User-Agent': 'Daedalus-Marathon-Engine',
+  };
+
   try {
-    const res = await fetch(`https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}/pulls`, {
+    // 1. Check if PR already exists for this branch
+    const listRes = await fetch(
+      `https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}/pulls?head=${repoInfo.owner}:${run.marathonBranch}&state=open`,
+      { headers }
+    );
+
+    if (listRes.ok) {
+      const openPRs = await listRes.json() as Array<{ number: number; html_url: string }>;
+      if (openPRs.length > 0) {
+        const existing = openPRs[0];
+        // Update existing PR metadata
+        const updateRes = await fetch(
+          `https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}/pulls/${existing.number}`,
+          {
+            method: 'PATCH',
+            headers,
+            body: JSON.stringify({ title, body }),
+          }
+        );
+
+        if (updateRes.ok) {
+          const updated = await updateRes.json() as { html_url: string; number: number };
+          return {
+            success: true,
+            prUrl: updated.html_url,
+            message: `Updated existing Pull Request #${updated.number}: ${updated.html_url}`,
+          };
+        }
+      }
+    }
+
+    // 2. Create new PR if none exists
+    const createRes = await fetch(`https://api.github.com/repos/${repoInfo.owner}/${repoInfo.repo}/pulls`, {
       method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        'User-Agent': 'Daedalus-Marathon-Engine',
-      },
+      headers,
       body: JSON.stringify({
-        title: `[Marathon] ${run.macroGoal.slice(0, 70)}`,
+        title,
         head: run.marathonBranch,
         base: run.baseBranch || 'main',
         body,
@@ -92,33 +125,25 @@ _Generated autonomously by [Daedalus Marathon Engine](https://github.com/bgill55
       }),
     });
 
-    if (res.ok) {
-      const data = await res.json() as { html_url: string; number: number };
+    if (createRes.ok) {
+      const data = await createRes.json() as { html_url: string; number: number };
       return {
         success: true,
         prUrl: data.html_url,
         message: `Created Pull Request #${data.number}: ${data.html_url}`,
       };
     } else {
-      const errJson = await res.json().catch(() => ({})) as { message?: string };
-      // Check if PR already exists
-      if (errJson.message && errJson.message.includes('A pull request already exists')) {
-        return {
-          success: true,
-          prUrl: `https://github.com/${repoInfo.owner}/${repoInfo.repo}/pulls`,
-          message: `Branch pushed. A Pull Request for ${run.marathonBranch} already exists on GitHub.`,
-        };
-      }
+      const errJson = await createRes.json().catch(() => ({})) as { message?: string };
       return {
         success: false,
-        message: `GitHub API error: ${errJson.message || res.statusText}`,
+        message: `GitHub API error: ${errJson.message || createRes.statusText}`,
       };
     }
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     return {
       success: false,
-      message: `Failed to create GitHub PR: ${msg}`,
+      message: `Failed to create or update GitHub PR: ${msg}`,
     };
   }
 }

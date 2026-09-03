@@ -39,8 +39,8 @@ import { errMessage } from '../utils/errors.js';
 export function getGitRepoInfo(cwd: string): { owner: string; repo: string } | null {
   try {
     const url = execSafe('git remote get-url origin', { cwd, encoding: 'utf8' }).trim();
-    // Matches git@github.com:owner/repo.git or https://github.com/owner/repo.git
-    const match = url.match(/(?:github\.com[:\/])([^\/]+)\/([^\/\.]+)(?:\.git)?/);
+    // Matches git@github.com:owner/repo.git, git@github.com:owner/my.repo.git, or https://github.com/owner/repo.git
+    const match = url.match(/(?:github\.com[:\/])([^\/]+)\/([^\/]+?)(?:\.git)?$/);
     if (match) {
       return { owner: match[1], repo: match[2] };
     }

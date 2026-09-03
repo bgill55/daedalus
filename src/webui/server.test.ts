@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { IncomingMessage, ServerResponse } from 'node:http';
 import fs from 'node:fs';
-import { handleRequest, server, TelemetryData } from './server.js';
+import { handleRequest, server } from './server.js';
+import type { TelemetryData } from '../types.js';
 
 // Mock dependencies
 vi.mock('node:fs');

@@ -1,30 +1,39 @@
-// Copies SKILL.md files from src/skills into dist/skills so the shipped-skills
-// feature works in published npm installs. tsc only emits .ts compiles, so the
-// markdown playbooks must be copied explicitly. Cross-platform (Node only, no deps).
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
-const srcDir = path.join(root, '..', 'src', 'skills');
-const outDir = path.join(root, '..', 'dist', 'skills');
+const srcSkills = path.join(root, '..', 'src', 'skills');
+const distSkills = path.join(root, '..', 'dist', 'skills');
+
+const srcWebuiPublic = path.join(root, '..', 'src', 'webui', 'public');
+const distWebuiPublic = path.join(root, '..', 'dist', 'webui', 'public');
 
 function copySkillDir(entries) {
   for (const entry of entries) {
     if (!entry.isDirectory()) continue;
-    const skillFile = path.join(srcDir, entry.name, 'SKILL.md');
+    const skillFile = path.join(srcSkills, entry.name, 'SKILL.md');
     if (!fs.existsSync(skillFile)) continue;
-    const destDir = path.join(outDir, entry.name);
+    const destDir = path.join(distSkills, entry.name);
     fs.mkdirSync(destDir, { recursive: true });
     fs.copyFileSync(skillFile, path.join(destDir, 'SKILL.md'));
   }
 }
 
-if (!fs.existsSync(srcDir)) {
-  console.log('copy-skills: no src/skills dir, skipping');
-  process.exit(0);
+if (fs.existsSync(srcSkills)) {
+  fs.mkdirSync(distSkills, { recursive: true });
+  copySkillDir(fs.readdirSync(srcSkills, { withFileTypes: true }));
+  console.log('copy-assets: shipped skill playbooks copied to dist/skills');
 }
 
-fs.mkdirSync(outDir, { recursive: true });
-copySkillDir(fs.readdirSync(srcDir, { withFileTypes: true }));
-console.log('copy-skills: shipped skill playbooks copied to dist/skills');
+if (fs.existsSync(srcWebuiPublic)) {
+  fs.mkdirSync(distWebuiPublic, { recursive: true });
+  for (const file of fs.readdirSync(srcWebuiPublic)) {
+    const src = path.join(srcWebuiPublic, file);
+    const dest = path.join(distWebuiPublic, file);
+    if (fs.statSync(src).isFile()) {
+      fs.copyFileSync(src, dest);
+    }
+  }
+  console.log('copy-assets: webui public static assets copied to dist/webui/public');
+}
