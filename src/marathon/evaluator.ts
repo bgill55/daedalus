@@ -118,7 +118,7 @@ ${diff.slice(0, 12000) || '(Empty diff)'}
 
 ## Instructions:
 1. Check each acceptance criterion against the actual diff and test output.
-2. Check for fake/tautological tests or mocked-out critical functionality.
+2. Check for fake/tautological tests, empty files, or placeholder stubs (e.g. 0-byte css/js, empty functions, incomplete UI). Any milestone containing empty stubs or missing implementations must receive score <= 40 and passed: false.
 3. Check for obvious regressions introduced directly by this milestone's diff. Note: Unrelated failures in existing host test suites (such as terminal.test.ts or model.test.ts) are not regressions of new subsystem features.
 4. Output your verdict in pure, valid JSON with no conversational wrapper:
 {
@@ -131,6 +131,32 @@ ${diff.slice(0, 12000) || '(Empty diff)'}
   ],
   "repairRecommendations": ["actionable recommendations if failed"]
 }`;
+}
+
+export function findEmptyOrStubFiles(cwd: string, targetFiles: string[] = []): string[] {
+  const stubs: string[] = [];
+  for (const rel of targetFiles) {
+    const full = path.resolve(cwd, rel);
+    if (!fs.existsSync(full)) continue;
+    try {
+      const stat = fs.statSync(full);
+      if (stat.size === 0) {
+        stubs.push(rel);
+        continue;
+      }
+      const content = fs.readFileSync(full, 'utf8').trim();
+      if (content.length === 0) {
+        stubs.push(rel);
+        continue;
+      }
+      if (/^\/\*[\s\S]*?\*\/$/i.test(content) || /^<!--[\s\S]*?-->$/i.test(content) || /^\/\/\s*(todo|placeholder|empty)/i.test(content)) {
+        stubs.push(rel);
+      }
+    } catch {
+      // ignore read error
+    }
+  }
+  return stubs;
 }
 
 function cleanJson(str: string): string {
@@ -209,6 +235,26 @@ export async function evaluateMilestone(
   opts: EvaluatorOptions,
   baseTagOrCommit?: string
 ): Promise<MarathonEvaluationReport> {
+  // Pre-evaluation Gate 1: Check for 0-byte stubs or empty placeholder files in deliverables
+  const stubFiles = findEmptyOrStubFiles(opts.projectRoot, milestone.targetFiles);
+  if (stubFiles.length > 0) {
+    return {
+      passed: false,
+      score: 10,
+      summary: `Milestone rejected: Contains empty or placeholder stub file(s): ${stubFiles.join(', ')}. Deliverables must contain complete, functional implementations.`,
+      regressions: [],
+      criteriaResults: milestone.acceptanceCriteria.map(c => ({
+        criterion: c,
+        satisfied: false,
+        note: `Empty stub detected: ${stubFiles.join(', ')}`,
+      })),
+      repairRecommendations: [
+        `Implement full functional logic in ${stubFiles.join(', ')} — do not leave 0-byte or placeholder files.`,
+      ],
+      evaluatedAt: new Date().toISOString(),
+    };
+  }
+
   const diff = getMilestoneDiff(opts.projectRoot, baseTagOrCommit);
   const verify = runMilestoneVerification(opts.projectRoot, milestone.verifyCommand, milestone.targetFiles);
 
