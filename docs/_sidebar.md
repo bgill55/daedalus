@@ -26,6 +26,10 @@
   - [Auto-Prompt Expansion (/enhance)](prompt-enhancer.md)
   - [MCP Integration](mcp.md)
 
+- **Architecture & Whitepapers**
+  - [B.R.A.G. & Marathon Whitepaper](whitepaper-brag-marathon.md)
+  - [Feature Upgrades Summary](features-summary.md)
+
 - **Case Studies**
   - [Marathon Engine HoH Case Study](marathon-case-study.md)
   - [PromptVault Sandboxed Integration Case Study](prompt-vault-case-study.md)
