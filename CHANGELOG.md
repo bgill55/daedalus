@@ -1,3 +1,10 @@
+# [3.70.0](https://github.com/bgill55/daedalus/compare/v3.69.0...v3.70.0) (2026-09-03)
+
+
+### Features
+
+* **webui:** add a companion web UI to Daedalus ([#178](https://github.com/bgill55/daedalus/issues/178)) ([edb6dba](https://github.com/bgill55/daedalus/commit/edb6dba9458b60fb4bf0b62049ebabb442cd9fcb))
+
 # [3.69.0](https://github.com/bgill55/daedalus/compare/v3.68.13...v3.69.0) (2026-09-03)
 
 
