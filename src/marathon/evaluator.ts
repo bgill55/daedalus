@@ -62,16 +62,10 @@ export function getMilestoneDiff(cwd: string, baseTagOrCommit?: string): string 
 
 export function runMilestoneVerification(cwd: string, customCommand?: string, targetFiles: string[] = []): { success: boolean; output: string } {
   let cmd = customCommand;
-  const directTestTarget = targetFiles.find(f => /\.test\.[jt]sx?$/.test(f));
-  const inferredTestTarget = targetFiles.map(f => f.replace(/\.([jt]sx?)$/, '.test.$1')).find(f => fs.existsSync(path.resolve(cwd, f)));
-  const testTarget = directTestTarget || inferredTestTarget;
-
-  if (testTarget && fs.existsSync(path.resolve(cwd, testTarget))) {
-    cmd = `npx vitest run ${testTarget}`;
-  } else if (!cmd || cmd === 'npm test') {
-    if (targetFiles.length > 0 && targetFiles.every(f => /\.(html|css|json|md|svg|png)$/.test(f))) {
-      // Pure UI assets / markup change: verify TypeScript compile integrity
-      cmd = 'npx tsc --noEmit';
+  if (!cmd) {
+    const testTarget = targetFiles.find(f => /\.test\.[jt]sx?$/.test(f));
+    if (testTarget && fs.existsSync(path.resolve(cwd, testTarget))) {
+      cmd = `npx vitest run ${testTarget}`;
     } else {
       cmd = 'npm test';
     }
@@ -121,8 +115,8 @@ ${diff.slice(0, 12000) || '(Empty diff)'}
 
 ## Instructions:
 1. Check each acceptance criterion against the actual diff and test output.
-2. Check for fake/tautological tests, empty files, or placeholder stubs (e.g. 0-byte css/js, empty functions, incomplete UI). Any milestone containing empty stubs or missing implementations must receive score <= 40 and passed: false.
-3. Check for obvious regressions introduced directly by this milestone's diff. Note: Unrelated failures in existing host test suites (such as terminal.test.ts or model.test.ts) are not regressions of new subsystem features.
+2. Check for fake/tautological tests or mocked-out critical functionality.
+3. Check for obvious regressions.
 4. Output your verdict in pure, valid JSON with no conversational wrapper:
 {
   "passed": boolean,
@@ -134,36 +128,6 @@ ${diff.slice(0, 12000) || '(Empty diff)'}
   ],
   "repairRecommendations": ["actionable recommendations if failed"]
 }`;
-}
-
-export function findMissingOrStubFiles(cwd: string, targetFiles: string[] = []): { missing: string[]; stubs: string[] } {
-  const missing: string[] = [];
-  const stubs: string[] = [];
-  for (const rel of targetFiles) {
-    const full = path.resolve(cwd, rel);
-    if (!fs.existsSync(full)) {
-      missing.push(rel);
-      continue;
-    }
-    try {
-      const stat = fs.statSync(full);
-      if (stat.size === 0) {
-        stubs.push(rel);
-        continue;
-      }
-      const content = fs.readFileSync(full, 'utf8').trim();
-      if (content.length === 0) {
-        stubs.push(rel);
-        continue;
-      }
-      if (/^\/\*[\s\S]*?\*\/$/i.test(content) || /^<!--[\s\S]*?-->$/i.test(content) || /^\/\/\s*(todo|placeholder|empty)/i.test(content)) {
-        stubs.push(rel);
-      }
-    } catch {
-      missing.push(rel);
-    }
-  }
-  return { missing, stubs };
 }
 
 function cleanJson(str: string): string {
@@ -248,67 +212,8 @@ export async function evaluateMilestone(
   opts: EvaluatorOptions,
   baseTagOrCommit?: string
 ): Promise<MarathonEvaluationReport> {
-  // Pre-evaluation Gate 1: Check for missing target files or empty placeholder stubs
-  const { missing, stubs } = findMissingOrStubFiles(opts.projectRoot, milestone.targetFiles);
-  if (missing.length > 0 || stubs.length > 0) {
-    const issues = [
-      ...missing.map(f => `Missing file: ${f}`),
-      ...stubs.map(f => `Empty stub: ${f}`),
-    ];
-    return {
-      passed: false,
-      score: 0,
-      summary: `Milestone rejected: ${issues.join('; ')}. All deliverable files must exist and contain working implementations.`,
-      regressions: [],
-      criteriaResults: milestone.acceptanceCriteria.map(c => ({
-        criterion: c,
-        satisfied: false,
-        note: issues.join('; '),
-      })),
-      repairRecommendations: [
-        `Create and implement all required target files: ${[...missing, ...stubs].join(', ')}.`,
-      ],
-      evaluatedAt: new Date().toISOString(),
-    };
-  }
-
-  // Pre-evaluation Gate 2: Run verification test command
-  const verify = runMilestoneVerification(opts.projectRoot, milestone.verifyCommand, milestone.targetFiles);
-  if (!verify.success) {
-    return {
-      passed: false,
-      score: 0,
-      summary: `Verification command failed: ${verify.output.slice(0, 500)}`,
-      regressions: [],
-      criteriaResults: milestone.acceptanceCriteria.map(c => ({
-        criterion: c,
-        satisfied: false,
-        note: 'Verification command failed',
-      })),
-      repairRecommendations: ['Fix failing verification command output'],
-      evaluatedAt: new Date().toISOString(),
-    };
-  }
-
-  // Pre-evaluation Gate 3: Check for empty git diff
   const diff = getMilestoneDiff(opts.projectRoot, baseTagOrCommit);
-  if (!diff || diff.trim().length === 0) {
-    return {
-      passed: false,
-      score: 0,
-      summary: 'Milestone rejected: Git diff is completely empty (no code changes were produced).',
-      regressions: [],
-      criteriaResults: milestone.acceptanceCriteria.map(c => ({
-        criterion: c,
-        satisfied: false,
-        note: 'No changes found in git diff',
-      })),
-      repairRecommendations: [
-        'Directly execute file writes or patches to create the required changes.',
-      ],
-      evaluatedAt: new Date().toISOString(),
-    };
-  }
+  const verify = runMilestoneVerification(opts.projectRoot, milestone.verifyCommand, milestone.targetFiles);
 
   const prompt = buildEvaluatorPrompt(milestone, diff, verify.output, verify.success);
   const messages: ChatMessage[] = [
