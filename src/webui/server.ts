@@ -1,4 +1,5 @@
 import { createServer, IncomingMessage, ServerResponse, Server } from 'node:http';
+import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -16,7 +17,6 @@ function resolvePublicAsset(filename: string): string | null {
   const primary = path.join(__dirname, 'public', filename);
   if (fs.existsSync(primary)) return primary;
 
-  // Fallback for development / uncompiled runner environments
   const fallback = path.join(__dirname, '..', '..', 'src', 'webui', 'public', filename);
   if (fs.existsSync(fallback)) return fallback;
 
@@ -91,13 +91,57 @@ export function handleRequest(req: IncomingMessage, res: ServerResponse): void {
   }
 }
 
-const server: Server = createServer(handleRequest);
+export function killProcessOnPort(port: number): void {
+  try {
+    if (process.platform === 'win32') {
+      const out = execSync(`netstat -ano -p tcp | findstr :${port}`, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], windowsHide: true });
+      const lines = out.split('\n').filter(l => l.includes('LISTENING'));
+      for (const line of lines) {
+        const parts = line.trim().split(/\s+/);
+        const pid = parts[parts.length - 1];
+        if (pid && /^\d+$/.test(pid) && parseInt(pid, 10) !== process.pid) {
+          execSync(`taskkill /F /PID ${pid}`, { stdio: 'ignore', windowsHide: true });
+        }
+      }
+    } else {
+      execSync(`lsof -ti :${port} | xargs kill -9`, { stdio: 'ignore' });
+    }
+  } catch {
+    // best-effort cleanup
+  }
+}
+
+let server: Server = createServer(handleRequest);
 
 export function startServer(port = PORT, host = HOST): Promise<Server> {
   return new Promise((resolve, reject) => {
-    server.once('error', reject);
+    // If the previous instance had an error or was closed, create a fresh Server instance
+    server = createServer(handleRequest);
+
+    const errorHandler = (err: any) => {
+      if (err.code === 'EADDRINUSE') {
+        try {
+          killProcessOnPort(port);
+          setTimeout(() => {
+            server = createServer(handleRequest);
+            server.once('error', reject);
+            server.listen(port, host, () => {
+              server.removeListener('error', reject);
+              resolve(server);
+            });
+          }, 300);
+          return;
+        } catch {
+          reject(err);
+        }
+      } else {
+        reject(err);
+      }
+    };
+
+    server.once('error', errorHandler);
     server.listen(port, host, () => {
-      server.removeListener('error', reject);
+      server.removeListener('error', errorHandler);
       console.info(`[webui] Server listening on http://${host}:${port}`);
       resolve(server);
     });
@@ -115,7 +159,7 @@ export function stopServer(): Promise<void> {
     }
     activeClients.clear();
 
-    if (!server.listening) {
+    if (!server || !server.listening) {
       resolve();
       return;
     }
@@ -126,5 +170,14 @@ export function stopServer(): Promise<void> {
     });
   });
 }
+
+// Auto-cleanup on CLI exit
+process.on('exit', () => {
+  if (server && server.listening) {
+    try {
+      server.close();
+    } catch { /* best-effort */ }
+  }
+});
 
 export { server, PORT, HOST };
