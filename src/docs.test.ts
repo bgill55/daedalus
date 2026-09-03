@@ -104,7 +104,7 @@ describe('Documentation Sync Verification', () => {
       '/spinner': '/spinner [list | braille | tracker | aurora]',
       '/scan-ai-repos': '/scan-ai-repos [--top N] [--query "topic:..."] [--issue] [--repo owner/name]',
       '/marathon': '/marathon <goal> | status | resume | pr | rollback | abort',
-      '/webui': '/webui [start|stop|open|status]',
+      '/webui': '/webui [start|stop|open|status|rate <ms>]',
       '/hunt': '/hunt <bug description>',
     };
 

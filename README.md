@@ -198,7 +198,7 @@ Daedalus overcomes this with the **B.R.A.G. Framework** and the **Harness-of-Har
 
 | Command | Description |
 |---------|-------------|
-| `/webui [start\|stop\|open\|status]` | Companion Web UI dashboard manager |
+| `/webui [start\|stop\|open\|status\|rate <ms>]` | Companion Web UI dashboard manager |
 | `/test [n] [-g]` / `test` | Run test loop and fix failures (supports --git-aware / -g for smart test selection) |
 | `/commit [msg]` | Stage and commit changes |
 | `/branch [name]` | Git branch operations |

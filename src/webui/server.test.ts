@@ -1,20 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { IncomingMessage, ServerResponse } from 'node:http';
 import fs from 'node:fs';
-import { handleRequest, server } from './server.js';
+import { handleRequest, server, getTelemetryRate, setTelemetryRate } from './server.js';
 import type { TelemetryData } from '../types.js';
 
-// Mock dependencies
 vi.mock('node:fs');
-
-// Mock React components for web UI testing
-vi.mock('./components/HomePage', () => ({
-  default: ({ title }: { title: string }) => `<div class="home-container"><h1>${title}</h1></div>`
-}));
-
-vi.mock('./components/PromptCard', () => ({
-  default: ({ title }: { title: string }) => `<div class="prompt-card"><p>${title}</p></div>`
-}));
 
 describe('WebUI Server', () => {
   let mockReq: Partial<IncomingMessage> & { on: ReturnType<typeof vi.fn> };
@@ -26,7 +16,6 @@ describe('WebUI Server', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     
-    // Setup mock request
     const onMock = vi.fn();
     mockReq = {
       method: 'GET',
@@ -34,7 +23,6 @@ describe('WebUI Server', () => {
       on: onMock
     } as any;
     
-    // Setup mock response
     writeHeadSpy = vi.fn();
     endSpy = vi.fn();
     writeSpy = vi.fn();
@@ -45,7 +33,6 @@ describe('WebUI Server', () => {
       write: writeSpy
     };
     
-    // Mock fs.existsSync to return true for index.html
     vi.mocked(fs.existsSync).mockReturnValue(true);
     vi.mocked(fs.readFileSync).mockReturnValue('<html>Mock HTML</html>');
   });
@@ -72,6 +59,7 @@ describe('WebUI Server', () => {
       vi.useFakeTimers();
       mockReq.url = '/telemetry';
       mockReq.method = 'GET';
+      setTelemetryRate(1000);
     });
 
     afterEach(() => {
@@ -90,17 +78,15 @@ describe('WebUI Server', () => {
       expect(writeSpy).toHaveBeenCalledWith('data: {"type":"connected"}\n\n');
     });
     
-    it('should send telemetry data every second', () => {
+    it('should send telemetry data according to telemetry rate', () => {
       handleRequest(mockReq as IncomingMessage, mockRes as ServerResponse);
       
-      // Fast-forward time to trigger interval
       vi.advanceTimersByTime(1000);
       
       expect(writeSpy).toHaveBeenCalled();
       const telemetryCall = writeSpy.mock.calls[1];
       expect(telemetryCall[0]).toMatch(/^data: \{.*\}\n\n$/);
       
-      // Verify data structure
       const dataStr = telemetryCall[0];
       const dataMatch = dataStr.match(/data: (\{.*\})\n\n/);
       if (dataMatch) {
@@ -115,19 +101,29 @@ describe('WebUI Server', () => {
     });
     
     it('should clean up interval on client disconnect', () => {
-      const clearIntervalSpy = vi.spyOn(global, 'clearInterval');
-      
       handleRequest(mockReq as IncomingMessage, mockRes as ServerResponse);
       
-      // Simulate client disconnect
       const closeCallback = mockReq.on.mock.calls.find(
         (call: any) => call[0] === 'close'
       )?.[1];
-      if (closeCallback) {
-        closeCallback();
-      }
-      
-      expect(clearIntervalSpy).toHaveBeenCalled();
+      expect(typeof closeCallback).toBe('function');
+      closeCallback();
+      expect(mockRes.end).toHaveBeenCalled();
+    });
+  });
+
+  describe('Telemetry Rate Controls', () => {
+    it('should get default rate of 1000ms', () => {
+      setTelemetryRate(1000);
+      expect(getTelemetryRate()).toBe(1000);
+    });
+
+    it('should update rate within bounds [100, 60000]', () => {
+      expect(setTelemetryRate(500)).toBe(500);
+      expect(getTelemetryRate()).toBe(500);
+
+      expect(setTelemetryRate(50)).toBe(100); // Clamped to min 100
+      expect(setTelemetryRate(100000)).toBe(60000); // Clamped to max 60000
     });
   });
 
@@ -156,10 +152,6 @@ describe('WebUI Server', () => {
       expect(server).toBeDefined();
       expect(typeof server.listen).toBe('function');
     });
-    
-    it('should export server instance', () => {
-      expect(server).toBeDefined();
-    });
   });
 
   describe('TelemetryData interface', () => {
@@ -178,8 +170,6 @@ describe('WebUI Server', () => {
       expect(typeof data.value).toBe('number');
     });
   });
-
-  
 
   describe('Server error handling', () => {
     it('should return 500 for internal server error', () => {

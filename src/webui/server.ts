@@ -11,7 +11,41 @@ const __dirname = path.dirname(__filename);
 const PORT = 3888;
 const HOST = '127.0.0.1';
 
-const activeClients = new Set<ServerResponse>();
+let telemetryIntervalMs = 1000;
+
+interface ActiveClientRecord {
+  res: ServerResponse;
+  intervalId: NodeJS.Timeout;
+}
+
+const activeClientRecords = new Set<ActiveClientRecord>();
+
+export function getTelemetryRate(): number {
+  return telemetryIntervalMs;
+}
+
+export function setTelemetryRate(ms: number): number {
+  telemetryIntervalMs = Math.max(100, Math.min(60000, ms));
+  // Reschedule active client intervals dynamically
+  for (const record of activeClientRecords) {
+    clearInterval(record.intervalId);
+    record.intervalId = setInterval(() => {
+      sendTelemetryMetric(record.res);
+    }, telemetryIntervalMs);
+  }
+  return telemetryIntervalMs;
+}
+
+function sendTelemetryMetric(res: ServerResponse) {
+  try {
+    const data: TelemetryData = {
+      timestamp: Date.now(),
+      metric: ['cpu', 'memory', 'disk', 'network'][Math.floor(Math.random() * 4)],
+      value: Math.floor(Math.random() * 100),
+    };
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+  } catch { /* client disconnected */ }
+}
 
 function resolvePublicAsset(filename: string): string | null {
   const primary = path.join(__dirname, 'public', filename);
@@ -60,24 +94,25 @@ export function handleRequest(req: IncomingMessage, res: ServerResponse): void {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
-        'Access-Control-Allow-Origin': '*'
+        'Access-Control-Allow-Origin': '*',
       });
 
       res.write('data: {"type":"connected"}\n\n');
-      activeClients.add(res);
 
-      const interval = setInterval(() => {
-        const data: TelemetryData = {
-          timestamp: Date.now(),
-          metric: ['cpu', 'memory', 'disk', 'network'][Math.floor(Math.random() * 4)],
-          value: Math.floor(Math.random() * 100)
-        };
-        res.write(`data: ${JSON.stringify(data)}\n\n`);
-      }, 1000);
+      const clientRecord: ActiveClientRecord = {
+        res,
+        intervalId: null as any,
+      };
+
+      clientRecord.intervalId = setInterval(() => {
+        sendTelemetryMetric(res);
+      }, telemetryIntervalMs);
+
+      activeClientRecords.add(clientRecord);
 
       req.on('close', () => {
-        clearInterval(interval);
-        activeClients.delete(res);
+        clearInterval(clientRecord.intervalId);
+        activeClientRecords.delete(clientRecord);
         res.end();
       });
       return;
@@ -115,7 +150,6 @@ let server: Server = createServer(handleRequest);
 
 export function startServer(port = PORT, host = HOST): Promise<Server> {
   return new Promise((resolve, reject) => {
-    // If the previous instance had an error or was closed, create a fresh Server instance
     server = createServer(handleRequest);
 
     const errorHandler = (err: any) => {
@@ -150,14 +184,15 @@ export function startServer(port = PORT, host = HOST): Promise<Server> {
 
 export function stopServer(): Promise<void> {
   return new Promise((resolve, reject) => {
-    for (const client of activeClients) {
+    for (const record of activeClientRecords) {
       try {
-        client.end();
+        clearInterval(record.intervalId);
+        record.res.end();
       } catch {
         // ignore client termination error
       }
     }
-    activeClients.clear();
+    activeClientRecords.clear();
 
     if (!server || !server.listening) {
       resolve();
