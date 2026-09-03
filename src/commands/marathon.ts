@@ -1,12 +1,13 @@
 import pc from 'picocolors';
 import { MarathonEngine } from '../marathon/engine.js';
 import { renderRoadmapMarkdown, saveMarathonRun } from '../marathon/state.js';
+import { createMarathonStackedPR } from '../marathon/pr.js';
 import type { Command } from './types.js';
 
 export const marathonCommand: Command = {
   name: '/marathon',
   description: 'Multi-day autonomous software development (Harness-of-Harness meta-loop)',
-  usage: '/marathon <goal> | status | resume | rollback | abort',
+  usage: '/marathon <goal> | status | resume | pr | rollback | abort',
   helpText: `Daedalus Marathon Engine: Harness-of-Harness (HoH) Multi-Day Autonomy.
 
 Iteratively builds complex, multi-milestone systems across days without context rot.
@@ -15,6 +16,7 @@ Subcommands:
   /marathon <goal>       Decomposes the high-level goal into an ordered milestone DAG and begins execution
   /marathon status       Displays the current roadmap progress, active milestone, and verification scores
   /marathon resume       Resumes execution of a paused or interrupted marathon run
+  /marathon pr           Pushes the marathon branch and creates/updates the stacked Pull Request on GitHub
   /marathon rollback     Hard-resets the active milestone to the previous verified git checkpoint
   /marathon abort        Cancels the active marathon and cleans up the working tree
 
@@ -70,6 +72,25 @@ Key Pillars:
       activeRun.status = 'aborted';
       activeRun.completedAt = new Date().toISOString();
       console.log(pc.yellow(`\n[ABORTED] Marathon run ${activeRun.id} has been aborted.`));
+      return;
+    }
+
+    if (trimmed === 'pr') {
+      if (!activeRun) {
+        console.log(pc.yellow('\n[MARATHON] No active marathon run found.'));
+        return;
+      }
+      console.log(pc.cyan(`\n[MARATHON] Pushing milestone stack and creating/updating Pull Request...`));
+      const res = await createMarathonStackedPR({
+        projectRoot: ctx.toolContext.projectRoot,
+        run: activeRun,
+      });
+      if (res.success && res.prUrl) {
+        console.log(pc.bold(pc.green(`\n[PR] Stacked Pull Request ready:`)));
+        console.log(pc.cyan(`     👉 ${res.prUrl}`));
+      } else {
+        console.log(pc.yellow(`\n[PR] ${res.message}`));
+      }
       return;
     }
 

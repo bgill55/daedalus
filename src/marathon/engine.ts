@@ -18,6 +18,7 @@ import {
   updateMilestoneStatus,
   advanceToNextMilestone,
 } from './state.js';
+import { createMarathonStackedPR } from './pr.js';
 import {
   isGitRepository,
   createMilestoneCheckpoint,
@@ -276,7 +277,28 @@ export class MarathonEngine {
       } else {
         console.log(pc.bold(pc.green(`\n🎉 [MARATHON COMPLETED] All milestones achieved successfully!`)));
         run.status = 'completed';
+        run.completedAt = new Date().toISOString();
         saveMarathonRun(this.projectRoot, run);
+
+        // Auto-create stacked PR for review
+        try {
+          console.log(pc.cyan(`\n[MARATHON] Pushing milestone stack and creating Pull Request...`));
+          const prResult = await createMarathonStackedPR({
+            projectRoot: this.projectRoot,
+            run,
+          });
+          if (prResult.success && prResult.prUrl) {
+            console.log(pc.bold(pc.green(`\n[PR] Stacked Pull Request created for review:`)));
+            console.log(pc.cyan(`     👉 ${prResult.prUrl}`));
+            console.log(pc.dim(`\nReview the checkpoint stack on GitHub and merge when ready.`));
+          } else {
+            console.log(pc.yellow(`\n[PR] ${prResult.message}`));
+          }
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.log(pc.yellow(`\n[PR] Could not create PR automatically: ${msg}`));
+        }
+
         return { done: true, run };
       }
     } else {
