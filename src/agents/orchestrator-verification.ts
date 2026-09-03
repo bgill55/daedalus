@@ -106,7 +106,17 @@ export function verifyArtifactsThoroughly(
   // placeholder file must not count as success — this is the gap that let an
   // empty tests/ui/debounce.test.ts pass the gate.
   if (promised.length > 0) {
-    const anyReal = promised.some((p) => isRealFile(path.resolve(root, p)));
+    const currentPatches = (toolContext.patchHistory || []).slice(historyStartIndex);
+    const anyReal = promised.some((p) => {
+      const direct = path.resolve(root, p);
+      if (isRealFile(direct)) return true;
+      const pNorm = p.replace(/\\/g, '/');
+      const baseName = path.basename(p);
+      return currentPatches.some((h) => {
+        const norm = (h.filePath || '').replace(/\\/g, '/');
+        return (norm.endsWith('/' + pNorm) || norm.endsWith('/' + baseName)) && isRealFile(h.filePath);
+      });
+    });
     if (!anyReal) return false;
   }
 
