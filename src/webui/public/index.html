@@ -3,84 +3,23 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Daedalus Dashboard</title>
-  <link rel="stylesheet" href="styles.css" />
+  <title>Daedalus Web UI</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+    }
+    #root {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  </style>
 </head>
 <body>
-  <div class="dashboard">
-    <header class="header">
-      <div class="brand">
-        <span class="logo">◆</span>
-        <h1>DAEDALUS</h1>
-        <span class="subtitle">Telemetry Dashboard</span>
-      </div>
-      <div class="status-bar">
-        <span id="connection-status" class="status disconnected">● DISCONNECTED</span>
-        <span id="last-update" class="timestamp">--</span>
-      </div>
-    </header>
-
-    <main class="grid">
-      <section class="panel" data-metric="cpu">
-        <div class="panel-header">
-          <span class="metric-name">CPU</span>
-          <span class="metric-value" id="cpu-value">--</span>
-        </div>
-        <div class="sparkline" id="cpu-sparkline"></div>
-        <div class="panel-footer">
-          <span class="metric-unit">%</span>
-          <span class="metric-status" id="cpu-status">IDLE</span>
-        </div>
-      </section>
-
-      <section class="panel" data-metric="memory">
-        <div class="panel-header">
-          <span class="metric-name">MEMORY</span>
-          <span class="metric-value" id="memory-value">--</span>
-        </div>
-        <div class="sparkline" id="memory-sparkline"></div>
-        <div class="panel-footer">
-          <span class="metric-unit">%</span>
-          <span class="metric-status" id="memory-status">IDLE</span>
-        </div>
-      </section>
-
-      <section class="panel" data-metric="disk">
-        <div class="panel-header">
-          <span class="metric-name">DISK</span>
-          <span class="metric-value" id="disk-value">--</span>
-        </div>
-        <div class="sparkline" id="disk-sparkline"></div>
-        <div class="panel-footer">
-          <span class="metric-unit">%</span>
-          <span class="metric-status" id="disk-status">IDLE</span>
-        </div>
-      </section>
-
-      <section class="panel" data-metric="network">
-        <div class="panel-header">
-          <span class="metric-name">NETWORK</span>
-          <span class="metric-value" id="network-value">--</span>
-        </div>
-        <div class="sparkline" id="network-sparkline"></div>
-        <div class="panel-footer">
-          <span class="metric-unit">%</span>
-          <span class="metric-status" id="network-status">IDLE</span>
-        </div>
-      </section>
-
-      <section class="panel log-panel">
-        <div class="panel-header">
-          <span class="metric-name">EVENT LOG</span>
-          <button id="clear-log" class="clear-btn">CLEAR</button>
-        </div>
-        <div class="log-container" id="log-container">
-          <div class="log-entry">Awaiting telemetry stream...</div>
-        </div>
-      </section>
-    </main>
-  </div>
-
-  <script src="script.js"></script>
+  <div id="root">Loading...</div>
 </body>
 </html>
