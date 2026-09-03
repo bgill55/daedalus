@@ -1,3 +1,10 @@
+## [3.68.12](https://github.com/bgill55/daedalus/compare/v3.68.11...v3.68.12) (2026-09-03)
+
+
+### Bug Fixes
+
+* **marathon:** deterministic rejection for missing target files and empty diffs in evaluator ([1502523](https://github.com/bgill55/daedalus/commit/15025235c54f19f7ef14b8dec2187b1c7b70171d))
+
 ## [3.68.11](https://github.com/bgill55/daedalus/compare/v3.68.10...v3.68.11) (2026-09-03)
 
 
