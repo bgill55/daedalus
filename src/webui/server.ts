@@ -64,8 +64,10 @@ export function handleRequest(req: IncomingMessage, res: ServerResponse): void {
 
 const server = createServer(handleRequest);
 
-server.listen(PORT, HOST, () => {
-  console.info(`[webui] Server listening on http://${HOST}:${PORT}`);
-});
+export function startServer(port = PORT, host = HOST) {
+  return server.listen(port, host, () => {
+    console.info(`[webui] Server listening on http://${host}:${port}`);
+  });
+}
 
-export { server };
+export { server, PORT, HOST };

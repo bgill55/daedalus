@@ -1,17 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { createServer, IncomingMessage, ServerResponse } from 'node:http';
+import { IncomingMessage, ServerResponse } from 'node:http';
 import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { server } from './server.js';
+import { handleRequest, server, TelemetryData } from './server.js';
 
 // Mock dependencies
 vi.mock('node:fs');
-vi.mock('node:path');
-vi.mock('node:url');
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 describe('WebUI Server', () => {
   let mockReq: Partial<IncomingMessage> & { on: ReturnType<typeof vi.fn> };
@@ -49,9 +42,6 @@ describe('WebUI Server', () => {
 
   describe('GET /', () => {
     it('should serve index.html when file exists', () => {
-      // Import the handler function from server module
-      const { handleRequest } = require('./server');
-      
       handleRequest(mockReq as IncomingMessage, mockRes as ServerResponse);
       
       expect(writeHeadSpy).toHaveBeenCalledWith(200, { 'Content-Type': 'text/html; charset=utf-8' });
@@ -60,8 +50,6 @@ describe('WebUI Server', () => {
     
     it('should return OK when index.html does not exist', () => {
       vi.mocked(fs.existsSync).mockReturnValue(false);
-      const { handleRequest } = require('./server');
-      
       handleRequest(mockReq as IncomingMessage, mockRes as ServerResponse);
       
       expect(writeHeadSpy).toHaveBeenCalledWith(200, { 'Content-Type': 'text/plain' });
@@ -71,13 +59,16 @@ describe('WebUI Server', () => {
 
   describe('GET /telemetry', () => {
     beforeEach(() => {
+      vi.useFakeTimers();
       mockReq.url = '/telemetry';
       mockReq.method = 'GET';
     });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
     
     it('should establish telemetry stream connection', () => {
-      const { handleRequest } = require('./server');
-      
       handleRequest(mockReq as IncomingMessage, mockRes as ServerResponse);
       
       expect(writeHeadSpy).toHaveBeenCalledWith(200, {
@@ -90,8 +81,6 @@ describe('WebUI Server', () => {
     });
     
     it('should send telemetry data every second', () => {
-      const { handleRequest } = require('./server');
-      
       handleRequest(mockReq as IncomingMessage, mockRes as ServerResponse);
       
       // Fast-forward time to trigger interval
@@ -116,7 +105,6 @@ describe('WebUI Server', () => {
     });
     
     it('should clean up interval on client disconnect', () => {
-      const { handleRequest } = require('./server');
       const clearIntervalSpy = vi.spyOn(global, 'clearInterval');
       
       handleRequest(mockReq as IncomingMessage, mockRes as ServerResponse);
@@ -137,8 +125,6 @@ describe('WebUI Server', () => {
     it('should return 404 for unknown routes', () => {
       mockReq.url = '/unknown';
       mockReq.method = 'GET';
-      const { handleRequest } = require('./server');
-      
       handleRequest(mockReq as IncomingMessage, mockRes as ServerResponse);
       
       expect(writeHeadSpy).toHaveBeenCalledWith(404, { 'Content-Type': 'text/plain' });
@@ -148,8 +134,6 @@ describe('WebUI Server', () => {
     it('should return 404 for non-GET methods', () => {
       mockReq.url = '/';
       mockReq.method = 'POST';
-      const { handleRequest } = require('./server');
-      
       handleRequest(mockReq as IncomingMessage, mockRes as ServerResponse);
       
       expect(writeHeadSpy).toHaveBeenCalledWith(404, { 'Content-Type': 'text/plain' });
@@ -164,8 +148,24 @@ describe('WebUI Server', () => {
     });
     
     it('should export server instance', () => {
-      const { server: exportedServer } = require('./server');
-      expect(exportedServer).toBeDefined();
+      expect(server).toBeDefined();
+    });
+  });
+
+  describe('TelemetryData interface', () => {
+    it('should have correct structure', () => {
+      const data: TelemetryData = {
+        timestamp: Date.now(),
+        metric: 'cpu',
+        value: 50
+      };
+      
+      expect(data).toHaveProperty('timestamp');
+      expect(data).toHaveProperty('metric');
+      expect(data).toHaveProperty('value');
+      expect(typeof data.timestamp).toBe('number');
+      expect(typeof data.metric).toBe('string');
+      expect(typeof data.value).toBe('number');
     });
   });
 });
