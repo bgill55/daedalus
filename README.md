@@ -90,6 +90,32 @@ AI assistance without:
 
 ---
 
+## The B.R.A.G. Architecture: Solving Long-Horizon Autonomy
+
+Standard AI coding assistants hit a performance cliff after 15–30 minutes due to **context rot** (polluted transcripts), **the regression trap** (circular repair churn), and **transcript bias** (models falsely validating their own broken output).
+
+Daedalus overcomes this with the **B.R.A.G. Framework** and the **Harness-of-Harness (HoH) Marathon Engine (`/marathon`)**:
+
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                      THE B.R.A.G. AUTONOMOUS FRAMEWORK                      │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  B — BUILD    : Metis Milestone DAG Task Decomposition                      │
+│  R — RETRIEVE : Σ-Mem & FTS5 Semantic Codebase RAG                          │
+│  A — AUDIT    : Apollo Air-Gapped Verification & Zero-Byte Gates            │
+│  G — GENERATE : Hephaestus Production Code Delivery & Stacked PRs           │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+- **B — BUILD:** Metis decomposes high-level goals into an ordered milestone Directed Acyclic Graph (DAG), documenting progress in a live `MARATHON_ROADMAP.md` to prevent out-of-order execution and infinite loops.
+- **R — RETRIEVE:** $\Sigma$-Mem recalls past compiler anti-patterns (`project-mem.sqlite`) and codebase symbols via FTS5 RAG to inject hyper-targeted local context and prevent repeating past mistakes.
+- **A — AUDIT:** Apollo operates in an **air-gapped, isolated LLM context** (zero coder transcript leakage), enforcing **Deterministic Pre-LLM Gates** (instantly rejecting 0-byte stubs) and executing hard git rollbacks (`git reset --hard`) on regression loops.
+- **G — GENERATE:** Hephaestus delivers production code, mints git checkpoints (`daedalus-checkpoint/m-*`), and automatically packages completed runs into verified **Stacked Pull Requests** on GitHub.
+
+> **Architecture Deep Dive:** Read the full [B.R.A.G. & Marathon Technical Whitepaper](docs/whitepaper-brag-marathon.md) and [Autonomous Case Study](docs/marathon-case-study.md).
+
+---
+
 ## Features
 
 ### Core
