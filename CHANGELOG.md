@@ -1,3 +1,10 @@
+# [3.69.0](https://github.com/bgill55/daedalus/compare/v3.68.13...v3.69.0) (2026-09-03)
+
+
+### Features
+
+* **marathon:** automated stacked PR generation and /marathon pr command ([7c981b8](https://github.com/bgill55/daedalus/commit/7c981b89143296ce62ab67113e089e3a3032e4b2))
+
 ## [3.68.13](https://github.com/bgill55/daedalus/compare/v3.68.12...v3.68.13) (2026-09-03)
 
 
