@@ -14,6 +14,7 @@ Jump straight to:
 - [Model Routing & Tuning](routing-and-tuning.md)
 - [Skills (playbook injection)](skills.md)
 - [Orchestration](orchestration.md)
+- [Companion WebUI & Real-Time Chat](webui.md)
 - [Autonomous Finn Loop](finn-loop.md)
 - [MCP Integration](mcp.md)
 - [Sandboxing](sandboxing.md)

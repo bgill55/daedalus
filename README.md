@@ -129,7 +129,7 @@ Daedalus overcomes this with the **B.R.A.G. Framework** and the **Harness-of-Har
 - **Dynamic complexity-based routing** — classifies each task on arrival (quick/trivial → `fast` tier, heavy/multi-file → `intelligence` tier) and **re-routes on the fly** mid-task as the work evolves, with hysteresis to avoid flapping and a token budget that resets on downgrade so it never ping-pongs. Repeated tool failures trigger automatic escalation to the next model in the chain.
 - **Multi-agent orchestration** — spawns Metis (planner), Hephaestus (coder), Apollo (reviewer), Asclepius (debugger), and Mnemosyne (researcher) sub-agents — each carrying a divine callsign — with **OpenAI Swarm-Style Dynamic Handoffs (`handoff_task`)** and shared **Context Variables (`contextVariables`)** for seamless mid-turn role transfers. In single-agent REPL mode the active agent can also **auto-route** a large multi-phase task to helper agents in parallel via `route_task` (after explicit user approval through `ask_user`), so the user never has to spawn agents manually.
 - **Harness-of-Harness (HoH) Marathon Engine (`/marathon`)** — multi-day autonomous software development powered by the **B.R.A.G. framework** (Build DAGs, Retrieve memory, Audit air-gapped, Generate stacked PRs); Metis milestone DAG planning, air-gapped Apollo evaluation (isolated prompt context), git checkpoint rollbacks (`daedalus-checkpoint/m-*`), $\Sigma$-Mem anti-pattern persistence across days, and automated **Stacked PR generation (`/marathon pr`)** on GitHub.
-- **Companion Web UI (`/webui`)** — native local HTTP & Server-Sent Events telemetry dashboard (`http://localhost:3888`) featuring a sleek dark cyber UI with real-time gauges for CPU, memory, disk, network, and live system log streams.
+- **Companion Web UI & Real-Time Chat Console (`/webui`)** — native local HTTP & Server-Sent Events telemetry dashboard (`http://localhost:3888`) featuring a sleek Greek mythic dark-mode interface, real-time token streaming, Chronicles session archives, active model switcher modal, in-chat tool accordions, hover code copy, and multimodal paste/drag-and-drop.
 - **Autonomous Finn Loop** — interactive requirements gathering (`/spec`), GitHub Issues tracking, background daemon execution (`daedalus --loop`), and Discord PR review webhook embeds.
 - **CaSKG Procedural Skill Graph Engine** — counterfactual-causal skill dependency graphs (`src/skills/graph.ts`) that resolve `prerequisites` and `leadsTo` relationships, retrieving **topologically sorted, compact skill bundles** to eliminate orphan execution and step thrashing.
 - **Self-Healing & Immunity Engine** — Programmatic Codebase Constitution (`src/config/constitution.ts`), default Test Suite Read-Only Lock (`*.test.ts`, vitest/jest runner configs, CI workflows), Reviewer Diff Immunity Audit Checklist (protecting against type-loosening, error-swallowing, and assertion weakening), and Self-Generated Skill Synthesis (`.daedalus/skills/drafts/`).
@@ -313,12 +313,39 @@ Router strategies: `priority` (default), `round-robin`, `fastest`.
 
 Per-project config is stored at `~/.daedalus/config/<project-hash>.json` and can be set via `/project set <key> <value>`.
 
+## Companion WebUI & Real-Time Chat Console (`/webui`)
+
+<p align="center">
+  <img src="assets/webui_view.png" width="100%" alt="Daedalus Companion WebUI Dashboard" />
+</p>
+
+Daedalus includes a native, zero-dependency **Companion WebUI** (`http://127.0.0.1:3888`) powered by an embedded HTTP server and real-time Server-Sent Events (SSE). It gives you an illuminated sanctum to interact with Daedalus from your browser while synchronizing seamlessly with the active CLI session:
+
+- **⚡ Real-Time SSE Token Streaming**: Experience instant, token-by-token streaming responses with zero turn lag.
+- **🏛️ Chronicles (Saved Sessions)**: Browse, resume, create, and delete SQLite chat sessions with one click from the sidebar archives.
+- **⚡ Router Oracles (Active Model Switcher)**: Inspect active model routing in the header and switch between dynamic auto-routing, speed/intelligence tiers, or specific models via modal.
+- **📜 In-Chat Tool Accordions**: Interactive collapsible accordions showing live execution state and payloads for file edits, shell commands, and indexing.
+- **⌗ Syntax Highlighting & Hover "COPY CODE"**: Clean syntax-highlighted code blocks with language pills and one-click clipboard copying.
+- **⌨️ Multi-Line Auto-Expanding Textarea**: Flexible prompt editor with `Shift + Enter` for newlines and `Enter` to transmit.
+- **🖼️ Multimodal Offerings & Clipboard Paste (`Ctrl + V`)**: Direct image paste, drag-and-drop artifacts, and file attachment offerings for vision-capable models.
+- **✦ NEW RITE Console Reset**: Fast single-click console purge and fresh turn initialization.
+- **📁 Interactive Labyrinth Tree & Sanctum Context**: Browse the file tree and toggle active turn context tokens visually.
+
+**How to Launch:**
+```bash
+# Inside the Daedalus CLI REPL:
+/webui open        # Starts the local server and opens your browser
+/webui rate 500    # Adjust telemetry refresh interval in ms
+```
+> Read the full [Companion WebUI Documentation Guide](docs/webui.md) for architecture, keyboard shortcuts, and REST API specs.
+
 ---
 
 ## Detailed Documentation Guides
 
 For in-depth explanations, configuration options, and hardware optimization tips, see the modular guides below:
 
+*   [Companion WebUI & Real-Time Chat Guide](docs/webui.md) — Real-time streaming, Chronicles session persistence, model switcher modal, and SSE/REST API reference.
 *   [Model Routing & Tuning Guide](docs/routing-and-tuning.md) — Endpoints, failover chains, routing strategy configs, and GPU/LM Studio tuning recommendations.
 *   [Multi-Agent Orchestration](docs/orchestration.md) — Overview of the planning, coding, and review loops, recovery checkpoints, and background task runners.
 *   [Autonomous Finn Loop](docs/finn-loop.md) — Interactive requirements specification, GitHub issue tracking, background daemon execution, and Discord webhook notifications.
