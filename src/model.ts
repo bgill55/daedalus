@@ -221,11 +221,12 @@ export function createModelFunctions(deps: ModelDeps) {
     let repetitionAborted = false;
     if (userContent) {
       if (imageBase64) {
+        const url = imageBase64.startsWith('data:') ? imageBase64 : `data:image/png;base64,${imageBase64}`;
         messages.push({
           role: 'user',
           content: [
             { type: 'text', text: userContent },
-            { type: 'image_url', image_url: { url: `data:image/png;base64,${imageBase64}` } },
+            { type: 'image_url', image_url: { url } },
           ],
         });
       } else {
@@ -1095,11 +1096,12 @@ export function createModelFunctions(deps: ModelDeps) {
 
   async function callModelWithFallback(userContent: string, imageBase64?: string): Promise<string> {
     if (imageBase64) {
+      const url = imageBase64.startsWith('data:') ? imageBase64 : `data:image/png;base64,${imageBase64}`;
       messages.push({
         role: 'user',
         content: [
           { type: 'text', text: userContent },
-          { type: 'image_url', image_url: { url: `data:image/png;base64,${imageBase64}` } },
+          { type: 'image_url', image_url: { url } },
         ],
       });
     } else {

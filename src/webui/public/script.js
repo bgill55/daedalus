@@ -122,7 +122,7 @@ function showThinkingSpinner() {
   thinkingEl.className = 'chat-msg thinking';
   thinkingEl.innerHTML = `
     <div class="thinking-dots"><span></span><span></span><span></span></div>
-    <span>Daedalus is consulting the labyrinth...</span>
+    <span class="thinking-text">Daedalus is consulting the labyrinth...</span>
   `;
   chatMessages.appendChild(thinkingEl);
   chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -137,7 +137,7 @@ function removeThinkingSpinner() {
 
 function updateThinkingSpinner(text) {
   if (thinkingEl && chatMessages) {
-    const label = thinkingEl.querySelector('span:last-child');
+    const label = thinkingEl.querySelector('.thinking-text');
     if (label) label.textContent = text;
     chatMessages.appendChild(thinkingEl);
     chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -582,6 +582,7 @@ function connectSSE() {
         if (data.role === 'user') {
           // already added locally or by another client
         } else {
+          removeThinkingSpinner();
           if (!activeAssistantBody) {
             activeAssistantBody = addChatMessage('assistant', data.text || '', 'STREAM');
           } else if (data.text) {
@@ -591,7 +592,6 @@ function connectSSE() {
             chatMessages.scrollTop = chatMessages.scrollHeight;
           }
           if (chatStatusBadge) chatStatusBadge.textContent = 'STREAMING...';
-          updateThinkingSpinner('Daedalus is responding...');
         }
         return;
       }

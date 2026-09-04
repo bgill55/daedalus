@@ -470,7 +470,7 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
             const todoCtx = buildTodoContext(sessionId);
             const userContent = `${todoCtx}${filesContext}User Prompt: ${activePrompt}`;
             console.log(dim('\n  [RETRY] Trying fallback mode...'));
-            const fallbackResult = await callModelWithFallback(userContent);
+            const fallbackResult = await callModelWithFallback(userContent, webOpts?.imageBase64);
             if (fallbackResult) {
               sessionManager.saveSessionState(messages, activeFiles, getSessionTodos(sessionId));
               await extractAndSave(router, sessionManager, messages);
