@@ -494,7 +494,7 @@ body {
 .chat-section-wrapper {
   grid-column: 1 / -1;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 350px;
+  grid-template-columns: minmax(0, 1fr) 370px;
   gap: 20px;
   align-items: stretch;
 }
@@ -519,24 +519,41 @@ body {
   background: linear-gradient(180deg, rgba(13, 23, 40, 0.92) 0%, rgba(6, 11, 22, 0.98) 100%);
 }
 
+.cheatsheet-panel .panel-header {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.cheatsheet-panel .panel-header .metric-meta {
+  padding-bottom: 2px;
+}
+
 .sidebar-tabs {
   display: flex;
-  gap: 3px;
-  flex-shrink: 0;
+  gap: 4px;
+  width: 100%;
 }
 
 .sidebar-tab {
+  flex: 1;
+  text-align: center;
+  justify-content: center;
   background: rgba(4, 7, 13, 0.6);
   border: 1px solid var(--bronze-border);
   border-radius: 3px;
   color: var(--text-dim);
   font-family: var(--font-mythic);
-  font-size: 9px;
+  font-size: 8.5px;
   font-weight: 700;
   letter-spacing: 0.5px;
-  padding: 3px 7px;
+  padding: 5px 2px;
   cursor: pointer;
   white-space: nowrap;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   transition: all 0.15s ease-in-out;
 }
 
