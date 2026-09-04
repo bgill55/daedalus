@@ -193,6 +193,27 @@ describe('WebUI Server', () => {
     });
   });
 
+  describe('GET /api/files', () => {
+    it('should return project tree JSON', () => {
+      mockReq.url = '/api/files';
+      mockReq.method = 'GET';
+      vi.mocked(fs.existsSync).mockReturnValue(false);
+      vi.mocked(fs.readdirSync).mockReturnValue([
+        { name: 'src', isDirectory: () => true, isFile: () => false } as any,
+        { name: 'package.json', isDirectory: () => false, isFile: () => true } as any,
+      ]);
+
+      handleRequest(mockReq as IncomingMessage, mockRes as ServerResponse);
+
+      expect(writeHeadSpy).toHaveBeenCalledWith(200, { 'Content-Type': 'application/json' });
+      expect(endSpy).toHaveBeenCalled();
+      const body = JSON.parse(endSpy.mock.calls[0][0]);
+      expect(body).toHaveProperty('cwd');
+      expect(body).toHaveProperty('tree');
+      expect(Array.isArray(body.tree)).toBe(true);
+    });
+  });
+
   describe('Other routes', () => {
     it('should return 404 for unknown routes', () => {
       mockReq.url = '/unknown';

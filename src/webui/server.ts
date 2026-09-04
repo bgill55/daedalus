@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { TelemetryData } from '../types.js';
-import type { WebuiChatMessageEvent, WebuiChatRequest } from './types.js';
+import type { WebuiChatMessageEvent, WebuiChatRequest, FileNode } from './types.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -75,6 +75,55 @@ export function broadcastChatEvent(evt: WebuiChatMessageEvent): void {
       // client disconnected
     }
   }
+}
+
+const TREE_ALWAYS_IGNORE = new Set([
+  'node_modules', '.git', 'dist', '.daedalus', 'coverage',
+  '.nyc_output', '__pycache__', '.next', '.cache', '.turbo', 'build',
+]);
+
+function parseGitignore(cwd: string): Set<string> {
+  const ignored = new Set<string>();
+  const gitignorePath = path.join(cwd, '.gitignore');
+  if (!fs.existsSync(gitignorePath)) return ignored;
+  const lines = fs.readFileSync(gitignorePath, 'utf8').split(/\r?\n/);
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line || line.startsWith('#')) continue;
+    ignored.add(line.replace(/^\//, '').replace(/\/$/, ''));
+  }
+  return ignored;
+}
+
+function getProjectTree(dir: string, cwd: string, depth: number, gitignored: Set<string>): FileNode[] {
+  if (depth > 4) return [];
+  let entries: fs.Dirent[];
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+  const nodes: FileNode[] = [];
+  for (const entry of entries) {
+    if (entry.name.startsWith('.') && entry.name !== '.env') continue;
+    if (TREE_ALWAYS_IGNORE.has(entry.name)) continue;
+    const relPath = path.relative(cwd, path.join(dir, entry.name)).replace(/\\/g, '/');
+    if (gitignored.has(entry.name) || gitignored.has(relPath)) continue;
+    if (entry.isDirectory()) {
+      nodes.push({
+        name: entry.name,
+        type: 'dir',
+        path: relPath,
+        children: getProjectTree(path.join(dir, entry.name), cwd, depth + 1, gitignored),
+      });
+    } else {
+      nodes.push({ name: entry.name, type: 'file', path: relPath });
+    }
+  }
+  return nodes.sort((a, b) => {
+    if (a.type !== b.type) return a.type === 'dir' ? -1 : 1;
+    return a.name.localeCompare(b.name);
+  });
 }
 
 function parseJsonBody<T = any>(req: IncomingMessage): Promise<T> {
@@ -216,6 +265,15 @@ export function handleRequest(req: IncomingMessage, res: ServerResponse): void {
         activeClientRecords.delete(clientRecord);
         res.end();
       });
+      return;
+    }
+
+    if (req.method === 'GET' && req.url === '/api/files') {
+      const cwd = process.cwd();
+      const gitignored = parseGitignore(cwd);
+      const tree = getProjectTree(cwd, cwd, 0, gitignored);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ cwd: path.basename(cwd), tree }));
       return;
     }
 

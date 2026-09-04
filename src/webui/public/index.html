@@ -101,37 +101,53 @@
 
         <aside class="panel cheatsheet-panel">
           <div class="panel-header">
-            <span class="metric-name">⚡ QUICK COMMANDS</span>
-            <span class="cheatsheet-hint">CLICK TO INSERT</span>
+            <span class="metric-name">⚡ WORKSPACE</span>
+            <div class="sidebar-tabs">
+              <button class="sidebar-tab active" data-tab="commands">COMMANDS</button>
+              <button class="sidebar-tab" data-tab="files">FILES</button>
+            </div>
           </div>
-          <div class="cheatsheet-content">
-            <div class="cmd-group">
-              <div class="cmd-group-title">AUTONOMOUS & SPRINT</div>
-              <button type="button" class="cmd-chip" data-cmd="/marathon " title="Harness-of-Harness autonomous DAG development"><code>/marathon &lt;goal&gt;</code></button>
-              <button type="button" class="cmd-chip" data-cmd="/autopilot " title="End-to-end autonomous feature branch delivery"><code>/autopilot &lt;prompt&gt;</code></button>
-              <button type="button" class="cmd-chip" data-cmd="/ci review" title="Headless CI PR reviewer simulation"><code>/ci review</code></button>
-            </div>
 
-            <div class="cmd-group">
-              <div class="cmd-group-title">ROUTER & DIAGNOSTICS</div>
-              <button type="button" class="cmd-chip" data-cmd="/health" title="Check model router latency & provider status"><code>/health</code></button>
-              <button type="button" class="cmd-chip" data-cmd="/models" title="List healthy, available models"><code>/models</code></button>
-              <button type="button" class="cmd-chip" data-cmd="/doctor" title="Diagnose environment and discovery"><code>/doctor</code></button>
-            </div>
+          <div class="sidebar-tab-content" id="tab-commands">
+            <div class="cheatsheet-content">
+              <div class="cmd-group">
+                <div class="cmd-group-title">AUTONOMOUS &amp; SPRINT</div>
+                <button type="button" class="cmd-chip" data-cmd="/marathon " title="Harness-of-Harness autonomous DAG development"><code>/marathon &lt;goal&gt;</code></button>
+                <button type="button" class="cmd-chip" data-cmd="/autopilot " title="End-to-end autonomous feature branch delivery"><code>/autopilot &lt;prompt&gt;</code></button>
+                <button type="button" class="cmd-chip" data-cmd="/ci review" title="Headless CI PR reviewer simulation"><code>/ci review</code></button>
+              </div>
 
-            <div class="cmd-group">
-              <div class="cmd-group-title">CONTEXT & CODEBASE</div>
-              <button type="button" class="cmd-chip" data-cmd="/find " title="Search indexed symbols in FTS5 database"><code>/find &lt;query&gt;</code></button>
-              <button type="button" class="cmd-chip" data-cmd="/context" title="Show active files in turn context"><code>/context</code></button>
-              <button type="button" class="cmd-chip" data-cmd="/memory" title="Inspect persistent project memories & conventions"><code>/memory</code></button>
-              <button type="button" class="cmd-chip" data-cmd="/system" title="View active system prompt and rules"><code>/system</code></button>
-            </div>
+              <div class="cmd-group">
+                <div class="cmd-group-title">ROUTER &amp; DIAGNOSTICS</div>
+                <button type="button" class="cmd-chip" data-cmd="/health" title="Check model router latency &amp; provider status"><code>/health</code></button>
+                <button type="button" class="cmd-chip" data-cmd="/models" title="List healthy, available models"><code>/models</code></button>
+                <button type="button" class="cmd-chip" data-cmd="/doctor" title="Diagnose environment and discovery"><code>/doctor</code></button>
+              </div>
 
-            <div class="cmd-group">
-              <div class="cmd-group-title">INTERFACE & UTILITIES</div>
-              <button type="button" class="cmd-chip" data-cmd="/webui rate 500" title="Adjust telemetry refresh rate in ms"><code>/webui rate &lt;ms&gt;</code></button>
-              <button type="button" class="cmd-chip" data-cmd="/spinner aurora" title="Switch thinking spinner style"><code>/spinner &lt;style&gt;</code></button>
-              <button type="button" class="cmd-chip" data-cmd="/clear" title="Clear chat history"><code>/clear</code></button>
+              <div class="cmd-group">
+                <div class="cmd-group-title">CONTEXT &amp; CODEBASE</div>
+                <button type="button" class="cmd-chip" data-cmd="/find " title="Search indexed symbols in FTS5 database"><code>/find &lt;query&gt;</code></button>
+                <button type="button" class="cmd-chip" data-cmd="/context" title="Show active files in turn context"><code>/context</code></button>
+                <button type="button" class="cmd-chip" data-cmd="/memory" title="Inspect persistent project memories &amp; conventions"><code>/memory</code></button>
+                <button type="button" class="cmd-chip" data-cmd="/system" title="View active system prompt and rules"><code>/system</code></button>
+              </div>
+
+              <div class="cmd-group">
+                <div class="cmd-group-title">INTERFACE &amp; UTILITIES</div>
+                <button type="button" class="cmd-chip" data-cmd="/webui rate 500" title="Adjust telemetry refresh rate in ms"><code>/webui rate &lt;ms&gt;</code></button>
+                <button type="button" class="cmd-chip" data-cmd="/spinner aurora" title="Switch thinking spinner style"><code>/spinner &lt;style&gt;</code></button>
+                <button type="button" class="cmd-chip" data-cmd="/clear" title="Clear chat history"><code>/clear</code></button>
+              </div>
+            </div>
+          </div>
+
+          <div class="sidebar-tab-content hidden" id="tab-files">
+            <div class="file-tree-toolbar">
+              <span id="file-tree-cwd" class="file-tree-cwd">—</span>
+              <button id="file-tree-refresh" class="file-tree-refresh-btn" title="Refresh file tree">↺</button>
+            </div>
+            <div id="file-tree" class="file-tree">
+              <div class="file-tree-loading">Loading...</div>
             </div>
           </div>
         </aside>

@@ -37,3 +37,10 @@ export interface WebuiChatRequest {
   message: string;
   role?: string;
 }
+
+export interface FileNode {
+  name: string;
+  type: 'file' | 'dir';
+  path: string;
+  children?: FileNode[];
+}

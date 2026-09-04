@@ -165,6 +165,18 @@ if (chatForm && chatInput) {
   });
 }
 
+// Sidebar Tab Switching
+document.querySelectorAll('.sidebar-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.sidebar-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.sidebar-tab-content').forEach(c => c.classList.add('hidden'));
+    tab.classList.add('active');
+    const target = document.getElementById('tab-' + tab.getAttribute('data-tab'));
+    if (target) target.classList.remove('hidden');
+    if (tab.getAttribute('data-tab') === 'files') loadFileTree();
+  });
+});
+
 // Cheat Sheet Click-to-Insert Handler
 document.querySelectorAll('.cmd-chip').forEach(chip => {
   chip.addEventListener('click', () => {
@@ -174,6 +186,107 @@ document.querySelectorAll('.cmd-chip').forEach(chip => {
     chatInput.focus();
   });
 });
+
+// File Tree
+const fileTreeEl = document.getElementById('file-tree');
+const fileTreeCwdEl = document.getElementById('file-tree-cwd');
+const fileTreeRefreshBtn = document.getElementById('file-tree-refresh');
+let fileTreeLoaded = false;
+
+function fileIcon(node) {
+  if (node.type === 'dir') return '▶';
+  const ext = node.name.split('.').pop() || '';
+  const icons = { ts: '𝑇', js: '𝑱', json: '{}', md: '≡', css: '⌗', html: '◇', txt: '·', yml: '⚙', yaml: '⚙', sh: '$', py: '𝑃', go: 'G', rs: '⚙' };
+  return icons[ext] || '·';
+}
+
+function renderTreeNodes(nodes, depth) {
+  const ul = document.createElement('ul');
+  ul.className = 'tree-list';
+  for (const node of nodes) {
+    const li = document.createElement('li');
+    li.className = 'tree-node';
+    li.style.paddingLeft = (depth * 12) + 'px';
+
+    if (node.type === 'dir') {
+      const toggle = document.createElement('span');
+      toggle.className = 'tree-icon tree-dir-icon';
+      toggle.textContent = fileIcon(node);
+
+      const label = document.createElement('span');
+      label.className = 'tree-label tree-dir';
+      label.textContent = node.name;
+
+      let childrenEl = null;
+      let expanded = false;
+
+      const expand = () => {
+        expanded = !expanded;
+        toggle.classList.toggle('expanded', expanded);
+        if (expanded && !childrenEl && node.children?.length) {
+          childrenEl = renderTreeNodes(node.children, 0);
+          li.appendChild(childrenEl);
+        }
+        if (childrenEl) childrenEl.classList.toggle('hidden', !expanded);
+      };
+
+      toggle.addEventListener('click', expand);
+      label.addEventListener('click', expand);
+      li.appendChild(toggle);
+      li.appendChild(label);
+    } else {
+      const icon = document.createElement('span');
+      icon.className = 'tree-icon tree-file-icon';
+      icon.textContent = fileIcon(node);
+
+      const label = document.createElement('span');
+      label.className = 'tree-label tree-file';
+      label.textContent = node.name;
+      label.title = node.path;
+
+      label.addEventListener('click', () => {
+        if (!chatInput) return;
+        const current = chatInput.value;
+        chatInput.value = current ? current + ' ' + node.path : node.path;
+        chatInput.focus();
+      });
+
+      li.appendChild(icon);
+      li.appendChild(label);
+    }
+
+    ul.appendChild(li);
+  }
+  return ul;
+}
+
+async function loadFileTree() {
+  if (!fileTreeEl) return;
+  if (fileTreeLoaded) return;
+  fileTreeEl.innerHTML = '<div class="file-tree-loading">Loading...</div>';
+  try {
+    const res = await fetch('/api/files');
+    if (!res.ok) throw new Error('Failed to load');
+    const data = await res.json();
+    if (fileTreeCwdEl) fileTreeCwdEl.textContent = data.cwd || '—';
+    fileTreeEl.innerHTML = '';
+    if (!data.tree?.length) {
+      fileTreeEl.innerHTML = '<div class="file-tree-loading">No files found.</div>';
+      return;
+    }
+    fileTreeEl.appendChild(renderTreeNodes(data.tree, 0));
+    fileTreeLoaded = true;
+  } catch {
+    fileTreeEl.innerHTML = '<div class="file-tree-loading">Failed to load tree.</div>';
+  }
+}
+
+if (fileTreeRefreshBtn) {
+  fileTreeRefreshBtn.addEventListener('click', () => {
+    fileTreeLoaded = false;
+    loadFileTree();
+  });
+}
 
 function connectSSE() {
   const eventSource = new EventSource('/telemetry');
