@@ -1,3 +1,31 @@
+# [3.73.0](https://github.com/bgill55/daedalus/compare/v3.72.0...v3.73.0) (2026-09-04)
+
+
+### Bug Fixes
+
+* **webui:** eliminate turn lag via non-blocking extraction and add message timestamps ([5234db0](https://github.com/bgill55/daedalus/commit/5234db05ebe5330d018fd220a1a76ee55f8f1796))
+* **webui:** filter out system prompt messages from chat history restoration ([0cbe9cc](https://github.com/bgill55/daedalus/commit/0cbe9ccf507cf77f55265e5ec1e0493047488166))
+* **webui:** fix thinking spinner text injection bug and normalize image URLs for vision routing ([47017da](https://github.com/bgill55/daedalus/commit/47017da27d78f7ca72f06a48cfadf6dd1174cc81))
+* **webui:** keep thinking spinner visible until chat_done, update text on tool events ([0b98ba6](https://github.com/bgill55/daedalus/commit/0b98ba6c3d69c2c58837788460d8d38bc5130b4d))
+* **webui:** resolve panel clipping and align chat console with sidebar heights ([ed94792](https://github.com/bgill55/daedalus/commit/ed9479203dc69e65d1c3180cdd8cea8205cb6f06))
+* **webui:** stack sidebar header and make archives tabs full-width segmented bar ([f094e5f](https://github.com/bgill55/daedalus/commit/f094e5f0e5908f00b99db820012bbacc58bd6bb8))
+* **webui:** strip ANSI escape codes from slash command output before broadcasting to WebUI ([d228ce1](https://github.com/bgill55/daedalus/commit/d228ce1ef6be0ef29d4b884f161ceea4cef8022e))
+
+
+### Features
+
+* **webui:** add collapsible project file tree panel with click-to-insert ([ebef659](https://github.com/bgill55/daedalus/commit/ebef659f39564162468108fa192c3803e8641162))
+* **webui:** add copy button to assistant messages with hover reveal and COPIED flash ([7a02047](https://github.com/bgill55/daedalus/commit/7a02047ee4c2ca1cb5bbad13511a3d89d682aa9b))
+* **webui:** add image and file attachments with drag-and-drop/paste and strip CLI decorators from assistant replies ([5a8146e](https://github.com/bgill55/daedalus/commit/5a8146e17ac4dffe02a55bd91574618ac2e1a5d9))
+* **webui:** add interactive chat console and agent execution bridge ([0a5d353](https://github.com/bgill55/daedalus/commit/0a5d353f64ef578b87089161fc490396f6c35803))
+* **webui:** add markdown rendering, live tool & todo progress streaming, and auto-approval for web turns ([2fb0fce](https://github.com/bgill55/daedalus/commit/2fb0fce0b688e059f8512c6d4fd5b76b0739756b))
+* **webui:** add pulsating cyber thinking spinner while waiting for model response ([6e5ec14](https://github.com/bgill55/daedalus/commit/6e5ec144241a56b1eadeda6d030e8e8ae4f62e7d))
+* **webui:** add quick commands cheat sheet sidebar with one-click insertion ([4bf0749](https://github.com/bgill55/daedalus/commit/4bf0749a532a002564e1c89882211cd2467b5283))
+* **webui:** add real system metrics, context file manager, chat history persistence, keyboard shortcuts and exponential SSE reconnect ([efe5ade](https://github.com/bgill55/daedalus/commit/efe5adea76a62312741aaa3e32ac3d4b92413f5d))
+* **webui:** add saved sessions chronicles, model selection modal, in-chat tool accordions, and code copy ([25270aa](https://github.com/bgill55/daedalus/commit/25270aae1b19d6614c255087a82de43a1507ba5e))
+* **webui:** redesign UI with Daedalus Greek mythic and architectural theme ([4a427ed](https://github.com/bgill55/daedalus/commit/4a427ed128fb6c3bf10bd83cda6fd8afd0dfd71f))
+* **webui:** stream model response tokens in real-time ([04828c8](https://github.com/bgill55/daedalus/commit/04828c87c40f1f15784e09a1dbf8a55a6eab934e))
+
 # [3.72.0](https://github.com/bgill55/daedalus/compare/v3.71.0...v3.72.0) (2026-09-03)
 
 
