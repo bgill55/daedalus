@@ -122,7 +122,7 @@ function showThinkingSpinner() {
   thinkingEl.className = 'chat-msg thinking';
   thinkingEl.innerHTML = `
     <div class="thinking-dots"><span></span><span></span><span></span></div>
-    <span>Daedalus is formulating response...</span>
+    <span>Daedalus is consulting the labyrinth...</span>
   `;
   chatMessages.appendChild(thinkingEl);
   chatMessages.scrollTop = chatMessages.scrollHeight;

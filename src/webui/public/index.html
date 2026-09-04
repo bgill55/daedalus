@@ -3,116 +3,169 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Daedalus Web UI</title>
+  <title>DAEDALUS — Architect of Autonomous Systems</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=JetBrains+Mono:ital,wght@0,400;0,500;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
+  <div class="mythic-bg-overlay"></div>
   <div class="dashboard">
     <header class="header">
       <div class="brand">
-        <span class="logo">⚡</span>
-        <h1>DAEDALUS <span class="subtitle">AUTONOMOUS TELEMETRY</span></h1>
+        <div class="logo-crest" title="The Seal of Daedalus">
+          <svg viewBox="0 0 44 44" class="crest-svg" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <polygon points="22,3 41,39 3,39" stroke="url(#gold-grad)" stroke-width="1.8" fill="rgba(229, 169, 60, 0.06)" />
+            <polygon points="22,11 35,35 9,35" stroke="url(#gold-grad)" stroke-width="1" fill="none" opacity="0.6" />
+            <path d="M22 17 L29 31 L15 31 Z" stroke="#38bdf8" stroke-width="1.2" fill="rgba(56, 189, 248, 0.12)" />
+            <circle cx="22" cy="25" r="2.5" fill="#f5c358" filter="drop-shadow(0 0 4px #e5a93c)" />
+            <defs>
+              <linearGradient id="gold-grad" x1="3" y1="3" x2="41" y2="39" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#f5c358" />
+                <stop offset="0.5" stop-color="#e5a93c" />
+                <stop offset="1" stop-color="#b45309" />
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <div class="brand-titles">
+          <div class="brand-main">
+            <span class="brand-name">DAEDALUS</span>
+            <span class="brand-greek">ΔΑΙΔΑΛΟΣ</span>
+          </div>
+          <span class="brand-sub">MASTER ARCHITECT · AUTONOMOUS AGENT ORCHESTRATION</span>
+        </div>
       </div>
       <div class="status-bar">
-        <span id="connection-status" class="status disconnected">● DISCONNECTED</span>
-        <span id="last-update" class="timestamp">--:--:--</span>
+        <div class="status-pill-wrapper">
+          <span id="connection-status" class="status disconnected">● DISCONNECTED</span>
+        </div>
+        <div class="oracle-clock">
+          <span class="oracle-label">CHRONOS</span>
+          <span id="last-update" class="timestamp">--:--:--</span>
+        </div>
       </div>
     </header>
 
     <main class="grid">
-      <div class="panel">
+      <div class="panel oracle-card card-forge">
         <div class="panel-header">
-          <span class="metric-name">CPU USAGE</span>
+          <div class="metric-meta">
+            <span class="oracle-glyph">⚡</span>
+            <span class="metric-name">FORGE THROUGHPUT</span>
+          </div>
           <span id="cpu-value" class="metric-value">0%</span>
         </div>
-        <div class="sparkline"></div>
+        <div class="sparkline forge-sparkline"></div>
         <div class="panel-footer">
-          <span>Status</span>
+          <span class="footer-label">ENGINE CYCLES</span>
           <span id="cpu-status" class="metric-status">NORMAL</span>
         </div>
       </div>
 
-      <div class="panel">
+      <div class="panel oracle-card card-memoria">
         <div class="panel-header">
-          <span class="metric-name">MEMORY USAGE</span>
+          <div class="metric-meta">
+            <span class="oracle-glyph">🏛️</span>
+            <span class="metric-name">MEMORIA VAULT</span>
+          </div>
           <span id="memory-value" class="metric-value">0%</span>
         </div>
-        <div class="sparkline"></div>
+        <div class="sparkline memoria-sparkline"></div>
         <div class="panel-footer">
-          <span>Status</span>
+          <span class="footer-label">Σ-MEM RETENTION</span>
           <span id="memory-status" class="metric-status">NORMAL</span>
         </div>
       </div>
 
-      <div class="panel">
+      <div class="panel oracle-card card-labyrinth">
         <div class="panel-header">
-          <span class="metric-name">DISK I/O</span>
+          <div class="metric-meta">
+            <span class="oracle-glyph">📜</span>
+            <span class="metric-name">LABYRINTH SYMBOLS</span>
+          </div>
           <span id="disk-value" class="metric-value">0%</span>
         </div>
-        <div class="sparkline"></div>
+        <div class="sparkline labyrinth-sparkline"></div>
         <div class="panel-footer">
-          <span>Status</span>
+          <span class="footer-label">FTS5 INDEX / DISK</span>
           <span id="disk-status" class="metric-status">NORMAL</span>
         </div>
       </div>
 
-      <div class="panel">
+      <div class="panel oracle-card card-aegis">
         <div class="panel-header">
-          <span class="metric-name">NETWORK ACTIVITY</span>
+          <div class="metric-meta">
+            <span class="oracle-glyph">🌐</span>
+            <span class="metric-name">AEGIS ROUTER</span>
+          </div>
           <span id="network-value" class="metric-value">0%</span>
         </div>
-        <div class="sparkline"></div>
+        <div class="sparkline aegis-sparkline"></div>
         <div class="panel-footer">
-          <span>Status</span>
+          <span class="footer-label">TELEMETRY STREAM</span>
           <span id="network-status" class="metric-status">NORMAL</span>
         </div>
       </div>
 
       <div class="panel log-panel">
         <div class="panel-header">
-          <span class="metric-name">SYSTEM LOG STREAM</span>
-          <button id="clear-log" class="clear-btn">CLEAR</button>
+          <div class="metric-meta">
+            <span class="oracle-glyph">📜</span>
+            <span class="metric-name">SYSTEM LOG OF ORACLES</span>
+          </div>
+          <button id="clear-log" class="clear-btn">PURGE</button>
         </div>
         <div id="log-container" class="log-container">
-          <div class="log-entry"><span class="time">[INIT]</span> Telemetry dashboard initialized.</div>
+          <div class="log-entry"><span class="time">[INIT]</span> Telemetry dashboard initialized. Ready for commands.</div>
         </div>
       </div>
 
       <div class="chat-section-wrapper">
         <div class="panel chat-panel">
-          <div class="panel-header">
-            <span class="metric-name">⚡ INTERACTIVE CHAT CONSOLE</span>
+          <div class="panel-header chat-header">
+            <div class="metric-meta">
+              <span class="oracle-glyph">⚡</span>
+              <span class="metric-name">COMMUNICATION CONSOLE</span>
+            </div>
             <div class="chat-badges">
-              <span class="badge" id="chat-status-badge">READY</span>
+              <span class="badge" id="chat-status-badge">SANCTUM READY</span>
             </div>
           </div>
           <div id="chat-messages" class="chat-messages">
             <div class="chat-msg assistant">
-              <div class="msg-header"><span class="sender">DAEDALUS</span> <span class="badge-role">ORCHESTRATOR</span></div>
-              <div class="msg-body">Companion Web Console active. You can chat with Daedalus or run slash commands like <code>/health</code>, <code>/models</code>, <code>/autopilot</code>, or <code>/marathon</code>.</div>
+              <div class="msg-header">
+                <span class="sender">DAEDALUS</span>
+                <span class="badge-role">ARCHITECT</span>
+              </div>
+              <div class="msg-body">Companion Web Console active. You can consult with Daedalus or execute sacred rites like <code>/health</code>, <code>/models</code>, <code>/autopilot</code>, or <code>/marathon</code>.</div>
             </div>
           </div>
           <div id="attachment-preview" class="attachment-preview hidden"></div>
           <form id="chat-form" class="chat-form">
             <input type="file" id="file-input" class="hidden" accept="image/*,.txt,.md,.json,.ts,.js,.py,.css,.html" />
-            <button type="button" id="attach-btn" class="attach-btn" title="Attach image or file">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <button type="button" id="attach-btn" class="attach-btn" title="Offer artifact / attach file or image">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
               </svg>
             </button>
-            <input id="chat-input" type="text" placeholder="Type a message, paste an image (Ctrl+V), or drop files..." autocomplete="off" />
-            <button type="submit" id="chat-send-btn" class="send-btn">SEND ⚡</button>
+            <input id="chat-input" type="text" placeholder="Inscribe an instruction, paste an image (Ctrl+V), or cast artifacts..." autocomplete="off" />
+            <button type="submit" id="chat-send-btn" class="send-btn">TRANSMIT ⚡</button>
           </form>
         </div>
 
         <aside class="panel cheatsheet-panel">
           <div class="panel-header">
-            <span class="metric-name">⚡ WORKSPACE</span>
+            <div class="metric-meta">
+              <span class="oracle-glyph">🏛️</span>
+              <span class="metric-name">ARCHIVES</span>
+            </div>
             <div class="sidebar-tabs">
-              <button class="sidebar-tab active" data-tab="commands">COMMANDS</button>
-              <button class="sidebar-tab" data-tab="files">FILES</button>
-              <button class="sidebar-tab" data-tab="context">CONTEXT</button>
+              <button class="sidebar-tab active" data-tab="commands">ORACLES</button>
+              <button class="sidebar-tab" data-tab="files">LABYRINTH</button>
+              <button class="sidebar-tab" data-tab="context">SANCTUM</button>
             </div>
           </div>
 
@@ -152,20 +205,20 @@
           <div class="sidebar-tab-content hidden" id="tab-files">
             <div class="file-tree-toolbar">
               <span id="file-tree-cwd" class="file-tree-cwd">—</span>
-              <button id="file-tree-refresh" class="file-tree-refresh-btn" title="Refresh file tree">↺</button>
+              <button id="file-tree-refresh" class="file-tree-refresh-btn" title="Refresh Labyrinth tree">↺</button>
             </div>
             <div id="file-tree" class="file-tree">
-              <div class="file-tree-loading">Loading...</div>
+              <div class="file-tree-loading">Exploring labyrinth paths...</div>
             </div>
           </div>
 
           <div class="sidebar-tab-content hidden" id="tab-context">
             <div class="file-tree-toolbar">
-              <span class="file-tree-cwd">ACTIVE TURN FILES</span>
-              <button id="context-refresh-btn" class="file-tree-refresh-btn" title="Refresh active files">↺</button>
+              <span class="file-tree-cwd">SANCTUM ACTIVE CONTEXT</span>
+              <button id="context-refresh-btn" class="file-tree-refresh-btn" title="Refresh active context">↺</button>
             </div>
             <div id="context-files-list" class="context-files-list">
-              <div class="file-tree-loading">No active files in context.</div>
+              <div class="file-tree-loading">Sanctum is clear. No active files.</div>
             </div>
           </div>
         </aside>
