@@ -1,3 +1,10 @@
+# [3.75.0](https://github.com/bgill55/daedalus/compare/v3.74.0...v3.75.0) (2026-09-04)
+
+
+### Features
+
+* **profile:** display configured profile name in cli and webui user headers ([c32ac9a](https://github.com/bgill55/daedalus/commit/c32ac9a3ac26130ab317791773fce8b4b177d80b))
+
 # [3.74.0](https://github.com/bgill55/daedalus/compare/v3.73.0...v3.74.0) (2026-09-04)
 
 
