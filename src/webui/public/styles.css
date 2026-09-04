@@ -842,29 +842,52 @@ h1 {
     transform: scale(0.3);
     opacity: 0.3;
   }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
 .chat-panel.drag-over {
   border-color: var(--accent-cyan) !important;
   box-shadow: 0 0 16px rgba(0, 240, 255, 0.3) inset;
 }
 
 .attach-btn {
-  background: var(--bg-primary);
+  background: var(--bg-primary) !important;
   border: 1px solid var(--border-color);
   border-radius: 6px;
   color: var(--text-muted);
-  font-size: 16px;
-  padding: 0 12px;
+  font-size: 14px;
+  padding: 0 14px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   transition: all 0.15s ease-in-out;
+  outline: none;
+  flex-shrink: 0;
+}
+
+.attach-btn svg {
+  stroke: var(--text-muted);
+  transition: stroke 0.15s ease-in-out, transform 0.15s ease-in-out;
 }
 
 .attach-btn:hover {
   color: var(--accent-cyan);
   border-color: var(--accent-cyan);
-  background: rgba(0, 240, 255, 0.08);
+  background: rgba(0, 240, 255, 0.08) !important;
+  box-shadow: 0 0 8px rgba(0, 240, 255, 0.2);
+}
+
+.attach-btn:hover svg {
+  stroke: var(--accent-cyan);
+  transform: rotate(-10deg) scale(1.1);
+}
+
+.attach-btn:active {
+  transform: scale(0.95);
 }
 
 .attachment-preview {
