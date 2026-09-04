@@ -46,7 +46,7 @@ function renderMarkdown(text) {
   return escaped.replace(/\n/g, '<br>');
 }
 
-function addChatMessage(role, text, roleBadge = null) {
+function addChatMessage(role, text, roleBadge = null, imageBase64 = null) {
   if (!chatMessages) return;
   const msgEl = document.createElement('div');
   msgEl.className = `chat-msg ${role}`;
@@ -87,10 +87,23 @@ function addChatMessage(role, text, roleBadge = null) {
   const body = document.createElement('div');
   body.className = 'msg-body';
   body.dataset.raw = text;
+
+  if (imageBase64) {
+    const img = document.createElement('img');
+    img.className = 'chat-msg-img';
+    img.src = imageBase64.startsWith('data:') ? imageBase64 : `data:image/png;base64,${imageBase64}`;
+    img.alt = 'Uploaded image';
+    body.appendChild(img);
+  }
+
   if (role === 'assistant') {
-    body.innerHTML = renderMarkdown(text);
+    const textContainer = document.createElement('div');
+    textContainer.innerHTML = renderMarkdown(text);
+    body.appendChild(textContainer);
   } else {
-    body.textContent = text;
+    const textSpan = document.createElement('div');
+    textSpan.textContent = text;
+    body.appendChild(textSpan);
   }
   
   msgEl.appendChild(header);
@@ -129,6 +142,119 @@ function updateThinkingSpinner(text) {
     chatMessages.appendChild(thinkingEl);
     chatMessages.scrollTop = chatMessages.scrollHeight;
   }
+}
+
+const fileInput = document.getElementById('file-input');
+const attachBtn = document.getElementById('attach-btn');
+const attachmentPreviewEl = document.getElementById('attachment-preview');
+const chatPanel = document.querySelector('.chat-panel');
+
+let currentAttachment = null;
+
+function setAttachment(attachment) {
+  currentAttachment = attachment;
+  if (!attachmentPreviewEl) return;
+  attachmentPreviewEl.innerHTML = '';
+  if (!attachment) {
+    attachmentPreviewEl.classList.add('hidden');
+    return;
+  }
+  attachmentPreviewEl.classList.remove('hidden');
+
+  const chip = document.createElement('div');
+  chip.className = 'attachment-chip';
+
+  if (attachment.isImage && attachment.dataUrl) {
+    const thumb = document.createElement('img');
+    thumb.className = 'attachment-thumb';
+    thumb.src = attachment.dataUrl;
+    chip.appendChild(thumb);
+  }
+
+  const name = document.createElement('span');
+  name.className = 'attachment-name';
+  name.textContent = attachment.name;
+  chip.appendChild(name);
+
+  const removeBtn = document.createElement('button');
+  removeBtn.className = 'attachment-remove';
+  removeBtn.textContent = '×';
+  removeBtn.title = 'Remove attachment';
+  removeBtn.addEventListener('click', () => setAttachment(null));
+  chip.appendChild(removeBtn);
+
+  attachmentPreviewEl.appendChild(chip);
+}
+
+function processFile(file) {
+  if (!file) return;
+  const isImage = file.type.startsWith('image/');
+  const reader = new FileReader();
+  if (isImage) {
+    reader.onload = (e) => {
+      const dataUrl = e.target.result;
+      const base64 = typeof dataUrl === 'string' ? dataUrl.split(',')[1] : '';
+      setAttachment({
+        name: file.name || 'image.png',
+        isImage: true,
+        dataUrl: typeof dataUrl === 'string' ? dataUrl : '',
+        base64,
+      });
+    };
+    reader.readAsDataURL(file);
+  } else {
+    reader.onload = (e) => {
+      const textContent = typeof e.target.result === 'string' ? e.target.result : '';
+      setAttachment({
+        name: file.name,
+        isImage: false,
+        textContent,
+      });
+    };
+    reader.readAsText(file);
+  }
+}
+
+if (attachBtn && fileInput) {
+  attachBtn.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', (e) => {
+    if (e.target.files?.[0]) {
+      processFile(e.target.files[0]);
+      fileInput.value = '';
+    }
+  });
+}
+
+document.addEventListener('paste', (e) => {
+  if (!e.clipboardData?.items) return;
+  for (const item of e.clipboardData.items) {
+    if (item.type.startsWith('image/')) {
+      const file = item.getAsFile();
+      if (file) {
+        processFile(file);
+        break;
+      }
+    }
+  }
+});
+
+if (chatPanel) {
+  chatPanel.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    chatPanel.classList.add('drag-over');
+  });
+  chatPanel.addEventListener('dragleave', (e) => {
+    if (!chatPanel.contains(e.relatedTarget)) {
+      chatPanel.classList.remove('drag-over');
+    }
+  });
+  chatPanel.addEventListener('drop', (e) => {
+    e.preventDefault();
+    chatPanel.classList.remove('drag-over');
+    if (e.dataTransfer?.files?.[0]) {
+      processFile(e.dataTransfer.files[0]);
+    }
+  });
 }
 
 const sentHistory = [];
@@ -175,14 +301,25 @@ if (chatForm && chatInput) {
   chatForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const text = chatInput.value.trim();
-    if (!text) return;
+    if (!text && !currentAttachment) return;
     
-    sentHistory.push(text);
+    let effectiveText = text;
+    if (currentAttachment && !currentAttachment.isImage && currentAttachment.textContent) {
+      effectiveText = effectiveText
+        ? `${effectiveText}\n\n[Attached file: ${currentAttachment.name}]\n\`\`\`\n${currentAttachment.textContent}\n\`\`\``
+        : `[Attached file: ${currentAttachment.name}]\n\`\`\`\n${currentAttachment.textContent}\n\`\`\``;
+    }
+
+    const imageBase64 = currentAttachment?.isImage ? currentAttachment.base64 : undefined;
+    const attachmentSnap = currentAttachment;
+    setAttachment(null);
+
+    sentHistory.push(text || (attachmentSnap ? `[Attached ${attachmentSnap.name}]` : ''));
     sentIndex = -1;
     chatInput.value = '';
     if (chatStatusBadge) chatStatusBadge.textContent = 'THINKING...';
     
-    addChatMessage('user', text);
+    addChatMessage('user', effectiveText || 'Attached image', null, imageBase64);
     activeAssistantBody = null;
     showThinkingSpinner();
     
@@ -190,7 +327,7 @@ if (chatForm && chatInput) {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text })
+        body: JSON.stringify({ message: effectiveText, imageBase64 })
       });
       
       if (!res.ok) {

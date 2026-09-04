@@ -31,11 +31,14 @@ export interface WebuiChatMessageEvent {
   tool?: string;
   content?: string;
   timestamp: number;
+  imageBase64?: string;
 }
 
 export interface WebuiChatRequest {
   message: string;
   role?: string;
+  imageBase64?: string;
+  fileName?: string;
 }
 
 export interface FileNode {

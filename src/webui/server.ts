@@ -116,7 +116,7 @@ function resolvePublicAsset(filename: string): string | null {
   return null;
 }
 
-export type ChatHandler = (message: string, broadcast: (evt: WebuiChatMessageEvent) => void) => Promise<void>;
+export type ChatHandler = (request: WebuiChatRequest, broadcast: (evt: WebuiChatMessageEvent) => void) => Promise<void>;
 
 let activeChatHandler: ChatHandler | null = null;
 
@@ -189,7 +189,7 @@ function parseJsonBody<T = any>(req: IncomingMessage): Promise<T> {
     let body = '';
     req.on('data', chunk => {
       body += chunk;
-      if (body.length > 1024 * 1024) { // 1MB limit
+      if (body.length > 10 * 1024 * 1024) {
         req.destroy();
         reject(new Error('Payload too large'));
       }
@@ -213,16 +213,17 @@ function handleChatRequest(req: IncomingMessage, res: ServerResponse): void {
   parseJsonBody<WebuiChatRequest>(req)
     .then(async data => {
       const message = data.message?.trim();
-      if (!message) {
+      if (!message && !data.imageBase64) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: 'Message content is required' }));
+        res.end(JSON.stringify({ error: 'Message or image content is required' }));
         return;
       }
 
       broadcastChatEvent({
         type: 'chat_token',
         role: 'user',
-        text: message,
+        text: message || 'Attached image',
+        imageBase64: data.imageBase64,
         timestamp: Date.now(),
       });
 
@@ -246,7 +247,7 @@ function handleChatRequest(req: IncomingMessage, res: ServerResponse): void {
       res.end(JSON.stringify({ status: 'running' }));
 
       try {
-        await activeChatHandler(message, broadcastChatEvent);
+        await activeChatHandler(data, broadcastChatEvent);
       } catch (err: any) {
         broadcastChatEvent({
           type: 'chat_error',

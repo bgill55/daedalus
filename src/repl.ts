@@ -258,17 +258,27 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
         removeFile: (file: string) => activeFiles.delete(file),
       });
 
-      registerChatHandler(async (webMsg, broadcast) => {
+      registerChatHandler(async (chatReq, broadcast) => {
         try {
-          await runOneTurn(webMsg, { isWeb: true, broadcast });
-          const lastMsg = messages.filter(m => m.role === 'assistant').pop();
-          const replyText = typeof lastMsg?.content === 'string' ? lastMsg.content : (Array.isArray(lastMsg?.content) ? lastMsg.content.map(c => 'text' in c ? c.text : '').join(' ') : '');
-          broadcast({
-            type: 'chat_token',
-            role: 'assistant',
-            text: replyText || 'Task completed.',
-            timestamp: Date.now(),
-          });
+          const msgCountBefore = messages.length;
+          const webMsg = typeof chatReq === 'string' ? chatReq : (chatReq.message || '');
+          const imageBase64 = typeof chatReq === 'object' ? chatReq.imageBase64 : undefined;
+
+          await runOneTurn(webMsg, { isWeb: true, broadcast, imageBase64 });
+
+          const newAssistantMsgs = messages.slice(msgCountBefore).filter(m => m.role === 'assistant');
+          if (newAssistantMsgs.length > 0) {
+            const lastMsg = newAssistantMsgs[newAssistantMsgs.length - 1];
+            const replyText = typeof lastMsg?.content === 'string' ? lastMsg.content : (Array.isArray(lastMsg?.content) ? lastMsg.content.map(c => 'text' in c ? c.text : '').join(' ') : '');
+            if (replyText) {
+              broadcast({
+                type: 'chat_token',
+                role: 'assistant',
+                text: replyText,
+                timestamp: Date.now(),
+              });
+            }
+          }
           broadcast({
             type: 'chat_done',
             timestamp: Date.now(),
@@ -292,12 +302,19 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
         }
       }
 
-      const runOneTurn = async (rawInput: string, webOpts?: { isWeb?: boolean; broadcast?: (evt: any) => void }): Promise<void> => {
-        const trimmedInput = rawInput.trim();
-        if (!trimmedInput) return;
+      function cleanCliDecoration(raw: string): string {
+        let s = raw.replace(/\x1B\[[0-9;]*[mGKHFABCDEsu]|\x1B\][^\x07]*\x07/g, '');
+        s = s.replace(/─+\s*You\s*─+[\s\S]*?─{5,}/g, '');
+        s = s.replace(/^[ \t]*[A-Za-z0-9_-]+\s*─{5,}.*$/gm, '');
+        s = s.replace(/^[ \t]*(?:intelligence|freellmapi|openai|claude|gemini|local|cerebras)[^─\n]*─*.*$/gim, '');
+        s = s.replace(/^[ \t]*─+\s*\d{1,2}:\d{2}.*$/gm, '');
+        return s.trim();
+      }
 
-        // In one-shot mode, treat a proposed plan as auto-approved so the single
-        // turn cannot stall waiting for stdin (mirrors safety.autoApprovePlans).
+      const runOneTurn = async (rawInput: string, webOpts?: { isWeb?: boolean; broadcast?: (evt: any) => void; imageBase64?: string }): Promise<void> => {
+        const trimmedInput = rawInput.trim();
+        if (!trimmedInput && !webOpts?.imageBase64) return;
+
         const oneShot = oneShotGoal !== undefined;
 
         resetTurnAborted();
@@ -340,7 +357,6 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
 
         toolContext.askLine = isWebTurn ? async () => 'y' : (headlessAutoApprove ? () => Promise.resolve('y') : askLine);
 
-        // Construct CommandContext
         const cmdContext: CommandContext = {
           config,
           configDir,
@@ -363,10 +379,8 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
           getIndexDbPath,
         };
 
-        // Try executing as command first
         let capturedCommandOutput = '';
         const originalLog = console.log;
-        const stripAnsi = (s: string) => s.replace(/\x1B\[[0-9;]*[mGKHFABCDEsu]|\x1B\][^\x07]*\x07/g, '');
         if (isWebTurn) {
           console.log = (...args: any[]) => {
             const line = args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' ');
@@ -375,6 +389,7 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
           };
         }
 
+        const msgCountBefore = messages.length;
         let wasCommand = false;
         try {
           wasCommand = Boolean(await executeCommand(trimmedInput, cmdContext));
@@ -385,19 +400,22 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
         }
 
         if (wasCommand) {
-          if (isWebTurn && webOpts?.broadcast && capturedCommandOutput.trim()) {
-            webOpts.broadcast({
-              type: 'chat_token',
-              role: 'assistant',
-              text: stripAnsi(capturedCommandOutput.trim()),
-              timestamp: Date.now(),
-            });
+          const hasNewAssistantMsg = messages.slice(msgCountBefore).some(m => m.role === 'assistant');
+          if (isWebTurn && webOpts?.broadcast && capturedCommandOutput.trim() && !hasNewAssistantMsg) {
+            const cleaned = cleanCliDecoration(capturedCommandOutput.trim());
+            if (cleaned) {
+              webOpts.broadcast({
+                type: 'chat_token',
+                role: 'assistant',
+                text: cleaned,
+                timestamp: Date.now(),
+              });
+            }
           }
           return;
         }
 
-        // User Message Processing (regular assistant chat)
-        let activePrompt = trimmedInput;
+        let activePrompt = trimmedInput || 'Please analyze this image.';
         const agentTag = parseAgentTag(trimmedInput);
         if (agentTag) {
           toolContext.agentRole = agentTag.role;
@@ -415,12 +433,10 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
           const todoCtx = buildTodoContext(sessionId);
           const userContent = `${indexCtx}${todoCtx}${filesContext}User Prompt: ${activePrompt}`;
           printUserTurn(activePrompt);
-          // BETA: rebuild system prompt with the current request so matched
-          // skill playbooks are injected for this turn (load-only).
           if (messages.length > 0 && messages[0].role === 'system') {
             messages[0] = { role: 'system', content: await getSystemPromptWithMemory(activePrompt) };
           }
-          await callModelWithTools(userContent);
+          await callModelWithTools(userContent, webOpts?.imageBase64);
 
           // autoApprovePlans: if the assistant just proposed a plan and asked for
           // approval, queue a synthetic "Yes" so the next loop iteration proceeds
