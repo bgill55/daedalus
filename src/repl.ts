@@ -322,7 +322,7 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
 
           const startTime = Date.now();
           await runOneTurn(webMsg, { isWeb: true, broadcast, imageBase64 });
-          const activeModel = config.modelOverride || router.lastRoutedModel || config.defaultModel || 'auto';
+          const activeModel = config.modelOverride || router.lastRoutedModel || 'auto';
 
           broadcast({
             type: 'chat_done',
