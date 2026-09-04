@@ -1,3 +1,15 @@
+# [3.74.0](https://github.com/bgill55/daedalus/compare/v3.73.0...v3.74.0) (2026-09-04)
+
+
+### Bug Fixes
+
+* **repl:** correct activeModel fallback reference for web turn telemetry ([2d2b0d0](https://github.com/bgill55/daedalus/commit/2d2b0d064c77aabcb97ee8f75b5cc8579548bcd5))
+
+
+### Features
+
+* **webui:** align webui styling and tool execution tree with cli aesthetics ([0bf767b](https://github.com/bgill55/daedalus/commit/0bf767b45c6abd8ea7dbb5b73546cf847e84600c))
+
 # [3.73.0](https://github.com/bgill55/daedalus/compare/v3.72.0...v3.73.0) (2026-09-04)
 
 
