@@ -23,7 +23,7 @@ import { parseAgentTag } from './agents/roles.js';
 import { SigmaMemEngine } from './session/sigma-mem.js';
 import { synthesizeSkillFromTurn } from './skills/auto-synthesis.js';
 import { brand, dim, info, warn, err } from './ui/theme.js';
-import { registerChatHandler, registerHistoryProvider, registerContextFilesProvider } from './webui/server.js';
+import { registerChatHandler, registerHistoryProvider, registerContextFilesProvider, registerSessionProvider, registerModelProvider } from './webui/server.js';
 
 /**
  * Pure reduction for piped (non-TTY) multi-line input. Appends each line to the
@@ -256,6 +256,63 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
       registerContextFilesProvider({
         getFiles: () => Array.from(activeFiles.keys()),
         removeFile: (file: string) => activeFiles.delete(file),
+      });
+
+      registerSessionProvider({
+        listSessions: () => {
+          return sessionManager.getSessionsForProject().map(s => ({
+            id: s.id,
+            title: s.title,
+            created_at: s.created_at,
+            updated_at: s.updated_at,
+          }));
+        },
+        resumeSession: async (id: string) => {
+          const loaded = sessionManager.startSession(id);
+          sessionId = loaded.sessionId;
+          toolContext.sessionId = loaded.sessionId;
+          messages.length = 0;
+          const sysContent = await getSystemPromptWithMemory();
+          messages.push({ role: 'system', content: sysContent });
+          loaded.turns.forEach(t => messages.push(t));
+          activeFiles.clear();
+          loaded.activeFiles.forEach((alias, file) => activeFiles.set(file, alias));
+          return true;
+        },
+        newSession: async () => {
+          const fresh = sessionManager.startSession();
+          sessionId = fresh.sessionId;
+          toolContext.sessionId = fresh.sessionId;
+          messages.length = 0;
+          const sysContent = await getSystemPromptWithMemory();
+          messages.push({ role: 'system', content: sysContent });
+          activeFiles.clear();
+          return sessionId;
+        },
+        deleteSession: async (id: string) => {
+          sessionManager.deleteSession(id);
+          return true;
+        },
+      });
+
+      registerModelProvider({
+        getActiveModel: () => config.modelOverride || router.lastRoutedModel || 'auto',
+        getAvailableModels: () => {
+          return [
+            { id: 'auto', name: 'Auto Router (Default)', provider: 'Dynamic' },
+            { id: 'speed', name: 'Speed Tier (Fast/Low Latency)', provider: 'Router' },
+            { id: 'intelligence', name: 'Intelligence Tier (Reasoning)', provider: 'Router' },
+            { id: 'economy', name: 'Economy Tier (Cost Efficient)', provider: 'Router' },
+          ];
+        },
+        switchModel: async (model: string) => {
+          if (model === 'auto') {
+            delete config.modelOverride;
+          } else {
+            config.modelOverride = model;
+          }
+          return true;
+        },
       });
 
       registerChatHandler(async (chatReq, broadcast) => {

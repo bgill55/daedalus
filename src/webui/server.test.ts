@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { IncomingMessage, ServerResponse } from 'node:http';
 import fs from 'node:fs';
-import { handleRequest, server, getTelemetryRate, setTelemetryRate, registerHistoryProvider, registerContextFilesProvider } from './server.js';
+import { handleRequest, server, getTelemetryRate, setTelemetryRate, registerHistoryProvider, registerContextFilesProvider, registerSessionProvider, registerModelProvider } from './server.js';
 import type { TelemetryData } from '../types.js';
 
 vi.mock('node:fs');
@@ -284,6 +284,165 @@ describe('WebUI Server', () => {
 
       expect(removeMock).toHaveBeenCalledWith('src/index.ts');
       expect(writeHeadSpy).toHaveBeenCalledWith(200, { 'Content-Type': 'application/json' });
+    });
+  });
+
+  describe('/api/sessions endpoints', () => {
+    it('GET /api/sessions should return list of sessions', () => {
+      registerSessionProvider({
+        listSessions: () => [
+          { id: 'sess-1', title: 'Test Session', created_at: 1000, updated_at: 2000, turns_count: 3 },
+        ],
+        resumeSession: vi.fn(),
+        newSession: vi.fn(),
+        deleteSession: vi.fn(),
+      });
+      mockReq.url = '/api/sessions';
+      mockReq.method = 'GET';
+
+      handleRequest(mockReq as IncomingMessage, mockRes as ServerResponse);
+
+      expect(writeHeadSpy).toHaveBeenCalledWith(200, { 'Content-Type': 'application/json' });
+      const body = JSON.parse(endSpy.mock.calls[0][0]);
+      expect(body.sessions).toHaveLength(1);
+      expect(body.sessions[0].id).toBe('sess-1');
+    });
+
+    it('POST /api/sessions/resume should resume a session', async () => {
+      const resumeMock = vi.fn().mockResolvedValue(true);
+      registerSessionProvider({
+        listSessions: () => [],
+        resumeSession: resumeMock,
+        newSession: vi.fn(),
+        deleteSession: vi.fn(),
+      });
+      mockReq.url = '/api/sessions/resume';
+      mockReq.method = 'POST';
+
+      let dataCb: any;
+      let endCb: any;
+      mockReq.on = vi.fn((event, cb) => {
+        if (event === 'data') dataCb = cb;
+        if (event === 'end') endCb = cb;
+        return mockReq as any;
+      });
+
+      handleRequest(mockReq as IncomingMessage, mockRes as ServerResponse);
+
+      dataCb(JSON.stringify({ sessionId: 'sess-1' }));
+      await endCb();
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      expect(resumeMock).toHaveBeenCalledWith('sess-1');
+      expect(writeHeadSpy).toHaveBeenCalledWith(200, { 'Content-Type': 'application/json' });
+      const body = JSON.parse(endSpy.mock.calls[0][0]);
+      expect(body.success).toBe(true);
+      expect(body.sessionId).toBe('sess-1');
+    });
+
+    it('POST /api/sessions/new should create a new session', async () => {
+      const newMock = vi.fn().mockResolvedValue('new-sess-123');
+      registerSessionProvider({
+        listSessions: () => [],
+        resumeSession: vi.fn(),
+        newSession: newMock,
+        deleteSession: vi.fn(),
+      });
+      mockReq.url = '/api/sessions/new';
+      mockReq.method = 'POST';
+
+      handleRequest(mockReq as IncomingMessage, mockRes as ServerResponse);
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      expect(newMock).toHaveBeenCalled();
+      expect(writeHeadSpy).toHaveBeenCalledWith(200, { 'Content-Type': 'application/json' });
+      const body = JSON.parse(endSpy.mock.calls[0][0]);
+      expect(body.success).toBe(true);
+      expect(body.sessionId).toBe('new-sess-123');
+    });
+
+    it('DELETE /api/sessions should delete a session', async () => {
+      const deleteMock = vi.fn().mockResolvedValue(true);
+      registerSessionProvider({
+        listSessions: () => [],
+        resumeSession: vi.fn(),
+        newSession: vi.fn(),
+        deleteSession: deleteMock,
+      });
+      mockReq.url = '/api/sessions';
+      mockReq.method = 'DELETE';
+
+      let dataCb: any;
+      let endCb: any;
+      mockReq.on = vi.fn((event, cb) => {
+        if (event === 'data') dataCb = cb;
+        if (event === 'end') endCb = cb;
+        return mockReq as any;
+      });
+
+      handleRequest(mockReq as IncomingMessage, mockRes as ServerResponse);
+
+      dataCb(JSON.stringify({ sessionId: 'sess-1' }));
+      await endCb();
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      expect(deleteMock).toHaveBeenCalledWith('sess-1');
+      expect(writeHeadSpy).toHaveBeenCalledWith(200, { 'Content-Type': 'application/json' });
+      const body = JSON.parse(endSpy.mock.calls[0][0]);
+      expect(body.success).toBe(true);
+    });
+  });
+
+  describe('/api/models endpoints', () => {
+    it('GET /api/models should return active model and available models', () => {
+      registerModelProvider({
+        getActiveModel: () => 'claude-3-5-sonnet',
+        getAvailableModels: () => [
+          { id: 'auto', name: 'Auto Router' },
+          { id: 'claude-3-5-sonnet', name: 'Claude 3.5 Sonnet' },
+        ],
+        switchModel: vi.fn(),
+      });
+      mockReq.url = '/api/models';
+      mockReq.method = 'GET';
+
+      handleRequest(mockReq as IncomingMessage, mockRes as ServerResponse);
+
+      expect(writeHeadSpy).toHaveBeenCalledWith(200, { 'Content-Type': 'application/json' });
+      const body = JSON.parse(endSpy.mock.calls[0][0]);
+      expect(body.activeModel).toBe('claude-3-5-sonnet');
+      expect(body.availableModels).toHaveLength(2);
+    });
+
+    it('POST /api/models/switch should switch active model', async () => {
+      const switchMock = vi.fn().mockResolvedValue(true);
+      registerModelProvider({
+        getActiveModel: () => 'auto',
+        getAvailableModels: () => [],
+        switchModel: switchMock,
+      });
+      mockReq.url = '/api/models/switch';
+      mockReq.method = 'POST';
+
+      let dataCb: any;
+      let endCb: any;
+      mockReq.on = vi.fn((event, cb) => {
+        if (event === 'data') dataCb = cb;
+        if (event === 'end') endCb = cb;
+        return mockReq as any;
+      });
+
+      handleRequest(mockReq as IncomingMessage, mockRes as ServerResponse);
+
+      dataCb(JSON.stringify({ model: 'gpt-4o' }));
+      await endCb();
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      expect(switchMock).toHaveBeenCalledWith('gpt-4o');
+      expect(writeHeadSpy).toHaveBeenCalledWith(200, { 'Content-Type': 'application/json' });
+      const body = JSON.parse(endSpy.mock.calls[0][0]);
+      expect(body.success).toBe(true);
+      expect(body.activeModel).toBe('gpt-4o');
     });
   });
 

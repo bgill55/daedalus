@@ -30,20 +30,80 @@ const chatForm = document.getElementById('chat-form');
 const chatInput = document.getElementById('chat-input');
 const chatStatusBadge = document.getElementById('chat-status-badge');
 
-function renderMarkdown(text) {
-  if (typeof window.marked !== 'undefined' && typeof window.marked.parse === 'function') {
-    try {
-      return window.marked.parse(text, { breaks: true, gfm: true });
-    } catch {
-      // fallback
-    }
-  }
-  // Lightweight fallback
-  const escaped = text
+function highlightSyntax(code) {
+  const escaped = code
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
-  return escaped.replace(/\n/g, '<br>');
+  
+  return escaped
+    .replace(/\b(const|let|var|function|return|if|else|for|while|import|export|from|async|await|class|type|interface|def|self|pub|fn|struct|match|case|switch|try|catch|throw|finally|yield)\b/g, '<span class="hl-keyword">$1</span>')
+    .replace(/\b(true|false|null|undefined|None|True|False|nil)\b/g, '<span class="hl-boolean">$1</span>')
+    .replace(/\b(\d+(\.\d+)?)\b/g, '<span class="hl-number">$1</span>')
+    .replace(/(["'`])(.*?)\1/g, '<span class="hl-string">$1$2$1</span>')
+    .replace(/(\/\/.*|\/\*[\s\S]*?\*\/|#.*)/g, '<span class="hl-comment">$1</span>');
+}
+
+function renderMarkdown(text) {
+  let html = '';
+  if (typeof window.marked !== 'undefined' && typeof window.marked.parse === 'function') {
+    try {
+      html = window.marked.parse(text, { breaks: true, gfm: true });
+    } catch {
+      html = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+    }
+  } else {
+    html = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+  }
+
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = html;
+
+  tempDiv.querySelectorAll('pre').forEach(pre => {
+    const code = pre.querySelector('code');
+    const rawCode = code ? (code.textContent || '') : (pre.textContent || '');
+    const langMatch = code?.className?.match(/language-([a-zA-Z0-9_-]+)/);
+    const lang = langMatch ? langMatch[1] : 'CODE';
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'code-block-wrapper';
+
+    const header = document.createElement('div');
+    header.className = 'code-block-header';
+
+    const langSpan = document.createElement('span');
+    langSpan.className = 'code-lang';
+    langSpan.textContent = lang;
+
+    const copyBtn = document.createElement('button');
+    copyBtn.type = 'button';
+    copyBtn.className = 'code-copy-btn';
+    copyBtn.textContent = 'COPY CODE';
+    copyBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      navigator.clipboard.writeText(rawCode).then(() => {
+        copyBtn.textContent = 'COPIED!';
+        copyBtn.classList.add('copied');
+        setTimeout(() => {
+          copyBtn.textContent = 'COPY CODE';
+          copyBtn.classList.remove('copied');
+        }, 1800);
+      });
+    });
+
+    header.appendChild(langSpan);
+    header.appendChild(copyBtn);
+
+    if (code) {
+      code.innerHTML = highlightSyntax(rawCode);
+    }
+
+    pre.parentNode.insertBefore(wrapper, pre);
+    wrapper.appendChild(header);
+    wrapper.appendChild(pre);
+  });
+
+  return tempDiv.innerHTML;
 }
 
 function addChatMessage(role, text, roleBadge = null, imageBase64 = null, timestamp = null) {
@@ -121,6 +181,87 @@ function addChatMessage(role, text, roleBadge = null, imageBase64 = null, timest
 
 let activeAssistantBody = null;
 let thinkingEl = null;
+let currentRunningToolEl = null;
+
+function renderToolStart(toolName) {
+  if (!chatMessages) return null;
+  const accordion = document.createElement('div');
+  accordion.className = 'tool-accordion running';
+  
+  const header = document.createElement('div');
+  header.className = 'tool-accordion-header';
+  
+  const left = document.createElement('div');
+  left.className = 'tool-accordion-left';
+  
+  const icon = document.createElement('span');
+  icon.className = 'tool-accordion-icon';
+  icon.textContent = '⚡';
+  
+  const name = document.createElement('span');
+  name.className = 'tool-accordion-name';
+  name.textContent = toolName;
+  
+  left.appendChild(icon);
+  left.appendChild(name);
+  
+  const right = document.createElement('div');
+  right.style.display = 'flex';
+  right.style.alignItems = 'center';
+  
+  const status = document.createElement('span');
+  status.className = 'tool-accordion-status running';
+  status.textContent = 'RUNNING';
+  
+  const chevron = document.createElement('span');
+  chevron.className = 'tool-accordion-chevron';
+  chevron.textContent = '▶';
+  
+  right.appendChild(status);
+  right.appendChild(chevron);
+  
+  header.appendChild(left);
+  header.appendChild(right);
+  
+  const body = document.createElement('div');
+  body.className = 'tool-accordion-body hidden';
+  body.textContent = `Executing tool: ${toolName}...`;
+  
+  header.addEventListener('click', () => {
+    accordion.classList.toggle('open');
+    body.classList.toggle('hidden');
+  });
+  
+  accordion.appendChild(header);
+  accordion.appendChild(body);
+  chatMessages.appendChild(accordion);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+  currentRunningToolEl = accordion;
+  return accordion;
+}
+
+function renderToolResult(toolName, resultSummary) {
+  let accordion = currentRunningToolEl;
+  if (!accordion) {
+    accordion = renderToolStart(toolName);
+  }
+  if (accordion) {
+    accordion.classList.remove('running');
+    accordion.classList.add('completed');
+    
+    const status = accordion.querySelector('.tool-accordion-status');
+    if (status) {
+      status.className = 'tool-accordion-status completed';
+      status.textContent = 'COMPLETED';
+    }
+    
+    const body = accordion.querySelector('.tool-accordion-body');
+    if (body) {
+      body.textContent = resultSummary || `Tool ${toolName} execution finished.`;
+    }
+  }
+  currentRunningToolEl = null;
+}
 
 function showThinkingSpinner() {
   removeThinkingSpinner();
@@ -266,16 +407,30 @@ if (chatPanel) {
 const sentHistory = [];
 let sentIndex = -1;
 
+function autoResizeInput() {
+  if (!chatInput) return;
+  chatInput.style.height = 'auto';
+  chatInput.style.height = Math.min(chatInput.scrollHeight, 180) + 'px';
+}
+
 if (chatForm && chatInput) {
+  chatInput.addEventListener('input', autoResizeInput);
+
   chatInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+    if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       chatForm.dispatchEvent(new Event('submit', { cancelable: true }));
       return;
     }
 
+    if (e.key === 'Enter' && e.shiftKey) {
+      requestAnimationFrame(autoResizeInput);
+      return;
+    }
+
     if (e.key === 'Escape') {
       chatInput.value = '';
+      chatInput.style.height = 'auto';
       sentIndex = -1;
       return;
     }
@@ -288,6 +443,7 @@ if (chatForm && chatInput) {
           sentIndex--;
         }
         chatInput.value = sentHistory[sentIndex] || '';
+        autoResizeInput();
         e.preventDefault();
       }
     } else if (e.key === 'ArrowDown') {
@@ -299,6 +455,7 @@ if (chatForm && chatInput) {
           sentIndex = -1;
           chatInput.value = '';
         }
+        autoResizeInput();
         e.preventDefault();
       }
     }
@@ -323,6 +480,7 @@ if (chatForm && chatInput) {
     sentHistory.push(text || (attachmentSnap ? `[Attached ${attachmentSnap.name}]` : ''));
     sentIndex = -1;
     chatInput.value = '';
+    chatInput.style.height = 'auto';
     if (chatStatusBadge) chatStatusBadge.textContent = 'THINKING...';
     
     addChatMessage('user', effectiveText || 'Attached image', null, imageBase64);
@@ -361,6 +519,7 @@ document.querySelectorAll('.sidebar-tab').forEach(tab => {
     if (target) target.classList.remove('hidden');
     if (tabName === 'files') loadFileTree();
     if (tabName === 'context') loadContextFiles();
+    if (tabName === 'sessions') loadSessions();
   });
 });
 
@@ -606,12 +765,14 @@ function connectSSE() {
         addLog(`⚡ Agent tool started: <strong>${data.tool}</strong>`);
         if (chatStatusBadge) chatStatusBadge.textContent = `TOOL: ${data.tool}`;
         updateThinkingSpinner(`Running: ${data.tool}...`);
+        renderToolStart(data.tool);
         return;
       }
 
       if (data.type === 'chat_tool_result') {
         addLog(`✔ Agent tool finished: <strong>${data.tool}</strong>`);
         updateThinkingSpinner('Daedalus is processing results...');
+        renderToolResult(data.tool, data.content || data.result);
         return;
       }
 
@@ -663,7 +824,251 @@ function connectSSE() {
   };
 }
 
+// Chronicles (Saved Sessions) Management
+const sessionsListEl = document.getElementById('sessions-list');
+const sessionNewBtn = document.getElementById('session-new-btn');
+const sessionRefreshBtn = document.getElementById('session-refresh-btn');
+
+async function loadSessions() {
+  if (!sessionsListEl) return;
+  sessionsListEl.innerHTML = '<div class="file-tree-loading">Accessing session archives...</div>';
+  try {
+    const res = await fetch('/api/sessions');
+    if (!res.ok) throw new Error('Failed to load sessions');
+    const data = await res.json();
+    sessionsListEl.innerHTML = '';
+    if (!data.sessions || data.sessions.length === 0) {
+      sessionsListEl.innerHTML = '<div class="file-tree-loading">No saved sessions found.</div>';
+      return;
+    }
+    
+    data.sessions.forEach(sess => {
+      const card = document.createElement('div');
+      card.className = 'session-card';
+      
+      const header = document.createElement('div');
+      header.className = 'session-card-header';
+      
+      const title = document.createElement('span');
+      title.className = 'session-card-title';
+      title.textContent = sess.title || sess.id.slice(0, 16);
+      title.title = sess.title || sess.id;
+      
+      const date = document.createElement('span');
+      date.className = 'session-card-date';
+      date.textContent = new Date(sess.updated_at || sess.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      
+      header.appendChild(title);
+      header.appendChild(date);
+      
+      const meta = document.createElement('div');
+      meta.className = 'session-card-meta';
+      
+      const turns = document.createElement('span');
+      turns.className = 'session-card-date';
+      turns.textContent = `${sess.turns_count || 0} turns`;
+      
+      const actions = document.createElement('div');
+      actions.className = 'session-actions';
+      
+      const resumeBtn = document.createElement('button');
+      resumeBtn.className = 'session-btn';
+      resumeBtn.textContent = 'RESUME';
+      resumeBtn.title = 'Resume this session';
+      resumeBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        resumeBtn.textContent = '...';
+        try {
+          const r = await fetch('/api/sessions/resume', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionId: sess.id }),
+          });
+          if (r.ok) {
+            historyLoaded = false;
+            await loadChatHistory();
+            addLog(`Resumed session: <strong>${sess.title || sess.id}</strong>`);
+            loadSessions();
+          }
+        } catch {
+          resumeBtn.textContent = 'RESUME';
+        }
+      });
+      
+      const delBtn = document.createElement('button');
+      delBtn.className = 'session-btn delete';
+      delBtn.textContent = 'DEL';
+      delBtn.title = 'Delete session';
+      delBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        if (!confirm(`Delete session "${sess.title || sess.id}"?`)) return;
+        try {
+          await fetch('/api/sessions', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionId: sess.id }),
+          });
+          loadSessions();
+        } catch {}
+      });
+      
+      actions.appendChild(resumeBtn);
+      actions.appendChild(delBtn);
+      
+      meta.appendChild(turns);
+      meta.appendChild(actions);
+      
+      card.appendChild(header);
+      card.appendChild(meta);
+      sessionsListEl.appendChild(card);
+    });
+  } catch {
+    sessionsListEl.innerHTML = '<div class="file-tree-loading">Failed to load session archives.</div>';
+  }
+}
+
+if (sessionNewBtn) {
+  sessionNewBtn.addEventListener('click', async () => {
+    try {
+      const res = await fetch('/api/sessions/new', { method: 'POST' });
+      if (res.ok) {
+        historyLoaded = false;
+        chatMessages.innerHTML = '';
+        addChatMessage('assistant', 'New session initialized. Sanctum is ready for instructions.', 'ARCHITECT');
+        loadSessions();
+        loadContextFiles();
+      }
+    } catch {}
+  });
+}
+
+if (sessionRefreshBtn) {
+  sessionRefreshBtn.addEventListener('click', () => loadSessions());
+}
+
+// New Chat / New Rite Button Handler
+const newChatBtn = document.getElementById('new-chat-btn');
+if (newChatBtn) {
+  newChatBtn.addEventListener('click', async () => {
+    chatMessages.innerHTML = '';
+    activeAssistantBody = null;
+    addChatMessage('assistant', 'Sanctum console refreshed. Ready for consultation.', 'ARCHITECT');
+    if (chatStatusBadge) chatStatusBadge.textContent = 'SANCTUM READY';
+    try {
+      await fetch('/api/sessions/new', { method: 'POST' });
+      loadSessions();
+      loadContextFiles();
+    } catch {}
+  });
+}
+
+// Model Switcher Modal & Active Model Badge
+const activeModelBadge = document.getElementById('active-model-badge');
+const modelLabel = document.getElementById('model-label');
+const modelModal = document.getElementById('model-modal');
+const modelModalClose = document.getElementById('model-modal-close');
+const modelOptionsList = document.getElementById('model-options-list');
+
+const DEFAULT_MODELS = [
+  { id: 'auto', name: 'Auto / Smart Router', desc: 'Dynamically routes based on task complexity and health' },
+  { id: 'claude-3-5-sonnet', name: 'Claude 3.5 Sonnet', desc: 'Anthropic — Superior reasoning & code generation' },
+  { id: 'gpt-4o', name: 'GPT-4o', desc: 'OpenAI — High-speed multimodal intelligence' },
+  { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', desc: 'Google — Vast context window & deep analysis' },
+  { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', desc: 'Google — Ultra-low latency responses' },
+  { id: 'deepseek-chat', name: 'DeepSeek V3', desc: 'DeepSeek — High-efficiency coding & logic' },
+  { id: 'ollama/llama3.1', name: 'Llama 3.1 / Local', desc: 'Local-first offline execution via Ollama' },
+];
+
+async function loadModels() {
+  try {
+    const res = await fetch('/api/models');
+    if (!res.ok) return;
+    const data = await res.json();
+    const currentModel = data.activeModel || 'auto';
+    if (modelLabel) {
+      modelLabel.textContent = `MODEL: ${currentModel.toUpperCase()}`;
+    }
+    
+    if (modelOptionsList) {
+      const models = (data.availableModels && data.availableModels.length > 0)
+        ? data.availableModels
+        : DEFAULT_MODELS;
+      
+      modelOptionsList.innerHTML = '';
+      models.forEach(m => {
+        const card = document.createElement('div');
+        card.className = `model-option-card ${m.id === currentModel ? 'active' : ''}`;
+        
+        const header = document.createElement('div');
+        header.className = 'model-option-header';
+        
+        const name = document.createElement('span');
+        name.className = 'model-option-name';
+        name.textContent = m.name || m.id;
+        
+        const badge = document.createElement('span');
+        badge.className = 'model-option-badge';
+        badge.textContent = m.provider ? m.provider.toUpperCase() : (m.id === currentModel ? 'ACTIVE' : 'SELECT');
+        
+        header.appendChild(name);
+        header.appendChild(badge);
+        
+        const desc = document.createElement('div');
+        desc.className = 'model-option-desc';
+        desc.textContent = m.desc || `Switch active engine to ${m.id}`;
+        
+        card.appendChild(header);
+        card.appendChild(desc);
+        
+        card.addEventListener('click', async () => {
+          try {
+            await fetch('/api/models/switch', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ model: m.id })
+            });
+            if (modelLabel) modelLabel.textContent = `MODEL: ${m.id.toUpperCase()}`;
+            addLog(`Switched active model to <strong>${m.name || m.id}</strong>`);
+            closeModelModal();
+            loadModels();
+          } catch {}
+        });
+        
+        modelOptionsList.appendChild(card);
+      });
+    }
+  } catch {}
+}
+
+function openModelModal() {
+  if (modelModal) {
+    modelModal.classList.remove('hidden');
+    loadModels();
+  }
+}
+
+function closeModelModal() {
+  if (modelModal) {
+    modelModal.classList.add('hidden');
+  }
+}
+
+if (activeModelBadge) {
+  activeModelBadge.addEventListener('click', openModelModal);
+}
+
+if (modelModalClose) {
+  modelModalClose.addEventListener('click', closeModelModal);
+}
+
+if (modelModal) {
+  modelModal.addEventListener('click', (e) => {
+    if (e.target === modelModal) closeModelModal();
+  });
+}
+
 connectSSE();
+loadModels();
 
 setInterval(() => {
   if (lastUpdateEl) {

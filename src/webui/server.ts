@@ -95,8 +95,31 @@ export type ContextFilesProvider = {
   removeFile: (file: string) => boolean;
 };
 
+export interface SessionItem {
+  id: string;
+  title: string;
+  created_at: number;
+  updated_at: number;
+  turns_count?: number;
+}
+
+export interface SessionProvider {
+  listSessions: () => SessionItem[];
+  resumeSession: (id: string) => Promise<boolean>;
+  newSession: () => Promise<string>;
+  deleteSession: (id: string) => Promise<boolean>;
+}
+
+export interface ModelProvider {
+  getActiveModel: () => string;
+  getAvailableModels: () => Array<{ id: string; name: string; provider?: string }>;
+  switchModel: (model: string) => Promise<boolean>;
+}
+
 let activeHistoryProvider: HistoryProvider | null = null;
 let activeContextFilesProvider: ContextFilesProvider | null = null;
+let activeSessionProvider: SessionProvider | null = null;
+let activeModelProvider: ModelProvider | null = null;
 
 export function registerHistoryProvider(provider: HistoryProvider | null): void {
   activeHistoryProvider = provider;
@@ -104,6 +127,14 @@ export function registerHistoryProvider(provider: HistoryProvider | null): void 
 
 export function registerContextFilesProvider(provider: ContextFilesProvider | null): void {
   activeContextFilesProvider = provider;
+}
+
+export function registerSessionProvider(provider: SessionProvider | null): void {
+  activeSessionProvider = provider;
+}
+
+export function registerModelProvider(provider: ModelProvider | null): void {
+  activeModelProvider = provider;
 }
 
 function resolvePublicAsset(filename: string): string | null {
@@ -356,6 +387,95 @@ export function handleRequest(req: IncomingMessage, res: ServerResponse): void {
           const removed = activeContextFilesProvider && data.file ? activeContextFilesProvider.removeFile(data.file) : false;
           res.writeHead(200, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ removed }));
+        })
+        .catch(err => {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: err.message || 'Invalid JSON' }));
+        });
+      return;
+    }
+
+    if (req.method === 'GET' && req.url === '/api/sessions') {
+      const sessions = activeSessionProvider ? activeSessionProvider.listSessions() : [];
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ sessions }));
+      return;
+    }
+
+    if (req.method === 'POST' && req.url === '/api/sessions/resume') {
+      parseJsonBody<{ sessionId: string }>(req)
+        .then(async data => {
+          if (!activeSessionProvider || !data.sessionId) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Missing sessionId or provider' }));
+            return;
+          }
+          const success = await activeSessionProvider.resumeSession(data.sessionId);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success, sessionId: data.sessionId }));
+        })
+        .catch(err => {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: err.message || 'Invalid JSON' }));
+        });
+      return;
+    }
+
+    if (req.method === 'POST' && req.url === '/api/sessions/new') {
+      (async () => {
+        if (!activeSessionProvider) {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: 'Session provider not available' }));
+          return;
+        }
+        const sessionId = await activeSessionProvider.newSession();
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, sessionId }));
+      })().catch(err => {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err.message || 'Failed to create session' }));
+      });
+      return;
+    }
+
+    if (req.method === 'DELETE' && req.url === '/api/sessions') {
+      parseJsonBody<{ sessionId: string }>(req)
+        .then(async data => {
+          if (!activeSessionProvider || !data.sessionId) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Missing sessionId or provider' }));
+            return;
+          }
+          const success = await activeSessionProvider.deleteSession(data.sessionId);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success, sessionId: data.sessionId }));
+        })
+        .catch(err => {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: err.message || 'Invalid JSON' }));
+        });
+      return;
+    }
+
+    if (req.method === 'GET' && req.url === '/api/models') {
+      const activeModel = activeModelProvider ? activeModelProvider.getActiveModel() : 'auto';
+      const availableModels = activeModelProvider ? activeModelProvider.getAvailableModels() : [];
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ activeModel, availableModels }));
+      return;
+    }
+
+    if (req.method === 'POST' && req.url === '/api/models/switch') {
+      parseJsonBody<{ model: string }>(req)
+        .then(async data => {
+          if (!activeModelProvider || !data.model) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Missing model name or provider' }));
+            return;
+          }
+          const success = await activeModelProvider.switchModel(data.model);
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success, activeModel: data.model }));
         })
         .catch(err => {
           res.writeHead(400, { 'Content-Type': 'application/json' });

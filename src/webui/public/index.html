@@ -39,6 +39,12 @@
         </div>
       </div>
       <div class="status-bar">
+        <div class="model-pill-wrapper">
+          <button type="button" id="active-model-badge" class="model-pill" title="Click to view & switch active model">
+            <span class="model-icon">⚡</span>
+            <span class="model-label" id="model-label">MODEL: AUTO</span>
+          </button>
+        </div>
         <div class="status-pill-wrapper">
           <span id="connection-status" class="status disconnected">● DISCONNECTED</span>
         </div>
@@ -132,6 +138,7 @@
             </div>
             <div class="chat-badges">
               <span class="badge" id="chat-status-badge">SANCTUM READY</span>
+              <button type="button" id="new-chat-btn" class="chat-header-btn" title="Begin a new consultation / clear console">✦ NEW RITE</button>
             </div>
           </div>
           <div id="chat-messages" class="chat-messages">
@@ -151,7 +158,7 @@
                 <path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"></path>
               </svg>
             </button>
-            <input id="chat-input" type="text" placeholder="Inscribe an instruction, paste an image (Ctrl+V), or cast artifacts..." autocomplete="off" />
+            <textarea id="chat-input" rows="1" placeholder="Inscribe an instruction, paste an image (Ctrl+V), or cast artifacts..." autocomplete="off"></textarea>
             <button type="submit" id="chat-send-btn" class="send-btn">TRANSMIT ⚡</button>
           </form>
         </div>
@@ -166,6 +173,7 @@
               <button class="sidebar-tab active" data-tab="commands">ORACLES</button>
               <button class="sidebar-tab" data-tab="files">LABYRINTH</button>
               <button class="sidebar-tab" data-tab="context">SANCTUM</button>
+              <button class="sidebar-tab" data-tab="sessions">CHRONICLES</button>
             </div>
           </div>
 
@@ -221,10 +229,42 @@
               <div class="file-tree-loading">Sanctum is clear. No active files.</div>
             </div>
           </div>
+
+          <div class="sidebar-tab-content hidden" id="tab-sessions">
+            <div class="file-tree-toolbar">
+              <span class="file-tree-cwd">MEMORIA CHRONICLES</span>
+              <div class="session-toolbar-actions">
+                <button id="session-new-btn" class="file-tree-refresh-btn" title="Create new session">+ NEW</button>
+                <button id="session-refresh-btn" class="file-tree-refresh-btn" title="Refresh session archives">↺</button>
+              </div>
+            </div>
+            <div id="sessions-list" class="sessions-list">
+              <div class="file-tree-loading">Accessing session archives...</div>
+            </div>
+          </div>
         </aside>
       </div>
     </main>
   </div>
+
+  <div id="model-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="metric-meta">
+          <span class="oracle-glyph">⚡</span>
+          <span class="metric-name">ROUTER ORACLES · MODEL SELECTION</span>
+        </div>
+        <button type="button" id="model-modal-close" class="modal-close-btn" title="Close">×</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-subtitle">Choose the celestial intelligence tier or specific model to guide Daedalus:</p>
+        <div id="model-options-list" class="model-options-list">
+          <div class="file-tree-loading">Consulting active router models...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="/marked.min.js"></script>
   <script src="/script.js"></script>
 </body>
