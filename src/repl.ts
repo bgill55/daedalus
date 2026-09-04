@@ -260,25 +260,11 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
 
       registerChatHandler(async (chatReq, broadcast) => {
         try {
-          const msgCountBefore = messages.length;
           const webMsg = typeof chatReq === 'string' ? chatReq : (chatReq.message || '');
           const imageBase64 = typeof chatReq === 'object' ? chatReq.imageBase64 : undefined;
 
           await runOneTurn(webMsg, { isWeb: true, broadcast, imageBase64 });
 
-          const newAssistantMsgs = messages.slice(msgCountBefore).filter(m => m.role === 'assistant');
-          if (newAssistantMsgs.length > 0) {
-            const lastMsg = newAssistantMsgs[newAssistantMsgs.length - 1];
-            const replyText = typeof lastMsg?.content === 'string' ? lastMsg.content : (Array.isArray(lastMsg?.content) ? lastMsg.content.map(c => 'text' in c ? c.text : '').join(' ') : '');
-            if (replyText) {
-              broadcast({
-                type: 'chat_token',
-                role: 'assistant',
-                text: replyText,
-                timestamp: Date.now(),
-              });
-            }
-          }
           broadcast({
             type: 'chat_done',
             timestamp: Date.now(),
@@ -322,6 +308,7 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
         toolContext.autoApproveTools = isWebTurn;
 
         if (isWebTurn && webOpts?.broadcast) {
+          toolContext.onBroadcast = webOpts.broadcast;
           toolContext.onToolStart = (count, names) => {
             webOpts.broadcast!({
               type: 'chat_tool_start',
@@ -346,6 +333,7 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
             });
           };
         } else {
+          toolContext.onBroadcast = undefined;
           toolContext.onToolStart = undefined;
           toolContext.onToolResult = undefined;
           toolContext.onTodoProgress = undefined;

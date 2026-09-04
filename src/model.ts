@@ -475,6 +475,14 @@ export function createModelFunctions(deps: ModelDeps) {
 
           if (delta.content) {
             fullContent += delta.content;
+            if (toolContext.onBroadcast) {
+              toolContext.onBroadcast({
+                type: 'chat_token',
+                role: 'assistant',
+                text: delta.content,
+                timestamp: Date.now(),
+              });
+            }
 
             if (detectRepetition(fullContent)) {
               openBlock();
@@ -1150,6 +1158,14 @@ export function createModelFunctions(deps: ModelDeps) {
       }
 
       messages.push({ role: 'assistant', content: reply });
+      if (toolContext.onBroadcast && reply) {
+        toolContext.onBroadcast({
+          type: 'chat_token',
+          role: 'assistant',
+          text: reply,
+          timestamp: Date.now(),
+        });
+      }
       openAssistantBlock();
       writeAssistantChunk(reply);
       const elapsed = Date.now() - _turnStartTime;
