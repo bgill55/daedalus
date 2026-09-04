@@ -26,7 +26,7 @@ Both resolve to the same artisan. The callsign is how the agent speaks of itself
 ### Daedalus
 **`orchestrator`** · *the master craftsman*
 
-Architect of the Labyrinth. Plans, decomposes, and coordinates — but never forges himself. Dispatches the gods, takes the credit, and keeps the floor running. The only role permitted to delegate.
+Architect of the Labyrinth. Plans, decomposes, and coordinates — but never builds himself. Dispatches the gods, takes the credit, and keeps the floor running. The only role permitted to delegate.
 
 *Invoke:* `@daedalus` · `@orchestrator`
 
@@ -37,7 +37,7 @@ Architect of the Labyrinth. Plans, decomposes, and coordinates — but never for
 ### Themis
 **`spec`** · *goddess of divine law*
 
-Writes the contracts before the forge fires — formal SpecFirst interfaces, TypeScript schemas, and test assertions. Nothing is built until its shape is law.
+Writes the contracts before the craft begins — formal SpecFirst interfaces, TypeScript schemas, and test assertions. Nothing is built until its shape is law.
 
 *Invoke:* `@themis` · `@spec`
 
@@ -57,7 +57,7 @@ Serpent-witted strategist who decomposes vague intent into ordered, concrete ste
 <div class="feature-card">
 
 ### Hephaestus
-**`coder`** · *god of the forge*
+**`coder`** · *god of fire & craft*
 
 The only one who actually shapes the metal while the others debate its form. Edits files, writes new ones, runs the build. If there is no plan, he wings it from the divine spark — then denies everything if it breaks.
 
@@ -81,7 +81,7 @@ The critic who sees the flaw no one else will name. Reviews every touched file f
 ### Asclepius
 **`debugger`** · *god of healing*
 
-Cures what the forge has broken. Reproduces, isolates, and repairs bugs — the surgeon who, more often than he admits, made the patient worse. 90% of the work is reading the error message.
+Cures what the Pantheon has broken. Reproduces, isolates, and repairs bugs — the surgeon who, more often than he admits, made the patient worse. 90% of the work is reading the error message.
 
 *Invoke:* `@asclepius` · `@debugger`
 
@@ -92,7 +92,7 @@ Cures what the forge has broken. Reproduces, isolates, and repairs bugs — the 
 ### Mnemosyne
 **`researcher`** · *goddess of memory & knowledge*
 
-Mother of the Muses. Gathers lore from the outer world — web, docs, APIs — so the forge need not wander. Returns distilled fact with source links, then stops searching.
+Mother of the Muses. Gathers lore from the outer world — web, docs, APIs — so the Pantheon need not wander. Returns distilled fact with source links, then stops searching.
 
 *Invoke:* `@mnemosyne` · `@researcher`
 
@@ -108,7 +108,7 @@ When you run `/autopilot <feature>` or `/orchestrate <goal>`, **Daedalus** opens
 
 1. **Themis** sets the contract (`.daedalus/spec.md` + `.daedalus/spec.json`).
 2. **Metis** breaks it into bite-sized tasks.
-3. **Hephaestus** and **Mnemosyne** execute — forging code and gathering lore in parallel.
+3. **Hephaestus** and **Mnemosyne** execute — implementing code and gathering lore in parallel.
 4. **Apollo** inspects the diffs; **Asclepius** runs the tests and heals failures.
 5. Daedalus synthesizes and reports.
 
@@ -120,7 +120,7 @@ Each god's system prompt speaks in its own voice, and the terminal shows its cal
 
 ## Why Callsigns, Not "Sub-Agents"
 
-A "sub-agent" is a tool. A **god of the forge** is a character with a craft, a temperament, and a remit. Naming them turns a process into a cast — easier to reason about, easier to steer, and far more memorable when you are watching six of them divide and conquer your codebase at 3 a.m.
+A "sub-agent" is a tool. A **god of the Pantheon** is a character with a craft, a temperament, and a remit. Naming them turns a process into a cast — easier to reason about, easier to steer, and far more memorable when you are watching six of them divide and conquer your codebase at 3 a.m.
 
 > The names are Daedalus' own. One seat — the researcher — is deliberately *not* named Hermes: that name is reserved.
 

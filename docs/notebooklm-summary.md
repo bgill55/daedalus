@@ -38,7 +38,7 @@ Daedalus coordinates six specialized sub-agents — each carrying a divine calls
 
 * **Themis** (`spec`): Goddess of divine law — generates formal SpecFirst interface contracts (`.daedalus/spec.json` & `spec.md`), TypeScript schemas, and test assertions before coding.
 * **Metis** (`planner`): Titan of deep counsel — explores requirements, creates step-by-step task lists, and determines acceptance criteria for verification.
-* **Hephaestus** (`coder`): God of the forge — writes new files, makes surgical edits using a patch tool, and executes shell scripts.
+* **Hephaestus** (`coder`): God of fire and craft — writes new files, makes surgical edits using a patch tool, and executes shell scripts.
 * **Mnemosyne** (`researcher`): Goddess of memory and knowledge — explores the local workspace, reads documentation, and searches the web.
 * **Asclepius** (`debugger`): God of healing — runs test suites, analyzes error logs, and corrects syntax/logic failures.
 * **Apollo** (`reviewer`): God of clarity and order — reviews pull requests, runs security checks, verifies JSDoc contract alignment, and validates styles/formatting.

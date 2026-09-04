@@ -10,7 +10,7 @@ The orchestrator (Daedalus, the master craftsman) manages six specialized sub-ag
 
 1.  **Themis** (`spec`): Goddess of divine law — generates formal SpecFirst interface contracts (`.daedalus/spec.json` & `spec.md`), TypeScript schemas, and test assertions before coding.
 2.  **Metis** (`planner`): Titan of deep counsel — outlines the plan, breaks down the main goal into bite-sized tasks, and defines verification criteria.
-3.  **Hephaestus** (`coder`): God of the forge — edits existing files, creates new files, and executes commands.
+3.  **Hephaestus** (`coder`): God of fire and craft — edits existing files, creates new files, and executes commands.
 4.  **Mnemosyne** (`researcher`): Goddess of memory and knowledge — explores the codebase, searches the web, and reads documentation.
 5.  **Apollo** (`reviewer`): God of clarity and order — evaluates code changes, security vulnerabilities, and confirms formatting requirements.
 6.  **Asclepius** (`debugger`): God of healing — runs tests, parses error logs, and corrects syntax or logic failures.

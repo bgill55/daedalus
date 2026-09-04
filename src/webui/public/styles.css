@@ -397,7 +397,7 @@ body {
   box-shadow: 0 0 8px currentColor;
 }
 
-.forge-sparkline::after {
+.pantheon-sparkline::after {
   background: var(--gold-bright);
   color: var(--gold-bright);
 }
