@@ -120,6 +120,61 @@ h1 {
   border: 1px solid rgba(239, 68, 68, 0.3);
 }
 
+.status.reconnecting {
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  text-shadow: 0 0 6px rgba(245, 158, 11, 0.4);
+}
+
+.context-files-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.context-file-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
+.context-file-chip:hover {
+  border-color: rgba(0, 240, 255, 0.3);
+}
+
+.context-file-name {
+  color: var(--accent-cyan);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.context-file-remove {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0 4px;
+  line-height: 1;
+  transition: color 0.15s;
+}
+
+.context-file-remove:hover {
+  color: var(--accent-red);
+}
+
 .timestamp {
   color: var(--text-muted);
 }

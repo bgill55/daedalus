@@ -1,6 +1,7 @@
 import { createServer, IncomingMessage, ServerResponse, Server } from 'node:http';
 import { execSync } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { TelemetryData } from '../types.js';
@@ -21,13 +22,64 @@ interface ActiveClientRecord {
 
 const activeClientRecords = new Set<ActiveClientRecord>();
 
+let prevCpus = os.cpus();
+
+function getCpuPercent(): number {
+  const currentCpus = os.cpus();
+  let totalDiff = 0;
+  let idleDiff = 0;
+  for (let i = 0; i < currentCpus.length; i++) {
+    const prev = prevCpus[i]?.times || { user: 0, nice: 0, sys: 0, idle: 0, irq: 0 };
+    const curr = currentCpus[i]?.times || { user: 0, nice: 0, sys: 0, idle: 0, irq: 0 };
+    totalDiff += (curr.user + curr.nice + curr.sys + curr.idle + curr.irq) - (prev.user + prev.nice + prev.sys + prev.idle + prev.irq);
+    idleDiff += (curr.idle - prev.idle);
+  }
+  prevCpus = currentCpus;
+  if (totalDiff <= 0) return 0;
+  return Math.min(100, Math.max(0, Math.round(((totalDiff - idleDiff) / totalDiff) * 100)));
+}
+
+function getMemoryPercent(): number {
+  const total = os.totalmem();
+  const free = os.freemem();
+  if (total <= 0) return 0;
+  return Math.min(100, Math.max(0, Math.round(((total - free) / total) * 100)));
+}
+
+let metricIndex = 0;
+const metricNames = ['cpu', 'memory', 'disk', 'network'] as const;
+
+function sendTelemetryMetric(res: ServerResponse) {
+  try {
+    const metric = metricNames[metricIndex % metricNames.length];
+    metricIndex++;
+    let value = 0;
+    if (metric === 'cpu') {
+      value = getCpuPercent();
+    } else if (metric === 'memory') {
+      value = getMemoryPercent();
+    } else if (metric === 'disk') {
+      const memUsage = process.memoryUsage();
+      value = Math.min(100, Math.round((memUsage.heapUsed / memUsage.heapTotal) * 100));
+    } else {
+      value = Math.min(100, Math.round((process.uptime() % 60) * 1.5));
+    }
+
+    const data: TelemetryData = {
+      timestamp: Date.now(),
+      metric,
+      value,
+    };
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+  } catch { /* client disconnected */ }
+}
+
 export function getTelemetryRate(): number {
   return telemetryIntervalMs;
 }
 
 export function setTelemetryRate(ms: number): number {
   telemetryIntervalMs = Math.max(100, Math.min(60000, ms));
-  // Reschedule active client intervals dynamically
   for (const record of activeClientRecords) {
     clearInterval(record.intervalId);
     record.intervalId = setInterval(() => {
@@ -37,15 +89,21 @@ export function setTelemetryRate(ms: number): number {
   return telemetryIntervalMs;
 }
 
-function sendTelemetryMetric(res: ServerResponse) {
-  try {
-    const data: TelemetryData = {
-      timestamp: Date.now(),
-      metric: ['cpu', 'memory', 'disk', 'network'][Math.floor(Math.random() * 4)],
-      value: Math.floor(Math.random() * 100),
-    };
-    res.write(`data: ${JSON.stringify(data)}\n\n`);
-  } catch { /* client disconnected */ }
+export type HistoryProvider = () => Array<{ role: string; text: string }>;
+export type ContextFilesProvider = {
+  getFiles: () => string[];
+  removeFile: (file: string) => boolean;
+};
+
+let activeHistoryProvider: HistoryProvider | null = null;
+let activeContextFilesProvider: ContextFilesProvider | null = null;
+
+export function registerHistoryProvider(provider: HistoryProvider | null): void {
+  activeHistoryProvider = provider;
+}
+
+export function registerContextFilesProvider(provider: ContextFilesProvider | null): void {
+  activeContextFilesProvider = provider;
 }
 
 function resolvePublicAsset(filename: string): string | null {
@@ -274,6 +332,34 @@ export function handleRequest(req: IncomingMessage, res: ServerResponse): void {
       const tree = getProjectTree(cwd, cwd, 0, gitignored);
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ cwd: path.basename(cwd), tree }));
+      return;
+    }
+
+    if (req.method === 'GET' && req.url === '/api/history') {
+      const history = activeHistoryProvider ? activeHistoryProvider() : [];
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ history }));
+      return;
+    }
+
+    if (req.method === 'GET' && req.url === '/api/context') {
+      const files = activeContextFilesProvider ? activeContextFilesProvider.getFiles() : [];
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ files }));
+      return;
+    }
+
+    if (req.method === 'DELETE' && req.url === '/api/context') {
+      parseJsonBody<{ file: string }>(req)
+        .then(data => {
+          const removed = activeContextFilesProvider && data.file ? activeContextFilesProvider.removeFile(data.file) : false;
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ removed }));
+        })
+        .catch(err => {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: err.message || 'Invalid JSON' }));
+        });
       return;
     }
 

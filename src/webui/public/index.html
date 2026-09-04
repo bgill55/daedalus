@@ -105,6 +105,7 @@
             <div class="sidebar-tabs">
               <button class="sidebar-tab active" data-tab="commands">COMMANDS</button>
               <button class="sidebar-tab" data-tab="files">FILES</button>
+              <button class="sidebar-tab" data-tab="context">CONTEXT</button>
             </div>
           </div>
 
@@ -148,6 +149,16 @@
             </div>
             <div id="file-tree" class="file-tree">
               <div class="file-tree-loading">Loading...</div>
+            </div>
+          </div>
+
+          <div class="sidebar-tab-content hidden" id="tab-context">
+            <div class="file-tree-toolbar">
+              <span class="file-tree-cwd">ACTIVE TURN FILES</span>
+              <button id="context-refresh-btn" class="file-tree-refresh-btn" title="Refresh active files">↺</button>
+            </div>
+            <div id="context-files-list" class="context-files-list">
+              <div class="file-tree-loading">No active files in context.</div>
             </div>
           </div>
         </aside>

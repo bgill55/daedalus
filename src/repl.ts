@@ -23,7 +23,7 @@ import { parseAgentTag } from './agents/roles.js';
 import { SigmaMemEngine } from './session/sigma-mem.js';
 import { synthesizeSkillFromTurn } from './skills/auto-synthesis.js';
 import { brand, dim, info, warn, err } from './ui/theme.js';
-import { registerChatHandler } from './webui/server.js';
+import { registerChatHandler, registerHistoryProvider, registerContextFilesProvider } from './webui/server.js';
 
 /**
  * Pure reduction for piped (non-TTY) multi-line input. Appends each line to the
@@ -243,6 +243,20 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
 
   async function chatLoop(): Promise<void> {
     try {
+      registerHistoryProvider(() => {
+        return messages
+          .map(m => ({
+            role: m.role,
+            text: typeof m.content === 'string' ? m.content : (Array.isArray(m.content) ? m.content.map(c => 'text' in c ? c.text : '').join(' ') : '')
+          }))
+          .filter(m => m.text.trim().length > 0);
+      });
+
+      registerContextFilesProvider({
+        getFiles: () => Array.from(activeFiles.keys()),
+        removeFile: (file: string) => activeFiles.delete(file),
+      });
+
       registerChatHandler(async (webMsg, broadcast) => {
         try {
           await runOneTurn(webMsg, { isWeb: true, broadcast });

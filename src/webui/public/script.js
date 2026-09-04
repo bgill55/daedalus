@@ -131,12 +131,54 @@ function updateThinkingSpinner(text) {
   }
 }
 
+const sentHistory = [];
+let sentIndex = -1;
+
 if (chatForm && chatInput) {
+  chatInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      chatForm.dispatchEvent(new Event('submit', { cancelable: true }));
+      return;
+    }
+
+    if (e.key === 'Escape') {
+      chatInput.value = '';
+      sentIndex = -1;
+      return;
+    }
+
+    if (e.key === 'ArrowUp') {
+      if (chatInput.selectionStart === 0 && chatInput.selectionEnd === 0 && sentHistory.length > 0) {
+        if (sentIndex === -1) {
+          sentIndex = sentHistory.length - 1;
+        } else if (sentIndex > 0) {
+          sentIndex--;
+        }
+        chatInput.value = sentHistory[sentIndex] || '';
+        e.preventDefault();
+      }
+    } else if (e.key === 'ArrowDown') {
+      if (sentIndex !== -1) {
+        if (sentIndex < sentHistory.length - 1) {
+          sentIndex++;
+          chatInput.value = sentHistory[sentIndex] || '';
+        } else {
+          sentIndex = -1;
+          chatInput.value = '';
+        }
+        e.preventDefault();
+      }
+    }
+  });
+
   chatForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     const text = chatInput.value.trim();
     if (!text) return;
     
+    sentHistory.push(text);
+    sentIndex = -1;
     chatInput.value = '';
     if (chatStatusBadge) chatStatusBadge.textContent = 'THINKING...';
     
@@ -171,9 +213,11 @@ document.querySelectorAll('.sidebar-tab').forEach(tab => {
     document.querySelectorAll('.sidebar-tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.sidebar-tab-content').forEach(c => c.classList.add('hidden'));
     tab.classList.add('active');
-    const target = document.getElementById('tab-' + tab.getAttribute('data-tab'));
+    const tabName = tab.getAttribute('data-tab');
+    const target = document.getElementById('tab-' + tabName);
     if (target) target.classList.remove('hidden');
-    if (tab.getAttribute('data-tab') === 'files') loadFileTree();
+    if (tabName === 'files') loadFileTree();
+    if (tabName === 'context') loadContextFiles();
   });
 });
 
@@ -288,15 +332,99 @@ if (fileTreeRefreshBtn) {
   });
 }
 
+// Active Context Files
+const contextFilesListEl = document.getElementById('context-files-list');
+const contextRefreshBtn = document.getElementById('context-refresh-btn');
+
+async function loadContextFiles() {
+  if (!contextFilesListEl) return;
+  contextFilesListEl.innerHTML = '<div class="file-tree-loading">Loading context...</div>';
+  try {
+    const res = await fetch('/api/context');
+    if (!res.ok) throw new Error('Failed to load context');
+    const data = await res.json();
+    contextFilesListEl.innerHTML = '';
+    if (!data.files || data.files.length === 0) {
+      contextFilesListEl.innerHTML = '<div class="file-tree-loading">No active files in context.</div>';
+      return;
+    }
+    data.files.forEach(file => {
+      const chip = document.createElement('div');
+      chip.className = 'context-file-chip';
+
+      const name = document.createElement('span');
+      name.className = 'context-file-name';
+      name.textContent = file;
+      name.title = `Click to insert ${file}`;
+      name.addEventListener('click', () => {
+        if (!chatInput) return;
+        const current = chatInput.value;
+        chatInput.value = current ? current + ' ' + file : file;
+        chatInput.focus();
+      });
+
+      const removeBtn = document.createElement('button');
+      removeBtn.className = 'context-file-remove';
+      removeBtn.textContent = '×';
+      removeBtn.title = `Remove ${file} from context`;
+      removeBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        try {
+          await fetch('/api/context', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ file })
+          });
+          loadContextFiles();
+        } catch {}
+      });
+
+      chip.appendChild(name);
+      chip.appendChild(removeBtn);
+      contextFilesListEl.appendChild(chip);
+    });
+  } catch {
+    contextFilesListEl.innerHTML = '<div class="file-tree-loading">Failed to load context files.</div>';
+  }
+}
+
+if (contextRefreshBtn) {
+  contextRefreshBtn.addEventListener('click', () => {
+    loadContextFiles();
+  });
+}
+
+// Chat History Loading
+let historyLoaded = false;
+async function loadChatHistory() {
+  if (historyLoaded) return;
+  try {
+    const res = await fetch('/api/history');
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.history && Array.isArray(data.history) && data.history.length > 0) {
+      chatMessages.innerHTML = '';
+      data.history.forEach(item => {
+        addChatMessage(item.role === 'assistant' ? 'assistant' : 'user', item.text);
+      });
+    }
+    historyLoaded = true;
+  } catch {}
+}
+
+let reconnectAttempts = 0;
+
 function connectSSE() {
   const eventSource = new EventSource('/telemetry');
 
   eventSource.onopen = () => {
+    reconnectAttempts = 0;
     if (statusEl) {
       statusEl.className = 'status connected';
       statusEl.textContent = '● CONNECTED';
     }
     addLog('Connected to Daedalus telemetry stream.');
+    loadChatHistory();
   };
 
   eventSource.onmessage = (event) => {
@@ -310,7 +438,6 @@ function connectSSE() {
         return;
       }
 
-      // Handle Chat Stream Events
       if (data.type === 'chat_token') {
         if (data.role === 'user') {
           // already added locally or by another client
@@ -360,17 +487,16 @@ function connectSSE() {
         return;
       }
 
-      // Handle Telemetry Metrics
       if (data.metric && metrics[data.metric]) {
-        metrics[data.metric].value.textContent = data.value;
+        metrics[data.metric].value.textContent = data.value + '%';
         metrics[data.metric].status.textContent = data.value > 80 ? 'HIGH' : (data.value > 40 ? 'BUSY' : 'NORMAL');
         addLog(`Received metric update: <strong>${data.metric.toUpperCase()}</strong> = ${data.value}%`);
       } else if (data.cpu !== undefined || data.memory !== undefined) {
         if (data.cpu !== undefined && metrics.cpu) {
-          metrics.cpu.value.textContent = data.cpu;
+          metrics.cpu.value.textContent = data.cpu + '%';
         }
         if (data.memory !== undefined && metrics.memory) {
-          metrics.memory.value.textContent = data.memory;
+          metrics.memory.value.textContent = data.memory + '%';
         }
         addLog(`Telemetry update: CPU=${data.cpu || '--'}%, MEM=${data.memory || '--'}%`);
       }
@@ -380,13 +506,16 @@ function connectSSE() {
   };
 
   eventSource.onerror = () => {
+    reconnectAttempts++;
+    const delay = Math.min(16000, Math.pow(2, reconnectAttempts - 1) * 1000);
     if (statusEl) {
-      statusEl.className = 'status disconnected';
-      statusEl.textContent = '● DISCONNECTED';
+      statusEl.className = 'status reconnecting';
+      statusEl.textContent = `● RECONNECTING (${Math.round(delay / 1000)}s)...`;
     }
     eventSource.close();
-    setTimeout(connectSSE, 3000);
+    setTimeout(connectSSE, delay);
   };
 }
 
 connectSSE();
+

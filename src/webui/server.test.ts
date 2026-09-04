@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { IncomingMessage, ServerResponse } from 'node:http';
 import fs from 'node:fs';
-import { handleRequest, server, getTelemetryRate, setTelemetryRate } from './server.js';
+import { handleRequest, server, getTelemetryRate, setTelemetryRate, registerHistoryProvider, registerContextFilesProvider } from './server.js';
 import type { TelemetryData } from '../types.js';
 
 vi.mock('node:fs');
@@ -211,6 +211,79 @@ describe('WebUI Server', () => {
       expect(body).toHaveProperty('cwd');
       expect(body).toHaveProperty('tree');
       expect(Array.isArray(body.tree)).toBe(true);
+    });
+  });
+
+  describe('GET /api/history', () => {
+    it('should return empty history when no provider is registered', () => {
+      registerHistoryProvider(null);
+      mockReq.url = '/api/history';
+      mockReq.method = 'GET';
+
+      handleRequest(mockReq as IncomingMessage, mockRes as ServerResponse);
+
+      expect(writeHeadSpy).toHaveBeenCalledWith(200, { 'Content-Type': 'application/json' });
+      const body = JSON.parse(endSpy.mock.calls[0][0]);
+      expect(body).toEqual({ history: [] });
+    });
+
+    it('should return history from registered provider', () => {
+      registerHistoryProvider(() => [
+        { role: 'user', text: 'hello' },
+        { role: 'assistant', text: 'hi' },
+      ]);
+      mockReq.url = '/api/history';
+      mockReq.method = 'GET';
+
+      handleRequest(mockReq as IncomingMessage, mockRes as ServerResponse);
+
+      expect(writeHeadSpy).toHaveBeenCalledWith(200, { 'Content-Type': 'application/json' });
+      const body = JSON.parse(endSpy.mock.calls[0][0]);
+      expect(body.history).toHaveLength(2);
+      expect(body.history[0].text).toBe('hello');
+    });
+  });
+
+  describe('GET and DELETE /api/context', () => {
+    it('should return context files from provider', () => {
+      registerContextFilesProvider({
+        getFiles: () => ['src/index.ts', 'package.json'],
+        removeFile: vi.fn().mockReturnValue(true),
+      });
+      mockReq.url = '/api/context';
+      mockReq.method = 'GET';
+
+      handleRequest(mockReq as IncomingMessage, mockRes as ServerResponse);
+
+      expect(writeHeadSpy).toHaveBeenCalledWith(200, { 'Content-Type': 'application/json' });
+      const body = JSON.parse(endSpy.mock.calls[0][0]);
+      expect(body.files).toEqual(['src/index.ts', 'package.json']);
+    });
+
+    it('should remove file via DELETE /api/context', async () => {
+      const removeMock = vi.fn().mockReturnValue(true);
+      registerContextFilesProvider({
+        getFiles: () => ['src/index.ts'],
+        removeFile: removeMock,
+      });
+      mockReq.url = '/api/context';
+      mockReq.method = 'DELETE';
+
+      let dataCb: any;
+      let endCb: any;
+      mockReq.on = vi.fn((event, cb) => {
+        if (event === 'data') dataCb = cb;
+        if (event === 'end') endCb = cb;
+        return mockReq as any;
+      });
+
+      handleRequest(mockReq as IncomingMessage, mockRes as ServerResponse);
+
+      dataCb(JSON.stringify({ file: 'src/index.ts' }));
+      await endCb();
+
+      expect(removeMock).toHaveBeenCalledWith('src/index.ts');
+      expect(writeHeadSpy).toHaveBeenCalledWith(200, { 'Content-Type': 'application/json' });
     });
   });
 
