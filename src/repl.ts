@@ -320,11 +320,15 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
           const webMsg = typeof chatReq === 'string' ? chatReq : (chatReq.message || '');
           const imageBase64 = typeof chatReq === 'object' ? chatReq.imageBase64 : undefined;
 
+          const startTime = Date.now();
           await runOneTurn(webMsg, { isWeb: true, broadcast, imageBase64 });
+          const activeModel = config.modelOverride || router.lastRoutedModel || config.defaultModel || 'auto';
 
           broadcast({
             type: 'chat_done',
             timestamp: Date.now(),
+            model: activeModel,
+            durationMs: Date.now() - startTime,
           });
         } catch (err: any) {
           broadcast({

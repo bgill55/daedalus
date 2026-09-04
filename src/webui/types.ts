@@ -32,6 +32,9 @@ export interface WebuiChatMessageEvent {
   content?: string;
   timestamp: number;
   imageBase64?: string;
+  model?: string;
+  tokens?: number;
+  durationMs?: number;
 }
 
 export interface WebuiChatRequest {

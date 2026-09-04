@@ -106,8 +106,83 @@ function renderMarkdown(text) {
   return tempDiv.innerHTML;
 }
 
-function addChatMessage(role, text, roleBadge = null, imageBase64 = null, timestamp = null) {
-  if (!chatMessages) return;
+function attachCliFooter(msgEl, modelName, toolCount, durationMs, tokenCount) {
+  if (!msgEl) return;
+  if (msgEl.querySelector('.msg-cli-footer')) return;
+
+  const footer = document.createElement('div');
+  footer.className = 'msg-cli-footer';
+
+  const left = document.createElement('div');
+  left.className = 'msg-cli-footer-left';
+
+  const intel = document.createElement('span');
+  intel.className = 'cli-pill cli-pill-intel';
+  intel.innerHTML = '<span class="cli-dot">●</span> intelligence';
+  left.appendChild(intel);
+
+  const divider1 = document.createElement('span');
+  divider1.className = 'msg-cli-footer-divider';
+  divider1.textContent = '·';
+  left.appendChild(divider1);
+
+  const modelPill = document.createElement('span');
+  modelPill.className = 'cli-pill cli-pill-model';
+  modelPill.textContent = modelName || 'auto';
+  left.appendChild(modelPill);
+
+  if (toolCount && toolCount > 0) {
+    const dividerTools = document.createElement('span');
+    dividerTools.className = 'msg-cli-footer-divider';
+    dividerTools.textContent = '·';
+    left.appendChild(dividerTools);
+
+    const toolsPill = document.createElement('span');
+    toolsPill.className = 'cli-pill cli-pill-tools';
+    toolsPill.textContent = `${toolCount} tool(s)`;
+    left.appendChild(toolsPill);
+  }
+
+  const durationSec = durationMs ? (durationMs / 1000).toFixed(1) : null;
+  if (durationSec) {
+    const dividerTime = document.createElement('span');
+    dividerTime.className = 'msg-cli-footer-divider';
+    dividerTime.textContent = '·';
+    left.appendChild(dividerTime);
+
+    const timePill = document.createElement('span');
+    timePill.className = 'cli-pill cli-pill-time';
+    timePill.textContent = `${durationSec}s`;
+    left.appendChild(timePill);
+  }
+
+  if (tokenCount && tokenCount > 0 && durationMs && durationMs > 0) {
+    const tokPerSec = (tokenCount / (durationMs / 1000)).toFixed(1);
+    const dividerSpeed = document.createElement('span');
+    dividerSpeed.className = 'msg-cli-footer-divider';
+    dividerSpeed.textContent = '·';
+    left.appendChild(dividerSpeed);
+
+    const speedPill = document.createElement('span');
+    speedPill.className = 'cli-pill cli-pill-speed';
+    speedPill.textContent = `${tokPerSec} tok/s`;
+    left.appendChild(speedPill);
+  }
+
+  footer.appendChild(left);
+  msgEl.appendChild(footer);
+}
+
+let activeAssistantBody = null;
+let activeAssistantMsgEl = null;
+let thinkingEl = null;
+let currentToolTreeEl = null;
+let currentTurnExecutedTools = [];
+let currentTurnTokenCount = 0;
+let turnStartTime = null;
+
+function addChatMessage(role, text, roleBadge = null, imageBase64 = null, timestamp = null, meta = null) {
+  if (!chatMessages) return null;
   const msgEl = document.createElement('div');
   msgEl.className = `chat-msg ${role}`;
   
@@ -174,93 +249,143 @@ function addChatMessage(role, text, roleBadge = null, imageBase64 = null, timest
   
   msgEl.appendChild(header);
   msgEl.appendChild(body);
+
+  if (role === 'assistant' && meta) {
+    attachCliFooter(msgEl, meta.model, meta.toolCount, meta.durationMs, meta.tokenCount);
+  }
+
   chatMessages.appendChild(msgEl);
   chatMessages.scrollTop = chatMessages.scrollHeight;
+
+  if (role === 'assistant') {
+    activeAssistantMsgEl = msgEl;
+  }
   return body;
 }
 
-let activeAssistantBody = null;
-let thinkingEl = null;
-let currentRunningToolEl = null;
-
 function renderToolStart(toolName) {
   if (!chatMessages) return null;
-  const accordion = document.createElement('div');
-  accordion.className = 'tool-accordion running';
-  
-  const header = document.createElement('div');
-  header.className = 'tool-accordion-header';
-  
-  const left = document.createElement('div');
-  left.className = 'tool-accordion-left';
-  
-  const icon = document.createElement('span');
-  icon.className = 'tool-accordion-icon';
-  icon.textContent = '⚡';
-  
-  const name = document.createElement('span');
-  name.className = 'tool-accordion-name';
-  name.textContent = toolName;
-  
-  left.appendChild(icon);
-  left.appendChild(name);
-  
-  const right = document.createElement('div');
-  right.style.display = 'flex';
-  right.style.alignItems = 'center';
-  
-  const status = document.createElement('span');
-  status.className = 'tool-accordion-status running';
-  status.textContent = 'RUNNING';
-  
-  const chevron = document.createElement('span');
-  chevron.className = 'tool-accordion-chevron';
-  chevron.textContent = '▶';
-  
-  right.appendChild(status);
-  right.appendChild(chevron);
-  
-  header.appendChild(left);
-  header.appendChild(right);
-  
-  const body = document.createElement('div');
-  body.className = 'tool-accordion-body hidden';
-  body.textContent = `Executing tool: ${toolName}...`;
-  
-  header.addEventListener('click', () => {
-    accordion.classList.toggle('open');
-    body.classList.toggle('hidden');
-  });
-  
-  accordion.appendChild(header);
-  accordion.appendChild(body);
-  chatMessages.appendChild(accordion);
-  chatMessages.scrollTop = chatMessages.scrollHeight;
-  currentRunningToolEl = accordion;
-  return accordion;
+
+  if (!currentTurnExecutedTools.includes(toolName)) {
+    currentTurnExecutedTools.push(toolName);
+  }
+
+  if (!currentToolTreeEl) {
+    const tree = document.createElement('div');
+    tree.className = 'tool-execution-tree running';
+
+    const header = document.createElement('div');
+    header.className = 'tool-tree-header';
+
+    const left = document.createElement('div');
+    left.className = 'tool-tree-left';
+
+    const rail = document.createElement('span');
+    rail.className = 'tool-tree-rail';
+    rail.textContent = '┊';
+
+    const icon = document.createElement('span');
+    icon.className = 'tool-tree-icon';
+    icon.textContent = '⚡';
+
+    const label = document.createElement('span');
+    label.className = 'tool-tree-label';
+    label.textContent = `Running: ${toolName}...`;
+
+    left.appendChild(rail);
+    left.appendChild(icon);
+    left.appendChild(label);
+
+    const right = document.createElement('div');
+    right.className = 'tool-tree-right';
+
+    const badge = document.createElement('span');
+    badge.className = 'tool-tree-badge running';
+    badge.textContent = 'RUNNING';
+
+    const count = document.createElement('span');
+    count.className = 'tool-tree-count';
+    count.textContent = '1 tool';
+
+    const chevron = document.createElement('span');
+    chevron.className = 'tool-tree-chevron';
+    chevron.textContent = '▶';
+
+    right.appendChild(badge);
+    right.appendChild(count);
+    right.appendChild(chevron);
+
+    header.appendChild(left);
+    header.appendChild(right);
+
+    const details = document.createElement('div');
+    details.className = 'tool-tree-details hidden';
+
+    header.addEventListener('click', () => {
+      tree.classList.toggle('open');
+      details.classList.toggle('hidden');
+    });
+
+    tree.appendChild(header);
+    tree.appendChild(details);
+    chatMessages.appendChild(tree);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+
+    currentToolTreeEl = tree;
+  }
+
+  const label = currentToolTreeEl.querySelector('.tool-tree-label');
+  if (label) label.textContent = `Running: ${toolName}...`;
+
+  const count = currentToolTreeEl.querySelector('.tool-tree-count');
+  if (count) count.textContent = `${currentTurnExecutedTools.length} tool(s)`;
+
+  return currentToolTreeEl;
 }
 
 function renderToolResult(toolName, resultSummary) {
-  let accordion = currentRunningToolEl;
-  if (!accordion) {
-    accordion = renderToolStart(toolName);
+  if (!currentToolTreeEl) {
+    renderToolStart(toolName);
   }
-  if (accordion) {
-    accordion.classList.remove('running');
-    accordion.classList.add('completed');
-    
-    const status = accordion.querySelector('.tool-accordion-status');
-    if (status) {
-      status.className = 'tool-accordion-status completed';
-      status.textContent = 'COMPLETED';
+
+  if (currentToolTreeEl) {
+    const details = currentToolTreeEl.querySelector('.tool-tree-details');
+    if (details) {
+      const item = document.createElement('div');
+      item.className = 'tool-tree-item';
+      
+      const rail = document.createElement('span');
+      rail.className = 'tool-tree-item-rail';
+      rail.textContent = '┊ └─';
+
+      const name = document.createElement('span');
+      name.className = 'tool-tree-item-name';
+      name.textContent = toolName;
+
+      const summary = document.createElement('span');
+      summary.className = 'tool-tree-item-summary';
+      summary.textContent = resultSummary ? `(${resultSummary})` : '✔ completed';
+
+      item.appendChild(rail);
+      item.appendChild(name);
+      item.appendChild(summary);
+      details.appendChild(item);
     }
-    
-    const body = accordion.querySelector('.tool-accordion-body');
-    if (body) {
-      body.textContent = resultSummary || `Tool ${toolName} execution finished.`;
+
+    const label = currentToolTreeEl.querySelector('.tool-tree-label');
+    if (label) {
+      label.textContent = `Executed tools: ${currentTurnExecutedTools.join(', ')}`;
     }
+
+    const badge = currentToolTreeEl.querySelector('.tool-tree-badge');
+    if (badge) {
+      badge.className = 'tool-tree-badge completed';
+      badge.textContent = '✔ DONE';
+    }
+
+    currentToolTreeEl.classList.remove('running');
+    currentToolTreeEl.classList.add('completed');
   }
-  currentRunningToolEl = null;
 }
 
 function showThinkingSpinner() {
@@ -483,8 +608,14 @@ if (chatForm && chatInput) {
     chatInput.style.height = 'auto';
     if (chatStatusBadge) chatStatusBadge.textContent = 'THINKING...';
     
-    addChatMessage('user', effectiveText || 'Attached image', null, imageBase64);
+    turnStartTime = Date.now();
+    currentTurnExecutedTools = [];
+    currentTurnTokenCount = 0;
+    currentToolTreeEl = null;
     activeAssistantBody = null;
+    activeAssistantMsgEl = null;
+
+    addChatMessage('user', effectiveText || 'Attached image', null, imageBase64);
     showThinkingSpinner();
     
     try {
@@ -709,7 +840,14 @@ async function loadChatHistory() {
       if (validHistory.length > 0) {
         chatMessages.innerHTML = '';
         validHistory.forEach(item => {
-          addChatMessage(item.role === 'assistant' ? 'assistant' : 'user', item.text, null, null, item.timestamp);
+          addChatMessage(
+            item.role === 'assistant' ? 'assistant' : 'user',
+            item.text,
+            null,
+            null,
+            item.timestamp,
+            item.role === 'assistant' ? { model: 'daedalus' } : null
+          );
         });
       }
     }
@@ -748,8 +886,12 @@ function connectSSE() {
           // already added locally or by another client
         } else {
           removeThinkingSpinner();
+          currentTurnTokenCount += (data.text || '').split(/\s+/).filter(Boolean).length;
           if (!activeAssistantBody) {
             activeAssistantBody = addChatMessage('assistant', data.text || '', 'STREAM', null, data.timestamp);
+            if (activeAssistantBody) {
+              activeAssistantMsgEl = activeAssistantBody.closest('.chat-msg');
+            }
           } else if (data.text) {
             const raw = (activeAssistantBody.dataset.raw || '') + data.text;
             activeAssistantBody.dataset.raw = raw;
@@ -781,7 +923,14 @@ function connectSSE() {
         if (activeAssistantBody && activeAssistantBody.dataset.raw) {
           activeAssistantBody.innerHTML = renderMarkdown(activeAssistantBody.dataset.raw);
         }
+        if (activeAssistantMsgEl) {
+          const duration = data.durationMs || (turnStartTime ? Date.now() - turnStartTime : 0);
+          const activeModelName = data.model || (modelLabel ? modelLabel.textContent.replace('MODEL: ', '').toLowerCase() : 'auto');
+          attachCliFooter(activeAssistantMsgEl, activeModelName, currentTurnExecutedTools.length, duration, currentTurnTokenCount);
+        }
         activeAssistantBody = null;
+        activeAssistantMsgEl = null;
+        currentToolTreeEl = null;
         if (chatStatusBadge) chatStatusBadge.textContent = 'READY';
         addLog('Chat completion finished.');
         return;
