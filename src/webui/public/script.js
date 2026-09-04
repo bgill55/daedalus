@@ -402,11 +402,14 @@ async function loadChatHistory() {
     const res = await fetch('/api/history');
     if (!res.ok) return;
     const data = await res.json();
-    if (data.history && Array.isArray(data.history) && data.history.length > 0) {
-      chatMessages.innerHTML = '';
-      data.history.forEach(item => {
-        addChatMessage(item.role === 'assistant' ? 'assistant' : 'user', item.text);
-      });
+    if (data.history && Array.isArray(data.history)) {
+      const validHistory = data.history.filter(item => item.role === 'user' || item.role === 'assistant');
+      if (validHistory.length > 0) {
+        chatMessages.innerHTML = '';
+        validHistory.forEach(item => {
+          addChatMessage(item.role === 'assistant' ? 'assistant' : 'user', item.text);
+        });
+      }
     }
     historyLoaded = true;
   } catch {}

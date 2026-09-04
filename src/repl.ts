@@ -245,6 +245,7 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
     try {
       registerHistoryProvider(() => {
         return messages
+          .filter(m => m.role === 'user' || m.role === 'assistant')
           .map(m => ({
             role: m.role,
             text: typeof m.content === 'string' ? m.content : (Array.isArray(m.content) ? m.content.map(c => 'text' in c ? c.text : '').join(' ') : '')
