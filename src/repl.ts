@@ -450,7 +450,7 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
           }
 
           sessionManager.saveSessionState(messages, activeFiles, getSessionTodos(sessionId));
-          await extractAndSave(router, sessionManager, messages);
+          void extractAndSave(router, sessionManager, [...messages]).catch(() => {});
 
           // Mythic Engine: Background memory consolidation and skill synthesis
           try {
@@ -473,7 +473,7 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
             const fallbackResult = await callModelWithFallback(userContent, webOpts?.imageBase64);
             if (fallbackResult) {
               sessionManager.saveSessionState(messages, activeFiles, getSessionTodos(sessionId));
-              await extractAndSave(router, sessionManager, messages);
+              void extractAndSave(router, sessionManager, [...messages]).catch(() => {});
             }
           } catch (fallbackErr) {
             const firstLine = ((fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr)) || '').split('\n')[0];

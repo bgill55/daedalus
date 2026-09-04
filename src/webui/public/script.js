@@ -46,7 +46,7 @@ function renderMarkdown(text) {
   return escaped.replace(/\n/g, '<br>');
 }
 
-function addChatMessage(role, text, roleBadge = null, imageBase64 = null) {
+function addChatMessage(role, text, roleBadge = null, imageBase64 = null, timestamp = null) {
   if (!chatMessages) return;
   const msgEl = document.createElement('div');
   msgEl.className = `chat-msg ${role}`;
@@ -65,6 +65,12 @@ function addChatMessage(role, text, roleBadge = null, imageBase64 = null) {
     badge.textContent = roleBadge;
     header.appendChild(badge);
   }
+
+  const timeStr = new Date(timestamp || Date.now()).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  const timeSpan = document.createElement('span');
+  timeSpan.className = 'msg-timestamp';
+  timeSpan.textContent = timeStr;
+  header.appendChild(timeSpan);
 
   if (role === 'assistant') {
     const copyBtn = document.createElement('button');
@@ -544,7 +550,7 @@ async function loadChatHistory() {
       if (validHistory.length > 0) {
         chatMessages.innerHTML = '';
         validHistory.forEach(item => {
-          addChatMessage(item.role === 'assistant' ? 'assistant' : 'user', item.text);
+          addChatMessage(item.role === 'assistant' ? 'assistant' : 'user', item.text, null, null, item.timestamp);
         });
       }
     }
@@ -584,7 +590,7 @@ function connectSSE() {
         } else {
           removeThinkingSpinner();
           if (!activeAssistantBody) {
-            activeAssistantBody = addChatMessage('assistant', data.text || '', 'STREAM');
+            activeAssistantBody = addChatMessage('assistant', data.text || '', 'STREAM', null, data.timestamp);
           } else if (data.text) {
             const raw = (activeAssistantBody.dataset.raw || '') + data.text;
             activeAssistantBody.dataset.raw = raw;
@@ -622,7 +628,7 @@ function connectSSE() {
 
       if (data.type === 'chat_error') {
         removeThinkingSpinner();
-        addChatMessage('error', `Execution error: ${data.content}`);
+        addChatMessage('error', `Execution error: ${data.content}`, null, null, data.timestamp);
         if (chatStatusBadge) chatStatusBadge.textContent = 'ERROR';
         return;
       }
@@ -658,4 +664,10 @@ function connectSSE() {
 }
 
 connectSSE();
+
+setInterval(() => {
+  if (lastUpdateEl) {
+    lastUpdateEl.textContent = new Date().toLocaleTimeString();
+  }
+}, 1000);
 

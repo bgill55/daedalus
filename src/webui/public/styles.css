@@ -915,8 +915,16 @@ body {
   color: #c084fc;
 }
 
-.copy-btn {
+.msg-timestamp {
   margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-ancient);
+  letter-spacing: 0.5px;
+  opacity: 0.85;
+}
+
+.copy-btn {
   background: transparent;
   border: 1px solid var(--bronze-border);
   border-radius: 3px;
