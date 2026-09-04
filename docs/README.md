@@ -103,8 +103,10 @@ Daedalus provides a premium terminal-based user interface for orchestrating agen
 
 ---
 
-## System Architecture
+## System Architecture — The Developer Bible
 
-At its core, Daedalus coordinates specialized subagents through an embedded model router to solve coding tasks locally or via cloud models:
+At its core, Daedalus coordinates specialized divine agents through an embedded model router to solve coding tasks locally or via frontier cloud models:
 
-![Daedalus System Architecture](images/Daedalus_AI_Coding_Architect_Overview.png)
+<p align="center">
+  <img src="images/Daedalus_Developer_Bible_Architecture_Guide.png" alt="Daedalus: The Local-First Developer Bible Architecture Guide" width="100%" />
+</p>
