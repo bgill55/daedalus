@@ -4,6 +4,7 @@ import type { ToolCall } from './types.js';
 import { TOOL_IMPLEMENTATIONS } from './tools/definitions.js';
 import { setTheme, brand, rule, dim, info, ok, warn, err } from './ui/theme.js';
 import { globalSessionStats } from './session/analytics.js';
+import { loadProfile } from './profile.js';
 
 export const termW = Math.max(50, (process.stdout.columns ?? 80) - 5);
 
@@ -68,7 +69,7 @@ function wrapLine(line: string, maxW: number): string[] {
 
 // ── User message ───────────────────────────────────────────────
 
-export function printUserTurn(userMessage: string): void {
+export function printUserTurn(userMessage: string, userName?: string): void {
   const isTui = globalThis.isTui;
   const cols = process.stdout.columns ?? 80;
   const targetWidth = isTui
@@ -80,8 +81,11 @@ export function printUserTurn(userMessage: string): void {
   for (const line of lines) wrapped.push(...wrapLine(line, targetWidth));
 
   const lineLen = Math.max(20, Math.min(70, cols - 6));
+  const rawName = userName?.trim() || loadProfile()?.name?.trim() || 'You';
+  const label = rawName;
+  const fillLen = Math.max(10, lineLen - (label.length + 4));
 
-  console.log(`\n  ${pc.bold(ok('─ You ─'))} ${dim('─'.repeat(Math.max(10, lineLen - 7)))}`);
+  console.log(`\n  ${pc.bold(ok(`─ ${label} ─`))} ${dim('─'.repeat(fillLen))}`);
   for (const part of wrapped) {
     console.log(`  ${pc.whiteBright(part)}`);
   }

@@ -6,6 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { TelemetryData } from '../types.js';
 import type { WebuiChatMessageEvent, WebuiChatRequest, FileNode } from './types.js';
+import { loadProfile } from '../profile.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -462,6 +463,13 @@ export function handleRequest(req: IncomingMessage, res: ServerResponse): void {
       const availableModels = activeModelProvider ? activeModelProvider.getAvailableModels() : [];
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ activeModel, availableModels }));
+      return;
+    }
+
+    if (req.method === 'GET' && req.url === '/api/profile') {
+      const profile = loadProfile();
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ name: profile.name || '', bio: profile.bio || '', style: profile.style || '' }));
       return;
     }
 

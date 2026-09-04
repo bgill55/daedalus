@@ -481,7 +481,7 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
           const indexCtx = await buildIndexContext(activePrompt);
           const todoCtx = buildTodoContext(sessionId);
           const userContent = `${indexCtx}${todoCtx}${filesContext}User Prompt: ${activePrompt}`;
-          printUserTurn(activePrompt);
+          printUserTurn(activePrompt, userProfile?.name);
           if (messages.length > 0 && messages[0].role === 'system') {
             messages[0] = { role: 'system', content: await getSystemPromptWithMemory(activePrompt) };
           }

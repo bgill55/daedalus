@@ -173,6 +173,7 @@ function attachCliFooter(msgEl, modelName, toolCount, durationMs, tokenCount) {
   msgEl.appendChild(footer);
 }
 
+let userProfileName = 'YOU';
 let activeAssistantBody = null;
 let activeAssistantMsgEl = null;
 let thinkingEl = null;
@@ -191,7 +192,7 @@ function addChatMessage(role, text, roleBadge = null, imageBase64 = null, timest
   
   const sender = document.createElement('span');
   sender.className = 'sender';
-  sender.textContent = role === 'user' ? 'YOU' : 'DAEDALUS';
+  sender.textContent = role === 'user' ? userProfileName : 'DAEDALUS';
   header.appendChild(sender);
   
   if (roleBadge) {
@@ -1216,8 +1217,23 @@ if (modelModal) {
   });
 }
 
+async function loadUserProfile() {
+  try {
+    const res = await fetch('/api/profile');
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.name && data.name.trim()) {
+      userProfileName = data.name.trim().toUpperCase();
+      document.querySelectorAll('.chat-msg.user .sender').forEach(el => {
+        el.textContent = userProfileName;
+      });
+    }
+  } catch {}
+}
+
 connectSSE();
 loadModels();
+loadUserProfile();
 
 setInterval(() => {
   if (lastUpdateEl) {
