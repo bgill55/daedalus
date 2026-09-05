@@ -1,3 +1,10 @@
+## [3.78.1](https://github.com/bgill55/daedalus/compare/v3.78.0...v3.78.1) (2026-09-05)
+
+
+### Bug Fixes
+
+* **webui:** resolve sidebar tab text clipping with responsive scrollable tab strip ([e5c5ccc](https://github.com/bgill55/daedalus/commit/e5c5cccb4d028bd72ac1d1a134958fae4b820ceb))
+
 # [3.78.0](https://github.com/bgill55/daedalus/compare/v3.77.0...v3.78.0) (2026-09-05)
 
 
