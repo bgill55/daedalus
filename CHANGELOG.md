@@ -1,3 +1,10 @@
+# [3.78.0](https://github.com/bgill55/daedalus/compare/v3.77.0...v3.78.0) (2026-09-05)
+
+
+### Features
+
+* **webui:** add real-time Git Diff visualization and enhanced browse_page browser automation ([06c1f15](https://github.com/bgill55/daedalus/commit/06c1f15610d38a982c79dc8e48c37f1a7f4fa3b5))
+
 # [3.77.0](https://github.com/bgill55/daedalus/compare/v3.76.1...v3.77.0) (2026-09-05)
 
 
