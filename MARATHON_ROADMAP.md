@@ -1,10 +1,10 @@
 # Marathon Roadmap: Transform the Daedalus WebUI in src/webui/public/ into a sovereign mobile-first PWA companion with installable manifest, service worker caching, touch-optimized responsive layout, QR code pairing for local/Tailscale networks, and milestone push notifications.
 
-- **Status**: `EVALUATING`
-- **Progress**: 7/8 milestones passed (88%)
+- **Status**: `COMPLETED`
+- **Progress**: 8/8 milestones passed (100%)
 - **Base Branch**: `main`
 - **Integration Branch**: `marathon/transform-the-daedalus-webui-i`
-- **Last Updated**: 2026-09-05T04:05:15.128Z
+- **Last Updated**: 2026-09-05T04:05:54.734Z
 
 ## Milestones
 
@@ -103,16 +103,17 @@ Create a WebSocket server that pushes milestone events to connected clients and 
 - [x] Browser prompts for notification permission on first receipt
 - [x] Automated integration test confirms a test message sent from server appears as a notification in the client mock
 
-### [>] M-8: PWA install prompt handling and UI cue
+### [x] M-8: PWA install prompt handling and UI cue
 
 Detect the `beforeinstallprompt` event, show a custom install banner, and trigger the native install flow when the user accepts.
 
 - **Target Files**: `src/webui/public/index.html`, `src/webui/public/script.js`
+- **Git Tag**: `daedalus-checkpoint/m-8`
 - **Attempts**: 3/3
 
 **Acceptance Criteria:**
-- [ ] script.js listens for `beforeinstallprompt` and stores the event
-- [ ] A visible install banner appears on mobile after the event is captured
-- [ ] Clicking the banner calls `prompt()` on the stored event and handles the user choice
-- [ ] Successful install logs a confirmation and the banner disappears
-- [ ] E2E test simulates the event and verifies banner visibility and prompt call
+- [x] script.js listens for `beforeinstallprompt` and stores the event
+- [x] A visible install banner appears on mobile after the event is captured
+- [x] Clicking the banner calls `prompt()` on the stored event and handles the user choice
+- [x] Successful install logs a confirmation and the banner disappears
+- [x] E2E test simulates the event and verifies banner visibility and prompt call

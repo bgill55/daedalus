@@ -1261,10 +1261,19 @@ const qrModalClose = document.getElementById('qr-modal-close');
 const qrImage = document.getElementById('qr-image');
 const qrWsUrl = document.getElementById('qr-ws-url');
 
-function openQrModal() {
+async function openQrModal() {
   if (qrModal) {
     qrModal.classList.remove('hidden');
-    const webUrl = window.location.origin;
+    let webUrl = window.location.origin;
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      try {
+        const res = await fetch('/api/pairing-url');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.url) webUrl = data.url;
+        }
+      } catch {}
+    }
     if (qrWsUrl) {
       qrWsUrl.textContent = webUrl;
     }

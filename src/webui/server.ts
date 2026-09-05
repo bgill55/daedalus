@@ -7,14 +7,14 @@ import { fileURLToPath } from 'node:url';
 import type { TelemetryData } from '../types.js';
 import type { WebuiChatMessageEvent, WebuiChatRequest, FileNode } from './types.js';
 import { loadProfile } from '../profile.js';
-import { generateQrCode, getWebSocketUrl } from './qr.js';
+import { generateQrCode, getWebSocketUrl, getWebPairingUrl } from './qr.js';
 import { startWebSocketServer, broadcastMilestone, closeWebSocketServer } from './ws.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const PORT = 3888;
-const HOST = '127.0.0.1';
+const HOST = '0.0.0.0';
 
 let telemetryIntervalMs = 1000;
 
@@ -522,9 +522,16 @@ export function handleRequest(req: IncomingMessage, res: ServerResponse): void {
       return;
     }
 
+    if (req.method === 'GET' && pathname === '/api/pairing-url') {
+      const url = getWebPairingUrl(HOST, PORT);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ url }));
+      return;
+    }
+
     if (req.method === 'GET' && pathname === '/api/qr') {
       const customUrl = parsedUrl.searchParams.get('url');
-      const targetUrl = customUrl || getWebSocketUrl(HOST, PORT);
+      const targetUrl = customUrl || getWebPairingUrl(HOST, PORT);
       generateQrCode(targetUrl)
         .then(buf => {
           res.writeHead(200, {
