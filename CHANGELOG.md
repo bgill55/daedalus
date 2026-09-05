@@ -1,3 +1,10 @@
+# [3.77.0](https://github.com/bgill55/daedalus/compare/v3.76.1...v3.77.0) (2026-09-05)
+
+
+### Features
+
+* **agent:** synchronize large-file, CSS, and client-server guardrails to single-agent system prompt ([9ba6cdf](https://github.com/bgill55/daedalus/commit/9ba6cdf13effb1321fdd18775cb22497e687b5a9))
+
 ## [3.76.1](https://github.com/bgill55/daedalus/compare/v3.76.0...v3.76.1) (2026-09-05)
 
 
