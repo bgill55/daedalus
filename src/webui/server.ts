@@ -315,7 +315,15 @@ export function handleRequest(req: IncomingMessage, res: ServerResponse): void {
       return;
     }
 
-    if (req.method === 'GET' && (req.url === '/styles.css' || req.url === '/script.js' || req.url === '/marked.min.js' || req.url === '/favicon.svg' || req.url === '/favicon.ico')) {
+    if (req.method === 'GET' && (
+      req.url === '/styles.css' ||
+      req.url === '/script.js' ||
+      req.url === '/marked.min.js' ||
+      req.url === '/favicon.svg' ||
+      req.url === '/favicon.ico' ||
+      req.url === '/sw.js' ||
+      req.url === '/manifest.json'
+    )) {
       const filename = req.url.slice(1);
       const assetPath = resolvePublicAsset(filename);
       if (assetPath) {
@@ -324,6 +332,8 @@ export function handleRequest(req: IncomingMessage, res: ServerResponse): void {
           '.js': 'application/javascript; charset=utf-8',
           '.svg': 'image/svg+xml; charset=utf-8',
           '.ico': 'image/x-icon',
+          '.json': 'application/manifest+json; charset=utf-8',
+          '.webmanifest': 'application/manifest+json; charset=utf-8',
         };
         const ext = path.extname(assetPath);
         res.writeHead(200, { 'Content-Type': mimeTypes[ext] || 'application/octet-stream' });

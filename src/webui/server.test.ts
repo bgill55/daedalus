@@ -54,7 +54,7 @@ describe('WebUI Server', () => {
     });
   });
 
-  describe('GET /favicon.svg and /favicon.ico', () => {
+  describe('GET /favicon.svg, /favicon.ico, /sw.js, and /manifest.json', () => {
     it('should serve favicon.svg with image/svg+xml header', () => {
       mockReq.url = '/favicon.svg';
       vi.mocked(fs.readFileSync).mockReturnValue('<svg>icon</svg>');
@@ -71,6 +71,24 @@ describe('WebUI Server', () => {
 
       expect(writeHeadSpy).toHaveBeenCalledWith(200, { 'Content-Type': 'image/x-icon' });
       expect(endSpy).toHaveBeenCalledWith('<svg>icon</svg>');
+    });
+
+    it('should serve /sw.js with application/javascript header', () => {
+      mockReq.url = '/sw.js';
+      vi.mocked(fs.readFileSync).mockReturnValue('// sw code');
+      handleRequest(mockReq as IncomingMessage, mockRes as ServerResponse);
+
+      expect(writeHeadSpy).toHaveBeenCalledWith(200, { 'Content-Type': 'application/javascript; charset=utf-8' });
+      expect(endSpy).toHaveBeenCalledWith('// sw code');
+    });
+
+    it('should serve /manifest.json with application/manifest+json header', () => {
+      mockReq.url = '/manifest.json';
+      vi.mocked(fs.readFileSync).mockReturnValue('{"name":"Daedalus"}');
+      handleRequest(mockReq as IncomingMessage, mockRes as ServerResponse);
+
+      expect(writeHeadSpy).toHaveBeenCalledWith(200, { 'Content-Type': 'application/manifest+json; charset=utf-8' });
+      expect(endSpy).toHaveBeenCalledWith('{"name":"Daedalus"}');
     });
   });
 

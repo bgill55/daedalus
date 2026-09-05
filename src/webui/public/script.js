@@ -1,68 +1,36 @@
 // Service worker registration
 if ('serviceWorker' in navigator) {
-  const registrationPromise = navigator.serviceWorker.register('/sw.js')
+  navigator.serviceWorker.register('/sw.js')
     .then(registration => {
       console.log('[script.js] Service worker registered successfully:', registration);
-      // Add a visual indicator for service worker status
-      const statusEl = document.getElementById('connection-status');
-      if (statusEl) {
-        statusEl.textContent = '● SERVICE WORKER ACTIVE';
-        statusEl.className = 'status connected';
-      }
-      return registration;
+      
+      registration.addEventListener('updatefound', () => {
+        console.log('[script.js] Service worker update found');
+        const newWorker = registration.installing;
+        if (newWorker) {
+          newWorker.addEventListener('statechange', event => {
+            if (event.target.state === 'installed') {
+              if (navigator.serviceWorker.controller) {
+                console.log('[script.js] New service worker installed, page will reload on next navigation');
+                addLog('Service worker update available. Page will reload on next visit.');
+              }
+            }
+          });
+        }
+      });
     })
     .catch(error => {
-      console.error('[script.js] Service worker registration failed:', error);
-      // Add a visual indicator for service worker failure
-      const statusEl = document.getElementById('connection-status');
-      if (statusEl) {
-        statusEl.textContent = '● SERVICE WORKER FAILED';
-        statusEl.className = 'status disconnected';
-      }
-      throw error;
+      console.warn('[script.js] Service worker registration failed:', error);
     });
 
-  // Listen for service worker updates
-  registrationPromise.then(registration => {
-    if (!registration) return;
-    
-    registration.addEventListener('updatefound', () => {
-      console.log('[script.js] Service worker update found');
-      const newWorker = registration.installing;
-      if (newWorker) {
-        newWorker.addEventListener('statechange', event => {
-          if (event.target.state === 'installed') {
-            if (navigator.serviceWorker.controller) {
-              console.log('[script.js] New service worker installed, page will reload on next navigation');
-              // Optionally show a notification to the user
-              addLog('Service worker update available. Page will reload on next visit.');
-            }
-          }
-        });
-      }
-    });
-
-    // Check for controller changes (when a new worker takes over)
-    let refreshing = false;
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (!refreshing) {
-        refreshing = true;
-        console.log('[script.js] Service worker controller changed, reloading page');
-        window.location.reload();
-      }
-    });
-  });
-
-  // Check service worker status periodically
-  setInterval(() => {
-    if (navigator.serviceWorker.controller) {
-      const statusEl = document.getElementById('connection-status');
-      if (statusEl && !statusEl.textContent.includes('SERVICE WORKER')) {
-        statusEl.textContent = '● SERVICE WORKER ACTIVE';
-        statusEl.className = 'status connected';
-      }
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!refreshing) {
+      refreshing = true;
+      console.log('[script.js] Service worker controller changed, reloading page');
+      window.location.reload();
     }
-  }, 5000);
+  });
 }
 
 const statusEl = document.getElementById('connection-status');
