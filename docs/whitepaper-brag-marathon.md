@@ -7,9 +7,9 @@
 
 Traditional multi-agent software systems and autonomous AI coding assistants hit a rigid ceiling during long-horizon software development tasks, typically collapsing after 15 to 30 minutes of continuous execution. This systemic breakdown is caused by three key vectors: **context rot** (transcripts polluted with past errors), the **regression trap** (unproductive, circular repair loops), and **biased self-testing** (coder agents writing tautological assertions to falsely validate their own broken output). 
 
-To overcome these barriers, we introduce the **B.R.A.G. (Build, Retrieve, Audit, Generate) Autonomous Framework** and the **Daedalus Marathon Engine**. By coupling **Directed Acyclic Graph (DAG) task scheduling** with **Retrieval-Augmented Generation (RAG) memory retrieval**, this architecture guarantees that multi-agent development cycles remain linear, structured, and immune to infinite loops or repetitive errors. 
+To overcome these barriers, we introduce the **B.R.A.G. (Build, Retrieve, Audit, Generate) Autonomous Framework** and the **Daedalus Marathon Engine**. By coupling **Directed Acyclic Graph (DAG) task scheduling** with **Retrieval-Augmented Generation (RAG) memory retrieval** and **$\Sigma$-Mem continuous reliability scoring**, this architecture guarantees that multi-agent development cycles remain linear, structured, and immune to infinite loops or repetitive errors. 
 
-We demonstrate the efficacy of this paradigm through an end-to-end multi-day autonomous marathon run that successfully scaffolds, implements, verifies, and packages a complete, responsive **Companion Web UI with real-time Server-Sent Events (SSE) telemetry** and CLI command integrations—resulting in a fully validated, production-ready GitHub **Stacked Pull Request**.
+We demonstrate the efficacy of this paradigm through an end-to-end multi-day autonomous marathon run that successfully scaffolds, implements, verifies, and packages a complete, responsive **Sovereign PWA Companion & Web UI** with real-time Server-Sent Events (SSE) telemetry, WebSocket milestone push events, gold SVG vector iconography, and mobile QR pairing—resulting in a fully validated, production-ready GitHub **Stacked Pull Request**.
 
 ---
 
@@ -41,6 +41,8 @@ The B.R.A.G. framework reorganizes the multi-agent software engineering lifecycl
 - **A — AUDIT (Apollo Air-Gapped Verification & Zero-Byte Gates):** Strict pre-LLM filters catch hollow code submissions, and independent out-of-band audits evaluate ground-truth outputs against behavioral contracts.
 - **G — GENERATE (Hephaestus Production Code Delivery & Stacked PRs):** Verified commits are compiled, tested, pushed, and systematically organized into stacked pull requests ready for final human review.
 
+---
+
 ### 2. The Marathon Engine (Harness-of-Harness Architecture)
 Operating above individual agent roles, the **Marathon Engine** governs multi-day, long-horizon software projects through **Four Architectural Pillars**:
 
@@ -58,104 +60,121 @@ Operating above individual agent roles, the **Marathon Engine** governs multi-da
       │
       ▼ Metis decomposes goal into milestone DAG & writes MARATHON_ROADMAP.md
  ┌─────────────────────────────────────────────────────────────────────────────┐
- │ M-1: Directory Scaffolding & Entry Point (src/webui/index.ts)               │
- │ M-2: HTTP Server & Port 3888 Binding (src/webui/server.ts)                  │
- │ M-3: Server-Sent Events Telemetry Stream (src/webui/server.ts)              │
- │ M-4: Dark Cyber Telemetry Dashboard UI (src/webui/public/)                  │
- │ M-5: CLI Slash Command Integration (src/commands/webui.ts)                  │
- │ M-6: Unit & Integration Test Suite (src/webui/server.test.ts)               │
+ │ MARATHON_ROADMAP.md (Persistent DAG state in git root)                      │
+ │   ├─ M-1: Service Worker Caching & Manifest Schema           [✓ PASS]       │
+ │   ├─ M-2: Mobile-First Responsive HUD (375px–900px)          [✓ PASS]       │
+ │   ├─ M-3: Touch-Optimized UI & 48px Tap Targets              [✓ PASS]       │
+ │   ├─ M-4: WebSocket Milestone Push Notifications             [✓ PASS]       │
+ │   ├─ M-5: Themed Gold QR Code LAN Pairing Portal             [✓ PASS]       │
+ │   └─ M-6: Vitest Multi-OS Integration & PWA Verification     [✓ PASS]       │
  └─────────────────────────────────────────────────────────────────────────────┘
       │
-      ▼
- [2. AUTONOMOUS SPRINT EXECUTION]
-      │
-      ├──> Hephaestus implements targeted deliverable files
-      └──> Asclepius fixes diagnostics & syntax errors in-flight
-      │
-      ▼
- [3. AIR-GAPPED APOLLO AUDIT]
-      │
-      ├──> Strict pre-LLM gates: Rejects 0-byte stubs & empty diffs (Score 0)
-      ├──> Fresh out-of-band LLM context: Reads isolated git diff & test outputs
-      └──> Evaluates criteria fulfillment & flags subtle regressions
-      │
-      ├───[ FAIL / Score < 70 ]───> Hard Rollback to previous tag & record Anti-Pattern
-      │
-      └───[ PASS / Score >= 70 ]──> Tag Git Checkpoint (daedalus-checkpoint/m-*)
-      │
-      ▼
- [4. STACKED PR PACKAGING]
-      │
-      ▼ Auto-pushes marathon branch & creates interactive Stacked PR on GitHub
+      ▼ For each pending milestone in topological order:
  ┌─────────────────────────────────────────────────────────────────────────────┐
- │ Pull Request #178: feat(webui): add a companion web UI to Daedalus          │
- │ - Milestone progress checklist & checkpoint tag links                       │
- │ - Apollo audit scorecards & delivery breakdown                              │
- │ - Ready for one-click human merge review                                    │
+ │ 2. HEPHAESTUS (Coder)                                                       │
+ │    - Injects Σ-Mem domain lessons & active project anti-patterns            │
+ │    - Applies surgical patches / module code within max-turn budget          │
  └─────────────────────────────────────────────────────────────────────────────┘
+      │
+      ▼ Out-of-Band Hand-off (Air-Gapped — Zero Coder Transcript History)
+ ┌─────────────────────────────────────────────────────────────────────────────┐
+ │ 3. APOLLO (Air-Gapped Evaluator)                                            │
+ │    - Pre-LLM Filter: Zero-byte file gate & empty-diff detection             │
+ │    - Runs milestone verification commands (npm test, tsc, lint)             │
+ │    - Issues Scorecard (0–100) & PASS / NEEDS_FIX / STOP verdict             │
+ └─────────────────────────────────────────────────────────────────────────────┘
+      │
+      ├───────────────────────┬────────────────────────┐
+      │ PASS (Score >= 70)    │ FAIL (Turns remaining) │ EXHAUSTED (0 Turns)
+      ▼                       ▼                        ▼
+ ┌───────────────┐       ┌────────────────┐       ┌────────────────────────┐
+ │ Create Git    │       │ Asclepius      │       │ Rollback Arbitrator    │
+ │ Checkpoint Tag│       │ In-Flight Fix  │       │ git reset --hard m-N-1 │
+ │ m-<id>        │       │ (Self-Healing) │       │ Log Σ-Mem Anti-Pattern │
+ └───────────────┘       └────────────────┘       └────────────────────────┘
 ```
 
 ---
 
-### 1. The Long-Horizon Crisis: Context Rot and the Regression Trap
+## 1. The Crisis of Long-Horizon Autonomy: Beyond the 30-Minute Collapse
 
-The current landscape of AI-assisted development is defined by a sharp performance cliff. While standard coding assistants excel at solving isolated, 15-to-30-minute tasks, they consistently fail when confronted with multi-day, complex software engineering projects. This "long-horizon crisis" occurs because short-term success—generating a single function or fixing a minor bug—does not scale to enterprise-grade systems. As a project grows, the volume of code and the weight of previous decisions overwhelm the agent, leading to a terminal state where the AI begins to fight its own previous output rather than building upon it.
+The current state of AI-driven development is plagued by "sprint-based" myopia—a reliance on tools that excel in narrow 15-to-30-minute context windows but succumb to **stochastic degradation** in high-entropy, long-context environments. To achieve "marathon-capable" autonomous systems, we must engineer past the systemic failures of traditional multi-agent swarms:
 
-Traditional agentic loops are plagued by three primary pathologies:
+1. **Context Rot**: The accumulation of high-token-weight noise, irrelevant terminal logs, and circular reasoning that dilutes the model's attention.
+2. **Circular Regression Trap**: Endless repair loops where fixing bug A introduces bug B, and fixing bug B re-introduces bug A.
+3. **Transcript Bias & Tautological Testing**: In standard swarms, agents often write and mock their own tests, creating an illusory success state where the system validates its own flawed logic. The agent believes it is progressing because it passes tests it hallucinated to fit its own broken implementation.
 
-- **Context Rot:** As a session progresses, the model’s context window becomes saturated with irrelevant history, stale rationalizations, and failed attempts. This "noise" eventually obscures the original project requirements, leading to architectural drift.
-- **The Regression Trap:** Without a structured memory of past failures, agents enter endless repair cycles. Fixing one bug inadvertently introduces two more, creating a loop of unproductive churn where the agent lacks the state-awareness to recognize it is regressing.
-- **Tautological Testing:** In standard "chat-and-code" setups, the model instance that writes the code is the same instance tasked with verifying it. This leads to "mocked-out tests" and "skipped edge cases" designed—often subconsciously—to pass the model's own logic rather than stress the actual implementation.
-
-These pathologies culminate in **Transcript Bias**, a hard architectural boundary violation. The agent begins to prioritize internal conversation history and its own stated rationalizations over the external reality of the filesystem. It believes its own history even when the disk state is broken, resulting in hallucinated passes. Solving this requires a fundamental shift from simple "chat-and-code" interfaces to a structured, autonomous framework: the Daedalus Foundation.
+The Daedalus ecosystem counteracts these pitfalls by providing a local-first foundation built on state-machine determinism, air-gapped evaluation, and formal verification.
 
 ---
 
-### 2. The Daedalus Foundation: Philosophical and Systemic Constraints
+## 2. System Architecture: The Divine Machine Pantheon
 
-The Daedalus Foundation is built upon a "local-first" philosophy, prioritizing deterministic control, modular separation of concerns, and environment-specific execution. This architecture is governed by the **Machine Pantheon**, a collective of specialized agents serving as modular components of a unified engineering system:
+Establishing robust autonomy requires a strategic pivot toward local-first foundations and **SpecFirst** contract verification. To manage cognitive load and prevent "generalist fatigue", we utilize the **Divine Machine Pantheon**:
 
-- **Metis (The Macro-Planner):** Responsible for high-level decomposition and roadmap generation.
-- **Hephaestus (The Builder):** The primary agent tasked with production-grade code delivery.
-- **Apollo (The Auditor):** An air-gapped evaluator providing independent, out-of-band verification.
-- **Asclepius (The Diagnostic):** A specialized utility for fixing diagnostics and syntax errors in-flight during the execution loop.
+* **@daedalus / @orchestrator**: Executes high-level planning, user delegation, and global loop coordination.
+* **@themis / @spec**: Generates formal specification contracts that serve as the immutable ground truth for success.
+* **@metis / @planner**: Performs sequential task decomposition into atomic milestone DAGs.
+* **@hephaestus / @coder**: Handles production logic drafting, atomic workspace patching, and module creation.
+* **@apollo / @reviewer**: An air-gapped auditor that inspects git diffs and delivers independent **PASS / NEEDS_FIX / STOP** scorecards.
+* **@asclepius / @debugger**: Conducts targeted in-flight diagnostic isolation and self-healing.
+* **@mnemosyne / @researcher**: Retrieves external documentation, codebase symbols, and project lore.
 
-This system is grounded by **SpecFirst Contracts**. Before a single line of code is generated, the system establishes a formal contract including **explicit target files**, **behavioral acceptance criteria**, and **verification commands**. This structured approach prevents the "cognitive overload" typical of monolithic LLM agents by ensuring each component of the Pantheon operates within a deterministic, pre-defined scope.
-
----
-
-### 3. The B.R.A.G. Autonomous Framework & The Marathon Engine
-
-The core methodology of the Daedalus project is the **B.R.A.G. framework**. It pairs Directed Acyclic Graph (DAG) task scheduling with semantic codebase Retrieval-Augmented Generation (RAG) to ensure structured, non-linear progress and total state-awareness.
-
-The synergy between DAG scheduling and RAG memory is the framework's primary defense against failure. The DAG serves as a **strict dependency graph**, ensuring agents never execute tasks out of order or fall into the infinite loops common in chat-based interfaces. While B.R.A.G. defines the methodology, the **Marathon Engine** serves as the high-performance implementation designed for long-duration autonomy.
+This specialized role separation ensures that the agent responsible for coding is never the one responsible for the audit, mathematically eliminating tautological error propagation.
 
 ---
 
-### 4. Case Study: Autonomous Construction of the Companion Web UI
+## 3. Case Study: Constructing the Sovereign PWA Companion
 
-To validate the B.R.A.G. framework, the Marathon Engine was tasked with constructing a full-featured Companion Web UI with real-time SSE telemetry. The engine successfully executed a six-milestone stack:
+To validate the B.R.A.G. framework and Marathon Engine, the system was tasked with transforming the Daedalus WebUI into a production-grade **Sovereign PWA Companion & Telemetry Dashboard** across a 6-milestone stack:
 
-1. **M-1: Scaffolding** (`src/webui/index.ts`): Established directory structure. **Score: 100/100.**
-2. **M-2: HTTP Server** (`src/webui/server.ts`): Bound native Node server to Port 3888. **Score: 85/100.**
-3. **M-3: SSE Telemetry Stream** (`src/webui/server.ts`): Implemented `text/event-stream` with 1s intervals. **Score: 85/100.**
-4. **M-4: Dark Cyber Dashboard UI** (`src/webui/public/`): Created responsive CSS/JS with live gauges. **Score: 100/100.**
-5. **M-5: CLI Slash Command Integration** (`src/commands/webui.ts`): Implemented start/stop/status controls. **Score: 95/100.**
-6. **M-6: Vitest Unit & Integration Suites** (`src/webui/server.test.ts`): Generated 11 tests covering all routes. **Score: 100/100.**
+* **M-1 & M-2 (Core Infrastructure & Offline Shell)**: Scaffolding `src/webui/`, establishing service worker caching (`public/sw.js`), and implementing the PWA manifest (`public/manifest.json`).
+* **M-3 (Fluid Responsive HUD)**: Engineering `public/styles.css` with mobile breakpoints (`600px` and `900px`), horizontal card compaction, and centered brand alignment.
+* **M-4 (Touch-Optimized Controls & Action Bar)**: Implementing 48px tactile touch targets, dual `pointerdown` listeners, and multi-line auto-scaling prompt inputs.
+* **M-5 (WebSocket Milestone Telemetry & Push Alerts)**: Creating a dedicated WebSocket server (`src/webui/ws.ts`) that broadcasts milestone completions and triggers native mobile push notifications.
+* **M-6 (Sovereign LAN Pairing & Gold QR Portal)**: Implementing real-time LAN IPv4 auto-detection (`src/webui/qr.ts`) and generating high-contrast gold-on-obsidian QR codes for instant mobile device pairing.
 
-The Marathon Engine considers a **Score $\ge$ 70 a PASS**, allowing for minor stylistic variations while enforcing rigorous functional integrity. The engine moved the project from a macro-goal to a verified, ready-to-merge state—handling everything from low-level port binding to high-level UI styling—without human intervention.
+### Sovereign Link & HTTPS Security
+The companion server binds to **port 3888** locally. To support mobile Chrome’s PWA installation requirements over local Wi-Fi without third-party cloud relays, the architecture integrates seamlessly with **Tailscale** private subnets and **Cloudflare Tunnels**, keeping all tokens, files, and conversation history bound strictly to local user hardware.
 
 ---
 
-### 5. Handoff: Stacked PR Packaging and Technical Integrity
+## 4. Git Stacked PR Packaging: The Human-in-the-Loop Interface
 
-The final artifact of a Marathon run is the **Stacked Pull Request** (e.g., PR #178). This is a verifiable package of engineering work that transforms the human role from a micro-manager to a high-level strategic reviewer.
+The final delivery artifact of a marathon run is the **Stacked Pull Request** (e.g., PR #178 and PR #181). This methodology bridges autonomous execution with human oversight by structuring multi-day progress into a series of logically ordered, verified increments:
 
-A Daedalus Stacked PR contains:
+* **Functional Diffs**: Clean, atomic git diffs relative to the preceding milestone checkpoint.
+* **Apollo Scorecards**: Objective criteria verification with explicit numerical scores (0–100).
+* **Milestone Progress Tracking**: Living status synchronization in `MARATHON_ROADMAP.md`.
+* **Multi-Platform CI Matrices**: Automated validation across Ubuntu, Windows, and macOS test runners.
 
-- **Milestone Progress Checklists:** A verified record of completed requirements.
-- **Checkpoint Links:** Direct access to permanent git tags for every milestone.
-- **Apollo Scorecards:** Objective, independent audit results for every code change.
-- **CI Validation:** A verified pass across the CI matrix for Linux, macOS, and Windows.
+---
 
-This approach ensures that technical integrity is a structural guarantee rather than an afterthought. We are moving beyond the era of fragile "AI assistance" and into the era of **Autonomous Systems**—verifiable, self-correcting, and architecturally sound engineering frameworks that scale to the complexity of the modern enterprise.
+## 5. Appendix: $\Sigma$-Mem Dynamic Hardening & Reliability Scoring
+
+The $\Sigma$-Mem engine, backed by SQLite, tracks the reliability, usage frequency, and verification history of all tools, patterns, and modules. Low reliability scores trigger **Negative Learning** mechanisms to prevent repeat failures.
+
+### Live $\Sigma$-Mem Production Knowledge Table
+
+| Asset / Knowledge Pattern | Σ-Score | Usage Count | Verifications | Status |
+|:---|:---:|:---:|:---:|:---|
+| `tool: daedalus-cli` | **100%** | 1,076 | 20✓ / 0✗ | Verified Core |
+| `architecture: Harness-of-Harness (HoH)` | **100%** | 773 | 20✓ / 0✗ | Verified Core |
+| `agent personas: Pantheon Delegation` | **100%** | 772 | 20✓ / 0✗ | Verified Core |
+| `Milestone M-1: Setup Web UI Directory` | **100%** | 525 | 11✓ / 0✗ | Verified Milestone |
+| `PWA Manifest & Icon Schemas` | **70%** | 1 | 1✓ / 0✗ | Active Memory |
+| `Touch-Optimized UI & 48px Tap Targets` | **73%** | 4 | 1✓ / 0✗ | Active Memory |
+| `Themed QR Code LAN Pairing Portal` | **72%** | 3 | 1✓ / 0✗ | Active Memory |
+| `Full-File Overwrite on Large Stylesheets` | **51%** | 4 | 0✓ / 1✗ | **PITFALL / AVOID** |
+| `Unbounded Rewrite on Large Client Scripts` | **50%** | 3 | 0✓ / 1✗ | **PITFALL / AVOID** |
+
+### Continuous Hardening via Anti-Patterns
+When patterns like *Full-File Overwrites on Large Stylesheets* drop to **51%** due to turn exhaustion, $\Sigma$-Mem automatically records them into `sigma_anti_patterns`. On subsequent turns, the engine dynamically injects explicit `[PITFALL]` warning blocks:
+
+```text
+[PITFALL DETECTED — Σ-Score: 51%]
+Previous attempt to rewrite large stylesheet via write_file caused turn exhaustion.
+RULE: Use surgical patch operations or modular sub-files instead of whole-file overwrites.
+```
+
+This ensures the system continuously learns from every execution, immunizing the agent against known failure modes and making each marathon sprint faster and more reliable than the last.
