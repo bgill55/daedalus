@@ -1,10 +1,10 @@
 # Marathon Roadmap: Transform the Daedalus WebUI in src/webui/public/ into a sovereign mobile-first PWA companion with installable manifest, service worker caching, touch-optimized responsive layout, QR code pairing for local/Tailscale networks, and milestone push notifications.
 
 - **Status**: `EVALUATING`
-- **Progress**: 3/8 milestones passed (38%)
+- **Progress**: 4/8 milestones passed (50%)
 - **Base Branch**: `main`
 - **Integration Branch**: `marathon/transform-the-daedalus-webui-i`
-- **Last Updated**: 2026-09-05T03:13:45.397Z
+- **Last Updated**: 2026-09-05T03:21:09.719Z
 
 ## Milestones
 
@@ -47,25 +47,26 @@ Introduce responsive breakpoints and fluid layout in styles.css to make the UI a
 - [x] All UI elements reflow without horizontal scroll on a 375 px viewport
 - [x] Visual regression test confirms layout matches expected screenshots on mobile and desktop
 
-### [>] M-4: Touch‑optimized UI components
+### [x] M-4: Touch‑optimized UI components
 
 Increase tap target sizes, add hover‑fallbacks, and ensure interactive elements are keyboard accessible.
 
 - **Target Files**: `src/webui/public/index.html`, `src/webui/public/script.js`
+- **Git Tag**: `daedalus-checkpoint/m-4`
 - **Attempts**: 1/3
 
 **Acceptance Criteria:**
-- [ ] Buttons and links have a minimum 48 px height/width
-- [ ] CSS adds `touch-action: manipulation` where appropriate
-- [ ] Script.js adds `pointerdown` listeners in addition to `click` for critical actions
-- [ ] Automated accessibility test (axe) reports no violations for tap targets
+- [x] Buttons and links have a minimum 48 px height/width
+- [x] CSS adds `touch-action: manipulation` where appropriate
+- [x] Script.js adds `pointerdown` listeners in addition to `click` for critical actions
+- [x] Automated accessibility test (axe) reports no violations for tap targets
 
-### [ ] M-5: QR code generation endpoint
+### [>] M-5: QR code generation endpoint
 
 Implement a server‑side endpoint that returns a PNG QR code encoding the local WebSocket URL for pairing over LAN/Tailscale.
 
 - **Target Files**: `src/webui/server.ts`, `src/webui/qr.ts`
-- **Attempts**: 0/3
+- **Attempts**: 1/3
 
 **Acceptance Criteria:**
 - [ ] GET /api/qr returns image/png with a valid QR code

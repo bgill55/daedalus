@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import type { TelemetryData } from '../types.js';
 import type { WebuiChatMessageEvent, WebuiChatRequest, FileNode } from './types.js';
 import { loadProfile } from '../profile.js';
+import { generateQrCode, getWebSocketUrl } from './qr.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -488,6 +489,20 @@ export function handleRequest(req: IncomingMessage, res: ServerResponse): void {
         .catch(err => {
           res.writeHead(400, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: err.message || 'Invalid JSON' }));
+        });
+      return;
+    }
+
+    if (req.method === 'GET' && req.url === '/api/qr') {
+      const wsUrl = getWebSocketUrl(HOST, PORT);
+      generateQrCode(wsUrl)
+        .then(buf => {
+          res.writeHead(200, { 'Content-Type': 'image/png' });
+          res.end(buf);
+        })
+        .catch(err => {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: err.message || 'QR generation failed' }));
         });
       return;
     }

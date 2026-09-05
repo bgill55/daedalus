@@ -66,6 +66,7 @@
     "pdf-parse": "^2.4.5",
     "picocolors": "^1.1.1",
     "puppeteer-core": "^25.1.0",
+    "qrcode": "^1.5.4",
     "typescript": "^5.8.3",
     "zod": "^3.23.8"
   },
@@ -81,6 +82,7 @@
     "@types/diff": "^6.0.0",
     "@types/express": "^5.0.6",
     "@types/node": "^22.15.3",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^19.2.18",
     "conventional-changelog-conventionalcommits": "^8.0.0",
     "esbuild": "^0.24.0",
