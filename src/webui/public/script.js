@@ -1547,7 +1547,7 @@ setInterval(function () {
 let deferredPrompt = null;
 const installBanner = document.getElementById('install-banner');
 const installButton = document.getElementById('install-button');
-const installBannerClose = document.querySelector('.install-banner-close');
+const installBannerCloseButtons = document.querySelectorAll('.install-banner-close');
 
 function showInstallBanner() {
   if (installBanner) {
@@ -1596,13 +1596,13 @@ if (installButton) {
   });
 }
 
-if (installBannerClose) {
-  installBannerClose.addEventListener('click', function () {
+installBannerCloseButtons.forEach(btn => {
+  btn.addEventListener('click', function () {
     console.log('[script.js] Install banner dismissed by user');
     deferredPrompt = null;
     hideInstallBanner();
   });
-}
+});
 
 window.addEventListener('appinstalled', function () {
   console.log('[script.js] PWA installed successfully');
