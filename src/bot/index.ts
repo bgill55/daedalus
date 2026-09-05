@@ -2,12 +2,15 @@ import { Client, GatewayIntentBits, Partials } from 'discord.js';
 import dotenv from 'dotenv';
 import path from 'node:path';
 import os from 'node:os';
+import { fileURLToPath } from 'node:url';
 import { createRouter } from '../router/index.js';
 import { loadConfig } from '../config/index.js';
 import { attachListeners } from './handlers.js';
 
-// Load only Daedalus's own env (~/.daedalus/.env); never the cwd .env.
+// Load env from ~/.daedalus/.env, project root .env, and cwd .env
 dotenv.config({ path: path.join(os.homedir(), '.daedalus', '.env'), quiet: true });
+dotenv.config({ path: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../.env'), quiet: true });
+dotenv.config({ path: path.resolve(process.cwd(), '.env'), quiet: true });
 
 const token = process.env.DISCORD_BOT_TOKEN;
 

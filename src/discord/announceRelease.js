@@ -3,8 +3,9 @@ import path from 'node:path';
 import os from 'node:os';
 import dotenv from 'dotenv';
 
-// Load only Daedalus's own env (~/.daedalus/.env); never the cwd .env.
+// Load env from ~/.daedalus/.env, project root .env, and cwd .env
 dotenv.config({ path: path.join(os.homedir(), '.daedalus', '.env'), quiet: true });
+dotenv.config({ path: path.resolve(process.cwd(), '.env'), quiet: true });
 
 /**
  * Simple CLI argument parser for `--key value` pairs.
