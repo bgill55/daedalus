@@ -1,35 +1,36 @@
 # Marathon Roadmap: Transform the Daedalus WebUI in src/webui/public/ into a sovereign mobile-first PWA companion with installable manifest, service worker caching, touch-optimized responsive layout, QR code pairing for local/Tailscale networks, and milestone push notifications.
 
 - **Status**: `EVALUATING`
-- **Progress**: 0/8 milestones passed (0%)
+- **Progress**: 1/8 milestones passed (13%)
 - **Base Branch**: `main`
 - **Integration Branch**: `marathon/transform-the-daedalus-webui-i`
-- **Last Updated**: 2026-09-05T01:56:37.732Z
+- **Last Updated**: 2026-09-05T02:15:36.071Z
 
 ## Milestones
 
-### [>] M-1: Add PWA manifest and HTML integration
+### [x] M-1: Add PWA manifest and HTML integration
 
 Create a web app manifest file with required fields and link it from index.html so browsers recognise the app as installable.
 
 - **Target Files**: `src/webui/public/manifest.json`, `src/webui/public/index.html`
+- **Git Tag**: `daedalus-checkpoint/m-1`
 - **Attempts**: 1/3
 
 **Acceptance Criteria:**
-- [ ] manifest.json exists with name, short_name, start_url, display, icons, and background_color fields
-- [ ] index.html contains a <link rel="manifest" href="manifest.json"> tag inside <head>
-- [ ] Running `npm run build` does not error and the manifest is served correctly via the dev server
+- [x] manifest.json exists with name, short_name, start_url, display, icons, and background_color fields
+- [x] index.html contains a <link rel="manifest" href="manifest.json"> tag inside <head>
+- [x] Running `npm run build` does not error and the manifest is served correctly via the dev server
 
-### [ ] M-2: Service worker file and registration
+### [>] M-2: Service worker file and registration
 
 Add a service worker script (sw.js) that caches core assets and register it from script.js on page load.
 
 - **Target Files**: `src/webui/public/sw.js`, `src/webui/public/script.js`
-- **Attempts**: 0/3
+- **Attempts**: 3/3
 
 **Acceptance Criteria:**
-- [ ] sw.js implements install event to cache index.html, styles.css, script.js, and manifest.json
-- [ ] script.js registers the service worker and logs success or failure
+- [x] sw.js implements install event to cache index.html, styles.css, script.js, and manifest.json
+- [x] script.js registers the service worker and logs success or failure
 - [ ] When the site is loaded offline, the cached assets are served and the UI renders correctly
 
 ### [ ] M-3: Mobile‑first responsive styling
