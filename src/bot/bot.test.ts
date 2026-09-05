@@ -46,22 +46,21 @@ describe("Daedalus Discord Bot", () => {
     it("generates prompt containing version and autonomous pantheon roles", () => {
       const prompt = getBotSystemPrompt();
       expect(prompt).toContain("You are Daedalus");
-      expect(prompt).toContain("The Autonomous Pantheon (7 Specialized Roles)");
+      expect(prompt).toContain("Pantheon Architecture (7 Agents)");
       expect(prompt).toContain("Marathon Engine");
-      expect(prompt).toContain("WebUI & PWA Companion");
+      expect(prompt).toContain("WebUI");
       expect(prompt).toContain("daedalus-cli");
     });
 
     it("includes creator recognition directive for creator usernames", () => {
       const promptBgill = getBotSystemPrompt("bgill55");
-      expect(promptBgill).toContain("CREATOR RECOGNITION DIRECTIVE");
-      expect(promptBgill).toContain("Brian");
+      expect(promptBgill).toContain("Brian (@bgill55)");
 
       const promptBrica = getBotSystemPrompt("brica_dev");
-      expect(promptBrica).toContain("CREATOR RECOGNITION DIRECTIVE");
+      expect(promptBrica).toContain("Brian (@brica_dev)");
 
       const promptGuest = getBotSystemPrompt("random_user");
-      expect(promptGuest).not.toContain("CREATOR RECOGNITION DIRECTIVE");
+      expect(promptGuest).not.toContain("Brian (@");
     });
   });
 
