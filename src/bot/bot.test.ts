@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { slashCommands } from "./commands.js";
 import { getBotSystemPrompt } from "./prompt.js";
+import { sanitizeBotReply } from "./handlers.js";
 import {
   DEV_EXCUSES,
   COFFEE_RESPONSES,
@@ -73,6 +74,25 @@ describe("Daedalus Discord Bot", () => {
       expect(STANDUP_RESPONSES.length).toBeGreaterThan(5);
       expect(PREDICT_RESPONSES.length).toBeGreaterThan(5);
       expect(TECHSURPORT_RESPONSES.length).toBeGreaterThan(5);
+    });
+  });
+
+  describe("Bot Output Sanitization", () => {
+    it("strips think tags from output", () => {
+      const input = "<think>internal reasoning</think>Here is the real answer.";
+      expect(sanitizeBotReply(input)).toBe("Here is the real answer.");
+    });
+
+    it("collapses runaway repetitive text loops", () => {
+      const input = "- Daedon-cli, Daedon-cli\n- Daedon-cli, Daedon-cli\n- Daedon-cli, Daedon-cli\n- Daedon-cli, Daedon-cli\n- Daedon-cli, Daedon-cli";
+      const cleaned = sanitizeBotReply(input);
+      const occurrences = cleaned.split('\n').filter(l => l.includes("Daedon-cli")).length;
+      expect(occurrences).toBeLessThanOrEqual(2);
+    });
+
+    it("returns default fallback for empty text", () => {
+      expect(sanitizeBotReply("")).toBe("Something went wrong in the machine.");
+      expect(sanitizeBotReply("<think>only thinking</think>")).toBe("Something went wrong in the machine.");
     });
   });
 });

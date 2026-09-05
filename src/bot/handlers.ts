@@ -98,8 +98,36 @@ function inferMimeType(filename: string | null): string | null {
   return ext ? map[ext] || null : null;
 }
 
+export function sanitizeBotReply(raw: string): string {
+  let text = raw.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+  if (!text) return "Something went wrong in the machine.";
+
+  // Detect and collapse runaway repetition loops
+  const lines = text.split('\n');
+  const cleanedLines: string[] = [];
+  let prevLine = '';
+  let repeatCount = 0;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed && trimmed === prevLine) {
+      repeatCount++;
+      if (repeatCount >= 2) {
+        continue;
+      }
+    } else {
+      repeatCount = 0;
+      prevLine = trimmed;
+    }
+    cleanedLines.push(line);
+  }
+
+  return cleanedLines.join('\n').trim();
+}
+
 async function sendChunkedInteractionReply(interaction: CommandInteraction, text: string, prefix = ''): Promise<void> {
-  const fullText = prefix ? `${prefix}${text}` : text;
+  const sanitized = sanitizeBotReply(text);
+  const fullText = prefix ? `${prefix}${sanitized}` : sanitized;
 
   if (fullText.length <= 1950) {
     if (interaction.deferred || interaction.replied) {
@@ -525,7 +553,7 @@ export function attachListeners(c: Client, router: LocalRouter, token: string) {
             { role: 'system', content: getBotSystemPrompt(interaction.user.username) },
             { role: 'user', content: `[User: ${interaction.user.username}] ${question}` },
           ],
-          temperature: 0.7,
+          temperature: 0.5,
         });
 
         const replyText = messageText(response.choices?.[0]?.message?.content ?? '') || "Something went wrong in the machine.";
@@ -782,12 +810,12 @@ export function attachListeners(c: Client, router: LocalRouter, token: string) {
           { role: 'system', content: getBotSystemPrompt(message.author.username) },
           { role: 'user', content: userContent },
         ],
-        temperature: 0.7,
+        temperature: 0.5,
       });
       console.log(`[ROUTER] Received response from: ${router.lastRoutedModel}`);
 
-      let replyText = messageText(response.choices?.[0]?.message?.content ?? '') || "Something went wrong in the machine.";
-      replyText = replyText.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+      const rawContent = messageText(response.choices?.[0]?.message?.content ?? '');
+      const replyText = sanitizeBotReply(rawContent);
 
       if (replyText.length <= 2000) {
         await message.reply(replyText);
