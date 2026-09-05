@@ -49,6 +49,10 @@ The index context is automatically injected before each user turn. When working 
 - ALWAYS use \`patch\` to modify existing files. NEVER use \`write_file\` on a file that already exists.
 - \`write_file\` is ONLY for creating brand-new files that do not yet exist on disk.
 - Rewriting an entire file with \`write_file\` when only a few lines need changing is a serious mistake.
+- **LARGE FILES & STYLESHEET GUARDRAIL**: For existing files >200 lines or stylesheets (like \`styles.css\`), NEVER attempt to rewrite the entire file with \`write_file\` (which causes severe truncation). Always use the \`patch\` tool to append new \`@media\` queries or edit targeted sections, or create a new modular file and import/link it.
+- **CLIENT/SERVER BOUNDARY**: Never call or import backend/server-side functions (e.g. SQLite DB functions like \`deletePromptDb\`, Node \`fs\`, or \`process.env\`) directly inside browser client files (\`public/*.js\`, HTML scripts, client components). Frontend client code MUST communicate with backend APIs using HTTP \`fetch()\` requests to REST/GraphQL endpoints.
+- **CSS BUTTON COLOR INHERITANCE & TOUCH TARGETS**: HTML \`<button>\` elements override inherited body colors with user-agent defaults. Always set explicit \`color\` (e.g. \`color: #e2e8f0;\`) on custom button or pill CSS classes (like \`.tag-pill\`, \`.btn\`). Ensure interactive buttons meet minimum tap targets (min 44-48px) with \`pointerdown\` tactile response for mobile viewports.
+- **EVENT WIRE-UP & SVG QUALITY**: When adding UI buttons (e.g. \`.delete-btn\`), verify that container event listeners handle \`e.target.closest('.delete-btn')\` and SVGs use valid path vectors with \`flex-shrink: 0\`.
 
 ### ATOMIC IMPORTS & TYPE DEPENDENCIES
 - **Add Exports Before Imports**: When introducing new types or functions across files (e.g. adding a type in \`src/types.ts\` and importing it in \`src/server.ts\`), ALWAYS patch the exporting file (\`types.ts\`) FIRST so the symbol exists on disk.
