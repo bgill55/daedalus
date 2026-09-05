@@ -1,3 +1,10 @@
+## [3.80.2](https://github.com/bgill55/daedalus/compare/v3.80.1...v3.80.2) (2026-09-05)
+
+
+### Bug Fixes
+
+* **bot:** add output sanitization and lower completion temperature to prevent repetition collapse ([4d281b1](https://github.com/bgill55/daedalus/commit/4d281b1a012420cffce38c8d98e37ea88b56ffd6))
+
 ## [3.80.1](https://github.com/bgill55/daedalus/compare/v3.80.0...v3.80.1) (2026-09-05)
 
 
