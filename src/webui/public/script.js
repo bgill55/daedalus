@@ -1264,15 +1264,14 @@ const qrWsUrl = document.getElementById('qr-ws-url');
 function openQrModal() {
   if (qrModal) {
     qrModal.classList.remove('hidden');
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const currentWsUrl = `${protocol}//${window.location.host}`;
+    const webUrl = window.location.origin;
     if (qrWsUrl) {
-      qrWsUrl.textContent = currentWsUrl;
+      qrWsUrl.textContent = webUrl;
     }
     if (qrImage) {
-      qrImage.src = `/api/qr?t=${Date.now()}`;
+      qrImage.src = `/api/qr?url=${encodeURIComponent(webUrl)}&t=${Date.now()}`;
     }
-    addLog(`QR pairing portal opened: <strong>${currentWsUrl}</strong>`);
+    addLog(`QR pairing portal opened: <strong>${webUrl}</strong>`);
   }
 }
 

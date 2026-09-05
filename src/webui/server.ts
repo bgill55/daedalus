@@ -311,12 +311,17 @@ function handleChatRequest(req: IncomingMessage, res: ServerResponse): void {
 
 export function handleRequest(req: IncomingMessage, res: ServerResponse): void {
   try {
-    if (req.method === 'POST' && req.url === '/api/chat') {
+    const rawUrl = req.url || '/';
+    const hostHeader = req.headers?.host || `${HOST}:${PORT}`;
+    const parsedUrl = new URL(rawUrl, `http://${hostHeader}`);
+    const pathname = parsedUrl.pathname;
+
+    if (req.method === 'POST' && pathname === '/api/chat') {
       handleChatRequest(req, res);
       return;
     }
 
-    if (req.method === 'GET' && req.url === '/') {
+    if (req.method === 'GET' && pathname === '/') {
       const htmlPath = resolvePublicAsset('index.html');
       if (htmlPath) {
         res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
@@ -328,8 +333,8 @@ export function handleRequest(req: IncomingMessage, res: ServerResponse): void {
       return;
     }
 
-    if (req.method === 'GET' && !req.url?.startsWith('/api') && req.url !== '/telemetry' && req.url !== '/qr' && req.url !== '/') {
-      const urlPath = req.url?.split('?')[0].replace(/^\/+/, '') || '';
+    if (req.method === 'GET' && !pathname.startsWith('/api') && pathname !== '/telemetry' && pathname !== '/qr' && pathname !== '/') {
+      const urlPath = pathname.replace(/^\/+/, '');
       const ext = path.extname(urlPath).toLowerCase();
       const mimeTypes: Record<string, string> = {
         '.html': 'text/html; charset=utf-8',
@@ -355,7 +360,7 @@ export function handleRequest(req: IncomingMessage, res: ServerResponse): void {
       }
     }
 
-    if (req.method === 'GET' && req.url === '/telemetry') {
+    if (req.method === 'GET' && pathname === '/telemetry') {
       res.writeHead(200, {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
@@ -384,7 +389,7 @@ export function handleRequest(req: IncomingMessage, res: ServerResponse): void {
       return;
     }
 
-    if (req.method === 'GET' && req.url === '/api/files') {
+    if (req.method === 'GET' && pathname === '/api/files') {
       const cwd = process.cwd();
       const gitignored = parseGitignore(cwd);
       const tree = getProjectTree(cwd, cwd, 0, gitignored);
@@ -393,21 +398,21 @@ export function handleRequest(req: IncomingMessage, res: ServerResponse): void {
       return;
     }
 
-    if (req.method === 'GET' && req.url === '/api/history') {
+    if (req.method === 'GET' && pathname === '/api/history') {
       const history = activeHistoryProvider ? activeHistoryProvider() : [];
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ history }));
       return;
     }
 
-    if (req.method === 'GET' && req.url === '/api/context') {
+    if (req.method === 'GET' && pathname === '/api/context') {
       const files = activeContextFilesProvider ? activeContextFilesProvider.getFiles() : [];
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ files }));
       return;
     }
 
-    if (req.method === 'DELETE' && req.url === '/api/context') {
+    if (req.method === 'DELETE' && pathname === '/api/context') {
       parseJsonBody<{ file: string }>(req)
         .then(data => {
           const removed = activeContextFilesProvider && data.file ? activeContextFilesProvider.removeFile(data.file) : false;
@@ -421,14 +426,14 @@ export function handleRequest(req: IncomingMessage, res: ServerResponse): void {
       return;
     }
 
-    if (req.method === 'GET' && req.url === '/api/sessions') {
+    if (req.method === 'GET' && pathname === '/api/sessions') {
       const sessions = activeSessionProvider ? activeSessionProvider.listSessions() : [];
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ sessions }));
       return;
     }
 
-    if (req.method === 'POST' && req.url === '/api/sessions/resume') {
+    if (req.method === 'POST' && pathname === '/api/sessions/resume') {
       parseJsonBody<{ sessionId: string }>(req)
         .then(async data => {
           if (!activeSessionProvider || !data.sessionId) {
@@ -447,7 +452,7 @@ export function handleRequest(req: IncomingMessage, res: ServerResponse): void {
       return;
     }
 
-    if (req.method === 'POST' && req.url === '/api/sessions/new') {
+    if (req.method === 'POST' && pathname === '/api/sessions/new') {
       (async () => {
         if (!activeSessionProvider) {
           res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -464,7 +469,7 @@ export function handleRequest(req: IncomingMessage, res: ServerResponse): void {
       return;
     }
 
-    if (req.method === 'DELETE' && req.url === '/api/sessions') {
+    if (req.method === 'DELETE' && pathname === '/api/sessions') {
       parseJsonBody<{ sessionId: string }>(req)
         .then(async data => {
           if (!activeSessionProvider || !data.sessionId) {
@@ -483,7 +488,7 @@ export function handleRequest(req: IncomingMessage, res: ServerResponse): void {
       return;
     }
 
-    if (req.method === 'GET' && req.url === '/api/models') {
+    if (req.method === 'GET' && pathname === '/api/models') {
       const activeModel = activeModelProvider ? activeModelProvider.getActiveModel() : 'auto';
       const availableModels = activeModelProvider ? activeModelProvider.getAvailableModels() : [];
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -491,14 +496,14 @@ export function handleRequest(req: IncomingMessage, res: ServerResponse): void {
       return;
     }
 
-    if (req.method === 'GET' && req.url === '/api/profile') {
+    if (req.method === 'GET' && pathname === '/api/profile') {
       const profile = loadProfile();
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ name: profile.name || '', bio: profile.bio || '', style: profile.style || '' }));
       return;
     }
 
-    if (req.method === 'POST' && req.url === '/api/models/switch') {
+    if (req.method === 'POST' && pathname === '/api/models/switch') {
       parseJsonBody<{ model: string }>(req)
         .then(async data => {
           if (!activeModelProvider || !data.model) {
@@ -517,11 +522,15 @@ export function handleRequest(req: IncomingMessage, res: ServerResponse): void {
       return;
     }
 
-    if (req.method === 'GET' && req.url === '/api/qr') {
-      const wsUrl = getWebSocketUrl(HOST, PORT);
-      generateQrCode(wsUrl)
+    if (req.method === 'GET' && pathname === '/api/qr') {
+      const customUrl = parsedUrl.searchParams.get('url');
+      const targetUrl = customUrl || getWebSocketUrl(HOST, PORT);
+      generateQrCode(targetUrl)
         .then(buf => {
-          res.writeHead(200, { 'Content-Type': 'image/png' });
+          res.writeHead(200, {
+            'Content-Type': 'image/png',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+          });
           res.end(buf);
         })
         .catch(err => {

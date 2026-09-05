@@ -464,6 +464,28 @@ describe('WebUI Server', () => {
     });
   });
 
+  describe('GET /api/qr', () => {
+    it('should generate QR code for default URL', async () => {
+      mockReq.url = '/api/qr';
+      mockReq.method = 'GET';
+      handleRequest(mockReq as IncomingMessage, mockRes as ServerResponse);
+
+      await new Promise(resolve => setTimeout(resolve, 50));
+      expect(writeHeadSpy).toHaveBeenCalledWith(200, expect.objectContaining({ 'Content-Type': 'image/png' }));
+      expect(endSpy).toHaveBeenCalled();
+    });
+
+    it('should generate QR code when query params are provided', async () => {
+      mockReq.url = '/api/qr?url=http%3A%2F%2F192.168.1.50%3A3888&t=12345678';
+      mockReq.method = 'GET';
+      handleRequest(mockReq as IncomingMessage, mockRes as ServerResponse);
+
+      await new Promise(resolve => setTimeout(resolve, 50));
+      expect(writeHeadSpy).toHaveBeenCalledWith(200, expect.objectContaining({ 'Content-Type': 'image/png' }));
+      expect(endSpy).toHaveBeenCalled();
+    });
+  });
+
   describe('Other routes', () => {
     it('should return 404 for unknown routes', () => {
       mockReq.url = '/unknown';
