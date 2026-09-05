@@ -1,10 +1,10 @@
 # Marathon Roadmap: Transform the Daedalus WebUI in src/webui/public/ into a sovereign mobile-first PWA companion with installable manifest, service worker caching, touch-optimized responsive layout, QR code pairing for local/Tailscale networks, and milestone push notifications.
 
 - **Status**: `EVALUATING`
-- **Progress**: 2/8 milestones passed (25%)
+- **Progress**: 3/8 milestones passed (38%)
 - **Base Branch**: `main`
 - **Integration Branch**: `marathon/transform-the-daedalus-webui-i`
-- **Last Updated**: 2026-09-05T03:02:23.135Z
+- **Last Updated**: 2026-09-05T03:13:45.397Z
 
 ## Milestones
 
@@ -34,24 +34,25 @@ Add a service worker script (sw.js) that caches core assets and register it from
 - [x] script.js registers the service worker and logs success or failure
 - [x] When the site is loaded offline, the cached assets are served and the UI renders correctly
 
-### [>] M-3: Mobile‑first responsive styling
+### [x] M-3: Mobile‑first responsive styling
 
 Introduce responsive breakpoints and fluid layout in styles.css to make the UI adapt to phones, tablets, and desktops.
 
 - **Target Files**: `src/webui/public/styles.css`
+- **Git Tag**: `daedalus-checkpoint/m-3`
 - **Attempts**: 5/3
 
 **Acceptance Criteria:**
 - [x] CSS includes @media queries for max-width: 600px and 900px
 - [x] All UI elements reflow without horizontal scroll on a 375 px viewport
-- [ ] Visual regression test confirms layout matches expected screenshots on mobile and desktop
+- [x] Visual regression test confirms layout matches expected screenshots on mobile and desktop
 
-### [ ] M-4: Touch‑optimized UI components
+### [>] M-4: Touch‑optimized UI components
 
 Increase tap target sizes, add hover‑fallbacks, and ensure interactive elements are keyboard accessible.
 
 - **Target Files**: `src/webui/public/index.html`, `src/webui/public/script.js`
-- **Attempts**: 0/3
+- **Attempts**: 1/3
 
 **Acceptance Criteria:**
 - [ ] Buttons and links have a minimum 48 px height/width

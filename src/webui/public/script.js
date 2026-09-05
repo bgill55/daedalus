@@ -1298,11 +1298,142 @@ async function loadUserProfile() {
   } catch {}
 }
 
+// ─────────────────────────────────────────────────────────────
+// Touch-Optimized UI — M-4: TouchTargetConfig interface
+// ─────────────────────────────────────────────────────────────
+/**
+ * @typedef {Object} TouchTargetConfig
+ * @property {string} selector         - CSS selector for the interactive element
+ * @property {number} [minSizePx=48]   - Minimum width and height in pixels
+ * @property {string} [touchAction='manipulation'] - touch-action CSS value
+ */
+
+/**
+ * Apply touch optimizations by injecting CSS for minimum tap targets
+ * and touch-action on elements matching the given selectors.
+ * @param {TouchTargetConfig[]} configs
+ */
+function applyTouchOptimizations(configs) {
+  if (!configs || configs.length === 0) return;
+
+  const styleId = 'touch-optimization-styles';
+  let styleEl = document.getElementById(styleId);
+
+  if (!styleEl) {
+    styleEl = document.createElement('style');
+    styleEl.id = styleId;
+    document.head.appendChild(styleEl);
+  }
+
+  const rules = configs.map(function (cfg) {
+    var minSize = cfg.minSizePx !== undefined ? cfg.minSizePx : 48;
+    var touchAction = cfg.touchAction !== undefined ? cfg.touchAction : 'manipulation';
+    var sel = cfg.selector;
+    return [
+      sel + ' {',
+      '  min-width: ' + minSize + 'px;',
+      '  min-height: ' + minSize + 'px;',
+      '  touch-action: ' + touchAction + ';',
+      '}',
+    ].join('\n');
+  });
+
+  styleEl.textContent = rules.join('\n');
+}
+
+// ─────────────────────────────────────────────────────────────
+// Critical element pointerdown listeners — M-4
+// ─────────────────────────────────────────────────────────────
+/**
+ * Add both click and pointerdown listeners to ensure tactile responsiveness.
+ * pointerdown fires before click and works for both touch and mouse.
+ * @param {HTMLElement|null} el
+ * @param {() => void} handler
+ */
+function addDualInteractionListeners(el, handler) {
+  if (!el) return;
+  el.addEventListener('pointerdown', function (e) {
+    e.preventDefault();
+    handler();
+  });
+  // Keep click for keyboard / accessibility
+  if (!el.dataset._hasClickBound) {
+    el.addEventListener('click', handler);
+    el.dataset._hasClickBound = 'true';
+  }
+}
+
+// Wire up pointerdown on all critical interactive elements
+document.addEventListener('DOMContentLoaded', function () {
+  // #active-model-badge — opens model selection modal
+  addDualInteractionListeners(
+    document.getElementById('active-model-badge'),
+    openModelModal
+  );
+
+  // #clear-log — clears the log panel
+  addDualInteractionListeners(
+    document.getElementById('clear-log'),
+    function () {
+      if (logContainer) logContainer.innerHTML = '';
+    }
+  );
+
+  // #new-chat-btn — starts a new chat session
+  addDualInteractionListeners(
+    document.getElementById('new-chat-btn'),
+    function () {
+      if (chatMessages) chatMessages.innerHTML = '';
+      addLog('New rite initiated. The cosmos awaits your query.');
+    }
+  );
+
+  // #attach-btn — triggers file attachment
+  addDualInteractionListeners(
+    document.getElementById('attach-btn'),
+    function () {
+      var fileInput = document.getElementById('file-input');
+      if (fileInput) fileInput.click();
+    }
+  );
+
+  // #send-btn — submits the chat form
+  addDualInteractionListeners(
+    document.getElementById('send-btn'),
+    function () {
+      var form = document.getElementById('chat-form');
+      if (form) form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    }
+  );
+
+  // #model-modal-close — closes model selection modal
+  addDualInteractionListeners(
+    document.getElementById('model-modal-close'),
+    closeModelModal
+  );
+
+  // Apply global touch optimizations via CSS
+  applyTouchOptimizations([
+    { selector: 'button', minSizePx: 48, touchAction: 'manipulation' },
+    { selector: 'a[href]', minSizePx: 48, touchAction: 'manipulation' },
+    { selector: '.model-pill', minSizePx: 44, touchAction: 'manipulation' },
+    { selector: '.clear-btn', minSizePx: 48, touchAction: 'manipulation' },
+    { selector: '.chat-header-btn', minSizePx: 48, touchAction: 'manipulation' },
+    { selector: '.attach-btn', minSizePx: 44, touchAction: 'manipulation' },
+    { selector: '#send-btn', minSizePx: 48, touchAction: 'manipulation' },
+    { selector: '.model-option-card', minSizePx: 48, touchAction: 'manipulation' },
+    { selector: '.code-copy-btn', minSizePx: 36, touchAction: 'manipulation' },
+  ]);
+});
+
+// ─────────────────────────────────────────────────────────────
+// Bootstrapping
+// ─────────────────────────────────────────────────────────────
 connectSSE();
 loadModels();
 loadUserProfile();
 
-setInterval(() => {
+setInterval(function () {
   if (lastUpdateEl) {
     lastUpdateEl.textContent = new Date().toLocaleTimeString();
   }

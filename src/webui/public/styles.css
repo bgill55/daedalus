@@ -304,6 +304,60 @@ body {
   align-items: center;
 }
 
+/* ──────────────────────────────────────────────────────────
+   Touch-Optimized UI — M-4: Minimum tap targets & touch-action
+   ────────────────────────────────────────────────────────── */
+@media (pointer: coarse) or (hover: none) {
+  button,
+  a {
+    min-width: 48px;
+    min-height: 48px;
+    touch-action: manipulation;
+  }
+
+  .model-pill {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 4px 8px;
+  }
+
+  .clear-btn {
+    min-width: 48px;
+    min-height: 48px;
+    padding: 8px;
+  }
+
+  .chat-header-btn {
+    min-width: 48px;
+    min-height: 48px;
+    padding: 8px;
+  }
+
+  .attach-btn {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 4px 8px;
+  }
+
+  #send-btn {
+    min-width: 48px;
+    min-height: 48px;
+    padding: 8px;
+  }
+
+  .model-option-card {
+    min-width: 48px;
+    min-height: 48px;
+    padding: 12px;
+  }
+
+  .code-copy-btn {
+    min-width: 36px;
+    min-height: 36px;
+    padding: 4px;
+  }
+}
+
 .model-pill {
   display: inline-flex;
   align-items: center;
