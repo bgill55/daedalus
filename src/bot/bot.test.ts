@@ -89,9 +89,15 @@ describe("Daedalus Discord Bot", () => {
       expect(occurrences).toBeLessThanOrEqual(2);
     });
 
-    it("returns default fallback for empty text", () => {
+    it("strips XML and agent prefix wrapper tags", () => {
+      const input = "<DAEDALUS: Hey Brian, glad you asked! What can I help you with today?</DAEDALUS>";
+      expect(sanitizeBotReply(input)).toBe("Hey Brian, glad you asked! What can I help you with today?");
+    });
+
+    it("returns default fallback for empty text or recovers raw reasoning text", () => {
       expect(sanitizeBotReply("")).toBe("Something went wrong in the machine.");
-      expect(sanitizeBotReply("<think>only thinking</think>")).toBe("Something went wrong in the machine.");
+      expect(sanitizeBotReply("   ")).toBe("Something went wrong in the machine.");
+      expect(sanitizeBotReply("<think>only thinking</think>")).toBe("only thinking");
     });
   });
 });

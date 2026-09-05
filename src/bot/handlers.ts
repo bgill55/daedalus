@@ -100,7 +100,15 @@ function inferMimeType(filename: string | null): string | null {
 
 export function sanitizeBotReply(raw: string): string {
   let text = raw.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+  if (!text) {
+    text = raw.replace(/<\/?think>/gi, '').trim();
+  }
   if (!text) return "Something went wrong in the machine.";
+
+  // Strip XML/agent prefix wrapper tags like <DAEDALUS: ... </DAEDALUS> or <daedalus>...</daedalus>
+  text = text.replace(/^<\s*(?:daedalus|assistant|bot)\s*:\s*/i, '');
+  text = text.replace(/<\s*\/\s*(?:daedalus|assistant|bot)\s*>/gi, '');
+  text = text.replace(/^<\s*(?:daedalus|assistant|bot)\s*>/gi, '');
 
   // Detect and collapse runaway repetition loops
   const lines = text.split('\n');
