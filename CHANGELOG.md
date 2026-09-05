@@ -1,3 +1,10 @@
+## [3.80.4](https://github.com/bgill55/daedalus/compare/v3.80.3...v3.80.4) (2026-09-05)
+
+
+### Bug Fixes
+
+* **bot:** strip XML and role wrapper tags in sanitizeBotReply to prevent invisible Discord messages ([80aea89](https://github.com/bgill55/daedalus/commit/80aea8973597d934990f1e871eebb16e0b0e3379))
+
 ## [3.80.3](https://github.com/bgill55/daedalus/compare/v3.80.2...v3.80.3) (2026-09-05)
 
 
