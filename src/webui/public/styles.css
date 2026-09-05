@@ -127,24 +127,44 @@ body {
 
 @media (max-width: 600px) {
   .dashboard {
-    padding: 16px 20px 24px;
+    padding: 12px 14px 24px;
   }
   
   .header {
-    gap: 12px;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 14px;
+    padding-bottom: 16px;
+    margin-bottom: 20px;
+  }
+
+  .header::after {
+    left: 50%;
+    transform: translateX(-50%);
   }
   
   .brand {
-    gap: 10px;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 8px;
   }
   
   .logo-crest {
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
   }
   
+  .brand-main {
+    justify-content: center;
+  }
+
   .brand-name {
     font-size: 20px;
+    letter-spacing: 3px;
   }
   
   .brand-greek {
@@ -152,51 +172,156 @@ body {
   }
   
   .brand-sub {
-    font-size: 9px;
+    font-size: 8.5px;
+    letter-spacing: 1px;
   }
   
   .status-bar {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 12px;
-  }
-  
-  .model-pill-wrapper {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
     justify-content: center;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .model-pill-wrapper {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+  }
+
+  .model-pill {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: center;
+    font-size: 9.5px;
+    padding: 6px 12px;
+  }
+
+  .qr-pill-wrapper,
+  .status-pill-wrapper {
+    display: inline-flex;
   }
   
   .oracle-clock {
+    width: 100%;
     align-items: center;
+    margin-top: 2px;
+  }
+
+  .oracle-label {
+    font-size: 8px;
+  }
+
+  .timestamp {
+    font-size: 10.5px;
   }
   
   .grid {
     grid-template-columns: 1fr;
-    gap: 12px;
+    gap: 10px;
   }
   
   .panel {
-    padding: 14px 16px;
+    padding: 12px 14px;
   }
   
   .panel-header {
-    flex-direction: column;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
     gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .chat-header {
+    flex-wrap: wrap;
   }
   
   .panel-title {
-    font-size: 14px;
+    font-size: 13px;
   }
   
   .panel-meta {
     font-size: 10px;
   }
+
+  .oracle-glyph {
+    font-size: 14px;
+  }
+
+  .metric-name {
+    font-size: 9.5px;
+    letter-spacing: 1px;
+  }
   
   .metric-value {
-    font-size: 16px;
+    font-size: 20px;
   }
   
   .metric-label {
-    font-size: 9px;
+    font-size: 8.5px;
+  }
+
+  .chat-messages {
+    min-height: 380px;
+    max-height: 55vh;
+    padding: 12px 14px;
+    gap: 12px;
+  }
+
+  .chat-msg {
+    padding: 10px 12px;
+    font-size: 13px;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .msg-body {
+    font-size: 13px;
+    line-height: 1.55;
+  }
+
+  .chat-form {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+    gap: 6px;
+  }
+
+  .chat-form textarea {
+    font-size: 12px;
+    padding: 8px 10px;
+    min-height: 38px;
+  }
+
+  .attach-btn {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    min-height: 38px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .send-btn {
+    padding: 8px 12px;
+    font-size: 10px;
+    letter-spacing: 0.8px;
+    height: 38px;
+    min-height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    white-space: nowrap;
   }
 }
 
