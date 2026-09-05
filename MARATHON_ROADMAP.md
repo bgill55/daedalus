@@ -1,10 +1,10 @@
 # Marathon Roadmap: Transform the Daedalus WebUI in src/webui/public/ into a sovereign mobile-first PWA companion with installable manifest, service worker caching, touch-optimized responsive layout, QR code pairing for local/Tailscale networks, and milestone push notifications.
 
 - **Status**: `EVALUATING`
-- **Progress**: 4/8 milestones passed (50%)
+- **Progress**: 5/8 milestones passed (63%)
 - **Base Branch**: `main`
 - **Integration Branch**: `marathon/transform-the-daedalus-webui-i`
-- **Last Updated**: 2026-09-05T03:21:09.719Z
+- **Last Updated**: 2026-09-05T03:26:27.382Z
 
 ## Milestones
 
@@ -61,25 +61,26 @@ Increase tap target sizes, add hover‑fallbacks, and ensure interactive element
 - [x] Script.js adds `pointerdown` listeners in addition to `click` for critical actions
 - [x] Automated accessibility test (axe) reports no violations for tap targets
 
-### [>] M-5: QR code generation endpoint
+### [x] M-5: QR code generation endpoint
 
 Implement a server‑side endpoint that returns a PNG QR code encoding the local WebSocket URL for pairing over LAN/Tailscale.
 
 - **Target Files**: `src/webui/server.ts`, `src/webui/qr.ts`
+- **Git Tag**: `daedalus-checkpoint/m-5`
 - **Attempts**: 1/3
 
 **Acceptance Criteria:**
-- [ ] GET /api/qr returns image/png with a valid QR code
-- [ ] QR encodes the WebSocket URL (e.g., ws://<host>:<port>)
-- [ ] Unit test verifies response status 200 and correct content‑type
-- [ ] Endpoint does not modify existing routes or break current server start
+- [x] GET /api/qr returns image/png with a valid QR code
+- [x] QR encodes the WebSocket URL (e.g., ws://<host>:<port>)
+- [x] Unit test verifies response status 200 and correct content‑type
+- [x] Endpoint does not modify existing routes or break current server start
 
-### [ ] M-6: Client‑side QR code scanner for pairing
+### [>] M-6: Client‑side QR code scanner for pairing
 
 Add UI to capture a QR code using the device camera, decode it, and open a WebSocket connection to the paired server.
 
 - **Target Files**: `src/webui/public/index.html`, `src/webui/public/script.js`
-- **Attempts**: 0/3
+- **Attempts**: 1/3
 
 **Acceptance Criteria:**
 - [ ] A "Pair via QR" button appears on mobile view
