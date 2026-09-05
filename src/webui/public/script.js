@@ -1547,7 +1547,7 @@ setInterval(function () {
 let deferredPrompt = null;
 const installBanner = document.getElementById('install-banner');
 const installButton = document.getElementById('install-button');
-const installBannerCloseButtons = document.querySelectorAll('.install-banner-close');
+const installBannerCloseButtons = document.querySelectorAll('.install-banner-close, .install-banner-dismiss-btn');
 
 function showInstallBanner() {
   if (installBanner) {
