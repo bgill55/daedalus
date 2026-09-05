@@ -192,6 +192,7 @@
             <div class="sidebar-tabs">
               <button class="sidebar-tab active" data-tab="commands">ORACLES</button>
               <button class="sidebar-tab" data-tab="files">LABYRINTH</button>
+              <button class="sidebar-tab" data-tab="diff">CHANGES</button>
               <button class="sidebar-tab" data-tab="context">SANCTUM</button>
               <button class="sidebar-tab" data-tab="sessions">CHRONICLES</button>
             </div>
@@ -239,6 +240,20 @@
             </div>
             <div id="file-tree" class="file-tree">
               <div class="file-tree-loading">Exploring labyrinth paths...</div>
+            </div>
+          </div>
+
+          <div class="sidebar-tab-content hidden" id="tab-diff">
+            <div class="file-tree-toolbar">
+              <span id="git-branch-label" class="file-tree-cwd">GIT: DETACHED</span>
+              <div class="session-toolbar-actions">
+                <button id="git-refresh-btn" class="file-tree-refresh-btn" title="Refresh git working tree status">
+                  <svg style="width: 12px; height: 12px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                </button>
+              </div>
+            </div>
+            <div id="git-changes-container" class="git-changes-container">
+              <div class="file-tree-loading">Inspecting git changes...</div>
             </div>
           </div>
 
@@ -344,6 +359,27 @@
         <p class="modal-subtitle">Choose the celestial intelligence tier or specific model to guide Daedalus:</p>
         <div id="model-options-list" class="model-options-list">
           <div class="file-tree-loading">Consulting active router models...</div>
+        </div>
+      </div>
+    </div>
+  <div id="diff-modal" class="modal-overlay hidden">
+    <div class="modal-card modal-card-wide">
+      <div class="modal-header">
+        <div class="metric-meta">
+          <span class="oracle-glyph">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          </span>
+          <span class="metric-name" id="diff-modal-title">WORKING TREE DELTA</span>
+        </div>
+        <div class="diff-modal-actions">
+          <span id="diff-stats-badge" class="diff-stats-badge">+0 -0</span>
+          <button type="button" id="diff-copy-btn" class="modal-action-btn" title="Copy patch">COPY DIFF</button>
+          <button type="button" id="diff-modal-close" class="modal-close-btn" title="Close">×</button>
+        </div>
+      </div>
+      <div class="modal-body diff-modal-body">
+        <div id="diff-view-content" class="diff-view-content">
+          <div class="file-tree-loading">Loading diff...</div>
         </div>
       </div>
     </div>

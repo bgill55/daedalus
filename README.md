@@ -158,8 +158,8 @@ Daedalus overcomes this with the **B.R.A.G. Framework** and the **Harness-of-Har
 - **File tools** — read, write, patch with interactive diff UI; fuzzy whitespace matching, syntax validation with auto-revert
 - **Trust layer** — write-without-read guardrail, terminal + patch circuit breakers, batch short-circuit on failed file edits, actionable edit hints, import/export validation, auto-test loop, large-rewrite annotation
 - **Terminal** — cross-platform shell execution (bash/cmd/powershell) with custom preference support, timeout, and abort
-- **Git** — status, diff, stage-all-and-commit, undo
-- **Web** — DuckDuckGo search and URL fetching (no API key needed)
+- **Git** — status, diff, stage-all-and-commit, undo; real-time interactive working tree visual diff viewer in Companion WebUI
+- **Web & Browser Automation** — DuckDuckGo search, URL fetching, and interactive headless browser automation (`browse_page`) with SPA DOM rendering, console error sniffing, element clicking/typing, JS evaluation, and vision screenshot capture
 - **Image Generation** — local Stable Diffusion WebUI integration with automatic zero-config Pollinations AI fallback (`/image` command & `generate_image` tool) for generating UI assets, logos, and graphics without requiring an API key
 - **Codebase** — index, find, definitions, references
 - **Logger** — unified `src/tools/logger.ts` with `ConsoleLogger` and `SilentLogger` for configurable output

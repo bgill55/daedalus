@@ -87,7 +87,8 @@ export function selectContextTools(
     WEB_PROMPT_RE.test(prompt) ||
     recentToolCalls.has('web_search') ||
     recentToolCalls.has('fetch_url') ||
-    recentToolCalls.has('screenshot_page');
+    recentToolCalls.has('screenshot_page') ||
+    recentToolCalls.has('browse_page');
 
   const shouldIncludeProcesses =
     PROCESS_PROMPT_RE.test(prompt) ||
@@ -118,7 +119,6 @@ export function selectContextTools(
   for (const tool of tools) {
     const name = tool.function.name;
     let weight = 0;
-
     if (CORE_ESSENTIAL_TOOLS.has(name)) {
       weight = 50;
     }
@@ -138,7 +138,7 @@ export function selectContextTools(
       if (shouldIncludeGraph) {
         weight = 75;
       }
-    } else if (name === 'web_search' || name === 'fetch_url' || name === 'screenshot_page') {
+    } else if (name === 'web_search' || name === 'fetch_url' || name === 'screenshot_page' || name === 'browse_page') {
       if (shouldIncludeWeb) {
         weight = 80;
       }

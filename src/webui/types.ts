@@ -50,3 +50,25 @@ export interface FileNode {
   path: string;
   children?: FileNode[];
 }
+
+export interface GitFileChange {
+  path: string;
+  status: 'modified' | 'added' | 'deleted' | 'renamed' | 'untracked' | 'copied';
+  statusCode: string;
+}
+
+export interface GitStatusResponse {
+  branch: string;
+  clean: boolean;
+  staged: GitFileChange[];
+  unstaged: GitFileChange[];
+  untracked: GitFileChange[];
+}
+
+export interface GitDiffResponse {
+  path?: string;
+  staged: boolean;
+  diff: string;
+  insertions: number;
+  deletions: number;
+}

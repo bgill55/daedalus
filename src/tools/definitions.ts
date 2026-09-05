@@ -445,6 +445,28 @@ export const POWER_TOOLS: ToolDefinition[] = [
   {
     type: 'function',
     function: {
+      name: 'browse_page',
+      description: 'Interactive headless browser automation (navigate, click, type, eval JS, extract DOM, and sniff console errors). Uses Chromium to render SPAs / client-side JavaScript apps.',
+      parameters: {
+        type: 'object',
+        properties: {
+          url: { type: 'string', description: 'URL to open (e.g. http://localhost:3000, https://example.com)' },
+          action: { type: 'string', enum: ['navigate', 'click', 'type', 'eval', 'extract'], description: 'Browser action to execute', default: 'navigate' },
+          selector: { type: 'string', description: 'Target CSS selector for click, type, or extract action' },
+          text: { type: 'string', description: 'Text to type into the input selector (for "type" action)' },
+          script: { type: 'string', description: 'JavaScript expression or function to evaluate in the page (for "eval" action)' },
+          screenshot: { type: 'boolean', description: 'Capture screenshot PNG for vision inspection', default: false },
+          wait_for: { type: 'string', description: 'Optional CSS selector to wait for before executing action' },
+          timeout: { type: 'integer', description: 'Timeout in seconds', default: 20 },
+        },
+        required: ['url'],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
       name: 'get_impact',
       description: 'Analyze the blast radius of changing a file — returns all files that directly or transitively import it. Check before you wreck.',
       parameters: {
@@ -666,6 +688,7 @@ export const TOOL_IMPLEMENTATIONS: Record<string, string> = {
   lsp_hover: 'tools/builtin/lsp.lspHover',
   lsp_rename: 'tools/builtin/lsp.lspRename',
   screenshot_page: 'tools/builtin/screenshot.screenshotPage',
+  browse_page: 'tools/builtin/browser.browsePage',
   get_impact: 'tools/builtin/impact.getImpact',
   watch_process: 'tools/builtin/process-watcher.watchProcess',
   read_process: 'tools/builtin/process-watcher.readProcess',

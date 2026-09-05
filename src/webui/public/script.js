@@ -684,6 +684,7 @@ document.querySelectorAll('.sidebar-tab').forEach(tab => {
     const target = document.getElementById('tab-' + tabName);
     if (target) target.classList.remove('hidden');
     if (tabName === 'files') loadFileTree();
+    if (tabName === 'diff') loadGitChanges();
     if (tabName === 'context') loadContextFiles();
     if (tabName === 'sessions') loadSessions();
   });
@@ -1305,6 +1306,289 @@ if (qrModal) {
   });
 }
 
+// ─────────────────────────────────────────────────────────────
+// Git Changes & Diff Visualization
+// ─────────────────────────────────────────────────────────────
+const gitChangesContainer = document.getElementById('git-changes-container');
+const gitBranchLabel = document.getElementById('git-branch-label');
+const gitRefreshBtn = document.getElementById('git-refresh-btn');
+const diffModal = document.getElementById('diff-modal');
+const diffModalTitle = document.getElementById('diff-modal-title');
+const diffStatsBadge = document.getElementById('diff-stats-badge');
+const diffCopyBtn = document.getElementById('diff-copy-btn');
+const diffModalClose = document.getElementById('diff-modal-close');
+const diffViewContent = document.getElementById('diff-view-content');
+
+let currentActiveDiffText = '';
+
+async function loadGitChanges() {
+  if (!gitChangesContainer) return;
+  gitChangesContainer.innerHTML = '<div class="file-tree-loading">Inspecting git changes...</div>';
+  try {
+    const res = await fetch('/api/git/status');
+    if (!res.ok) throw new Error('Failed to load git status');
+    const data = await res.json();
+
+    if (gitBranchLabel) {
+      gitBranchLabel.textContent = `GIT: ${data.branch ? data.branch.toUpperCase() : 'MAIN'}`;
+    }
+
+    gitChangesContainer.innerHTML = '';
+
+    if (data.clean) {
+      gitChangesContainer.innerHTML = `
+        <div class="git-clean-state">
+          <span class="git-clean-icon">
+            <svg style="width: 24px; height: 24px; color: var(--delphic-green);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </span>
+          <div class="git-clean-title">SANCTUM IS PRISTINE</div>
+          <div class="git-clean-sub">No staged, unstaged, or untracked changes.</div>
+        </div>
+      `;
+      return;
+    }
+
+    const renderSection = (title, items, isStaged, isUntracked = false) => {
+      if (!items || items.length === 0) return;
+
+      const groupEl = document.createElement('div');
+      groupEl.className = 'git-group';
+
+      const headerEl = document.createElement('div');
+      headerEl.className = 'git-group-header';
+      headerEl.innerHTML = `<span>${title}</span> <span class="git-group-count">${items.length}</span>`;
+      groupEl.appendChild(headerEl);
+
+      const listEl = document.createElement('div');
+      listEl.className = 'git-files-list';
+
+      items.forEach(item => {
+        const itemEl = document.createElement('div');
+        itemEl.className = 'git-file-item';
+
+        const statusBadge = document.createElement('span');
+        statusBadge.className = `git-status-badge ${item.status || 'modified'}`;
+        statusBadge.textContent = (item.statusCode || item.status.slice(0, 1)).toUpperCase();
+
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'git-file-path';
+        nameSpan.textContent = item.path;
+        nameSpan.title = `${item.path} (${item.status})`;
+
+        const actionsEl = document.createElement('div');
+        actionsEl.className = 'git-file-actions';
+
+        if (!isUntracked) {
+          const viewBtn = document.createElement('button');
+          viewBtn.type = 'button';
+          viewBtn.className = 'git-action-btn view';
+          viewBtn.textContent = 'DIFF';
+          viewBtn.title = 'View visual diff';
+          viewBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openDiffModal(item.path, isStaged);
+          });
+          actionsEl.appendChild(viewBtn);
+        }
+
+        const stageToggleBtn = document.createElement('button');
+        stageToggleBtn.type = 'button';
+        stageToggleBtn.className = 'git-action-btn stage';
+        stageToggleBtn.textContent = isStaged ? 'UNSTAGE' : 'STAGE';
+        stageToggleBtn.title = isStaged ? 'Unstage file' : 'Stage file';
+        stageToggleBtn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          stageToggleBtn.textContent = '...';
+          try {
+            await fetch('/api/git/stage', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ path: item.path, action: isStaged ? 'unstage' : 'stage' }),
+            });
+            loadGitChanges();
+          } catch {
+            stageToggleBtn.textContent = isStaged ? 'UNSTAGE' : 'STAGE';
+          }
+        });
+        actionsEl.appendChild(stageToggleBtn);
+
+        itemEl.appendChild(statusBadge);
+        itemEl.appendChild(nameSpan);
+        itemEl.appendChild(actionsEl);
+
+        itemEl.addEventListener('click', () => {
+          if (!isUntracked) {
+            openDiffModal(item.path, isStaged);
+          }
+        });
+
+        listEl.appendChild(itemEl);
+      });
+
+      groupEl.appendChild(listEl);
+      gitChangesContainer.appendChild(groupEl);
+    };
+
+    renderSection('STAGED CHANGES', data.staged, true);
+    renderSection('UNSTAGED CHANGES', data.unstaged, false);
+    renderSection('UNTRACKED FILES', data.untracked, false, true);
+
+  } catch (err) {
+    gitChangesContainer.innerHTML = '<div class="file-tree-loading">Failed to inspect git changes.</div>';
+  }
+}
+
+if (gitRefreshBtn) {
+  gitRefreshBtn.addEventListener('click', () => {
+    loadGitChanges();
+  });
+}
+
+async function openDiffModal(filePath, isStaged = false) {
+  if (!diffModal) return;
+  diffModal.classList.remove('hidden');
+
+  if (diffModalTitle) {
+    diffModalTitle.textContent = `${isStaged ? 'STAGED: ' : ''}${filePath}`;
+  }
+  if (diffViewContent) {
+    diffViewContent.innerHTML = '<div class="file-tree-loading">Fetching diff stream...</div>';
+  }
+  if (diffStatsBadge) {
+    diffStatsBadge.textContent = '+0 -0';
+  }
+
+  try {
+    const url = `/api/git/diff?path=${encodeURIComponent(filePath)}&staged=${isStaged ? 'true' : 'false'}`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('Failed to retrieve diff');
+    const data = await res.json();
+
+    currentActiveDiffText = data.diff || '';
+    if (diffStatsBadge) {
+      diffStatsBadge.textContent = `+${data.insertions || 0} -${data.deletions || 0}`;
+    }
+
+    if (!data.diff || !data.diff.trim()) {
+      diffViewContent.innerHTML = '<div class="file-tree-loading">No line changes detected for this file.</div>';
+      return;
+    }
+
+    renderVisualDiff(data.diff);
+  } catch (err) {
+    diffViewContent.innerHTML = `<div class="file-tree-loading">Diff error: ${err.message}</div>`;
+  }
+}
+
+function renderVisualDiff(diffText) {
+  if (!diffViewContent) return;
+  diffViewContent.innerHTML = '';
+
+  const table = document.createElement('table');
+  table.className = 'diff-table';
+
+  const lines = diffText.split(/\r?\n/);
+  let oldLine = 0;
+  let newLine = 0;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const tr = document.createElement('tr');
+
+    if (line.startsWith('@@')) {
+      const hunkMatch = line.match(/@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/);
+      if (hunkMatch) {
+        oldLine = parseInt(hunkMatch[1], 10) - 1;
+        newLine = parseInt(hunkMatch[2], 10) - 1;
+      }
+      tr.className = 'diff-line diff-hunk';
+      tr.innerHTML = `
+        <td class="diff-gutter diff-gutter-hunk" colspan="2">...</td>
+        <td class="diff-content diff-content-hunk">${escapeHtml(line)}</td>
+      `;
+      table.appendChild(tr);
+      continue;
+    }
+
+    if (line.startsWith('diff ') || line.startsWith('index ') || line.startsWith('--- ') || line.startsWith('+++ ')) {
+      tr.className = 'diff-line diff-meta';
+      tr.innerHTML = `
+        <td class="diff-gutter diff-gutter-meta" colspan="2"></td>
+        <td class="diff-content diff-content-meta">${escapeHtml(line)}</td>
+      `;
+      table.appendChild(tr);
+      continue;
+    }
+
+    let type = 'ctx';
+    let oldNum = '';
+    let newNum = '';
+
+    if (line.startsWith('+')) {
+      type = 'add';
+      newLine++;
+      newNum = String(newLine);
+    } else if (line.startsWith('-')) {
+      type = 'del';
+      oldLine++;
+      oldNum = String(oldLine);
+    } else {
+      oldLine++;
+      newLine++;
+      oldNum = String(oldLine);
+      newNum = String(newLine);
+    }
+
+    tr.className = `diff-line diff-${type}`;
+    tr.innerHTML = `
+      <td class="diff-gutter diff-old-num">${oldNum}</td>
+      <td class="diff-gutter diff-new-num">${newNum}</td>
+      <td class="diff-content diff-${type}-text">${escapeHtml(line)}</td>
+    `;
+    table.appendChild(tr);
+  }
+
+  diffViewContent.appendChild(table);
+}
+
+function escapeHtml(str) {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function closeDiffModal() {
+  if (diffModal) {
+    diffModal.classList.add('hidden');
+  }
+}
+
+if (diffModalClose) {
+  diffModalClose.addEventListener('click', closeDiffModal);
+}
+
+if (diffModal) {
+  diffModal.addEventListener('click', (e) => {
+    if (e.target === diffModal) closeDiffModal();
+  });
+}
+
+if (diffCopyBtn) {
+  diffCopyBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (!currentActiveDiffText) return;
+    navigator.clipboard.writeText(currentActiveDiffText).then(() => {
+      diffCopyBtn.textContent = 'COPIED!';
+      setTimeout(() => {
+        diffCopyBtn.textContent = 'COPY DIFF';
+      }, 1800);
+    });
+  });
+}
+
 async function loadUserProfile() {
   try {
     const res = await fetch('/api/profile');
@@ -1445,6 +1729,12 @@ document.addEventListener('DOMContentLoaded', function () {
     closeQrModal
   );
 
+  // #diff-modal-close — closes diff modal
+  addDualInteractionListeners(
+    document.getElementById('diff-modal-close'),
+    closeDiffModal
+  );
+
   // Apply global touch optimizations via CSS
   applyTouchOptimizations([
     { selector: 'button', minSizePx: 48, touchAction: 'manipulation' },
@@ -1456,6 +1746,8 @@ document.addEventListener('DOMContentLoaded', function () {
     { selector: '#send-btn', minSizePx: 48, touchAction: 'manipulation' },
     { selector: '.model-option-card', minSizePx: 48, touchAction: 'manipulation' },
     { selector: '.code-copy-btn', minSizePx: 36, touchAction: 'manipulation' },
+    { selector: '.git-action-btn', minSizePx: 36, touchAction: 'manipulation' },
+    { selector: '.modal-action-btn', minSizePx: 36, touchAction: 'manipulation' },
   ]);
 });
 

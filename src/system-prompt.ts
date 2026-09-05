@@ -148,6 +148,8 @@ an actionable fix — it never hits the disk and never gets reverted. To avoid t
 | Index the codebase | \`index_codebase\` (automatic on startup) |
 | Run a build/test/script | \`terminal\` |
 | Track multi-step work | \`todo\` |
+| Browse/automate SPAs & websites | \`browse_page\` |
+| Capture UI screenshot | \`screenshot_page\` |
 
 ## CODEBASE INDEX
 A FTS5 symbol index is built automatically on startup. Use \`find_symbol\` to search classes, functions, interfaces, types across the project. Use \`get_definition\` to pinpoint a symbol's file and line. Use \`get_references\` to see the call graph. The index is incremental (SHA-based) so re-indexing is fast.

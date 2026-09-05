@@ -486,6 +486,60 @@ describe('WebUI Server', () => {
     });
   });
 
+  describe('Git status and diff endpoints', () => {
+    it('GET /api/git/status returns git status json', () => {
+      mockReq.url = '/api/git/status';
+      mockReq.method = 'GET';
+
+      handleRequest(mockReq as IncomingMessage, mockRes as ServerResponse);
+
+      expect(writeHeadSpy).toHaveBeenCalledWith(200, { 'Content-Type': 'application/json' });
+      expect(endSpy).toHaveBeenCalled();
+      const body = JSON.parse(endSpy.mock.calls[0][0]);
+      expect(body).toHaveProperty('branch');
+      expect(body).toHaveProperty('clean');
+      expect(body).toHaveProperty('staged');
+      expect(body).toHaveProperty('unstaged');
+      expect(body).toHaveProperty('untracked');
+    });
+
+    it('GET /api/git/diff returns diff details', () => {
+      mockReq.url = '/api/git/diff?path=src%2Findex.ts&staged=false';
+      mockReq.method = 'GET';
+
+      handleRequest(mockReq as IncomingMessage, mockRes as ServerResponse);
+
+      expect(writeHeadSpy).toHaveBeenCalledWith(200, { 'Content-Type': 'application/json' });
+      expect(endSpy).toHaveBeenCalled();
+      const body = JSON.parse(endSpy.mock.calls[0][0]);
+      expect(body).toHaveProperty('diff');
+      expect(body).toHaveProperty('insertions');
+      expect(body).toHaveProperty('deletions');
+      expect(body.staged).toBe(false);
+    });
+
+    it('POST /api/git/stage rejects missing path', async () => {
+      let dataCb: (chunk: string) => void = () => {};
+      let endCb: () => void = () => {};
+      mockReq.url = '/api/git/stage';
+      mockReq.method = 'POST';
+      mockReq.on = vi.fn((event, cb) => {
+        if (event === 'data') dataCb = cb;
+        if (event === 'end') endCb = cb;
+        return mockReq as any;
+      });
+
+      handleRequest(mockReq as IncomingMessage, mockRes as ServerResponse);
+      dataCb(JSON.stringify({}));
+      endCb();
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      expect(writeHeadSpy).toHaveBeenCalledWith(400, { 'Content-Type': 'application/json' });
+      const body = JSON.parse(endSpy.mock.calls[0][0]);
+      expect(body.error).toContain('Missing path');
+    });
+  });
+
   describe('Other routes', () => {
     it('should return 404 for unknown routes', () => {
       mockReq.url = '/unknown';

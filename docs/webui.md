@@ -120,14 +120,21 @@ The **SANCTUM** tab lists all files currently held in the agent's turn context:
 * Click a file name to insert its reference into the prompt.
 * Click the **×** button to remove a file from active turn context, saving context window tokens.
 
-### 11. Sovereign Mobile PWA Companion
+### 11. Real-Time Git Changes & Working Tree Delta Viewer
+The **CHANGES** tab provides an interactive, mobile-friendly visual diff inspector:
+* **Staged & Unstaged Groups**: Groups modifications by working tree status with clear status badges (`M` modified, `A` added, `D` deleted, `??` untracked).
+* **One-Click Staging**: Stage or unstage files with the `STAGE` / `UNSTAGE` action buttons directly from mobile or desktop.
+* **Interactive Visual Diff Modal**: Clicking any file opens a syntax-highlighted diff modal with line numbers gutter (`+` green additions, `-` red deletions, `@@` hunk headers), total delta statistics, and a one-click `COPY DIFF` patch button.
+* **Pristine Sanctum State**: Displays an emblem when the working tree is clean with zero uncommitted modifications.
+
+### 12. Sovereign Mobile PWA Companion
 The WebUI is engineered as a fully installable, mobile-first **Progressive Web App (PWA)**:
 * **Standalone Window**: Runs with a native app title bar, custom gold theme icon (`/favicon.svg`), and dark background (`#0f172a`).
 * **Offline Shell**: Powered by a service worker (`sw.js`) that precaches core application assets, ensuring instant cold starts even on intermittent networks.
 * **Fluid Mobile Reflow**: Dedicated `@media (max-width: 600px)` rules stack telemetry cards and the archives sidebar cleanly without horizontal overflow down to 375px screens.
 * **Tactile Touch Targets**: All buttons, pills, and interactive links meet minimum 48px tap targets with `pointerdown` tactile response.
 
-### 12. Remote LAN & Tailscale Pairing via QR Code
+### 13. Remote LAN & Tailscale Pairing via QR Code
 Pair your mobile phone or tablet with your host development workstation in seconds:
 1. Click the **PAIR QR** pill in the WebUI header.
 2. The modal generates a real-time QR code (`GET /api/qr`) encoding your workstation's local network or Tailscale WebSocket endpoint.
@@ -222,6 +229,11 @@ etwork).
 * **POST /api/sessions/resume** — Resumes a session by ID { sessionId: string }.
 * **POST /api/sessions/new** — Creates and starts a clean session.
 * **DELETE /api/sessions** — Deletes a saved session by ID { sessionId: string }.
+
+### Git Status & Diff Inspector
+* **GET /api/git/status** — Returns branch name and categorized working tree changes `{ branch: string, clean: boolean, staged: GitFileChange[], unstaged: GitFileChange[], untracked: GitFileChange[] }`.
+* **GET /api/git/diff?path=<file>&staged=<true|false>** — Returns full diff text, target path, and insertion/deletion counts `{ path?: string, staged: boolean, diff: string, insertions: number, deletions: number }`.
+* **POST /api/git/stage** — Stages or unstages a file via git `{ path: string, action: 'stage' | 'unstage' }`.
 
 ### Model Routing & Selection
 * **GET /api/models** — Returns { activeModel: string, availableModels: ModelItem[] }.

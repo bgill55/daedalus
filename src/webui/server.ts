@@ -1,13 +1,13 @@
 import { createServer, IncomingMessage, ServerResponse, Server } from 'node:http';
-import { execSync } from 'node:child_process';
+import { execSync, execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { TelemetryData } from '../types.js';
-import type { WebuiChatMessageEvent, WebuiChatRequest, FileNode } from './types.js';
+import type { WebuiChatMessageEvent, WebuiChatRequest, FileNode, GitFileChange, GitStatusResponse, GitDiffResponse } from './types.js';
 import { loadProfile } from '../profile.js';
-import { generateQrCode, getWebSocketUrl, getWebPairingUrl } from './qr.js';
+import { generateQrCode, getWebPairingUrl } from './qr.js';
 import { startWebSocketServer, broadcastMilestone, closeWebSocketServer } from './ws.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -543,6 +543,152 @@ export function handleRequest(req: IncomingMessage, res: ServerResponse): void {
         .catch(err => {
           res.writeHead(500, { 'Content-Type': 'application/json' });
           res.end(JSON.stringify({ error: err.message || 'QR generation failed' }));
+        });
+      return;
+    }
+
+    if (req.method === 'GET' && pathname === '/api/git/status') {
+      try {
+        const cwd = process.cwd();
+        let branch = 'unknown';
+        try {
+          branch = execFileSync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], {
+            cwd,
+            encoding: 'utf8',
+            stdio: ['ignore', 'pipe', 'ignore'],
+            windowsHide: true,
+          }).trim();
+        } catch { /* ignore detached/no git */ }
+
+        const rawStatus = execFileSync('git', ['status', '--porcelain=v1'], {
+          cwd,
+          encoding: 'utf8',
+          stdio: ['ignore', 'pipe', 'ignore'],
+          windowsHide: true,
+        });
+
+        const staged: GitFileChange[] = [];
+        const unstaged: GitFileChange[] = [];
+        const untracked: GitFileChange[] = [];
+
+        const lines = rawStatus.split(/\r?\n/);
+        for (const line of lines) {
+          if (!line || line.length < 3) continue;
+          const x = line[0];
+          const y = line[1];
+          const filePath = line.substring(3).trim();
+
+          const mapStatus = (code: string): 'modified' | 'added' | 'deleted' | 'renamed' | 'untracked' | 'copied' => {
+            switch (code) {
+              case 'M': return 'modified';
+              case 'A': return 'added';
+              case 'D': return 'deleted';
+              case 'R': return 'renamed';
+              case 'C': return 'copied';
+              case '?': return 'untracked';
+              default: return 'modified';
+            }
+          };
+
+          if (x === '?' && y === '?') {
+            untracked.push({ path: filePath, status: 'untracked', statusCode: '??' });
+          } else {
+            if (x && x !== ' ' && x !== '?') {
+              staged.push({ path: filePath, status: mapStatus(x), statusCode: x });
+            }
+            if (y && y !== ' ' && y !== '?') {
+              unstaged.push({ path: filePath, status: mapStatus(y), statusCode: y });
+            }
+          }
+        }
+
+        const isClean = staged.length === 0 && unstaged.length === 0 && untracked.length === 0;
+        const resp: GitStatusResponse = {
+          branch,
+          clean: isClean,
+          staged,
+          unstaged,
+          untracked,
+        };
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(resp));
+      } catch (err: any) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err?.message || 'Failed to get git status' }));
+      }
+      return;
+    }
+
+    if (req.method === 'GET' && pathname === '/api/git/diff') {
+      try {
+        const cwd = process.cwd();
+        const targetPath = parsedUrl.searchParams.get('path') || undefined;
+        const isStaged = parsedUrl.searchParams.get('staged') === 'true';
+
+        const args = ['diff'];
+        if (isStaged) args.push('--staged');
+        if (targetPath) args.push('--', targetPath);
+
+        let diffOutput = '';
+        try {
+          diffOutput = execFileSync('git', args, {
+            cwd,
+            encoding: 'utf8',
+            env: { ...process.env, GIT_PAGER: 'cat', PAGER: 'cat' },
+            stdio: ['ignore', 'pipe', 'pipe'],
+            windowsHide: true,
+          });
+        } catch (gitErr: any) {
+          diffOutput = (gitErr.stdout || '') + (gitErr.stderr || '');
+        }
+
+        let insertions = 0;
+        let deletions = 0;
+        const lines = diffOutput.split(/\r?\n/);
+        for (const line of lines) {
+          if (line.startsWith('+++') || line.startsWith('---')) continue;
+          if (line.startsWith('+')) insertions++;
+          else if (line.startsWith('-')) deletions++;
+        }
+
+        const resp: GitDiffResponse = {
+          path: targetPath,
+          staged: isStaged,
+          diff: diffOutput,
+          insertions,
+          deletions,
+        };
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(resp));
+      } catch (err: any) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: err?.message || 'Failed to get git diff' }));
+      }
+      return;
+    }
+
+    if (req.method === 'POST' && pathname === '/api/git/stage') {
+      parseJsonBody<{ path: string; action: 'stage' | 'unstage' }>(req)
+        .then(data => {
+          if (!data.path) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Missing path parameter' }));
+            return;
+          }
+          const cwd = process.cwd();
+          if (data.action === 'unstage') {
+            execFileSync('git', ['restore', '--staged', '--', data.path], { cwd, windowsHide: true });
+          } else {
+            execFileSync('git', ['add', '--', data.path], { cwd, windowsHide: true });
+          }
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ success: true, path: data.path, action: data.action }));
+        })
+        .catch(err => {
+          res.writeHead(500, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: err?.message || 'Stage action failed' }));
         });
       return;
     }
