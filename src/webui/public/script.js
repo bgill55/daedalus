@@ -322,7 +322,7 @@ function renderToolStart(toolName) {
 
     const icon = document.createElement('span');
     icon.className = 'tool-tree-icon';
-    icon.textContent = '⚡';
+    icon.innerHTML = '<svg style="width: 12px; height: 12px; display: inline-block; vertical-align: -1px;" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>';
 
     const label = document.createElement('span');
     label.className = 'tool-tree-label';
@@ -358,16 +358,15 @@ function renderToolStart(toolName) {
     details.className = 'tool-tree-details hidden';
 
     header.addEventListener('click', () => {
-      tree.classList.toggle('open');
-      details.classList.toggle('hidden');
+      const isHidden = details.classList.toggle('hidden');
+      chevron.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(90deg)';
     });
 
     tree.appendChild(header);
     tree.appendChild(details);
     chatMessages.appendChild(tree);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-
     currentToolTreeEl = tree;
+    chatMessages.scrollTop = chatMessages.scrollHeight;
   }
 
   const label = currentToolTreeEl.querySelector('.tool-tree-label');
@@ -400,7 +399,7 @@ function renderToolResult(toolName, resultSummary) {
 
       const summary = document.createElement('span');
       summary.className = 'tool-tree-item-summary';
-      summary.textContent = resultSummary ? `(${resultSummary})` : '✔ completed';
+      summary.textContent = resultSummary ? `(${resultSummary})` : 'completed';
 
       item.appendChild(rail);
       item.appendChild(name);
@@ -416,7 +415,7 @@ function renderToolResult(toolName, resultSummary) {
     const badge = currentToolTreeEl.querySelector('.tool-tree-badge');
     if (badge) {
       badge.className = 'tool-tree-badge completed';
-      badge.textContent = '✔ DONE';
+      badge.textContent = 'DONE';
     }
 
     currentToolTreeEl.classList.remove('running');

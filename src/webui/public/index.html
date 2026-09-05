@@ -31,14 +31,18 @@
       <div class="status-bar">
         <div class="model-pill-wrapper">
           <button type="button" id="active-model-badge" class="model-pill touch-target" title="Click to view & switch active model">
-            <span class="model-icon">⚡</span>
+            <span class="model-icon">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            </span>
             <span class="model-label" id="model-label">MODEL: AUTO</span>
           </button>
         </div>
         <div class="status-bar-subrow">
           <div class="qr-pill-wrapper">
             <button type="button" id="qr-pair-btn" class="model-pill qr-pair-btn touch-target" title="Pair mobile device via QR Code">
-              <span class="model-icon">📱</span>
+              <span class="model-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+              </span>
               <span class="model-label">PAIR QR</span>
             </button>
           </div>
@@ -57,7 +61,9 @@
       <div class="panel oracle-card card-pantheon">
         <div class="panel-header">
           <div class="metric-meta">
-            <span class="oracle-glyph">⚡</span>
+            <span class="oracle-glyph">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            </span>
             <span class="metric-name">PANTHEON THROUGHPUT</span>
           </div>
           <span id="cpu-value" class="metric-value">0%</span>
@@ -72,7 +78,9 @@
       <div class="panel oracle-card card-memoria">
         <div class="panel-header">
           <div class="metric-meta">
-            <span class="oracle-glyph">🏛️</span>
+            <span class="oracle-glyph">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v10M8 10v10M12 10v10M16 10v10M20 10v10M2 10h20M2 20h20M12 2L2 7h20L12 2z"/></svg>
+            </span>
             <span class="metric-name">MEMORIA VAULT</span>
           </div>
           <span id="memory-value" class="metric-value">0%</span>
@@ -87,7 +95,9 @@
       <div class="panel oracle-card card-labyrinth">
         <div class="panel-header">
           <div class="metric-meta">
-            <span class="oracle-glyph">📜</span>
+            <span class="oracle-glyph">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            </span>
             <span class="metric-name">LABYRINTH SYMBOLS</span>
           </div>
           <span id="disk-value" class="metric-value">0%</span>
@@ -102,7 +112,9 @@
       <div class="panel oracle-card card-aegis">
         <div class="panel-header">
           <div class="metric-meta">
-            <span class="oracle-glyph">🌐</span>
+            <span class="oracle-glyph">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            </span>
             <span class="metric-name">AEGIS ROUTER</span>
           </div>
           <span id="network-value" class="metric-value">0%</span>
@@ -117,7 +129,9 @@
       <div class="panel log-panel">
         <div class="panel-header">
           <div class="metric-meta">
-            <span class="oracle-glyph">📜</span>
+            <span class="oracle-glyph">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+            </span>
             <span class="metric-name">SYSTEM LOG OF ORACLES</span>
           </div>
           <button id="clear-log" class="clear-btn touch-target">PURGE</button>
@@ -131,12 +145,16 @@
         <div class="panel chat-panel">
           <div class="panel-header chat-header">
             <div class="metric-meta">
-              <span class="oracle-glyph">⚡</span>
+              <span class="oracle-glyph">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+              </span>
               <span class="metric-name">COMMUNICATION CONSOLE</span>
             </div>
             <div class="chat-badges">
               <span class="badge" id="chat-status-badge">SANCTUM READY</span>
-              <button type="button" id="new-chat-btn" class="chat-header-btn" title="Begin a new consultation / clear console">✦ NEW RITE</button>
+              <button type="button" id="new-chat-btn" class="chat-header-btn" title="Begin a new consultation / clear console">
+                <svg class="oracle-icon-svg" style="width: 10px; height: 10px; display: inline-block; vertical-align: middle; margin-right: 3px;" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.2h7.6l-6.1 4.5 2.3 7.3-6.2-4.6-6.2 4.6 2.3-7.3-6.1-4.5h7.6z"/></svg>NEW RITE
+              </button>
             </div>
           </div>
           <div id="chat-messages" class="chat-messages">
@@ -157,14 +175,18 @@
               </svg>
             </button>
             <textarea id="chat-input" rows="1" placeholder="Inscribe an instruction, paste an image (Ctrl+V), or cast artifacts..." autocomplete="off"></textarea>
-            <button type="submit" id="chat-send-btn" class="send-btn">TRANSMIT ⚡</button>
+            <button type="submit" id="chat-send-btn" class="send-btn">
+              TRANSMIT <svg class="oracle-icon-svg" style="width: 11px; height: 11px; display: inline-block; vertical-align: -1px; margin-left: 3px;" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            </button>
           </form>
         </div>
 
         <aside class="panel cheatsheet-panel">
           <div class="panel-header">
             <div class="metric-meta">
-              <span class="oracle-glyph">🏛️</span>
+              <span class="oracle-glyph">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 10v10M8 10v10M12 10v10M16 10v10M20 10v10M2 10h20M2 20h20M12 2L2 7h20L12 2z"/></svg>
+              </span>
               <span class="metric-name">ARCHIVES</span>
             </div>
             <div class="sidebar-tabs">
@@ -211,7 +233,9 @@
           <div class="sidebar-tab-content hidden" id="tab-files">
             <div class="file-tree-toolbar">
               <span id="file-tree-cwd" class="file-tree-cwd">—</span>
-              <button id="file-tree-refresh" class="file-tree-refresh-btn" title="Refresh Labyrinth tree">↺</button>
+              <button id="file-tree-refresh" class="file-tree-refresh-btn" title="Refresh Labyrinth tree">
+                <svg style="width: 12px; height: 12px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+              </button>
             </div>
             <div id="file-tree" class="file-tree">
               <div class="file-tree-loading">Exploring labyrinth paths...</div>
@@ -221,7 +245,9 @@
           <div class="sidebar-tab-content hidden" id="tab-context">
             <div class="file-tree-toolbar">
               <span class="file-tree-cwd">SANCTUM ACTIVE CONTEXT</span>
-              <button id="context-refresh-btn" class="file-tree-refresh-btn" title="Refresh active context">↺</button>
+              <button id="context-refresh-btn" class="file-tree-refresh-btn" title="Refresh active context">
+                <svg style="width: 12px; height: 12px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+              </button>
             </div>
             <div id="context-files-list" class="context-files-list">
               <div class="file-tree-loading">Sanctum is clear. No active files.</div>
@@ -233,7 +259,9 @@
               <span class="file-tree-cwd">MEMORIA CHRONICLES</span>
               <div class="session-toolbar-actions">
                 <button id="session-new-btn" class="file-tree-refresh-btn" title="Create new session">+ NEW</button>
-                <button id="session-refresh-btn" class="file-tree-refresh-btn" title="Refresh session archives">↺</button>
+                <button id="session-refresh-btn" class="file-tree-refresh-btn" title="Refresh session archives">
+                  <svg style="width: 12px; height: 12px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                </button>
               </div>
             </div>
             <div id="sessions-list" class="sessions-list">
@@ -253,18 +281,26 @@
       </div>
       <div class="install-banner-headings">
         <h3 class="install-banner-title">DAEDALUS SOVEREIGN APP</h3>
-        <span class="install-banner-subtitle">PWA Companion · Offline & Push Enabled</span>
+        <span class="install-banner-subtitle">PWA Companion · Offline &amp; Push Enabled</span>
       </div>
     </div>
     <p class="install-banner-message">Add Daedalus to your home screen or dock for instant, full-screen autonomous orchestration with background telemetry.</p>
     <div class="install-banner-features">
-      <span class="install-feature-pill">⚡ Instant Launch</span>
-      <span class="install-feature-pill">🔔 Push Alerts</span>
-      <span class="install-feature-pill">📱 Mobile & Desktop</span>
+      <span class="install-feature-pill">
+        <svg style="width: 11px; height: 11px; display: inline-block; vertical-align: -1px; margin-right: 3px;" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>Instant Launch
+      </span>
+      <span class="install-feature-pill">
+        <svg style="width: 11px; height: 11px; display: inline-block; vertical-align: -1px; margin-right: 3px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>Push Alerts
+      </span>
+      <span class="install-feature-pill">
+        <svg style="width: 11px; height: 11px; display: inline-block; vertical-align: -1px; margin-right: 3px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>Mobile &amp; Desktop
+      </span>
     </div>
     <div class="install-banner-actions">
       <button class="install-banner-button" id="install-button">
-        <span class="install-btn-icon">⬇</span> INSTALL APPLICATION
+        <span class="install-btn-icon">
+          <svg style="width: 14px; height: 14px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+        </span> INSTALL APPLICATION
       </button>
       <button type="button" class="install-banner-dismiss-btn" id="install-dismiss-button">NOT NOW</button>
     </div>
@@ -274,7 +310,9 @@
     <div class="modal-card">
       <div class="modal-header">
         <div class="metric-meta">
-          <span class="oracle-glyph">📱</span>
+          <span class="oracle-glyph">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+          </span>
           <span class="metric-name">SOVEREIGN PAIRING · QR TELEMETRY</span>
         </div>
         <button type="button" id="qr-modal-close" class="modal-close-btn" title="Close">×</button>
@@ -289,11 +327,15 @@
         </div>
       </div>
     </div>
+  </div>
+
   <div id="model-modal" class="modal-overlay hidden">
     <div class="modal-card">
       <div class="modal-header">
         <div class="metric-meta">
-          <span class="oracle-glyph">⚡</span>
+          <span class="oracle-glyph">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          </span>
           <span class="metric-name">ROUTER ORACLES · MODEL SELECTION</span>
         </div>
         <button type="button" id="model-modal-close" class="modal-close-btn" title="Close">×</button>
