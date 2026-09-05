@@ -1,3 +1,10 @@
+## [3.80.5](https://github.com/bgill55/daedalus/compare/v3.80.4...v3.80.5) (2026-09-05)
+
+
+### Bug Fixes
+
+* **bot:** unwrap angle brackets and convert non-Discord tags into backticks so Discord displays full text ([d76aeaa](https://github.com/bgill55/daedalus/commit/d76aeaa7f204230f633f40d7ae1069ee54eca314))
+
 ## [3.80.4](https://github.com/bgill55/daedalus/compare/v3.80.3...v3.80.4) (2026-09-05)
 
 
