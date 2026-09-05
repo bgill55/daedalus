@@ -1,3 +1,10 @@
+# [3.79.0](https://github.com/bgill55/daedalus/compare/v3.78.1...v3.79.0) (2026-09-05)
+
+
+### Features
+
+* **webui:** add GitHub repository and Discord community links to header ([59aaa4f](https://github.com/bgill55/daedalus/commit/59aaa4f49b18f30f815649011182be00955e525b))
+
 ## [3.78.1](https://github.com/bgill55/daedalus/compare/v3.78.0...v3.78.1) (2026-09-05)
 
 
