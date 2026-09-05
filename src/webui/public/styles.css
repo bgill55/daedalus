@@ -92,6 +92,114 @@ body {
   width: 100%;
 }
 
+@media (max-width: 900px) {
+  .dashboard {
+    max-width: 100%;
+    padding: 20px 24px 32px;
+  }
+  
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  
+  .brand {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .status-bar {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+  }
+  
+  .panel {
+    padding: 16px 18px;
+  }
+}
+
+@media (max-width: 600px) {
+  .dashboard {
+    padding: 16px 20px 24px;
+  }
+  
+  .header {
+    gap: 12px;
+  }
+  
+  .brand {
+    gap: 10px;
+  }
+  
+  .logo-crest {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .brand-name {
+    font-size: 20px;
+  }
+  
+  .brand-greek {
+    font-size: 11px;
+  }
+  
+  .brand-sub {
+    font-size: 9px;
+  }
+  
+  .status-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  
+  .model-pill-wrapper {
+    justify-content: center;
+  }
+  
+  .oracle-clock {
+    align-items: center;
+  }
+  
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .panel {
+    padding: 14px 16px;
+  }
+  
+  .panel-header {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .panel-title {
+    font-size: 14px;
+  }
+  
+  .panel-meta {
+    font-size: 10px;
+  }
+  
+  .metric-value {
+    font-size: 16px;
+  }
+  
+  .metric-label {
+    font-size: 9px;
+  }
+}
+
 .header {
   display: flex;
   justify-content: space-between;
@@ -1959,3 +2067,193 @@ body {
   font-size: 11px;
   color: var(--text-dim);
 }
+
+/* ==========================================================================
+   Responsive & Mobile-First Breakpoints (PWA Companion)
+   ========================================================================== */
+
+/* Tablet / Narrow Desktop breakpoint */
+@media (max-width: 900px) {
+  .dashboard {
+    padding: 16px 16px 32px;
+    max-width: 100%;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    padding-bottom: 18px;
+    margin-bottom: 20px;
+  }
+
+  .status-bar {
+    width: 100%;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+
+  .chat-section-wrapper {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .cheatsheet-panel {
+    max-height: 480px;
+  }
+}
+
+/* Mobile viewport breakpoint */
+@media (max-width: 600px) {
+  html, body {
+    overflow-x: hidden;
+    width: 100%;
+  }
+
+  .dashboard {
+    padding: 12px 10px 24px;
+    width: 100%;
+    max-width: 100vw;
+    box-sizing: border-box;
+    overflow-x: hidden;
+  }
+
+  .header {
+    gap: 12px;
+    padding-bottom: 14px;
+    margin-bottom: 16px;
+  }
+
+  .brand {
+    gap: 10px;
+  }
+
+  .brand-name {
+    font-size: 20px;
+    letter-spacing: 2px;
+  }
+
+  .brand-greek {
+    font-size: 11px;
+  }
+
+  .brand-sub {
+    font-size: 8.5px;
+    letter-spacing: 0.8px;
+  }
+
+  .status-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    width: 100%;
+  }
+
+  .model-pill {
+    padding: 6px 10px;
+    font-size: 10.5px;
+  }
+
+  .status {
+    padding: 5px 8px;
+    font-size: 10px;
+  }
+
+  .oracle-clock {
+    align-items: flex-start;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .panel {
+    padding: 14px 12px;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .metric-value {
+    font-size: 22px;
+  }
+
+  .sparkline {
+    height: 28px;
+  }
+
+  .log-container {
+    max-height: 200px;
+    font-size: 11px;
+    overflow-x: auto;
+  }
+
+  .chat-panel {
+    min-height: 380px;
+  }
+
+  .chat-messages {
+    max-height: 360px;
+    padding: 10px 8px;
+    gap: 10px;
+  }
+
+  .chat-msg {
+    max-width: 100%;
+    padding: 10px 10px;
+    font-size: 13px;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+
+  .chat-form {
+    padding: 8px;
+    gap: 6px;
+  }
+
+  #chat-input {
+    font-size: 13px;
+    padding: 8px;
+    min-height: 40px;
+  }
+
+  .send-btn {
+    padding: 8px 12px;
+    font-size: 11px;
+    min-height: 44px;
+    white-space: nowrap;
+  }
+
+  .attach-btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .sidebar-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 4px;
+  }
+
+  .sidebar-tab {
+    font-size: 9.5px;
+    padding: 8px 4px;
+    min-height: 36px;
+    white-space: normal;
+  }
+
+  .modal-card {
+    width: calc(100vw - 24px);
+    max-width: calc(100vw - 24px);
+    margin: 8px auto;
+    padding: 14px;
+  }
+}
+

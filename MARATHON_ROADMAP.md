@@ -1,10 +1,10 @@
 # Marathon Roadmap: Transform the Daedalus WebUI in src/webui/public/ into a sovereign mobile-first PWA companion with installable manifest, service worker caching, touch-optimized responsive layout, QR code pairing for local/Tailscale networks, and milestone push notifications.
 
 - **Status**: `EVALUATING`
-- **Progress**: 1/8 milestones passed (13%)
+- **Progress**: 2/8 milestones passed (25%)
 - **Base Branch**: `main`
 - **Integration Branch**: `marathon/transform-the-daedalus-webui-i`
-- **Last Updated**: 2026-09-05T02:15:36.071Z
+- **Last Updated**: 2026-09-05T03:02:23.135Z
 
 ## Milestones
 
@@ -21,28 +21,29 @@ Create a web app manifest file with required fields and link it from index.html 
 - [x] index.html contains a <link rel="manifest" href="manifest.json"> tag inside <head>
 - [x] Running `npm run build` does not error and the manifest is served correctly via the dev server
 
-### [>] M-2: Service worker file and registration
+### [x] M-2: Service worker file and registration
 
 Add a service worker script (sw.js) that caches core assets and register it from script.js on page load.
 
 - **Target Files**: `src/webui/public/sw.js`, `src/webui/public/script.js`
+- **Git Tag**: `daedalus-checkpoint/m-2`
 - **Attempts**: 3/3
 
 **Acceptance Criteria:**
 - [x] sw.js implements install event to cache index.html, styles.css, script.js, and manifest.json
 - [x] script.js registers the service worker and logs success or failure
-- [ ] When the site is loaded offline, the cached assets are served and the UI renders correctly
+- [x] When the site is loaded offline, the cached assets are served and the UI renders correctly
 
-### [ ] M-3: Mobile‑first responsive styling
+### [>] M-3: Mobile‑first responsive styling
 
 Introduce responsive breakpoints and fluid layout in styles.css to make the UI adapt to phones, tablets, and desktops.
 
 - **Target Files**: `src/webui/public/styles.css`
-- **Attempts**: 0/3
+- **Attempts**: 5/3
 
 **Acceptance Criteria:**
-- [ ] CSS includes @media queries for max-width: 600px and 900px
-- [ ] All UI elements reflow without horizontal scroll on a 375 px viewport
+- [x] CSS includes @media queries for max-width: 600px and 900px
+- [x] All UI elements reflow without horizontal scroll on a 375 px viewport
 - [ ] Visual regression test confirms layout matches expected screenshots on mobile and desktop
 
 ### [ ] M-4: Touch‑optimized UI components
