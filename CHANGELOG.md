@@ -1,3 +1,10 @@
+## [3.80.1](https://github.com/bgill55/daedalus/compare/v3.80.0...v3.80.1) (2026-09-05)
+
+
+### Bug Fixes
+
+* **bot:** load DISCORD_BOT_TOKEN from repository root .env and ~/.daedalus/.env ([78218ad](https://github.com/bgill55/daedalus/commit/78218ad6dd372cd535cc6cefa7d4c6cdca89ca8a))
+
 # [3.80.0](https://github.com/bgill55/daedalus/compare/v3.79.0...v3.80.0) (2026-09-05)
 
 
