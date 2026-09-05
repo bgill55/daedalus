@@ -141,11 +141,24 @@ export function registerModelProvider(provider: ModelProvider | null): void {
 }
 
 function resolvePublicAsset(filename: string): string | null {
-  const primary = path.join(__dirname, 'public', filename);
-  if (fs.existsSync(primary)) return primary;
+  const safeFilename = path.normalize(filename).replace(/^(\.\.[\/\\])+/, '');
+  const primary = path.join(__dirname, 'public', safeFilename);
+  if (fs.existsSync(primary)) {
+    try {
+      if (fs.statSync(primary).isFile()) return primary;
+    } catch {
+      return primary;
+    }
+  }
 
-  const fallback = path.join(__dirname, '..', '..', 'src', 'webui', 'public', filename);
-  if (fs.existsSync(fallback)) return fallback;
+  const fallback = path.join(__dirname, '..', '..', 'src', 'webui', 'public', safeFilename);
+  if (fs.existsSync(fallback)) {
+    try {
+      if (fs.statSync(fallback).isFile()) return fallback;
+    } catch {
+      return fallback;
+    }
+  }
 
   return null;
 }
@@ -315,30 +328,30 @@ export function handleRequest(req: IncomingMessage, res: ServerResponse): void {
       return;
     }
 
-    if (req.method === 'GET' && (
-      req.url === '/styles.css' ||
-      req.url === '/script.js' ||
-      req.url === '/marked.min.js' ||
-      req.url === '/favicon.svg' ||
-      req.url === '/favicon.ico' ||
-      req.url === '/sw.js' ||
-      req.url === '/manifest.json'
-    )) {
-      const filename = req.url.slice(1);
-      const assetPath = resolvePublicAsset(filename);
-      if (assetPath) {
-        const mimeTypes: Record<string, string> = {
-          '.css': 'text/css; charset=utf-8',
-          '.js': 'application/javascript; charset=utf-8',
-          '.svg': 'image/svg+xml; charset=utf-8',
-          '.ico': 'image/x-icon',
-          '.json': 'application/manifest+json; charset=utf-8',
-          '.webmanifest': 'application/manifest+json; charset=utf-8',
-        };
-        const ext = path.extname(assetPath);
-        res.writeHead(200, { 'Content-Type': mimeTypes[ext] || 'application/octet-stream' });
-        res.end(fs.readFileSync(assetPath));
-        return;
+    if (req.method === 'GET' && !req.url?.startsWith('/api') && req.url !== '/telemetry' && req.url !== '/qr' && req.url !== '/') {
+      const urlPath = req.url?.split('?')[0].replace(/^\/+/, '') || '';
+      const ext = path.extname(urlPath).toLowerCase();
+      const mimeTypes: Record<string, string> = {
+        '.html': 'text/html; charset=utf-8',
+        '.css': 'text/css; charset=utf-8',
+        '.js': 'application/javascript; charset=utf-8',
+        '.svg': 'image/svg+xml; charset=utf-8',
+        '.ico': 'image/x-icon',
+        '.json': 'application/manifest+json; charset=utf-8',
+        '.webmanifest': 'application/manifest+json; charset=utf-8',
+        '.png': 'image/png',
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.woff': 'font/woff',
+        '.woff2': 'font/woff2',
+      };
+      if (ext && mimeTypes[ext]) {
+        const assetPath = resolvePublicAsset(urlPath);
+        if (assetPath) {
+          res.writeHead(200, { 'Content-Type': mimeTypes[ext] || 'application/octet-stream' });
+          res.end(fs.readFileSync(assetPath));
+          return;
+        }
       }
     }
 
