@@ -242,9 +242,14 @@ body {
   filter: drop-shadow(0 0 14px rgba(229, 169, 60, 0.6));
 }
 
-.crest-svg {
+.crest-svg,
+.crest-img {
   width: 100%;
   height: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  box-shadow: 0 0 14px rgba(56, 189, 248, 0.25);
 }
 
 .brand-titles {
