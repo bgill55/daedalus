@@ -94,6 +94,21 @@ describe("Daedalus Discord Bot", () => {
       expect(sanitizeBotReply(input)).toBe("Hey Brian, glad you asked! What can I help you with today?");
     });
 
+    it("unwraps messages wrapped in outer angle brackets", () => {
+      const input = "<Here is the full breakdown of updates for Brian!>";
+      expect(sanitizeBotReply(input)).toBe("Here is the full breakdown of updates for Brian!");
+    });
+
+    it("converts inner non-Discord angle brackets into backticks while preserving URLs and mentions", () => {
+      const input = "Check <https://github.com/bgill55/daedalus> and run <daedalus-checkpoint/m-*> for <@123456789>!";
+      expect(sanitizeBotReply(input)).toBe("Check <https://github.com/bgill55/daedalus> and run `daedalus-checkpoint/m-*` for <@123456789>!");
+    });
+
+    it("strips special model tokens", () => {
+      const input = "<|im_start|>assistant\nHere is the answer.<|im_end|>";
+      expect(sanitizeBotReply(input)).toBe("assistant\nHere is the answer.");
+    });
+
     it("returns default fallback for empty text or recovers raw reasoning text", () => {
       expect(sanitizeBotReply("")).toBe("Something went wrong in the machine.");
       expect(sanitizeBotReply("   ")).toBe("Something went wrong in the machine.");

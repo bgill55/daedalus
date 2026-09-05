@@ -99,18 +99,39 @@ function inferMimeType(filename: string | null): string | null {
 }
 
 export function sanitizeBotReply(raw: string): string {
-  let text = raw.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+  if (!raw || typeof raw !== 'string') return "Something went wrong in the machine.";
+
+  let text = raw;
+
+  if (text.includes('</think>')) {
+    text = text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+  }
   if (!text) {
     text = raw.replace(/<\/?think>/gi, '').trim();
   }
-  if (!text) return "Something went wrong in the machine.";
+  if (/^\s*<think>/i.test(text)) {
+    text = text.replace(/^\s*<think>/i, '').trim();
+  }
+  text = text.replace(/<\/?think>/gi, '').trim();
 
-  // Strip XML/agent prefix wrapper tags like <DAEDALUS: ... </DAEDALUS> or <daedalus>...</daedalus>
-  text = text.replace(/^<\s*(?:daedalus|assistant|bot)\s*:\s*/i, '');
-  text = text.replace(/<\s*\/\s*(?:daedalus|assistant|bot)\s*>/gi, '');
-  text = text.replace(/^<\s*(?:daedalus|assistant|bot)\s*>/gi, '');
+  text = text.replace(/<\|[a-zA-Z0-9_-]+\|>/g, '');
+  text = text.replace(/<\/?(?:s|im_start|im_end|eot_id)>/gi, '');
 
-  // Detect and collapse runaway repetition loops
+  text = text.replace(/<\s*\/?\s*(?:daedalus|assistant|bot|agent|user|system)\s*:\s*/gi, '');
+  text = text.replace(/<\s*\/?\s*(?:daedalus|assistant|bot|agent|user|system)(?:\s+[^>]*)?>/gi, '');
+
+  text = text.trim();
+  if (text.startsWith('<') && text.endsWith('>') && !/^<https?:\/\/[^>]+>$/i.test(text)) {
+    text = text.slice(1, -1).trim();
+  }
+
+  text = text.replace(/<(?!(?:@!?\d+|@&\d+|#\d+|t:\d+(?::[tTdDfFR])?|a?:[a-zA-Z0-9_]+:\d+|https?:\/\/))([^>\n]+)>/g, (_match, inner) => {
+    return '`' + inner.trim() + '`';
+  });
+
+  text = text.replace(/^>+\s*/, (m) => m.includes(' ') ? m : '');
+  text = text.replace(/>+$/, '').trim();
+
   const lines = text.split('\n');
   const cleanedLines: string[] = [];
   let prevLine = '';
@@ -130,7 +151,8 @@ export function sanitizeBotReply(raw: string): string {
     cleanedLines.push(line);
   }
 
-  return cleanedLines.join('\n').trim();
+  const result = cleanedLines.join('\n').trim();
+  return result || "Something went wrong in the machine.";
 }
 
 async function sendChunkedInteractionReply(interaction: CommandInteraction, text: string, prefix = ''): Promise<void> {
