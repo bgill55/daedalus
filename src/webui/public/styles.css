@@ -215,10 +215,21 @@ body {
 
   .status-bar-subrow {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: center;
-    gap: 10px;
+    gap: 8px;
     width: 100%;
+  }
+
+  .header-links {
+    display: inline-flex;
+    gap: 6px;
+  }
+
+  .header-link-btn {
+    padding: 4px 8px;
+    font-size: 8px;
   }
 
   .qr-pill-wrapper,
@@ -469,6 +480,45 @@ body {
   display: flex;
   align-items: center;
   gap: 16px;
+}
+
+.header-links {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-link-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(13, 23, 40, 0.7);
+  border: 1px solid var(--bronze-border);
+  border-radius: 4px;
+  padding: 4px 9px;
+  font-family: var(--font-mythic);
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+  text-decoration: none;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.header-link-btn:hover {
+  color: var(--gold-bright);
+  border-color: var(--gold-aurum);
+  background: rgba(229, 169, 60, 0.08);
+  box-shadow: 0 0 8px var(--gold-glow);
+  transform: translateY(-1px);
+}
+
+.header-link-icon {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  fill: currentColor;
 }
 
 .status-pill-wrapper {
