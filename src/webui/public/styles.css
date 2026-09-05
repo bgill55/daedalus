@@ -233,8 +233,16 @@ body {
   justify-content: center;
   width: 44px;
   height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  max-width: 44px;
+  max-height: 44px;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: 10px;
   filter: drop-shadow(0 0 8px rgba(229, 169, 60, 0.35));
   transition: transform 0.3s ease, filter 0.3s ease;
+  box-sizing: border-box;
 }
 
 .logo-crest:hover {
@@ -246,10 +254,13 @@ body {
 .crest-img {
   width: 100%;
   height: 100%;
+  max-width: 100%;
+  max-height: 100%;
   object-fit: cover;
   border-radius: 8px;
   border: 1px solid rgba(56, 189, 248, 0.35);
   box-shadow: 0 0 14px rgba(56, 189, 248, 0.25);
+  display: block;
 }
 
 .brand-titles {
@@ -2359,16 +2370,32 @@ body {
 }
 
 .install-banner-crest {
-  width: 42px;
-  height: 42px;
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  min-height: 48px;
+  max-width: 48px;
+  max-height: 48px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(229, 169, 60, 0.08);
-  border: 1px solid var(--bronze-border);
+  background: rgba(14, 21, 37, 0.8);
+  border: 1px solid var(--bronze-border-strong);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 0 16px rgba(56, 189, 248, 0.25);
+  box-sizing: border-box;
+}
+
+.install-crest-img {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: cover;
   border-radius: 10px;
-  padding: 4px;
+  display: block;
 }
 
 .install-banner-headings {
