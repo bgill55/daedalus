@@ -1,3 +1,10 @@
+# [3.80.0](https://github.com/bgill55/daedalus/compare/v3.79.0...v3.80.0) (2026-09-05)
+
+
+### Features
+
+* **discord:** modernize bot prompt, dynamic router status, pantheon commands, and test suite ([b22aa5b](https://github.com/bgill55/daedalus/commit/b22aa5badbca27cd07f36e9b2f603f3f695e1e26))
+
 # [3.79.0](https://github.com/bgill55/daedalus/compare/v3.78.1...v3.79.0) (2026-09-05)
 
 
