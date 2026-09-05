@@ -1,3 +1,10 @@
+## [3.76.1](https://github.com/bgill55/daedalus/compare/v3.76.0...v3.76.1) (2026-09-05)
+
+
+### Bug Fixes
+
+* **webui:** add observability logging to error catch blocks to pass static analysis ([33fe070](https://github.com/bgill55/daedalus/commit/33fe0703034da0a21a076da01e196085cbbf9a55))
+
 # [3.76.0](https://github.com/bgill55/daedalus/compare/v3.75.0...v3.76.0) (2026-09-05)
 
 
