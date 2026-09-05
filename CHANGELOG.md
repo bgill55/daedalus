@@ -1,3 +1,10 @@
+## [3.80.3](https://github.com/bgill55/daedalus/compare/v3.80.2...v3.80.3) (2026-09-05)
+
+
+### Bug Fixes
+
+* **bot:** streamline system prompt to eliminate model confusion and meta directives ([718ce2b](https://github.com/bgill55/daedalus/commit/718ce2b07c6d2ccc8c3f3518f9da5ac882f0f46d))
+
 ## [3.80.2](https://github.com/bgill55/daedalus/compare/v3.80.1...v3.80.2) (2026-09-05)
 
 
