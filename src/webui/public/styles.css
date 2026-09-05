@@ -901,10 +901,21 @@ body {
   display: flex;
   gap: 4px;
   width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 2px;
+}
+
+.sidebar-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .sidebar-tab {
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 0;
   text-align: center;
   justify-content: center;
   background: rgba(4, 7, 13, 0.6);
@@ -914,13 +925,10 @@ body {
   font-family: var(--font-mythic);
   font-size: 8.5px;
   font-weight: 700;
-  letter-spacing: 0.5px;
-  padding: 5px 2px;
+  letter-spacing: 0.4px;
+  padding: 6px 3px;
   cursor: pointer;
   white-space: nowrap;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
   transition: all 0.15s ease-in-out;
 }
 
@@ -2803,16 +2811,21 @@ body {
   }
 
   .sidebar-tabs {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    display: flex;
+    overflow-x: auto;
+    overflow-y: hidden;
     gap: 4px;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
   }
 
   .sidebar-tab {
-    font-size: 9.5px;
-    padding: 8px 4px;
-    min-height: 36px;
-    white-space: normal;
+    flex: 1 0 auto;
+    font-size: 9px;
+    padding: 8px 10px;
+    min-height: 38px;
+    white-space: nowrap;
   }
 
   .modal-card {
