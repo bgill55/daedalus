@@ -1271,7 +1271,9 @@ async function openQrModal() {
           const data = await res.json();
           if (data.url) webUrl = data.url;
         }
-      } catch {}
+      } catch (err) {
+        console.warn('[webui] LAN pairing URL resolution fallback to origin:', err);
+      }
     }
     if (qrWsUrl) {
       qrWsUrl.textContent = webUrl;
@@ -1479,13 +1481,17 @@ function showMilestoneNotification(payload) {
     if (Notification.permission === 'granted') {
       try {
         new Notification(title, options);
-      } catch {}
+      } catch (err) {
+        console.warn('[webui] Notification delivery failed:', err);
+      }
     } else if (Notification.permission !== 'denied') {
       Notification.requestPermission().then(function (permission) {
         if (permission === 'granted') {
           try {
             new Notification(title, options);
-          } catch {}
+          } catch (err) {
+            console.warn('[webui] Notification delivery failed:', err);
+          }
         }
       });
     }
@@ -1519,7 +1525,9 @@ function connectWebSocket() {
         if (data.type === 'milestone') {
           showMilestoneNotification(data);
         }
-      } catch {}
+      } catch (err) {
+        console.warn('[webui] Malformed WebSocket message received:', err);
+      }
     };
 
     wsClient.onclose = function () {
@@ -1529,10 +1537,13 @@ function connectWebSocket() {
       }
     };
 
-    wsClient.onerror = function () {
-      try { wsClient.close(); } catch {}
+    wsClient.onerror = function (err) {
+      console.warn('[webui] WebSocket client encountered connection error:', err);
+      try { wsClient.close(); } catch (closeErr) { console.error('[webui] Error closing websocket client:', closeErr); }
     };
-  } catch {}
+  } catch (err) {
+    console.warn('[webui] WebSocket initialization failed:', err);
+  }
 }
 
 // ─────────────────────────────────────────────────────────────

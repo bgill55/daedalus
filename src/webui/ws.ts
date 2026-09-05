@@ -66,7 +66,9 @@ export function closeWebSocketServer(): void {
     for (const client of clients) {
       try {
         client.close();
-      } catch {}
+      } catch (err) {
+        console.error('[webui] Error closing client connection:', err);
+      }
     }
     clients.clear();
     wss.close();
