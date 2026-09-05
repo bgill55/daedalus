@@ -1427,9 +1427,88 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 // ─────────────────────────────────────────────────────────────
+// WebSocket & Milestone Push Notifications — M-7
+// ─────────────────────────────────────────────────────────────
+let wsClient = null;
+let wsReconnectTimer = null;
+
+function showMilestoneNotification(payload) {
+  if (!payload || payload.type !== 'milestone') return;
+
+  const title = `[DAEDALUS] Milestone ${payload.id ? payload.id.toUpperCase() : ''}: ${payload.title || 'Update'}`;
+  const options = {
+    body: payload.summary || `Status: ${(payload.status || 'passed').toUpperCase()}${payload.score !== undefined ? ` (${payload.score}/100)` : ''}`,
+    icon: '/favicon.svg',
+    badge: '/favicon.svg',
+    tag: `daedalus-milestone-${payload.id || Date.now()}`,
+    renotify: true,
+  };
+
+  if ('Notification' in window) {
+    if (Notification.permission === 'granted') {
+      try {
+        new Notification(title, options);
+      } catch {}
+    } else if (Notification.permission !== 'denied') {
+      Notification.requestPermission().then(function (permission) {
+        if (permission === 'granted') {
+          try {
+            new Notification(title, options);
+          } catch {}
+        }
+      });
+    }
+  }
+
+  // Also log into Oracle system log
+  addLog(`Milestone <strong>${payload.id || ''}</strong>: ${payload.title} — <em>${(payload.status || 'passed').toUpperCase()}</em>`);
+}
+
+function connectWebSocket() {
+  if (wsClient && (wsClient.readyState === WebSocket.OPEN || wsClient.readyState === WebSocket.CONNECTING)) {
+    return;
+  }
+
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = `${protocol}//${window.location.host}`;
+
+  try {
+    wsClient = new WebSocket(wsUrl);
+
+    wsClient.onopen = function () {
+      if (wsReconnectTimer) {
+        clearTimeout(wsReconnectTimer);
+        wsReconnectTimer = null;
+      }
+    };
+
+    wsClient.onmessage = function (event) {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'milestone') {
+          showMilestoneNotification(data);
+        }
+      } catch {}
+    };
+
+    wsClient.onclose = function () {
+      wsClient = null;
+      if (!wsReconnectTimer) {
+        wsReconnectTimer = setTimeout(connectWebSocket, 3000);
+      }
+    };
+
+    wsClient.onerror = function () {
+      try { wsClient.close(); } catch {}
+    };
+  } catch {}
+}
+
+// ─────────────────────────────────────────────────────────────
 // Bootstrapping
 // ─────────────────────────────────────────────────────────────
 connectSSE();
+connectWebSocket();
 loadModels();
 loadUserProfile();
 
@@ -1438,4 +1517,5 @@ setInterval(function () {
     lastUpdateEl.textContent = new Date().toLocaleTimeString();
   }
 }, 1000);
+
 

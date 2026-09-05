@@ -1,10 +1,10 @@
 # Marathon Roadmap: Transform the Daedalus WebUI in src/webui/public/ into a sovereign mobile-first PWA companion with installable manifest, service worker caching, touch-optimized responsive layout, QR code pairing for local/Tailscale networks, and milestone push notifications.
 
 - **Status**: `EVALUATING`
-- **Progress**: 5/8 milestones passed (63%)
+- **Progress**: 6/8 milestones passed (75%)
 - **Base Branch**: `main`
 - **Integration Branch**: `marathon/transform-the-daedalus-webui-i`
-- **Last Updated**: 2026-09-05T03:26:27.382Z
+- **Last Updated**: 2026-09-05T03:46:22.527Z
 
 ## Milestones
 
@@ -75,30 +75,31 @@ Implement a server‑side endpoint that returns a PNG QR code encoding the local
 - [x] Unit test verifies response status 200 and correct content‑type
 - [x] Endpoint does not modify existing routes or break current server start
 
-### [>] M-6: Client‑side QR code scanner for pairing
+### [x] M-6: Client‑side QR code scanner for pairing
 
 Add UI to capture a QR code using the device camera, decode it, and open a WebSocket connection to the paired server.
 
 - **Target Files**: `src/webui/public/index.html`, `src/webui/public/script.js`
+- **Git Tag**: `daedalus-checkpoint/m-6`
 - **Attempts**: 1/3
 
 **Acceptance Criteria:**
-- [ ] A "Pair via QR" button appears on mobile view
-- [ ] Clicking the button launches the camera and scans the QR code using a lightweight library (e.g., @zxing/browser)
-- [ ] Decoded URL is used to open a WebSocket; connection success is logged
-- [ ] If scanning fails, a user‑friendly error message is displayed
+- [x] A "Pair via QR" button appears on mobile view
+- [x] Clicking the button launches the camera and scans the QR code using a lightweight library (e.g., @zxing/browser)
+- [x] Decoded URL is used to open a WebSocket; connection success is logged
+- [x] If scanning fails, a user‑friendly error message is displayed
 
-### [ ] M-7: Milestone push notifications via WebSocket
+### [>] M-7: Milestone push notifications via WebSocket
 
 Create a WebSocket server that pushes milestone events to connected clients and update the client to display native notifications.
 
 - **Target Files**: `src/webui/ws.ts`, `src/webui/public/script.js`
-- **Attempts**: 0/3
+- **Attempts**: 4/3
 
 **Acceptance Criteria:**
-- [ ] ws.ts exports a function to start a WebSocket server on the same HTTP port
-- [ ] When the server emits a "milestone" message, script.js receives it and calls Notification API
-- [ ] Browser prompts for notification permission on first receipt
+- [x] ws.ts exports a function to start a WebSocket server on the same HTTP port
+- [x] When the server emits a "milestone" message, script.js receives it and calls Notification API
+- [x] Browser prompts for notification permission on first receipt
 - [ ] Automated integration test confirms a test message sent from server appears as a notification in the client mock
 
 ### [ ] M-8: PWA install prompt handling and UI cue

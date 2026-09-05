@@ -8,6 +8,7 @@ import type { TelemetryData } from '../types.js';
 import type { WebuiChatMessageEvent, WebuiChatRequest, FileNode } from './types.js';
 import { loadProfile } from '../profile.js';
 import { generateQrCode, getWebSocketUrl } from './qr.js';
+import { startWebSocketServer, broadcastMilestone, closeWebSocketServer } from './ws.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -565,6 +566,7 @@ export function startServer(port = PORT, host = HOST): Promise<Server> {
     server.once('error', errorHandler);
     server.listen(port, host, () => {
       server.removeListener('error', errorHandler);
+      startWebSocketServer(server);
       console.info(`[webui] Server listening on http://${host}:${port}`);
       resolve(server);
     });
@@ -573,6 +575,7 @@ export function startServer(port = PORT, host = HOST): Promise<Server> {
 
 export function stopServer(): Promise<void> {
   return new Promise((resolve, reject) => {
+    closeWebSocketServer();
     for (const record of activeClientRecords) {
       try {
         clearInterval(record.intervalId);
@@ -597,6 +600,7 @@ export function stopServer(): Promise<void> {
 
 // Auto-cleanup on CLI exit
 process.on('exit', () => {
+  closeWebSocketServer();
   if (server && server.listening) {
     try {
       server.close();
@@ -604,4 +608,4 @@ process.on('exit', () => {
   }
 });
 
-export { server, PORT, HOST };
+export { server, PORT, HOST, startWebSocketServer, broadcastMilestone, closeWebSocketServer };
