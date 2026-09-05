@@ -2311,3 +2311,94 @@ body {
   }
 }
 
+/* Install Banner Styles */
+.install-banner {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 500px;
+  background: var(--bg-panel-elevated);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 1000;
+  border: 1px solid var(--bronze-border);
+}
+
+.install-banner.hidden {
+  display: none;
+}
+
+.install-banner-title {
+  font-family: var(--font-mythic);
+  font-size: 18px;
+  color: var(--text-marble);
+  margin: 0;
+}
+
+.install-banner-message {
+  font-size: 14px;
+  color: var(--text-parchment);
+  margin: 0 0 8px 0;
+}
+
+.install-banner-button {
+  background: linear-gradient(135deg, var(--gold-bright), var(--gold-aurum));
+  color: var(--bg-void);
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  align-self: flex-start;
+}
+
+.install-banner-button:hover {
+  background: linear-gradient(135deg, var(--gold-aurum), var(--gold-deep));
+  box-shadow: 0 0 12px var(--gold-glow);
+}
+
+.install-banner-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.install-banner-close:hover {
+  color: var(--text-parchment);
+}
+
+@media (max-width: 600px) {
+  .install-banner {
+    width: 95%;
+    padding: 12px;
+  }
+
+  .install-banner-title {
+    font-size: 16px;
+  }
+
+  .install-banner-message {
+    font-size: 13px;
+  }
+
+  .install-banner-button {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+}
+

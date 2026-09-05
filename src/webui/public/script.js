@@ -1518,4 +1518,74 @@ setInterval(function () {
   }
 }, 1000);
 
+// ─────────────────────────────────────────────────────────────
+// PWA Install Prompt Handling — M-8
+// ─────────────────────────────────────────────────────────────
+let deferredPrompt = null;
+const installBanner = document.getElementById('install-banner');
+const installButton = document.getElementById('install-button');
+const installBannerClose = document.querySelector('.install-banner-close');
+
+function showInstallBanner() {
+  if (installBanner) {
+    installBanner.classList.remove('hidden');
+  }
+}
+
+function hideInstallBanner() {
+  if (installBanner) {
+    installBanner.classList.add('hidden');
+  }
+}
+
+window.addEventListener('beforeinstallprompt', function (event) {
+  event.preventDefault();
+  deferredPrompt = event;
+  console.log('[script.js] beforeinstallprompt captured, install banner ready');
+  showInstallBanner();
+});
+
+if (installButton) {
+  installButton.addEventListener('click', async function () {
+    if (!deferredPrompt) {
+      console.warn('[script.js] No deferred install prompt available');
+      return;
+    }
+
+    try {
+      const result = await deferredPrompt.prompt();
+      const choice = result && result.outcome ? result.outcome : 'unknown';
+
+      if (choice === 'accepted') {
+        console.log('[script.js] User accepted PWA install prompt');
+        addLog('PWA install accepted. Daedalus will be added to your home screen.');
+      } else {
+        console.log('[script.js] User dismissed PWA install prompt:', choice);
+        addLog('PWA install dismissed by user.');
+      }
+    } catch (err) {
+      console.error('[script.js] PWA install prompt failed:', err);
+      addLog('PWA install prompt encountered an error.');
+    } finally {
+      deferredPrompt = null;
+      hideInstallBanner();
+    }
+  });
+}
+
+if (installBannerClose) {
+  installBannerClose.addEventListener('click', function () {
+    console.log('[script.js] Install banner dismissed by user');
+    deferredPrompt = null;
+    hideInstallBanner();
+  });
+}
+
+window.addEventListener('appinstalled', function () {
+  console.log('[script.js] PWA installed successfully');
+  addLog('Daedalus has been installed as an app.');
+  deferredPrompt = null;
+  hideInstallBanner();
+});
+
 

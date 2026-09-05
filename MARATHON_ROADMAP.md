@@ -1,10 +1,10 @@
 # Marathon Roadmap: Transform the Daedalus WebUI in src/webui/public/ into a sovereign mobile-first PWA companion with installable manifest, service worker caching, touch-optimized responsive layout, QR code pairing for local/Tailscale networks, and milestone push notifications.
 
 - **Status**: `EVALUATING`
-- **Progress**: 6/8 milestones passed (75%)
+- **Progress**: 7/8 milestones passed (88%)
 - **Base Branch**: `main`
 - **Integration Branch**: `marathon/transform-the-daedalus-webui-i`
-- **Last Updated**: 2026-09-05T03:46:22.527Z
+- **Last Updated**: 2026-09-05T04:05:15.128Z
 
 ## Milestones
 
@@ -89,25 +89,26 @@ Add UI to capture a QR code using the device camera, decode it, and open a WebSo
 - [x] Decoded URL is used to open a WebSocket; connection success is logged
 - [x] If scanning fails, a user‑friendly error message is displayed
 
-### [>] M-7: Milestone push notifications via WebSocket
+### [x] M-7: Milestone push notifications via WebSocket
 
 Create a WebSocket server that pushes milestone events to connected clients and update the client to display native notifications.
 
 - **Target Files**: `src/webui/ws.ts`, `src/webui/public/script.js`
+- **Git Tag**: `daedalus-checkpoint/m-7`
 - **Attempts**: 4/3
 
 **Acceptance Criteria:**
 - [x] ws.ts exports a function to start a WebSocket server on the same HTTP port
 - [x] When the server emits a "milestone" message, script.js receives it and calls Notification API
 - [x] Browser prompts for notification permission on first receipt
-- [ ] Automated integration test confirms a test message sent from server appears as a notification in the client mock
+- [x] Automated integration test confirms a test message sent from server appears as a notification in the client mock
 
-### [ ] M-8: PWA install prompt handling and UI cue
+### [>] M-8: PWA install prompt handling and UI cue
 
 Detect the `beforeinstallprompt` event, show a custom install banner, and trigger the native install flow when the user accepts.
 
 - **Target Files**: `src/webui/public/index.html`, `src/webui/public/script.js`
-- **Attempts**: 0/3
+- **Attempts**: 3/3
 
 **Acceptance Criteria:**
 - [ ] script.js listens for `beforeinstallprompt` and stores the event
