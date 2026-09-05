@@ -149,17 +149,28 @@ body {
     align-items: center;
     text-align: center;
     gap: 8px;
+    width: 100%;
+  }
+
+  .brand-titles {
+    align-items: center;
+    text-align: center;
+    width: 100%;
   }
   
   .logo-crest {
-    width: 40px;
-    height: 40px;
-    min-width: 40px;
-    min-height: 40px;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    margin: 0 auto;
   }
   
   .brand-main {
     justify-content: center;
+    align-items: baseline;
+    text-align: center;
+    width: 100%;
   }
 
   .brand-name {
@@ -172,16 +183,15 @@ body {
   }
   
   .brand-sub {
-    font-size: 8.5px;
+    font-size: 8px;
     letter-spacing: 1px;
+    text-align: center;
   }
   
   .status-bar {
     width: 100%;
     display: flex;
-    flex-direction: row;
-    flex-wrap: wrap;
-    justify-content: center;
+    flex-direction: column;
     align-items: center;
     gap: 8px;
   }
@@ -199,12 +209,32 @@ body {
     white-space: nowrap;
     text-align: center;
     font-size: 9.5px;
-    padding: 6px 12px;
+    padding: 6px 14px;
+    justify-content: center;
+  }
+
+  .status-bar-subrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
   }
 
   .qr-pill-wrapper,
   .status-pill-wrapper {
     display: inline-flex;
+    justify-content: center;
+  }
+
+  .qr-pair-btn {
+    padding: 5px 12px;
+    font-size: 9.5px;
+  }
+
+  .status {
+    padding: 5px 12px;
+    font-size: 9.5px;
   }
   
   .oracle-clock {
@@ -433,6 +463,12 @@ body {
   display: flex;
   align-items: center;
   gap: 20px;
+}
+
+.status-bar-subrow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 
 .status-pill-wrapper {
