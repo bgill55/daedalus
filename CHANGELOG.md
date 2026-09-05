@@ -1,3 +1,10 @@
+# [3.76.0](https://github.com/bgill55/daedalus/compare/v3.75.0...v3.76.0) (2026-09-05)
+
+
+### Features
+
+* **webui:** Transform the Daedalus WebUI in src/webui/public/ into a sov ([#181](https://github.com/bgill55/daedalus/issues/181)) ([d16a0eb](https://github.com/bgill55/daedalus/commit/d16a0eb47fa789d63900da87ffccff4efe84d570))
+
 # [3.75.0](https://github.com/bgill55/daedalus/compare/v3.74.0...v3.75.0) (2026-09-04)
 
 
