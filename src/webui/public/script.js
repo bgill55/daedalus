@@ -1284,6 +1284,50 @@ if (modelModal) {
   });
 }
 
+// ─────────────────────────────────────────────────────────────
+// QR Code Pairing Modal — M-5 / M-6
+// ─────────────────────────────────────────────────────────────
+const qrPairBtn = document.getElementById('qr-pair-btn');
+const qrModal = document.getElementById('qr-modal');
+const qrModalClose = document.getElementById('qr-modal-close');
+const qrImage = document.getElementById('qr-image');
+const qrWsUrl = document.getElementById('qr-ws-url');
+
+function openQrModal() {
+  if (qrModal) {
+    qrModal.classList.remove('hidden');
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const currentWsUrl = `${protocol}//${window.location.host}`;
+    if (qrWsUrl) {
+      qrWsUrl.textContent = currentWsUrl;
+    }
+    if (qrImage) {
+      qrImage.src = `/api/qr?t=${Date.now()}`;
+    }
+    addLog(`QR pairing portal opened: <strong>${currentWsUrl}</strong>`);
+  }
+}
+
+function closeQrModal() {
+  if (qrModal) {
+    qrModal.classList.add('hidden');
+  }
+}
+
+if (qrPairBtn) {
+  qrPairBtn.addEventListener('click', openQrModal);
+}
+
+if (qrModalClose) {
+  qrModalClose.addEventListener('click', closeQrModal);
+}
+
+if (qrModal) {
+  qrModal.addEventListener('click', (e) => {
+    if (e.target === qrModal) closeQrModal();
+  });
+}
+
 async function loadUserProfile() {
   try {
     const res = await fetch('/api/profile');
@@ -1410,6 +1454,18 @@ document.addEventListener('DOMContentLoaded', function () {
   addDualInteractionListeners(
     document.getElementById('model-modal-close'),
     closeModelModal
+  );
+
+  // #qr-pair-btn — opens QR pairing modal
+  addDualInteractionListeners(
+    document.getElementById('qr-pair-btn'),
+    openQrModal
+  );
+
+  // #qr-modal-close — closes QR pairing modal
+  addDualInteractionListeners(
+    document.getElementById('qr-modal-close'),
+    closeQrModal
   );
 
   // Apply global touch optimizations via CSS
