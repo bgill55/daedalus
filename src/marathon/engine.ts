@@ -69,7 +69,7 @@ export class MarathonEngine {
     console.log(pc.blue(`\n[METIS] Synthesizing milestone roadmap...`));
     const hasPkg = fs.existsSync(path.join(this.projectRoot, 'package.json'));
     const projectContext = hasPkg
-      ? `Existing TypeScript/Node codebase at ${this.projectRoot} with active package.json, tsconfig.json, and src/. Do not recreate or overwrite root config files or main entrypoints; integrate new features cleanly into subdirectories (e.g. src/<feature>/) or new command modules.`
+      ? `Existing TypeScript/Node codebase at ${this.projectRoot} with active package.json, tsconfig.json, and src/. WebUI frontend files live in src/webui/public/ (index.html, styles.css, script.js) and server is src/webui/server.ts. Do not recreate or overwrite root config files or main entrypoints; integrate new features cleanly into existing modules or dedicated subdirectories.`
       : `Project at ${this.projectRoot}`;
 
     const milestones = await planMarathonRoadmap(macroGoal, {

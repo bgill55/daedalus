@@ -64,12 +64,15 @@ export function runMilestoneVerification(cwd: string, customCommand?: string, ta
   let cmd = customCommand;
   if (!cmd || cmd === 'npm test') {
     const directTestTarget = targetFiles.find(f => /\.test\.[jt]sx?$/.test(f));
-    const inferredTestTarget = targetFiles.map(f => f.replace(/\.([jt]sx?)$/, '.test.$1')).find(f => fs.existsSync(path.resolve(cwd, f)));
+    const inferredTestTarget = targetFiles
+      .filter(f => /\.[jt]sx?$/.test(f) && !/\.test\.[jt]sx?$/.test(f))
+      .map(f => f.replace(/\.[jt]sx?$/, '.test.ts'))
+      .find(f => fs.existsSync(path.resolve(cwd, f)));
     const testTarget = directTestTarget || inferredTestTarget;
 
     if (testTarget && fs.existsSync(path.resolve(cwd, testTarget))) {
       cmd = `npx vitest run ${testTarget}`;
-    } else if (targetFiles.length > 0 && targetFiles.every(f => /\.(html|css|json|md|svg|png)$/.test(f))) {
+    } else if (targetFiles.length > 0 && targetFiles.every(f => /\.(html|css|json|md|svg|png|webmanifest)$/.test(f))) {
       cmd = 'npx tsc --noEmit';
     } else {
       cmd = 'npm test';
