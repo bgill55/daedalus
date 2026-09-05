@@ -60,16 +60,45 @@ export function getMilestoneDiff(cwd: string, baseTagOrCommit?: string): string 
   }
 }
 
+export function inferTestForTarget(cwd: string, targetFile: string): string | null {
+  const baseName = path.basename(targetFile, path.extname(targetFile));
+  const dir = path.dirname(targetFile);
+  const parentDir = path.dirname(dir);
+
+  const candidates = [
+    targetFile.replace(/\.[^.]+$/, '.test.ts'),
+    path.join(dir, `${baseName}.test.ts`),
+    path.join(parentDir, `${baseName}.test.ts`),
+    path.join(dir, 'styles.test.ts'),
+    path.join(parentDir, 'styles.test.ts'),
+  ];
+
+  for (const cand of candidates) {
+    const full = path.resolve(cwd, cand);
+    if (fs.existsSync(full) && !fs.statSync(full).isDirectory()) {
+      return cand.replace(/\\/g, '/');
+    }
+  }
+  return null;
+}
+
 export function runMilestoneVerification(cwd: string, customCommand?: string, targetFiles: string[] = []): { success: boolean; output: string } {
   let cmd = customCommand;
   if (!cmd || cmd === 'npm test') {
     const directTestTarget = targetFiles.find(f => /\.test\.[jt]sx?$/.test(f));
-    const inferredTestTarget = targetFiles.map(f => f.replace(/\.([jt]sx?)$/, '.test.$1')).find(f => fs.existsSync(path.resolve(cwd, f)));
+    let inferredTestTarget: string | null = null;
+    for (const file of targetFiles) {
+      const match = inferTestForTarget(cwd, file);
+      if (match) {
+        inferredTestTarget = match;
+        break;
+      }
+    }
     const testTarget = directTestTarget || inferredTestTarget;
 
     if (testTarget && fs.existsSync(path.resolve(cwd, testTarget))) {
       cmd = `npx vitest run ${testTarget}`;
-    } else if (targetFiles.length > 0 && targetFiles.every(f => /\.(html|css|json|md|svg|png)$/.test(f))) {
+    } else if (targetFiles.length > 0 && targetFiles.every(f => /\.(html|css|json|md|svg|png|webmanifest)$/.test(f))) {
       cmd = 'npx tsc --noEmit';
     } else {
       cmd = 'npm test';
@@ -120,9 +149,11 @@ ${diff.slice(0, 12000) || '(Empty diff)'}
 
 ## Instructions:
 1. Check each acceptance criterion against the actual diff and test output.
-2. Check for fake/tautological tests, empty files, or placeholder stubs (e.g. 0-byte css/js, empty functions, incomplete UI). Any milestone containing empty stubs or missing implementations must receive score <= 40 and passed: false.
-3. Check for obvious regressions introduced directly by this milestone's diff. Note: Unrelated failures in existing host test suites (such as terminal.test.ts or model.test.ts) are not regressions of new subsystem features.
-4. Output your verdict in pure, valid JSON with no conversational wrapper:
+2. For styling or responsive UI milestones in headless environments without browser screenshot harnesses, passing unit/integration tests that assert CSS rules, @media queries, and DOM layout properties satisfy layout verification criteria.
+3. Check for fake/tautological tests, empty files, or placeholder stubs (e.g. 0-byte css/js, empty functions, incomplete UI). Any milestone containing empty stubs or missing implementations must receive score <= 40 and passed: false.
+4. Check for obvious regressions introduced directly by this milestone's diff. Note: Unrelated failures in existing host test suites (such as terminal.test.ts or model.test.ts) are not regressions of new subsystem features.
+5. If recommending repairs on large existing files (>200 lines), explicitly advise using 'patch' to append or edit specific blocks rather than rewriting the whole file.
+6. Output your verdict in pure, valid JSON with no conversational wrapper:
 {
   "passed": boolean,
   "score": number (0-100),

@@ -54,7 +54,7 @@ describe('WebUI Server', () => {
     });
   });
 
-  describe('GET /favicon.svg and /favicon.ico', () => {
+  describe('GET /favicon.svg, /favicon.ico, /sw.js, and /manifest.json', () => {
     it('should serve favicon.svg with image/svg+xml header', () => {
       mockReq.url = '/favicon.svg';
       vi.mocked(fs.readFileSync).mockReturnValue('<svg>icon</svg>');
@@ -71,6 +71,24 @@ describe('WebUI Server', () => {
 
       expect(writeHeadSpy).toHaveBeenCalledWith(200, { 'Content-Type': 'image/x-icon' });
       expect(endSpy).toHaveBeenCalledWith('<svg>icon</svg>');
+    });
+
+    it('should serve /sw.js with application/javascript header', () => {
+      mockReq.url = '/sw.js';
+      vi.mocked(fs.readFileSync).mockReturnValue('// sw code');
+      handleRequest(mockReq as IncomingMessage, mockRes as ServerResponse);
+
+      expect(writeHeadSpy).toHaveBeenCalledWith(200, { 'Content-Type': 'application/javascript; charset=utf-8' });
+      expect(endSpy).toHaveBeenCalledWith('// sw code');
+    });
+
+    it('should serve /manifest.json with application/manifest+json header', () => {
+      mockReq.url = '/manifest.json';
+      vi.mocked(fs.readFileSync).mockReturnValue('{"name":"Daedalus"}');
+      handleRequest(mockReq as IncomingMessage, mockRes as ServerResponse);
+
+      expect(writeHeadSpy).toHaveBeenCalledWith(200, { 'Content-Type': 'application/manifest+json; charset=utf-8' });
+      expect(endSpy).toHaveBeenCalledWith('{"name":"Daedalus"}');
     });
   });
 
@@ -443,6 +461,28 @@ describe('WebUI Server', () => {
       const body = JSON.parse(endSpy.mock.calls[0][0]);
       expect(body.success).toBe(true);
       expect(body.activeModel).toBe('gpt-4o');
+    });
+  });
+
+  describe('GET /api/qr', () => {
+    it('should generate QR code for default URL', async () => {
+      mockReq.url = '/api/qr';
+      mockReq.method = 'GET';
+      handleRequest(mockReq as IncomingMessage, mockRes as ServerResponse);
+
+      await new Promise(resolve => setTimeout(resolve, 50));
+      expect(writeHeadSpy).toHaveBeenCalledWith(200, expect.objectContaining({ 'Content-Type': 'image/png' }));
+      expect(endSpy).toHaveBeenCalled();
+    });
+
+    it('should generate QR code when query params are provided', async () => {
+      mockReq.url = '/api/qr?url=http%3A%2F%2F192.168.1.50%3A3888&t=12345678';
+      mockReq.method = 'GET';
+      handleRequest(mockReq as IncomingMessage, mockRes as ServerResponse);
+
+      await new Promise(resolve => setTimeout(resolve, 50));
+      expect(writeHeadSpy).toHaveBeenCalledWith(200, expect.objectContaining({ 'Content-Type': 'image/png' }));
+      expect(endSpy).toHaveBeenCalled();
     });
   });
 

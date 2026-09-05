@@ -37,13 +37,13 @@ export const webuiCommand: Command = {
 
     if (sub === 'start') {
       if (isServerRunning) {
-        console.log(pc.green(`\n[webui] Server already running at http://${HOST}:${PORT}`));
+        console.log(pc.green(`\n[webui] Server already running at http://127.0.0.1:${PORT}`));
         return;
       }
       try {
         await startServer();
         isServerRunning = true;
-        console.log(pc.bold(pc.green(`\n[webui] Companion Web UI started at http://${HOST}:${PORT}`)));
+        console.log(pc.bold(pc.green(`\n[webui] Companion Web UI started at http://127.0.0.1:${PORT}`)));
       } catch (err: any) {
         isServerRunning = false;
         console.log(pc.red(`\n[webui] Failed to start server: ${err.message}`));
@@ -67,7 +67,7 @@ export const webuiCommand: Command = {
     }
 
     if (sub === 'open') {
-      const url = `http://${HOST}:${PORT}`;
+      const url = `http://127.0.0.1:${PORT}`;
       if (!isServerRunning) {
         try {
           await startServer();
@@ -86,8 +86,8 @@ export const webuiCommand: Command = {
     if (sub === 'status') {
       console.log(pc.bold(`\n=== DAEDALUS WEB UI STATUS ===`));
       console.log(`  ${pc.bold('Status:')}  ${isServerRunning ? pc.green('● ACTIVE') : pc.gray('○ STOPPED')}`);
-      console.log(`  ${pc.bold('URL:')}     http://${HOST}:${PORT}`);
-      console.log(`  ${pc.bold('Stream:')}  http://${HOST}:${PORT}/telemetry`);
+      console.log(`  ${pc.bold('Local:')}   http://127.0.0.1:${PORT}`);
+      console.log(`  ${pc.bold('Network:')} http://${HOST}:${PORT}`);
       console.log(`  ${pc.bold('Rate:')}    ${getTelemetryRate()}ms`);
       console.log();
       return;

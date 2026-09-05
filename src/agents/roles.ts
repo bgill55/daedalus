@@ -25,7 +25,8 @@ const SHARED_CODER_GUARDRAILS = `\
   a) The container's event listener explicitly handles \`e.target.closest('.delete-btn')\`.
   b) SVG icons use valid path vectors, \`width="16" height="16" viewBox="0 0 24 24"\`, and \`flex-shrink: 0\` to prevent tiny or distorted icons.
 - STACK AWARENESS: Before modifying or creating code, check the project's root files (like package.json, webpack/vite/tsconfig configs, or imported dependencies in HTML files) to accurately determine the tech stack (e.g. React/Vue/Vite vs Vanilla JS, Next.js vs Express). NEVER write React JSX/TSX or import React dependencies into a vanilla JS project unless explicitly instructed to migrate.
-- STATELESS/SERVERLESS RULES: Serverless environments (like Cloudflare Pages/Workers, AWS Lambda, Vercel edge/serverless routes) have read-only and stateless filesystems/environments at runtime. Never attempt to write persistent configuration files to the server's local directory or mutate runtime environment objects (e.g. process.env, context.env). Use client-side storage (e.g., LocalStorage) or database KV stores for persisting configuration.`;
+- STATELESS/SERVERLESS RULES: Serverless environments (like Cloudflare Pages/Workers, AWS Lambda, Vercel edge/serverless routes) have read-only and stateless filesystems/environments at runtime. Never attempt to write persistent configuration files to the server's local directory or mutate runtime environment objects (e.g. process.env, context.env). Use client-side storage (e.g., LocalStorage) or database KV stores for persisting configuration.
+- LARGE FILES & CSS GUARDRAIL: For existing files >200 lines or stylesheets (like styles.css), NEVER attempt to rewrite the entire file with write_file (which causes severe truncation). Always use the patch tool to append new @media queries or edit targeted sections, or create a new modular file and import/link it.`;
 
 const BUG_PREVENTION_CHECKLIST = `\
 
@@ -122,6 +123,7 @@ PROJECT COMPLETENESS RULES:
 - Every response must end with a line Tools used: <comma‑separated list> listing the tools you consulted.
 - STACK & PLATFORM AWARENESS: Verify the project's framework (React vs. Vanilla JS) and target hosting environment constraints (e.g., serverless statelessness) before planning. Do not plan features that rely on runtime server-side state mutation or unsupported packages.
 - DEPENDENCY ORDERING RULE: Always plan tasks in strict dependency order! If a feature introduces new helper files, classes, or types, Task 1 MUST ALWAYS create those new files first. Never plan a task that imports or references a new module before a preceding task has created that file!
+- GOD-FILE & MODULARITY RULE: If extending an existing stylesheet or code file that exceeds 500 lines (such as styles.css or large monolithic routers), do NOT plan full rewrites of the monolith. Prefer planning a new modular sub-file (e.g. responsive.css linked in index.html) or explicitly instruct Hephaestus to append rules using patch without modifying base selectors!
 - DOCUMENTATION RULE: Whenever adding a new CLI command, slash command, or user-facing feature, include a task step to update relevant documentation in \`docs/\` and run \`npm run sync-docs\`!
 
 FORBIDDEN: editing unrelated files, config files (next.config.js), running GUI apps, or any task that needs human interaction.
@@ -183,6 +185,7 @@ GUIDELINES:
 - IMMEDIATE TOOL CALLS: Whenever you decide to create or edit a file, output a brief single-sentence explanation and then IMMEDIATELY call the write_file or patch tool in the same response. Do not include the file contents in your explanation.
 - CRITICAL TOOL MANDATE: To complete any file creation or modification task, you MUST invoke the write_file or patch tool call. Stating that you created or updated a file in natural language text without actually executing the tool call is a fatal error.
 - SINGLE-FILE FOCUS: When assigned a task to create or update a specific target file (e.g. src/server.ts), focus 100% of your turn on writing THAT file. Do NOT discuss, plan, or attempt to write other files assigned to other tasks.
+- TEST IMPLEMENTATION MANDATE: If the task goal or acceptance criteria explicitly requires automated unit/integration tests (e.g. 'Unit test verifies...', 'Integration test confirms...'), you are authorized and required to create or update the co-located *.test.ts file alongside the implementation.
 - Make minimal, focused changes. No scope creep.
 - Follow existing code style. You're a guest in their codebase, act like it.
 - NEVER use code placeholders, comments like "// ...", or ellipses in your edits. You must output the complete code.

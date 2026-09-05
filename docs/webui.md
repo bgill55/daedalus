@@ -5,7 +5,11 @@
 Daedalus includes a native, zero-dependency **Companion WebUI** (http://127.0.0.1:3888) powered by an embedded HTTP server and real-time Server-Sent Events (SSE). It gives you a visual dashboard to monitor telemetry, browse and switch models, manage historical sessions, inspect active context, attach multimodal artifacts, and interact with the agent loop in real time.
 
 <p align="center">
-  <img src="assets/webui_view.png" width="100%" alt="Daedalus WebUI Dashboard & Chat Console" />
+  <img src="../assets/webui_view.png" width="68%" alt="Daedalus WebUI Desktop Dashboard & PWA Banner" />
+  <img src="../assets/webui_mobile.png" width="28%" alt="Daedalus Sovereign Mobile Companion" />
+</p>
+<p align="center">
+  <sub><b>Unified Cyber-Mythic Experience:</b> Desktop PWA Dashboard &amp; Sovereign Mobile Companion</sub>
 </p>
 
 ---
@@ -115,6 +119,71 @@ ode_modules, dist, and binary build artifacts.
 The **SANCTUM** tab lists all files currently held in the agent's turn context:
 * Click a file name to insert its reference into the prompt.
 * Click the **×** button to remove a file from active turn context, saving context window tokens.
+
+### 11. Sovereign Mobile PWA Companion
+The WebUI is engineered as a fully installable, mobile-first **Progressive Web App (PWA)**:
+* **Standalone Window**: Runs with a native app title bar, custom gold theme icon (`/favicon.svg`), and dark background (`#0f172a`).
+* **Offline Shell**: Powered by a service worker (`sw.js`) that precaches core application assets, ensuring instant cold starts even on intermittent networks.
+* **Fluid Mobile Reflow**: Dedicated `@media (max-width: 600px)` rules stack telemetry cards and the archives sidebar cleanly without horizontal overflow down to 375px screens.
+* **Tactile Touch Targets**: All buttons, pills, and interactive links meet minimum 48px tap targets with `pointerdown` tactile response.
+
+### 12. Remote LAN & Tailscale Pairing via QR Code
+Pair your mobile phone or tablet with your host development workstation in seconds:
+1. Click the **PAIR QR** pill in the WebUI header.
+2. The modal generates a real-time QR code (`GET /api/qr`) encoding your workstation's local network or Tailscale WebSocket endpoint.
+3. Scan the QR code with your phone camera or tablet browser to open the sovereign mobile console.
+
+<p align="center">
+  <img src="../assets/webui_qr.png" width="45%" alt="Themed Gold LAN Pairing QR Code" />
+</p>
+
+### 13. Live Milestone Push Notifications
+Never miss an autonomous milestone completion:
+* When running `/marathon` or `/autopilot`, the host broadcasts milestone progress events over the dedicated WebSocket server (`ws.ts`).
+* The WebUI client requests notification permissions on arrival and dispatches native OS push notifications with Apollo evaluation scores and milestone summaries.
+
+---
+
+## Mobile PWA Installation Guide
+
+### iOS (Safari)
+1. Open the WebUI URL in Safari on your iPhone or iPad.
+2. Tap the **Share** button (the square with an arrow pointing up).
+3. Scroll down and tap **Add to Home Screen**.
+4. Name the app **Daedalus** and tap **Add**.
+5. Launch Daedalus directly from your Home Screen in full-screen standalone mode.
+
+### Android (Chrome / Edge / Brave)
+1. Open the WebUI URL in your mobile browser.
+2. An **INSTALL DAEDALUS** banner will automatically appear at the bottom of the screen.
+3. Tap **INSTALL** (or open the browser menu and select **Install app** / **Add to Home screen**).
+4. Daedalus will install as a native application in your app drawer.
+
+---
+
+## Live Testing & Remote Pairing Walkthrough
+
+### 1. Start the Server on your Host Machine
+Inside your Daedalus REPL, run:
+```text
+/webui start
+```
+Or start and open directly in your desktop browser:
+```text
+/webui open
+```
+
+### 2. Pair Your Mobile Device
+1. On your desktop WebUI, click the **📱 PAIR QR** button in the top header.
+2. Point your phone's camera at the QR code on your screen and tap the detected link.
+3. Your mobile browser opens the Daedalus companion console instantly over Wi-Fi or Tailscale.
+
+### 3. Test Push Notifications
+1. In your desktop CLI or WebUI, run an autonomous task:
+   ```text
+   /autopilot Add a health check endpoint to src/webui/server.ts
+   ```
+2. As Hephaestus completes code and Apollo approves the milestone, your mobile device receives a native push notification with the live milestone score!
 
 ---
 

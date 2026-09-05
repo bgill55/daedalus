@@ -222,7 +222,7 @@ export async function readFile(args: { path: string; offset?: number; limit?: nu
       output += `${start + i + 1}|${selected[i]}\n`;
     }
     if (end < totalLines) {
-      output += `... [${totalLines - end} more lines]`;
+      output += `... [${totalLines - end} more lines — call read_file with offset: ${end + 1} to inspect further lines]`;
     }
 
     return { toolCallId: '', name: 'read_file', success: true, content: output };
@@ -287,6 +287,20 @@ export async function writeFile(args: { path: string; content: string }, context
     }
 
     const previousContent = fs.existsSync(targetPath) ? fs.readFileSync(targetPath, 'utf8') : null;
+
+    // Accidental Truncation Guard on existing large files (>200 lines)
+    if (previousContent !== null) {
+      const prevLines = previousContent.replace(/\r/g, '').split('\n');
+      const newLines = args.content.replace(/\r/g, '').split('\n');
+      if (prevLines.length >= 200 && newLines.length < prevLines.length * 0.5) {
+        return formatError(
+          `Safety block: Accidental file truncation prevented on ${args.path}.\n` +
+          `The existing file has ${prevLines.length} lines, but write_file attempted to replace it with only ${newLines.length} lines (>50% line count reduction).\n` +
+          `If you are adding new features, CSS rules, or modifying sections of a large file, use the 'patch' tool to append or edit specific blocks, or create a new modular file.`
+        );
+      }
+    }
+
     const hasCRLF = previousContent ? previousContent.includes('\r\n') : false;
     const finalContent = hasCRLF ? args.content.replace(/\r\n/g, '\n').replace(/\n/g, '\r\n') : args.content;
     const prevNormalized = previousContent ? previousContent.replace(/\r/g, '') : null;

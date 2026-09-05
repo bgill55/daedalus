@@ -1,3 +1,38 @@
+// Service worker registration
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js')
+    .then(registration => {
+      console.log('[script.js] Service worker registered successfully:', registration);
+      
+      registration.addEventListener('updatefound', () => {
+        console.log('[script.js] Service worker update found');
+        const newWorker = registration.installing;
+        if (newWorker) {
+          newWorker.addEventListener('statechange', event => {
+            if (event.target.state === 'installed') {
+              if (navigator.serviceWorker.controller) {
+                console.log('[script.js] New service worker installed, page will reload on next navigation');
+                addLog('Service worker update available. Page will reload on next visit.');
+              }
+            }
+          });
+        }
+      });
+    })
+    .catch(error => {
+      console.warn('[script.js] Service worker registration failed:', error);
+    });
+
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!refreshing) {
+      refreshing = true;
+      console.log('[script.js] Service worker controller changed, reloading page');
+      window.location.reload();
+    }
+  });
+}
+
 const statusEl = document.getElementById('connection-status');
 const lastUpdateEl = document.getElementById('last-update');
 const logContainer = document.getElementById('log-container');
@@ -287,7 +322,7 @@ function renderToolStart(toolName) {
 
     const icon = document.createElement('span');
     icon.className = 'tool-tree-icon';
-    icon.textContent = '⚡';
+    icon.innerHTML = '<svg style="width: 12px; height: 12px; display: inline-block; vertical-align: -1px;" viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>';
 
     const label = document.createElement('span');
     label.className = 'tool-tree-label';
@@ -323,16 +358,15 @@ function renderToolStart(toolName) {
     details.className = 'tool-tree-details hidden';
 
     header.addEventListener('click', () => {
-      tree.classList.toggle('open');
-      details.classList.toggle('hidden');
+      const isHidden = details.classList.toggle('hidden');
+      chevron.style.transform = isHidden ? 'rotate(0deg)' : 'rotate(90deg)';
     });
 
     tree.appendChild(header);
     tree.appendChild(details);
     chatMessages.appendChild(tree);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-
     currentToolTreeEl = tree;
+    chatMessages.scrollTop = chatMessages.scrollHeight;
   }
 
   const label = currentToolTreeEl.querySelector('.tool-tree-label');
@@ -365,7 +399,7 @@ function renderToolResult(toolName, resultSummary) {
 
       const summary = document.createElement('span');
       summary.className = 'tool-tree-item-summary';
-      summary.textContent = resultSummary ? `(${resultSummary})` : '✔ completed';
+      summary.textContent = resultSummary ? `(${resultSummary})` : 'completed';
 
       item.appendChild(rail);
       item.appendChild(name);
@@ -381,7 +415,7 @@ function renderToolResult(toolName, resultSummary) {
     const badge = currentToolTreeEl.querySelector('.tool-tree-badge');
     if (badge) {
       badge.className = 'tool-tree-badge completed';
-      badge.textContent = '✔ DONE';
+      badge.textContent = 'DONE';
     }
 
     currentToolTreeEl.classList.remove('running');
@@ -1217,6 +1251,58 @@ if (modelModal) {
   });
 }
 
+// ─────────────────────────────────────────────────────────────
+// QR Code Pairing Modal — M-5 / M-6
+// ─────────────────────────────────────────────────────────────
+const qrPairBtn = document.getElementById('qr-pair-btn');
+const qrModal = document.getElementById('qr-modal');
+const qrModalClose = document.getElementById('qr-modal-close');
+const qrImage = document.getElementById('qr-image');
+const qrWsUrl = document.getElementById('qr-ws-url');
+
+async function openQrModal() {
+  if (qrModal) {
+    qrModal.classList.remove('hidden');
+    let webUrl = window.location.origin;
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      try {
+        const res = await fetch('/api/pairing-url');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.url) webUrl = data.url;
+        }
+      } catch {}
+    }
+    if (qrWsUrl) {
+      qrWsUrl.textContent = webUrl;
+    }
+    if (qrImage) {
+      qrImage.src = `/api/qr?url=${encodeURIComponent(webUrl)}&t=${Date.now()}`;
+    }
+    addLog(`QR pairing portal opened: <strong>${webUrl}</strong>`);
+  }
+}
+
+function closeQrModal() {
+  if (qrModal) {
+    qrModal.classList.add('hidden');
+  }
+}
+
+if (qrPairBtn) {
+  qrPairBtn.addEventListener('click', openQrModal);
+}
+
+if (qrModalClose) {
+  qrModalClose.addEventListener('click', closeQrModal);
+}
+
+if (qrModal) {
+  qrModal.addEventListener('click', (e) => {
+    if (e.target === qrModal) closeQrModal();
+  });
+}
+
 async function loadUserProfile() {
   try {
     const res = await fetch('/api/profile');
@@ -1231,13 +1317,306 @@ async function loadUserProfile() {
   } catch {}
 }
 
+// ─────────────────────────────────────────────────────────────
+// Touch-Optimized UI — M-4: TouchTargetConfig interface
+// ─────────────────────────────────────────────────────────────
+/**
+ * @typedef {Object} TouchTargetConfig
+ * @property {string} selector         - CSS selector for the interactive element
+ * @property {number} [minSizePx=48]   - Minimum width and height in pixels
+ * @property {string} [touchAction='manipulation'] - touch-action CSS value
+ */
+
+/**
+ * Apply touch optimizations by injecting CSS for minimum tap targets
+ * and touch-action on elements matching the given selectors.
+ * @param {TouchTargetConfig[]} configs
+ */
+function applyTouchOptimizations(configs) {
+  if (!configs || configs.length === 0) return;
+
+  const styleId = 'touch-optimization-styles';
+  let styleEl = document.getElementById(styleId);
+
+  if (!styleEl) {
+    styleEl = document.createElement('style');
+    styleEl.id = styleId;
+    document.head.appendChild(styleEl);
+  }
+
+  const rules = configs.map(function (cfg) {
+    var minSize = cfg.minSizePx !== undefined ? cfg.minSizePx : 48;
+    var touchAction = cfg.touchAction !== undefined ? cfg.touchAction : 'manipulation';
+    var sel = cfg.selector;
+    return [
+      sel + ' {',
+      '  min-width: ' + minSize + 'px;',
+      '  min-height: ' + minSize + 'px;',
+      '  touch-action: ' + touchAction + ';',
+      '}',
+    ].join('\n');
+  });
+
+  styleEl.textContent = rules.join('\n');
+}
+
+// ─────────────────────────────────────────────────────────────
+// Critical element pointerdown listeners — M-4
+// ─────────────────────────────────────────────────────────────
+/**
+ * Add both click and pointerdown listeners to ensure tactile responsiveness.
+ * pointerdown fires before click and works for both touch and mouse.
+ * @param {HTMLElement|null} el
+ * @param {() => void} handler
+ */
+function addDualInteractionListeners(el, handler) {
+  if (!el) return;
+  el.addEventListener('pointerdown', function (e) {
+    e.preventDefault();
+    handler();
+  });
+  // Keep click for keyboard / accessibility
+  if (!el.dataset._hasClickBound) {
+    el.addEventListener('click', handler);
+    el.dataset._hasClickBound = 'true';
+  }
+}
+
+// Wire up pointerdown on all critical interactive elements
+document.addEventListener('DOMContentLoaded', function () {
+  // #active-model-badge — opens model selection modal
+  addDualInteractionListeners(
+    document.getElementById('active-model-badge'),
+    openModelModal
+  );
+
+  // #clear-log — clears the log panel
+  addDualInteractionListeners(
+    document.getElementById('clear-log'),
+    function () {
+      if (logContainer) logContainer.innerHTML = '';
+    }
+  );
+
+  // #new-chat-btn — starts a new chat session
+  addDualInteractionListeners(
+    document.getElementById('new-chat-btn'),
+    function () {
+      if (chatMessages) chatMessages.innerHTML = '';
+      addLog('New rite initiated. The cosmos awaits your query.');
+    }
+  );
+
+  // #attach-btn — triggers file attachment
+  addDualInteractionListeners(
+    document.getElementById('attach-btn'),
+    function () {
+      var fileInput = document.getElementById('file-input');
+      if (fileInput) fileInput.click();
+    }
+  );
+
+  // #send-btn — submits the chat form
+  addDualInteractionListeners(
+    document.getElementById('send-btn'),
+    function () {
+      var form = document.getElementById('chat-form');
+      if (form) form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    }
+  );
+
+  // #model-modal-close — closes model selection modal
+  addDualInteractionListeners(
+    document.getElementById('model-modal-close'),
+    closeModelModal
+  );
+
+  // #qr-pair-btn — opens QR pairing modal
+  addDualInteractionListeners(
+    document.getElementById('qr-pair-btn'),
+    openQrModal
+  );
+
+  // #qr-modal-close — closes QR pairing modal
+  addDualInteractionListeners(
+    document.getElementById('qr-modal-close'),
+    closeQrModal
+  );
+
+  // Apply global touch optimizations via CSS
+  applyTouchOptimizations([
+    { selector: 'button', minSizePx: 48, touchAction: 'manipulation' },
+    { selector: 'a[href]', minSizePx: 48, touchAction: 'manipulation' },
+    { selector: '.model-pill', minSizePx: 44, touchAction: 'manipulation' },
+    { selector: '.clear-btn', minSizePx: 48, touchAction: 'manipulation' },
+    { selector: '.chat-header-btn', minSizePx: 48, touchAction: 'manipulation' },
+    { selector: '.attach-btn', minSizePx: 44, touchAction: 'manipulation' },
+    { selector: '#send-btn', minSizePx: 48, touchAction: 'manipulation' },
+    { selector: '.model-option-card', minSizePx: 48, touchAction: 'manipulation' },
+    { selector: '.code-copy-btn', minSizePx: 36, touchAction: 'manipulation' },
+  ]);
+});
+
+// ─────────────────────────────────────────────────────────────
+// WebSocket & Milestone Push Notifications — M-7
+// ─────────────────────────────────────────────────────────────
+let wsClient = null;
+let wsReconnectTimer = null;
+
+function showMilestoneNotification(payload) {
+  if (!payload || payload.type !== 'milestone') return;
+
+  const title = `[DAEDALUS] Milestone ${payload.id ? payload.id.toUpperCase() : ''}: ${payload.title || 'Update'}`;
+  const options = {
+    body: payload.summary || `Status: ${(payload.status || 'passed').toUpperCase()}${payload.score !== undefined ? ` (${payload.score}/100)` : ''}`,
+    icon: '/favicon.svg',
+    badge: '/favicon.svg',
+    tag: `daedalus-milestone-${payload.id || Date.now()}`,
+    renotify: true,
+  };
+
+  if ('Notification' in window) {
+    if (Notification.permission === 'granted') {
+      try {
+        new Notification(title, options);
+      } catch {}
+    } else if (Notification.permission !== 'denied') {
+      Notification.requestPermission().then(function (permission) {
+        if (permission === 'granted') {
+          try {
+            new Notification(title, options);
+          } catch {}
+        }
+      });
+    }
+  }
+
+  // Also log into Oracle system log
+  addLog(`Milestone <strong>${payload.id || ''}</strong>: ${payload.title} — <em>${(payload.status || 'passed').toUpperCase()}</em>`);
+}
+
+function connectWebSocket() {
+  if (wsClient && (wsClient.readyState === WebSocket.OPEN || wsClient.readyState === WebSocket.CONNECTING)) {
+    return;
+  }
+
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const wsUrl = `${protocol}//${window.location.host}`;
+
+  try {
+    wsClient = new WebSocket(wsUrl);
+
+    wsClient.onopen = function () {
+      if (wsReconnectTimer) {
+        clearTimeout(wsReconnectTimer);
+        wsReconnectTimer = null;
+      }
+    };
+
+    wsClient.onmessage = function (event) {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'milestone') {
+          showMilestoneNotification(data);
+        }
+      } catch {}
+    };
+
+    wsClient.onclose = function () {
+      wsClient = null;
+      if (!wsReconnectTimer) {
+        wsReconnectTimer = setTimeout(connectWebSocket, 3000);
+      }
+    };
+
+    wsClient.onerror = function () {
+      try { wsClient.close(); } catch {}
+    };
+  } catch {}
+}
+
+// ─────────────────────────────────────────────────────────────
+// Bootstrapping
+// ─────────────────────────────────────────────────────────────
 connectSSE();
+connectWebSocket();
 loadModels();
 loadUserProfile();
 
-setInterval(() => {
+setInterval(function () {
   if (lastUpdateEl) {
     lastUpdateEl.textContent = new Date().toLocaleTimeString();
   }
 }, 1000);
+
+// ─────────────────────────────────────────────────────────────
+// PWA Install Prompt Handling — M-8
+// ─────────────────────────────────────────────────────────────
+let deferredPrompt = null;
+const installBanner = document.getElementById('install-banner');
+const installButton = document.getElementById('install-button');
+const installBannerCloseButtons = document.querySelectorAll('.install-banner-close, .install-banner-dismiss-btn');
+
+function showInstallBanner() {
+  if (installBanner) {
+    installBanner.classList.remove('hidden');
+  }
+}
+
+function hideInstallBanner() {
+  if (installBanner) {
+    installBanner.classList.add('hidden');
+  }
+}
+
+window.addEventListener('beforeinstallprompt', function (event) {
+  event.preventDefault();
+  deferredPrompt = event;
+  console.log('[script.js] beforeinstallprompt captured, install banner ready');
+  showInstallBanner();
+});
+
+if (installButton) {
+  installButton.addEventListener('click', async function () {
+    if (!deferredPrompt) {
+      console.warn('[script.js] No deferred install prompt available');
+      return;
+    }
+
+    try {
+      const result = await deferredPrompt.prompt();
+      const choice = result && result.outcome ? result.outcome : 'unknown';
+
+      if (choice === 'accepted') {
+        console.log('[script.js] User accepted PWA install prompt');
+        addLog('PWA install accepted. Daedalus will be added to your home screen.');
+      } else {
+        console.log('[script.js] User dismissed PWA install prompt:', choice);
+        addLog('PWA install dismissed by user.');
+      }
+    } catch (err) {
+      console.error('[script.js] PWA install prompt failed:', err);
+      addLog('PWA install prompt encountered an error.');
+    } finally {
+      deferredPrompt = null;
+      hideInstallBanner();
+    }
+  });
+}
+
+installBannerCloseButtons.forEach(btn => {
+  btn.addEventListener('click', function () {
+    console.log('[script.js] Install banner dismissed by user');
+    deferredPrompt = null;
+    hideInstallBanner();
+  });
+});
+
+window.addEventListener('appinstalled', function () {
+  console.log('[script.js] PWA installed successfully');
+  addLog('Daedalus has been installed as an app.');
+  deferredPrompt = null;
+  hideInstallBanner();
+});
+
 

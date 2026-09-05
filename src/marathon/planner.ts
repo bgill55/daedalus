@@ -17,7 +17,8 @@ ${projectContext || '(New project or clean workspace)'}
 2. Ordered by Dependency: Foundation/Schema first, then Business Logic/APIs, then UI/Polish/Integration.
 3. Verifiable: Must have explicit, measurable acceptance criteria.
 4. Host Preservation: If working in an existing project, NEVER overwrite root package.json, tsconfig.json, or existing main entrypoints. Build new features into dedicated subdirectories (e.g., src/<feature>/) or new command modules.
-5. Output Format: Pure JSON array of milestone objects with NO conversational wrapper:
+5. Test Alignment: If an acceptance criterion requires automated tests (e.g. unit/integration tests), ALWAYS include the corresponding test file (e.g. "path/to/feature.test.ts") in targetFiles so the coder agent is assigned to create it!
+6. Output Format: Pure JSON array of milestone objects with NO conversational wrapper:
 
 [
   {
