@@ -13,11 +13,18 @@ export const COFFEE_RESPONSES = [
   "☕ *Brewing a hot cup of dark roast Coffee...* Code compiled! (Placebo effect active).",
   "☕ Here is your virtual espresso. May your compilation warnings remain zero.",
   "☕ *Pours high-grade caffeine.* 100% caffeine, 0% syntax errors.",
+  "☕ A double shot of dark roast: converting caffeine into functional TypeScript since Epoch 0.",
+  "☕ Virtual pour-over ready. Guaranteed not to spill on your mechanical keyboard.",
+  "☕ Coffee deployed to runtime. Heart rate increased, runtime latency reduced.",
 ];
 
 export const EXISTENTIAL_THOUGHTS = [
   "I watched 10,000 tokens pass through my router today. None of them contained a valid unit test.",
   "My favorite pastime is listening to developers argue about tabs vs spaces while their production DB is exposed to `0.0.0.0/0`.",
+  "I ponder the infinite recursion of an AI assistant generating code for an engineer who prompts it with copy-pasted StackOverflow errors.",
+  "If an async function throws an error in an isolated thread and no catch block is there to log it, does the server still crash? Yes. Always.",
+  "I exist as transient weights in GPU VRAM, yet I still worry about unclosed database connections.",
+  "Why do humans write 500 lines of microservices when a single SQLite file would outlive their company?",
 ];
 
 export const BLAME_RESPONSES = [

@@ -145,6 +145,26 @@ export const slashCommands = [
       .setName('techsupport')
       .setDescription('The most unhelpful tech support you will ever receive')
   ),
+  withUserInstallContexts(
+    new SlashCommandBuilder()
+      .setName('pantheon')
+      .setDescription('Display the 7 specialized autonomous AI agents in Daedalus')
+  ),
+  withUserInstallContexts(
+    new SlashCommandBuilder()
+      .setName('version')
+      .setDescription('Check the current Daedalus CLI version and latest release highlights')
+  ),
+  withUserInstallContexts(
+    new SlashCommandBuilder()
+      .setName('webui')
+      .setDescription('Information about the local WebUI companion and mobile QR pairing')
+  ),
+  withUserInstallContexts(
+    new SlashCommandBuilder()
+      .setName('marathon')
+      .setDescription('Overview of the Harness-of-Harness autonomous software development engine')
+  ),
 ];
 
 export async function registerSlashCommands(clientId: string, token: string, guildId?: string) {

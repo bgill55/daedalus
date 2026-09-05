@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import {
   Client,
   Events,
@@ -287,7 +289,7 @@ export function attachListeners(c: Client, router: LocalRouter, token: string) {
 
       const rolesEmbed = new EmbedBuilder()
         .setTitle('🎭 Community Roles & Badges')
-        .setColor('#06B6D4')
+        .setColor(0xF5C358)
         .setDescription(
           `Select your roles from the dropdown menu below to customize your profile and get relevant notifications!`
         );
@@ -306,7 +308,7 @@ export function attachListeners(c: Client, router: LocalRouter, token: string) {
 
       const ticketPortalEmbed = new EmbedBuilder()
         .setTitle('🎫 Daedalus Private Support Portal')
-        .setColor('#0EA5E9')
+        .setColor(0xF5C358)
         .setDescription(
           `Need 1-on-1 assistance with **Daedalus CLI**, **Daedalus-Lite**, or local LLM setup?\n\n` +
           `Click the button below to open a private support channel between you and the founder!`
@@ -344,7 +346,7 @@ export function attachListeners(c: Client, router: LocalRouter, token: string) {
 
       const statsEmbed = new EmbedBuilder()
         .setTitle('📊 Daedalus Session & System Analytics')
-        .setColor('#06B6D4')
+        .setColor(0xF5C358)
         .addFields(
           { name: 'Uptime', value: report.uptime, inline: true },
           { name: 'Interactions', value: report.totalInteractions.toString(), inline: true },
@@ -367,6 +369,7 @@ export function attachListeners(c: Client, router: LocalRouter, token: string) {
           `• **Documentation Site:** https://bgill55.github.io/daedalus/#/\n` +
           `• **NPM Package:** \`npm i -g daedalus-cli\` (https://www.npmjs.com/package/daedalus-cli)\n` +
           `• **GitHub Repo:** https://github.com/bgill55/daedalus\n` +
+          `• **Discord Community:** https://discord.gg/74pCA68KGK\n` +
           `• **Daedalus-Lite Demo:** https://bgill55.github.io/daedalus-lite/live-demo.html\n` +
           `• **Gumroad Store:** https://bgill55dev.gumroad.com/l/mkqrme *(Use code LAUNCH20 for 20% off!)*`,
         ephemeral: false
@@ -395,10 +398,76 @@ export function attachListeners(c: Client, router: LocalRouter, token: string) {
       return;
     }
 
-    if (interaction.commandName === 'status') {
+    if (interaction.commandName === 'pantheon') {
+      const pantheonEmbed = new EmbedBuilder()
+        .setTitle('🏛️ The Daedalus Autonomous Pantheon')
+        .setColor(0xF5C358)
+        .setDescription('Daedalus orchestrates 7 specialized AI agents to deliver complex features end-to-end:')
+        .addFields(
+          { name: '👑 Daedalus (Orchestrator)', value: 'Coordinates subtasks, enforces turn budgets, and resolves conflicts.', inline: false },
+          { name: '⚖️ Themis (Spec)', value: 'Requirements specification, user acceptance criteria, and edge-case modeling.', inline: false },
+          { name: '🧭 Metis (Planner)', value: 'Milestone decomposition, dependency DAG planning, and execution strategy.', inline: false },
+          { name: '🔨 Hephaestus (Coder)', value: 'Surgical code authoring, lint error repair, and vitest unit tests.', inline: false },
+          { name: '🏹 Apollo (Reviewer)', value: 'Air-gapped code review, quality gate enforcement, and CI validation.', inline: false },
+          { name: '⚕️ Asclepius (Debugger)', value: 'Root-cause diagnosis, stack trace analysis, and regression repair.', inline: false },
+          { name: '📜 Mnemosyne (Researcher)', value: 'Deep codebase exploration, FTS5 symbol indexing, and conventions discovery.', inline: false }
+        )
+        .setFooter({ text: 'Daedalus Multi-Agent Architecture • daedalus-cli' });
+
+      await interaction.reply({ embeds: [pantheonEmbed] });
+      return;
+    }
+
+    if (interaction.commandName === 'version') {
+      let version = '3.78.1';
+      try {
+        const { getBotSystemPrompt } = await import('./prompt.js');
+        const pkg = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), 'package.json'), 'utf8'));
+        if (pkg.version) version = pkg.version;
+      } catch {}
+
       await interaction.reply({
-        content: `⚡️ **Daedalus Router & Bot Status:**\n` +
-          `• **Engine:** LocalRouter Active (78 Models Configured)\n` +
+        content: `📦 **Daedalus CLI Version:** \`v${version}\`\n` +
+          `• **Install:** \`npm i -g daedalus-cli@latest\`\n` +
+          `• **GitHub:** https://github.com/bgill55/daedalus\n` +
+          `• **Changelog:** https://github.com/bgill55/daedalus/blob/main/CHANGELOG.md\n` +
+          `• **Key Features:** Long-Horizon Marathon Engine, WebUI PWA, Σ-Mem Persistent Memory, 7-Agent Pantheon.`,
+        ephemeral: false
+      });
+      return;
+    }
+
+    if (interaction.commandName === 'webui') {
+      await interaction.reply({
+        content: `🌐 **Daedalus WebUI & Mobile Companion:**\n` +
+          `• **Launch:** Run \`daedalus\` and type \`/webui\` in your terminal to spin up the local dashboard.\n` +
+          `• **Live Telemetry:** Pantheon throughput, Aegis model routing, and Labyrinth symbol indexing sparklines.\n` +
+          `• **Working Tree Diffs:** Visual git diff viewer with interactive patch copy.\n` +
+          `• **PWA & Mobile QR Pairing:** Scan the on-screen QR code to pair your phone or tablet directly over your local network!`,
+        ephemeral: false
+      });
+      return;
+    }
+
+    if (interaction.commandName === 'marathon') {
+      await interaction.reply({
+        content: `🏃 **Daedalus Marathon Engine:**\n` +
+          `• **Purpose:** Autonomous, multi-day long-horizon software engineering engine.\n` +
+          `• **Architecture:** Milestone DAG planning, air-gapped Apollo evaluations, git checkpoint rollbacks (\`daedalus-checkpoint/m-*\`), and Σ-Mem anti-pattern persistence.\n` +
+          `• **Usage:** Run \`daedalus\` and type \`/marathon <goal>\` in your terminal.`,
+        ephemeral: false
+      });
+      return;
+    }
+
+    if (interaction.commandName === 'status') {
+      const models = await router.listModels();
+      const healthyModels = await router.getHealthyModels();
+      const healthyCount = healthyModels.length;
+      await interaction.reply({
+        content: `⚡ **Daedalus Router & Bot Status:**\n` +
+          `• **Engine:** LocalRouter Active (${models.length} Models Configured, ${healthyCount} Healthy)\n` +
+          `• **Active Strategy:** Priority & Health-Aware Fallback\n` +
           `• **Bot Status:** Operational (Auto-Mod & Tickets Active)\n` +
           `• **Environment:** Local Node.js runtime\n` +
           `• **Sarcasm Level:** 98.4%`,

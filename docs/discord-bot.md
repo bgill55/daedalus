@@ -26,6 +26,11 @@ You can host your own Daedalus AI assistant inside your team or community Discor
 
 * **Slash Commands**:
   - `/ask [question]` — Ask Daedalus anything using your configured LocalRouter model chain.
+  - `/pantheon` — Overview of the 7 specialized autonomous AI agents in Daedalus.
+  - `/marathon` — Overview of the Harness-of-Harness autonomous software development engine.
+  - `/webui` — Details on the local WebUI dashboard and mobile QR pairing.
+  - `/version` — Check the current Daedalus CLI version and latest release highlights.
+  - `/status` — Live router health status, configured model counts, and bot diagnostics.
   - `/roast [topic]` — Get a deadpan, witty roast of a framework or code snippet.
   - `/tip` — Receive sharp, practical TypeScript/Node.js coding tips.
   - `/commit` — Generate plausible yet hilarious git commit messages.
@@ -34,7 +39,7 @@ You can host your own Daedalus AI assistant inside your team or community Discor
   - `/quote` — Original Daedalus developer quotes and cynical one-liners.
   - `/blame` — Playful build failure analysis and dev banter.
 * **Multimodal Vision Support**: Attach code screenshots or architecture diagrams to any message in Discord. If a vision-capable model (like `gemini-2.5-flash` or `gemma-4-e4b`) is in your router chain, Daedalus analyzes the image directly!
-* **Live Release Awareness**: The bot dynamically reads `package.json` and recent `CHANGELOG.md` entries on every message turn, so it always knows current CLI features, latest versions, and bug fixes out of the box!
+* **Live Release & Pantheon Awareness**: The bot dynamically reads `package.json` and recent `CHANGELOG.md` entries on every message turn, giving it full operational knowledge of the multi-agent pantheon, marathon engine, sigma-mem persistence, and latest CLI features!
 
 ---
 

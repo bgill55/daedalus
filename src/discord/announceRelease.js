@@ -83,7 +83,7 @@ function createEmbed({ tag, title, body, url }) {
     title,
     description: descriptionLines.join('\n'),
     url,
-    color: 0x06b6d4, // Cyan
+    color: 0xf5c358,
     timestamp: new Date().toISOString(),
     footer: { text: `Daedalus Release Engine • ${repo}` },
     fields: [
