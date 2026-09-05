@@ -5,7 +5,11 @@
 Daedalus includes a native, zero-dependency **Companion WebUI** (http://127.0.0.1:3888) powered by an embedded HTTP server and real-time Server-Sent Events (SSE). It gives you a visual dashboard to monitor telemetry, browse and switch models, manage historical sessions, inspect active context, attach multimodal artifacts, and interact with the agent loop in real time.
 
 <p align="center">
-  <img src="assets/webui_view.png" width="100%" alt="Daedalus WebUI Dashboard & Chat Console" />
+  <img src="../assets/webui_view.png" width="68%" alt="Daedalus WebUI Desktop Dashboard & PWA Banner" />
+  <img src="../assets/webui_mobile.png" width="28%" alt="Daedalus Sovereign Mobile Companion" />
+</p>
+<p align="center">
+  <sub><b>Unified Cyber-Mythic Experience:</b> Desktop PWA Dashboard &amp; Sovereign Mobile Companion</sub>
 </p>
 
 ---
@@ -125,9 +129,13 @@ The WebUI is engineered as a fully installable, mobile-first **Progressive Web A
 
 ### 12. Remote LAN & Tailscale Pairing via QR Code
 Pair your mobile phone or tablet with your host development workstation in seconds:
-1. Click the **📱 PAIR QR** pill in the WebUI header.
+1. Click the **PAIR QR** pill in the WebUI header.
 2. The modal generates a real-time QR code (`GET /api/qr`) encoding your workstation's local network or Tailscale WebSocket endpoint.
 3. Scan the QR code with your phone camera or tablet browser to open the sovereign mobile console.
+
+<p align="center">
+  <img src="../assets/webui_qr.png" width="45%" alt="Themed Gold LAN Pairing QR Code" />
+</p>
 
 ### 13. Live Milestone Push Notifications
 Never miss an autonomous milestone completion:
