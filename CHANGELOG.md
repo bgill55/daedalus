@@ -1,3 +1,10 @@
+## [3.80.6](https://github.com/bgill55/daedalus/compare/v3.80.5...v3.80.6) (2026-09-06)
+
+
+### Bug Fixes
+
+* **webui:** eliminate duplicate prompt submissions, service worker api interception, and web turn auto-approval loop ([6ea4a04](https://github.com/bgill55/daedalus/commit/6ea4a04fb36e012d190ec0879157c89b95e16f7b))
+
 ## [3.80.5](https://github.com/bgill55/daedalus/compare/v3.80.4...v3.80.5) (2026-09-05)
 
 
