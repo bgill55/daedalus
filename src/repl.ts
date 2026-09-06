@@ -489,8 +489,8 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
 
           // autoApprovePlans: if the assistant just proposed a plan and asked for
           // approval, queue a synthetic "Yes" so the next loop iteration proceeds
-          // without waiting for stdin. Headless/CI runs complete autonomously.
-          if (config.safety?.autoApprovePlans || oneShot || isWebTurn) {
+          // without waiting for stdin in headless/CI runs. Never auto-approve on interactive web turns.
+          if ((config.safety?.autoApprovePlans || oneShot) && !isWebTurn) {
             const lastAssistant = messages.filter(m => m.role === 'assistant').pop()?.content;
             const lastText = typeof lastAssistant === 'string' ? lastAssistant : JSON.stringify(lastAssistant ?? '');
             if (/Would you like me to proceed with this plan\?|proceed with (the|this) plan/i.test(lastText)) {

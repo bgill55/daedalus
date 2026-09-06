@@ -573,13 +573,17 @@ function autoResizeInput() {
   chatInput.style.height = Math.min(chatInput.scrollHeight, 180) + 'px';
 }
 
+let isSubmittingChat = false;
+
 if (chatForm && chatInput) {
   chatInput.addEventListener('input', autoResizeInput);
 
   chatInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      chatForm.dispatchEvent(new Event('submit', { cancelable: true }));
+      if (!isSubmittingChat) {
+        chatForm.dispatchEvent(new Event('submit', { cancelable: true }));
+      }
       return;
     }
 
@@ -623,8 +627,14 @@ if (chatForm && chatInput) {
 
   chatForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (isSubmittingChat) return;
+
     const text = chatInput.value.trim();
     if (!text && !currentAttachment) return;
+
+    isSubmittingChat = true;
+    const sendBtn = document.getElementById('chat-send-btn');
+    if (sendBtn) sendBtn.disabled = true;
     
     let effectiveText = text;
     if (currentAttachment && !currentAttachment.isImage && currentAttachment.textContent) {
@@ -661,12 +671,16 @@ if (chatForm && chatInput) {
       });
       
       if (!res.ok) {
+        isSubmittingChat = false;
+        if (sendBtn) sendBtn.disabled = false;
         removeThinkingSpinner();
         const errData = await res.json().catch(() => ({}));
         addChatMessage('error', `Error: ${errData.error || res.statusText}`);
         if (chatStatusBadge) chatStatusBadge.textContent = 'ERROR';
       }
     } catch (err) {
+      isSubmittingChat = false;
+      if (sendBtn) sendBtn.disabled = false;
       removeThinkingSpinner();
       addChatMessage('error', `Network Error: ${err.message}`);
       if (chatStatusBadge) chatStatusBadge.textContent = 'ERROR';
@@ -955,6 +969,9 @@ function connectSSE() {
       }
 
       if (data.type === 'chat_done') {
+        isSubmittingChat = false;
+        const sendBtn = document.getElementById('chat-send-btn');
+        if (sendBtn) sendBtn.disabled = false;
         removeThinkingSpinner();
         if (activeAssistantBody && activeAssistantBody.dataset.raw) {
           activeAssistantBody.innerHTML = renderMarkdown(activeAssistantBody.dataset.raw);
@@ -973,6 +990,9 @@ function connectSSE() {
       }
 
       if (data.type === 'chat_error') {
+        isSubmittingChat = false;
+        const sendBtn = document.getElementById('chat-send-btn');
+        if (sendBtn) sendBtn.disabled = false;
         removeThinkingSpinner();
         addChatMessage('error', `Execution error: ${data.content}`, null, null, data.timestamp);
         if (chatStatusBadge) chatStatusBadge.textContent = 'ERROR';
@@ -1657,13 +1677,23 @@ function applyTouchOptimizations(configs) {
  */
 function addDualInteractionListeners(el, handler) {
   if (!el) return;
+  let lastHandledTime = 0;
+  function safeHandler(e) {
+    const now = Date.now();
+    if (now - lastHandledTime < 350) {
+      if (e && typeof e.preventDefault === 'function') e.preventDefault();
+      return;
+    }
+    lastHandledTime = now;
+    handler(e);
+  }
   el.addEventListener('pointerdown', function (e) {
-    e.preventDefault();
-    handler();
+    safeHandler(e);
   });
-  // Keep click for keyboard / accessibility
   if (!el.dataset._hasClickBound) {
-    el.addEventListener('click', handler);
+    el.addEventListener('click', function (e) {
+      safeHandler(e);
+    });
     el.dataset._hasClickBound = 'true';
   }
 }
@@ -1699,15 +1729,6 @@ document.addEventListener('DOMContentLoaded', function () {
     function () {
       var fileInput = document.getElementById('file-input');
       if (fileInput) fileInput.click();
-    }
-  );
-
-  // #send-btn — submits the chat form
-  addDualInteractionListeners(
-    document.getElementById('send-btn'),
-    function () {
-      var form = document.getElementById('chat-form');
-      if (form) form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     }
   );
 

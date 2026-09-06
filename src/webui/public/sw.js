@@ -38,6 +38,15 @@ async function handleActivate(event) {
 }
 
 async function handleFetch(event) {
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
+  const url = new URL(event.request.url);
+  if (url.pathname.startsWith('/api') || url.pathname.startsWith('/telemetry') || url.pathname.startsWith('/qr')) {
+    return;
+  }
+
   try {
     const cachedResponse = await caches.match(event.request);
     if (cachedResponse) {
@@ -45,7 +54,7 @@ async function handleFetch(event) {
     }
 
     const networkResponse = await fetch(event.request);
-    if (networkResponse && networkResponse.status === 200) {
+    if (networkResponse && networkResponse.status === 200 && event.request.method === 'GET') {
       const responseClone = networkResponse.clone();
       await caches.open(CACHE_NAME).then((cache) => {
         return cache.put(event.request, responseClone);
