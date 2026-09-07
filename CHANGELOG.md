@@ -1,3 +1,10 @@
+# [3.81.0](https://github.com/bgill55/daedalus/compare/v3.80.6...v3.81.0) (2026-09-07)
+
+
+### Features
+
+* enhance branch commands, router resilience, sigma-mem retention, and docs sync ([6bbdfa1](https://github.com/bgill55/daedalus/commit/6bbdfa12cca8693eb4cae7a730262e044b0b7ac2))
+
 ## [3.80.6](https://github.com/bgill55/daedalus/compare/v3.80.5...v3.80.6) (2026-09-06)
 
 
