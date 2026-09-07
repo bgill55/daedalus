@@ -27,32 +27,76 @@ export const devCommands: Command[] = [
   {
     name: '/branch',
     description: 'Git branch operations',
-    helpText: 'Git branch operations for the current project (list, create, switch, delete). Usage: /branch <subcommand> [args].',
+    helpText: 'Git branch operations. Usage:\n  /branch              Show current branch\n  /branch list         List all branches\n  /branch <name>       Create or switch to a branch\n  /branch delete <name>  Delete a branch\n  /branch rename <old> <new>  Rename a branch',
     execute: async (args, ctx) => {
+      const SAFE_BRANCH_RE = /^[a-zA-Z0-9._\-/]+$/;
+      function sanitizeBranch(name: string): string | null {
+        const n = name.trim();
+        return SAFE_BRANCH_RE.test(n) ? n : null;
+      }
       try {
         const { execute: termExec } = await import('../tools/builtin/terminal.js');
-        const arg = args.trim();
-        if (!arg) {
-          const currentBranchResult = await termExec({ command: 'git branch --show-current', timeout: 5, workdir: process.cwd() }, ctx.toolContext);
-          const current = currentBranchResult.content?.trim();
+        const parts = args.trim().split(/\s+/);
+        const sub = parts[0] ?? '';
+
+        if (!sub) {
+          const result = await termExec({ command: 'git branch --show-current', timeout: 5, workdir: process.cwd() }, ctx.toolContext);
+          const current = result.content?.trim();
           if (current) {
             console.log(`\n  ${pc.cyan('Current Git branch:')} ${pc.bold(current)}`);
           } else {
             console.log(pc.red('\n  Not in a Git repository or no branch found.'));
           }
-        } else {
-          console.log(`\n  Creating and switching to branch ${pc.cyan(arg)}...`);
-          const checkoutResult = await termExec({ command: `git checkout -b ${arg}`, timeout: 10, workdir: process.cwd() }, ctx.toolContext);
-          if (checkoutResult.success) {
-            console.log(pc.green(`  [OK] Switched to a new branch '${arg}'`));
+          return;
+        }
+
+        if (sub === 'list') {
+          const result = await termExec({ command: 'git branch -a', timeout: 5, workdir: process.cwd() }, ctx.toolContext);
+          console.log(`\n${result.content?.trim() ?? pc.yellow('No branches found.')}`);
+          return;
+        }
+
+        if (sub === 'delete') {
+          const name = sanitizeBranch(parts[1] ?? '');
+          if (!name) { console.log(pc.red('  Invalid branch name.')); return; }
+          const result = await termExec({ command: `git branch -d ${name}`, timeout: 10, workdir: process.cwd() }, ctx.toolContext);
+          if (result.success) {
+            console.log(pc.green(`  [OK] Deleted branch '${name}'`));
           } else {
-            console.log(pc.yellow(`  Branch might already exist, attempting to switch...`));
-            const switchResult = await termExec({ command: `git checkout ${arg}`, timeout: 10, workdir: process.cwd() }, ctx.toolContext);
-            if (switchResult.success) {
-              console.log(pc.green(`  [OK] Switched to branch '${arg}'`));
-            } else {
-              console.log(pc.red(`  Switch failed: ${switchResult.error || switchResult.content}`));
-            }
+            console.log(pc.red(`  Delete failed: ${result.error || result.content}`));
+          }
+          return;
+        }
+
+        if (sub === 'rename') {
+          const oldName = sanitizeBranch(parts[1] ?? '');
+          const newName = sanitizeBranch(parts[2] ?? '');
+          if (!oldName || !newName) { console.log(pc.red('  Invalid branch name(s). Usage: /branch rename <old> <new>')); return; }
+          const result = await termExec({ command: `git branch -m ${oldName} ${newName}`, timeout: 10, workdir: process.cwd() }, ctx.toolContext);
+          if (result.success) {
+            console.log(pc.green(`  [OK] Renamed branch '${oldName}' to '${newName}'`));
+          } else {
+            console.log(pc.red(`  Rename failed: ${result.error || result.content}`));
+          }
+          return;
+        }
+
+        const branchName = sanitizeBranch(sub);
+        if (!branchName) {
+          console.log(pc.red(`  Invalid branch name '${sub}'. Only letters, numbers, ., _, -, / are allowed.`));
+          return;
+        }
+        console.log(`\n  Creating and switching to branch ${pc.cyan(branchName)}...`);
+        const checkoutResult = await termExec({ command: `git checkout -b ${branchName}`, timeout: 10, workdir: process.cwd() }, ctx.toolContext);
+        if (checkoutResult.success) {
+          console.log(pc.green(`  [OK] Switched to a new branch '${branchName}'`));
+        } else {
+          console.log(pc.yellow(`  Branch might already exist, attempting to switch...`));
+          const switchResult = await termExec({ command: `git checkout ${branchName}`, timeout: 10, workdir: process.cwd() }, ctx.toolContext);
+          if (switchResult.success) {
+            console.log(pc.green(`  [OK] Switched to branch '${branchName}'`));
+          } else {
+            console.log(pc.red(`  Switch failed: ${switchResult.error || switchResult.content}`));
           }
         }
       } catch (err) {
@@ -65,6 +109,7 @@ export const devCommands: Command[] = [
     description: 'Generate PR description Compared to base branch',
     helpText: 'Generate a pull-request description by diffing the current branch against its base, summarizing the changes.',
     execute: async (args, ctx) => {
+      const SAFE_BRANCH_RE = /^[a-zA-Z0-9._\-/]+$/;
       const arg = args.trim();
       try {
         const { execute: termExec } = await import('../tools/builtin/terminal.js');
@@ -74,7 +119,7 @@ export const devCommands: Command[] = [
           return;
         }
 
-        let baseBranch = arg || 'main';
+        let baseBranch = (arg && SAFE_BRANCH_RE.test(arg)) ? arg : 'main';
         if (!arg) {
           const mainCheck = await termExec({ command: 'git show-ref --verify refs/heads/main', timeout: 5, workdir: process.cwd() }, ctx.toolContext);
           if (!mainCheck.success) {
@@ -83,6 +128,9 @@ export const devCommands: Command[] = [
               baseBranch = 'master';
             }
           }
+        } else if (!SAFE_BRANCH_RE.test(arg)) {
+          console.log(pc.red(`  Invalid base branch name '${arg}'.`));
+          return;
         }
 
         const currentBranchResult = await termExec({ command: 'git branch --show-current', timeout: 5, workdir: process.cwd() }, ctx.toolContext);
@@ -940,7 +988,7 @@ Once you have finished making changes, I will automatically re-run the command t
     name: '/config',
     description: 'Show or modify global configuration',
     usage: '/config [set <key> = <value> | get <key> | reset]',
-    helpText: 'Manage global settings. Setting a key applies it in real-time.\n\nSubcommands:\n  (no args)             Print the entire active configuration JSON\n  set <key> = <value>   Update a configuration value (e.g. /config set router.strategy = round-robin)\n  get <key>             Print the value of a specific config key\n  reset                 Reset config to default settings\n\nConfiguration Keys Reference:\n  [Router Settings]\n  router.strategy               Model routing strategy ("priority" | "round-robin" | "fastest")\n  router.healthCheckInterval     Interval in ms between background health checks (default: 30000)\n  router.requestTimeout         Timeout in ms for model API requests (default: 120000)\n  router.defaultRateLimit       Default RPM and TPM rate limit limits\n  router.chain                  Array of configured model endpoints in the routing chain\n\n  [Agent Settings]\n  agents.default                Default agent role to spawn (default: "coder")\n  agents.available              Array of available agent roles inside the session\n  agents.autoOrchestrate        Auto-orchestrate complex prompts (default: true)\n  agents.ensemble.enabled       Enable multi-model candidate drafting (default: false)\n  agents.ensemble.maxLoops      Max correction loops for ensemble (default: 2)\n  agents.ensemble.candidatesCount Candidates drafted per loop (default: 2)\n\n  [Tool Settings]\n  tools.builtin                 List of enabled built-in CLI tools\n  tools.mcpServers              Configured Model Context Protocol (MCP) servers\n  tools.shell                   Preferred shell executable path (e.g. "powershell")\n  tools.sandbox                 Sandbox mode for commands ("none" | "docker" | "wsl")\n  tools.sandboxImage            Docker image to run commands in (default: "node:20")\n  tools.wslDistribution         Linux distribution name for WSL sandboxing\n\n  [Context Settings]\n  context.maxTokens             Max prompt tokens (default: 128000)\n  context.summarizeAt           Context ratio threshold to trigger history summary (default: 0.8)\n  context.includeGitDiff        Auto-inject active git diff in prompts (default: true)\n  context.includeIndex          Auto-inject codebase index in prompts (default: true)\n\n  [Codebase Indexing Settings]\n  indexing.enabled              Index codebase files on CLI start (default: true)\n  indexing.watch                incremental index updates via watcher (default: true)\n  indexing.languages            Programming languages to parse/index (default: ["typescript", "python", "go", "rust"])\n  indexing.exclude              Folders to ignore (default: ["node_modules", "dist", ".git", "target"])\n\n  [Session Settings]\n  session.autoSave              Auto-save session state on REPL exit (default: true)\n  session.exportJsonl           Export chat history to JSONL (default: true)\n  session.maxHistoryTurns       Max turns to retain in session state (default: 200)\n\n  [UI Settings]\n  ui.streaming                  Stream tokens in real-time (default: true)\n  ui.showTokens                 Output token statistics (default: true)\n  ui.showCost                   Output cost estimation stats (default: true)\n  ui.diffStyle                  Visual diff style ("unified" | "side-by-side")\n  ui.theme                      CLI theme colors ("dark" | "light" | "auto")\n  ui.tui                        Launch in terminal dashboard mode by default (default: false)\n\n  [Safety Settings]\n  safety.protectGit             Protect git workspace files (default: true)\n  safety.autoApprove            Skip prompt confirmations for tools (default: false)\n\n  [Update Settings]\n  updateCheck                   Check for updates on NPM on startup (default: true)',
+    helpText: 'Manage global settings. Setting a key applies it in real-time.\n\nSubcommands:\n  (no args)             Print the entire active configuration JSON\n  set <key> = <value>   Update a configuration value (e.g. /config set router.strategy = round-robin)\n  get <key>             Print the value of a specific config key\n  reset                 Reset config to default settings\n\nConfiguration Keys Reference:\n  [Router Settings]\n  router.strategy               Model routing strategy ("priority" | "round-robin" | "fastest")\n  router.healthCheckInterval     Interval in ms between background health checks (default: 30000)\n  router.requestTimeout         Timeout in ms for model API requests (default: 120000)\n  router.defaultRateLimit       Default RPM and TPM rate limit limits for all models\n  router.chain                  Array of configured model endpoints in the routing chain\n  router.chain[].rateLimit      Per-model RPM/TPM override: { "rpm": 30, "tpm": 50000 }\n\n  [Agent Settings]\n  agents.default                Default agent role to spawn (default: "coder")\n  agents.available              Array of available agent roles inside the session\n  agents.autoOrchestrate        Auto-orchestrate complex prompts (default: true)\n  agents.ensemble.enabled       Enable multi-model candidate drafting (default: false)\n  agents.ensemble.maxLoops      Max correction loops for ensemble (default: 2)\n  agents.ensemble.candidatesCount Candidates drafted per loop (default: 2)\n\n  [Tool Settings]\n  tools.builtin                 List of enabled built-in CLI tools\n  tools.mcpServers              Configured Model Context Protocol (MCP) servers\n  tools.shell                   Preferred shell executable path (e.g. "powershell")\n  tools.sandbox                 Sandbox mode for commands ("none" | "docker" | "wsl")\n  tools.sandboxImage            Docker image to run commands in (default: "node:20")\n  tools.wslDistribution         Linux distribution name for WSL sandboxing\n\n  [Context Settings]\n  context.maxTokens             Max prompt tokens (default: 128000)\n  context.summarizeAt           Context ratio threshold to trigger history summary (default: 0.8)\n  context.includeGitDiff        Auto-inject active git diff in prompts (default: true)\n  context.includeIndex          Auto-inject codebase index in prompts (default: true)\n  context.toolResultMaxChars    Max characters per tool result before truncation (default: 32000)\n\n  [Codebase Indexing Settings]\n  indexing.enabled              Index codebase files on CLI start (default: true)\n  indexing.watch                incremental index updates via watcher (default: true)\n  indexing.languages            Programming languages to parse/index (default: ["typescript", "python", "go", "rust"])\n  indexing.exclude              Folders to ignore (default: ["node_modules", "dist", ".git", "target"])\n\n  [Session Settings]\n  session.autoSave              Auto-save session state on REPL exit (default: true)\n  session.exportJsonl           Export chat history to JSONL (default: true)\n  session.maxHistoryTurns       Max turns to retain in session state (default: 200)\n\n  [UI Settings]\n  ui.streaming                  Stream tokens in real-time (default: true)\n  ui.showTokens                 Output token statistics (default: true)\n  ui.showCost                   Output cost estimation stats (default: true)\n  ui.diffStyle                  Visual diff style ("unified" | "side-by-side")\n  ui.theme                      CLI theme colors ("dark" | "light" | "auto")\n  ui.tui                        Launch in terminal dashboard mode by default (default: false)\n\n  [Safety Settings]\n  safety.protectGit             Protect git workspace files (default: true)\n  safety.autoApprove            Skip prompt confirmations for tools (default: false)\n\n  [Update Settings]\n  updateCheck                   Check for updates on NPM on startup (default: true)',
     execute: async (args, ctx) => {
       const rest = args.trim();
       if (!rest) {

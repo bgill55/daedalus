@@ -20,7 +20,7 @@ interface IndexerOptions {
 }
 
 const DEFAULT_EXCLUDE = ['node_modules', 'dist', 'build', '.git', 'target', 'coverage', 'venv', '.venv', 'env', '.env', '__pycache__', '.pytest_cache', '.mypy_cache', '.next', 'out', '.cache'];
-const DEFAULT_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.py', '.go', '.rs', '.java', '.c', '.cc', '.cpp', '.cxx', '.h', '.hpp', '.cs', '.php', '.rb', '.ex', '.exs'];
+const DEFAULT_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.py', '.go', '.rs', '.java', '.c', '.cc', '.cpp', '.cxx', '.h', '.hpp', '.cs', '.php', '.rb', '.ex', '.exs', '.svelte', '.vue', '.astro', '.mdx'];
 
 /** Compute SHA256 of string content */
 export function hashContent(content: string): string {

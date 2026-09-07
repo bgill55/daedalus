@@ -14,6 +14,7 @@ export interface ModelEntry {
   supportsTools?: boolean;      // Whether model supports tool calling
   supportsVision?: boolean;     // Whether model supports vision
   tier?: 'standard' | 'fast' | 'intelligence';
+  rateLimit?: { rpm: number; tpm: number };  // Per-model RPM/TPM override (takes precedence over defaultRateLimit)
 }
 
 export interface ModelHealth {

@@ -39,6 +39,10 @@ export const ModelEntrySchema = z.object({
   supportsTools: z.boolean().optional(),
   supportsVision: z.boolean().optional(),
   tier: z.enum(['standard', 'fast', 'intelligence']).default('standard').optional(),
+  rateLimit: z.object({
+    rpm: z.number().int().positive(),
+    tpm: z.number().int().positive(),
+  }).optional(),
 });
 export type ModelEntry = z.infer<typeof ModelEntrySchema>;
 
@@ -164,11 +168,13 @@ export const ConfigSchema = z.object({
     summarizeAt: z.number().min(0).max(1).default(0.8),
     includeGitDiff: z.boolean().default(true),
     includeIndex: z.boolean().default(true),
+    toolResultMaxChars: z.number().int().positive().default(32000),
   }).default({
     maxTokens: 128000,
     summarizeAt: 0.8,
     includeGitDiff: true,
     includeIndex: true,
+    toolResultMaxChars: 32000,
   }),
   indexing: z.object({
     enabled: z.boolean().default(true),
@@ -303,6 +309,7 @@ export const DEFAULT_CONFIG: DaedalusConfig = {
     summarizeAt: 0.8,
     includeGitDiff: true,
     includeIndex: true,
+    toolResultMaxChars: 32000,
   },
   indexing: {
     enabled: true,

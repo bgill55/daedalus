@@ -68,6 +68,7 @@ This guide describes all configuration options available in Daedalus. You can vi
 *   **`context.summarizeAt`**: Threshold (0.0-1.0) of token budget usage that triggers automatic summarization. Default: 0.8.
 *   **`context.includeGitDiff`**: When true, automatically includes git diff output in the system prompt for context awareness. Default: true.
 *   **`context.includeIndex`**: When true, includes codebase index search results in the system prompt. Default: true.
+*   **`context.toolResultMaxChars`**: (Description needed)
 
 ---
 

@@ -221,9 +221,10 @@ export class LocalRouter {
       if (model.enabled) {
         const key = this.getRateLimiterKey(model);
         if (!this.rateLimiters.has(key)) {
-          // Use TPM as capacity if configured, otherwise estimate from RPM (~4K tokens per request)
-          const tpm = this.config.defaultRateLimit.tpm || model.maxTokens || this.config.defaultRateLimit.rpm * 4000;
-          this.rateLimiters.set(key, createTokenBucket(tpm, tpm / 60));
+          const perModel = model.rateLimit;
+          const tpm = perModel?.tpm ?? this.config.defaultRateLimit.tpm ?? model.maxTokens ?? this.config.defaultRateLimit.rpm * 4000;
+          const rpm = perModel?.rpm ?? this.config.defaultRateLimit.rpm;
+          this.rateLimiters.set(key, createTokenBucket(tpm, tpm / (rpm > 0 ? rpm : 60)));
         }
       }
     }
@@ -732,9 +733,16 @@ export class LocalRouter {
 
     if (attemptFailures.length > 0) {
       const diag = attemptFailures.map((f, i) => `[${i + 1}] ${f}`).join(', ');
-      throw new Error(`All model attempts failed: ${diag}`);
+      throw new Error(
+        `All model attempts failed: ${diag}\n` +
+        `[ALL PROVIDERS FAILED] Every model in the chain was tried and failed. ` +
+        `Actions: check /router status, verify providers are running (LM Studio, Ollama, etc.), or add a working model with /model add.`
+      );
     }
-    throw lastError || new Error('All model attempts failed.');
+    throw lastError || new Error(
+      'All model attempts failed. [ALL PROVIDERS FAILED] Every model in the chain was tried and failed. ' +
+      'Run /router status to see health details, or add a working provider with /model add.'
+    );
   }
 
   async *chatStream(request: ChatRequest): AsyncGenerator<StreamChunk> {
@@ -843,9 +851,16 @@ export class LocalRouter {
 
     if (attemptFailures.length > 0) {
       const diag = attemptFailures.map((f, i) => `[${i + 1}] ${f}`).join(', ');
-      throw new Error(`All model streaming attempts failed: ${diag}`);
+      throw new Error(
+        `All model streaming attempts failed: ${diag}\n` +
+        `[ALL PROVIDERS FAILED] Every model in the chain was tried and failed. ` +
+        `Actions: check /router status, verify providers are running (LM Studio, Ollama, etc.), or add a working model with /model add.`
+      );
     }
-    throw lastError || new Error('All model streaming attempts failed.');
+    throw lastError || new Error(
+      'All model streaming attempts failed. [ALL PROVIDERS FAILED] Every model in the chain was tried and failed. ' +
+      'Run /router status to see health details, or add a working provider with /model add.'
+    );
   }
 
   private async discoverModel(client: OpenAI, cacheKey: string): Promise<string> {

@@ -127,7 +127,8 @@ export function pruneMessages(
       for (const msg of cycle.messages) {
         if (msg.role === 'tool' && typeof msg.content === 'string' && msg.content.length > 1000) {
           const originalLen = msg.content.length;
-          msg.content = `[Tool output truncated (${originalLen} chars originally)]`;
+          const head = msg.content.slice(0, 200).trimEnd();
+          msg.content = `${head}\n[Tool output truncated — ${originalLen} chars total]`;
           truncatedToolsCount++;
         }
       }

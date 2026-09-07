@@ -43,7 +43,7 @@ import { maskSecrets } from './security/secret-detector.js';
 import { classifyTaskStart, stepRouting, floorForTask } from './router/complexity.js';
 import { globalSessionStats } from './session/analytics.js';
 
-const TOOL_RESULT_MAX_CHARS = 32_000;
+const DEFAULT_TOOL_RESULT_MAX_CHARS = 32_000;
 const MAX_TOOL_TURNS = 40;
 // Deterministic, non-retryable read failures: the path genuinely does not exist.
 // A re-read is guaranteed to fail, so the agent loop must treat it as a hard
@@ -90,10 +90,10 @@ export function isTurnAborted(): boolean {
   return turnAborted;
 }
 
-function truncateToolResult(content: string): string {
-  if (content.length <= TOOL_RESULT_MAX_CHARS) return content;
-  const kept = content.slice(0, TOOL_RESULT_MAX_CHARS);
-  const dropped = content.length - TOOL_RESULT_MAX_CHARS;
+function truncateToolResult(content: string, maxChars = DEFAULT_TOOL_RESULT_MAX_CHARS): string {
+  if (content.length <= maxChars) return content;
+  const kept = content.slice(0, maxChars);
+  const dropped = content.length - maxChars;
   return `${kept}\n... [truncated ${dropped} chars — use read_file with offset/limit to see more]`;
 }
 
@@ -825,7 +825,7 @@ export function createModelFunctions(deps: ModelDeps) {
         const toolContentRaw = typeof content === 'string' ? content : JSON.stringify(content);
         messages.push({
           role: 'tool',
-          content: truncateToolResult(maskSecrets(toolContentRaw)),
+          content: truncateToolResult(maskSecrets(toolContentRaw), config?.context?.toolResultMaxChars ?? DEFAULT_TOOL_RESULT_MAX_CHARS),
           tool_call_id: result.toolCallId || approvedCalls[ri]?.id || '',
         } as ChatMessage);
 

@@ -171,7 +171,14 @@ export function initProjectMemDb(dbPath: string): Database.Database {
   }
 
   const db = new Database(dbPath);
+
   db.exec(`
+    CREATE TABLE IF NOT EXISTS schema_version (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      version INTEGER NOT NULL DEFAULT 0
+    );
+    INSERT OR IGNORE INTO schema_version (id, version) VALUES (1, 0);
+
     CREATE TABLE IF NOT EXISTS sigma_memories (
       id TEXT PRIMARY KEY,
       agent_role TEXT NOT NULL,
@@ -208,23 +215,54 @@ export function initProjectMemDb(dbPath: string): Database.Database {
     CREATE INDEX IF NOT EXISTS idx_anti_last_occurred ON sigma_anti_patterns(last_occurred_at DESC);
   `);
 
-  const cols = db.prepare('PRAGMA table_info(sigma_memories)').all() as Array<{ name: string }>;
-  if (!cols.some((col) => col.name === 'content_hash')) {
-    db.exec('ALTER TABLE sigma_memories ADD COLUMN content_hash TEXT');
-    db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_sigma_content_hash ON sigma_memories(content_hash) WHERE content_hash IS NOT NULL');
-  }
-  if (!cols.some((col) => col.name === 'verified_pass')) {
-    db.exec('ALTER TABLE sigma_memories ADD COLUMN verified_pass INTEGER DEFAULT 0');
-  }
-  if (!cols.some((col) => col.name === 'verified_fail')) {
-    db.exec('ALTER TABLE sigma_memories ADD COLUMN verified_fail INTEGER DEFAULT 0');
-  }
-  if (!cols.some((col) => col.name === 'critique')) {
-    db.exec('ALTER TABLE sigma_memories ADD COLUMN critique TEXT DEFAULT \'\'');
-  }
+  runProjectMemMigrations(db);
 
   return db;
 }
+
+interface Migration {
+  version: number;
+  up: (db: Database.Database) => void;
+}
+
+const PROJECT_MEM_MIGRATIONS: Migration[] = [
+  {
+    version: 1,
+    up: (db) => {
+      const cols = db.prepare('PRAGMA table_info(sigma_memories)').all() as Array<{ name: string }>;
+      if (!cols.some((c) => c.name === 'content_hash')) {
+        db.exec('ALTER TABLE sigma_memories ADD COLUMN content_hash TEXT');
+        db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_sigma_content_hash ON sigma_memories(content_hash) WHERE content_hash IS NOT NULL');
+      }
+      if (!cols.some((c) => c.name === 'verified_pass')) {
+        db.exec('ALTER TABLE sigma_memories ADD COLUMN verified_pass INTEGER DEFAULT 0');
+      }
+      if (!cols.some((c) => c.name === 'verified_fail')) {
+        db.exec('ALTER TABLE sigma_memories ADD COLUMN verified_fail INTEGER DEFAULT 0');
+      }
+      if (!cols.some((c) => c.name === 'critique')) {
+        db.exec("ALTER TABLE sigma_memories ADD COLUMN critique TEXT DEFAULT ''");
+      }
+    },
+  },
+];
+
+function runProjectMemMigrations(db: Database.Database): void {
+  const current = (db.prepare('SELECT version FROM schema_version WHERE id = 1').get() as { version: number } | undefined)?.version ?? 0;
+  const pending = PROJECT_MEM_MIGRATIONS.filter((m) => m.version > current);
+  for (const migration of pending) {
+    try {
+      db.transaction(() => {
+        migration.up(db);
+        db.prepare('UPDATE schema_version SET version = ? WHERE id = 1').run(migration.version);
+      })();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`[sqlite] Project mem migration v${migration.version} failed: ${msg}`);
+    }
+  }
+}
+
 
 /** Save a turn to the session database */
 export function saveTurn(db: Database.Database, turn: SqliteTurn): void {
@@ -520,7 +558,9 @@ export function updateSigmaScore(db: Database.Database, id: string, scoreDelta: 
 }
 
 export function pruneLowSigmaMemories(db: Database.Database, minThreshold: number = 0.20): number {
-  const result = db.prepare('DELETE FROM sigma_memories WHERE sigma_score < ?').run(minThreshold);
+  const result = db.prepare(
+    'DELETE FROM sigma_memories WHERE sigma_score < ? AND (verified_pass IS NULL OR verified_pass = 0)'
+  ).run(minThreshold);
   return result.changes;
 }
 
