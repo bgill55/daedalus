@@ -1,3 +1,10 @@
+## [3.81.2](https://github.com/bgill55/daedalus/compare/v3.81.1...v3.81.2) (2026-09-11)
+
+
+### Bug Fixes
+
+* **webui:** persist and display turns_count in CHRONICLES tab ([45412a8](https://github.com/bgill55/daedalus/commit/45412a8dd0dd8139a575e6df5821eb6ab5acce37))
+
 ## [3.81.1](https://github.com/bgill55/daedalus/compare/v3.81.0...v3.81.1) (2026-09-11)
 
 
