@@ -1,3 +1,10 @@
+## [3.81.1](https://github.com/bgill55/daedalus/compare/v3.81.0...v3.81.1) (2026-09-11)
+
+
+### Bug Fixes
+
+* **core:** resolve terminal circuit breaker deadlock, support python-style tool calls, and unblock read tools in system prompt ([55acae2](https://github.com/bgill55/daedalus/commit/55acae2bf66960b41ab88c934b114c258dcc1da7))
+
 # [3.81.0](https://github.com/bgill55/daedalus/compare/v3.80.6...v3.81.0) (2026-09-07)
 
 
