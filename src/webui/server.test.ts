@@ -324,6 +324,28 @@ describe('WebUI Server', () => {
       const body = JSON.parse(endSpy.mock.calls[0][0]);
       expect(body.sessions).toHaveLength(1);
       expect(body.sessions[0].id).toBe('sess-1');
+      expect(body.activeSessionId).toBeNull();
+    });
+
+    it('GET /api/sessions should return activeSessionId when provider has one', () => {
+      registerSessionProvider({
+        listSessions: () => [
+          { id: 'sess-active', title: 'Active Session', created_at: 1000, updated_at: 2000, turns_count: 5 },
+        ],
+        getActiveSessionId: () => 'sess-active',
+        resumeSession: vi.fn(),
+        newSession: vi.fn(),
+        deleteSession: vi.fn(),
+      });
+      mockReq.url = '/api/sessions';
+      mockReq.method = 'GET';
+
+      handleRequest(mockReq as IncomingMessage, mockRes as ServerResponse);
+
+      expect(writeHeadSpy).toHaveBeenCalledWith(200, { 'Content-Type': 'application/json' });
+      const body = JSON.parse(endSpy.mock.calls[0][0]);
+      expect(body.sessions).toHaveLength(1);
+      expect(body.activeSessionId).toBe('sess-active');
     });
 
     it('POST /api/sessions/resume should resume a session', async () => {

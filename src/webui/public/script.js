@@ -278,9 +278,13 @@ function addChatMessage(role, text, roleBadge = null, imageBase64 = null, timest
     textContainer.innerHTML = renderMarkdown(text);
     body.appendChild(textContainer);
   } else {
-    const textSpan = document.createElement('div');
-    textSpan.textContent = text;
-    body.appendChild(textSpan);
+    const textContainer = document.createElement('div');
+    if (text.includes('```') || text.includes('`') || text.includes('\n')) {
+      textContainer.innerHTML = renderMarkdown(text);
+    } else {
+      textContainer.textContent = text;
+    }
+    body.appendChild(textContainer);
   }
   
   msgEl.appendChild(header);
@@ -896,7 +900,7 @@ async function loadChatHistory() {
             null,
             null,
             item.timestamp,
-            item.role === 'assistant' ? { model: 'daedalus' } : null
+            item.role === 'assistant' ? { model: item.model || 'daedalus' } : null
           );
         });
       }
@@ -1033,9 +1037,11 @@ function connectSSE() {
 const sessionsListEl = document.getElementById('sessions-list');
 const sessionNewBtn = document.getElementById('session-new-btn');
 const sessionRefreshBtn = document.getElementById('session-refresh-btn');
+let sessionsNeedsRefresh = true;
 
-async function loadSessions() {
+async function loadSessions(force = false) {
   if (!sessionsListEl) return;
+  if (!force && !sessionsNeedsRefresh) return;
   sessionsListEl.innerHTML = '<div class="file-tree-loading">Accessing session archives...</div>';
   try {
     const res = await fetch('/api/sessions');
@@ -1047,9 +1053,11 @@ async function loadSessions() {
       return;
     }
     
+    const activeId = data.activeSessionId || null;
+
     data.sessions.forEach(sess => {
       const card = document.createElement('div');
-      card.className = 'session-card';
+      card.className = `session-card${sess.id === activeId ? ' active' : ''}`;
       
       const header = document.createElement('div');
       header.className = 'session-card-header';
@@ -1078,8 +1086,9 @@ async function loadSessions() {
       
       const resumeBtn = document.createElement('button');
       resumeBtn.className = 'session-btn';
-      resumeBtn.textContent = 'RESUME';
-      resumeBtn.title = 'Resume this session';
+      resumeBtn.textContent = sess.id === activeId ? 'ACTIVE' : 'RESUME';
+      resumeBtn.disabled = sess.id === activeId;
+      resumeBtn.title = sess.id === activeId ? 'This session is currently active' : 'Resume this session';
       resumeBtn.addEventListener('click', async (e) => {
         e.stopPropagation();
         resumeBtn.textContent = '...';
@@ -1091,9 +1100,10 @@ async function loadSessions() {
           });
           if (r.ok) {
             historyLoaded = false;
+            sessionsNeedsRefresh = true;
             await loadChatHistory();
             addLog(`Resumed session: <strong>${sess.title || sess.id}</strong>`);
-            loadSessions();
+            loadSessions(true);
           }
         } catch {
           resumeBtn.textContent = 'RESUME';
@@ -1113,7 +1123,8 @@ async function loadSessions() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ sessionId: sess.id }),
           });
-          loadSessions();
+          sessionsNeedsRefresh = true;
+          loadSessions(true);
         } catch {}
       });
       
@@ -1127,6 +1138,7 @@ async function loadSessions() {
       card.appendChild(meta);
       sessionsListEl.appendChild(card);
     });
+    sessionsNeedsRefresh = false;
   } catch {
     sessionsListEl.innerHTML = '<div class="file-tree-loading">Failed to load session archives.</div>';
   }
@@ -1138,9 +1150,10 @@ if (sessionNewBtn) {
       const res = await fetch('/api/sessions/new', { method: 'POST' });
       if (res.ok) {
         historyLoaded = false;
+        sessionsNeedsRefresh = true;
         chatMessages.innerHTML = '';
         addChatMessage('assistant', 'New session initialized. Sanctum is ready for instructions.', 'ARCHITECT');
-        loadSessions();
+        loadSessions(true);
         loadContextFiles();
       }
     } catch {}
@@ -1148,7 +1161,7 @@ if (sessionNewBtn) {
 }
 
 if (sessionRefreshBtn) {
-  sessionRefreshBtn.addEventListener('click', () => loadSessions());
+  sessionRefreshBtn.addEventListener('click', () => loadSessions(true));
 }
 
 // New Chat / New Rite Button Handler
@@ -1161,7 +1174,8 @@ if (newChatBtn) {
     if (chatStatusBadge) chatStatusBadge.textContent = 'SANCTUM READY';
     try {
       await fetch('/api/sessions/new', { method: 'POST' });
-      loadSessions();
+      sessionsNeedsRefresh = true;
+      loadSessions(true);
       loadContextFiles();
     } catch {}
   });
@@ -1176,12 +1190,12 @@ const modelOptionsList = document.getElementById('model-options-list');
 
 const DEFAULT_MODELS = [
   { id: 'auto', name: 'Auto / Smart Router', desc: 'Dynamically routes based on task complexity and health' },
-  { id: 'claude-3-5-sonnet', name: 'Claude 3.5 Sonnet', desc: 'Anthropic — Superior reasoning & code generation' },
-  { id: 'gpt-4o', name: 'GPT-4o', desc: 'OpenAI — High-speed multimodal intelligence' },
-  { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', desc: 'Google — Vast context window & deep analysis' },
-  { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', desc: 'Google — Ultra-low latency responses' },
-  { id: 'deepseek-chat', name: 'DeepSeek V3', desc: 'DeepSeek — High-efficiency coding & logic' },
-  { id: 'ollama/llama3.1', name: 'Llama 3.1 / Local', desc: 'Local-first offline execution via Ollama' },
+  { id: 'claude-3-7-sonnet', name: 'Claude 3.7 Sonnet', desc: 'Anthropic — Hybrid reasoning & state-of-the-art coding' },
+  { id: 'gpt-4.5', name: 'GPT-4.5', desc: 'OpenAI — Frontier knowledge & multimodal intelligence' },
+  { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', desc: 'Google — Deep reasoning, vast context window & code analysis' },
+  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', desc: 'Google — Ultra-fast speed & high throughput' },
+  { id: 'deepseek-chat', name: 'DeepSeek V3 / R1', desc: 'DeepSeek — High-efficiency open weights coding & reasoning' },
+  { id: 'ollama/llama3.3', name: 'Llama 3.3 / Local', desc: 'Local-first offline execution via Ollama' },
 ];
 
 async function loadModels() {
@@ -1777,6 +1791,7 @@ document.addEventListener('DOMContentLoaded', function () {
 // ─────────────────────────────────────────────────────────────
 let wsClient = null;
 let wsReconnectTimer = null;
+let wsReconnectAttempts = 0;
 
 function showMilestoneNotification(payload) {
   if (!payload || payload.type !== 'milestone') return;
@@ -1826,6 +1841,7 @@ function connectWebSocket() {
     wsClient = new WebSocket(wsUrl);
 
     wsClient.onopen = function () {
+      wsReconnectAttempts = 0;
       if (wsReconnectTimer) {
         clearTimeout(wsReconnectTimer);
         wsReconnectTimer = null;
@@ -1846,7 +1862,12 @@ function connectWebSocket() {
     wsClient.onclose = function () {
       wsClient = null;
       if (!wsReconnectTimer) {
-        wsReconnectTimer = setTimeout(connectWebSocket, 3000);
+        wsReconnectAttempts++;
+        const delay = Math.min(16000, Math.pow(2, wsReconnectAttempts - 1) * 1000);
+        wsReconnectTimer = setTimeout(() => {
+          wsReconnectTimer = null;
+          connectWebSocket();
+        }, delay);
       }
     };
 

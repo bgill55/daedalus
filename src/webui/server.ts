@@ -65,7 +65,7 @@ function sendTelemetryMetric(res: ServerResponse) {
       const memUsage = process.memoryUsage();
       value = Math.min(100, Math.round((memUsage.heapUsed / memUsage.heapTotal) * 100));
     } else {
-      value = Math.min(100, Math.round((process.uptime() % 60) * 1.5));
+      value = Math.min(100, activeClientRecords.size * 25);
     }
 
     const data: TelemetryData = {
@@ -92,7 +92,7 @@ export function setTelemetryRate(ms: number): number {
   return telemetryIntervalMs;
 }
 
-export type HistoryProvider = () => Array<{ role: string; text: string }>;
+export type HistoryProvider = () => Array<{ role: string; text: string; model?: string; timestamp?: number }>;
 export type ContextFilesProvider = {
   getFiles: () => string[];
   removeFile: (file: string) => boolean;
@@ -108,6 +108,7 @@ export interface SessionItem {
 
 export interface SessionProvider {
   listSessions: () => SessionItem[];
+  getActiveSessionId?: () => string | null;
   resumeSession: (id: string) => Promise<boolean>;
   newSession: () => Promise<string>;
   deleteSession: (id: string) => Promise<boolean>;
@@ -428,8 +429,9 @@ export function handleRequest(req: IncomingMessage, res: ServerResponse): void {
 
     if (req.method === 'GET' && pathname === '/api/sessions') {
       const sessions = activeSessionProvider ? activeSessionProvider.listSessions() : [];
+      const activeSessionId = activeSessionProvider?.getActiveSessionId?.() ?? null;
       res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ sessions }));
+      res.end(JSON.stringify({ sessions, activeSessionId }));
       return;
     }
 

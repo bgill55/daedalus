@@ -2057,6 +2057,7 @@ body {
   border-color: var(--gold-bright);
   border-left: 3px solid var(--gold-bright);
   background: rgba(229, 169, 60, 0.08);
+  box-shadow: 0 0 10px rgba(229, 169, 60, 0.15);
 }
 
 .session-card-header {
@@ -2112,6 +2113,14 @@ body {
 .session-btn:hover {
   background: var(--gold-bright);
   color: #04070d;
+}
+
+.session-btn:disabled {
+  background: rgba(229, 169, 60, 0.15);
+  border-color: var(--gold-bright);
+  color: var(--gold-bright);
+  cursor: default;
+  opacity: 0.8;
 }
 
 .session-btn.delete:hover {

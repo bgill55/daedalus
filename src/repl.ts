@@ -248,7 +248,9 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
           .filter(m => m.role === 'user' || m.role === 'assistant')
           .map(m => ({
             role: m.role,
-            text: typeof m.content === 'string' ? m.content : (Array.isArray(m.content) ? m.content.map(c => 'text' in c ? c.text : '').join(' ') : '')
+            text: typeof m.content === 'string' ? m.content : (Array.isArray(m.content) ? m.content.map(c => 'text' in c ? c.text : '').join(' ') : ''),
+            model: (m as any).model || undefined,
+            timestamp: (m as any).timestamp || undefined,
           }))
           .filter(m => m.text.trim().length > 0);
       });
@@ -268,6 +270,7 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
             turns_count: s.turns_count,
           }));
         },
+        getActiveSessionId: () => sessionId,
         resumeSession: async (id: string) => {
           const loaded = sessionManager.startSession(id);
           sessionId = loaded.sessionId;
