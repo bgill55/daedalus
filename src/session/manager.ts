@@ -117,6 +117,7 @@ export class SessionManager {
 
     // If it is a new session, register it in the index DB
     const now = Date.now();
+    const existing = this.getSessionsForProject().find(s => s.id === this.sessionId);
     const meta: SessionMeta = {
       id: this.sessionId,
       project_path: this.projectRoot,
@@ -124,6 +125,7 @@ export class SessionManager {
       title: this.sessionTitle,
       created_at: now,
       updated_at: now,
+      turns_count: existing?.turns_count ?? 0,
     };
     registerSession(this.indexDb, meta);
 
@@ -214,6 +216,7 @@ export class SessionManager {
       title: this.sessionTitle,
       created_at: existing?.created_at ?? now,
       updated_at: now,
+      turns_count: messages.length,
     };
     registerSession(this.indexDb, meta);
 
@@ -234,6 +237,7 @@ export class SessionManager {
         title: this.sessionTitle,
         created_at: existing?.created_at ?? Date.now(),
         updated_at: Date.now(),
+        turns_count: existing?.turns_count ?? 0,
       };
       registerSession(this.indexDb, meta);
     }

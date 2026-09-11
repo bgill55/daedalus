@@ -44,7 +44,7 @@ describe('SQLite session database (index)', () => {
   it('registers a session', () => {
     registerSession(db, {
       id: 'test-1', project_path: '/test', project_hash: 'abc123',
-      title: 'Test Session', created_at: 1000, updated_at: 1000,
+      title: 'Test Session', created_at: 1000, updated_at: 1000, turns_count: 0,
     });
     const rows = db.prepare('SELECT * FROM sessions').all();
     expect(rows).toHaveLength(1);
@@ -53,30 +53,32 @@ describe('SQLite session database (index)', () => {
   it('upserts session on duplicate id', () => {
     registerSession(db, {
       id: 'test-1', project_path: '/test', project_hash: 'abc123',
-      title: 'Original', created_at: 1000, updated_at: 1000,
+      title: 'Original', created_at: 1000, updated_at: 1000, turns_count: 3,
     });
     registerSession(db, {
       id: 'test-1', project_path: '/test', project_hash: 'abc123',
-      title: 'Updated', created_at: 1000, updated_at: 2000,
+      title: 'Updated', created_at: 1000, updated_at: 2000, turns_count: 7,
     });
     const rows = db.prepare('SELECT * FROM sessions').all();
     expect(rows).toHaveLength(1);
     expect((rows[0] as any).title).toBe('Updated');
+    expect((rows[0] as any).turns_count).toBe(7);
   });
 
   it('lists sessions for a project ordered by updated_at desc', () => {
-    registerSession(db, { id: 'a', project_path: '/p', project_hash: 'abc', title: 'A', created_at: 1, updated_at: 3 });
-    registerSession(db, { id: 'b', project_path: '/p', project_hash: 'abc', title: 'B', created_at: 2, updated_at: 1 });
-    registerSession(db, { id: 'c', project_path: '/p2', project_hash: 'xyz', title: 'C', created_at: 3, updated_at: 3 });
+    registerSession(db, { id: 'a', project_path: '/p', project_hash: 'abc', title: 'A', created_at: 1, updated_at: 3, turns_count: 5 });
+    registerSession(db, { id: 'b', project_path: '/p', project_hash: 'abc', title: 'B', created_at: 2, updated_at: 1, turns_count: 2 });
+    registerSession(db, { id: 'c', project_path: '/p2', project_hash: 'xyz', title: 'C', created_at: 3, updated_at: 3, turns_count: 0 });
 
     const result = listSessionsForProject(db, 'abc');
     expect(result).toHaveLength(2);
     expect(result[0].id).toBe('a');
+    expect(result[0].turns_count).toBe(5);
     expect(result[1].id).toBe('b');
   });
 
   it('deletes a session from index', () => {
-    registerSession(db, { id: 'del', project_path: '/p', project_hash: 'abc', title: 'Del', created_at: 1, updated_at: 1 });
+    registerSession(db, { id: 'del', project_path: '/p', project_hash: 'abc', title: 'Del', created_at: 1, updated_at: 1, turns_count: 0 });
     deleteSessionFromIndex(db, 'del');
     expect(listSessionsForProject(db, 'abc')).toHaveLength(0);
   });

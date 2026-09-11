@@ -265,6 +265,7 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
             title: s.title,
             created_at: s.created_at,
             updated_at: s.updated_at,
+            turns_count: s.turns_count,
           }));
         },
         resumeSession: async (id: string) => {

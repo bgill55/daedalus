@@ -34,6 +34,7 @@ export interface SessionMeta {
   title: string;
   created_at: number;
   updated_at: number;
+  turns_count: number;
 }
 
 export interface SqliteSigmaAntiPattern {
@@ -63,28 +64,36 @@ export function initIndexDb(dbPath: string): Database.Database {
       project_hash TEXT NOT NULL,
       title TEXT NOT NULL,
       created_at INTEGER NOT NULL,
-      updated_at INTEGER NOT NULL
+      updated_at INTEGER NOT NULL,
+      turns_count INTEGER NOT NULL DEFAULT 0
     );
     CREATE INDEX IF NOT EXISTS idx_sessions_project_hash ON sessions(project_hash);
   `);
+
+  const cols = (db.prepare(`PRAGMA table_info(sessions)`).all() as { name: string }[]).map(c => c.name);
+  if (!cols.includes('turns_count')) {
+    db.exec(`ALTER TABLE sessions ADD COLUMN turns_count INTEGER NOT NULL DEFAULT 0`);
+  }
+
   return db;
 }
 
 /** Register a session in the global index */
 export function registerSession(db: Database.Database, meta: SessionMeta): void {
   db.prepare(`
-    INSERT INTO sessions (id, project_path, project_hash, title, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO sessions (id, project_path, project_hash, title, created_at, updated_at, turns_count)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       title = excluded.title,
-      updated_at = excluded.updated_at
-  `).run(meta.id, meta.project_path, meta.project_hash, meta.title, meta.created_at, meta.updated_at);
+      updated_at = excluded.updated_at,
+      turns_count = excluded.turns_count
+  `).run(meta.id, meta.project_path, meta.project_hash, meta.title, meta.created_at, meta.updated_at, meta.turns_count);
 }
 
 /** List all sessions for a specific project */
 export function listSessionsForProject(db: Database.Database, projectHash: string): SessionMeta[] {
   return db.prepare(`
-    SELECT id, project_path, project_hash, title, created_at, updated_at
+    SELECT id, project_path, project_hash, title, created_at, updated_at, turns_count
     FROM sessions
     WHERE project_hash = ?
     ORDER BY updated_at DESC
