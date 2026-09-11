@@ -938,6 +938,86 @@ export function parseTextToolCalls(text: string): ToolCall[] {
     }
   }
 
+  if (toolCalls.length === 0) {
+    // Bare or Python-style functional syntax: e.g. read_file(path="foo.ts", offset=1)
+    // or inside code blocks ```python read_file(...) ```.
+    // Frequently emitted by open-source models (qwen, gemma, gpt-oss, ox-alpha) that emit
+    // Python code instead of JSON/XML tool calls.
+    const extractFuncCall = (str: string): ToolCall | null => {
+      const trimmed = str.trim();
+      const m = trimmed.match(/^\[?\s*([a-zA-Z_][a-zA-Z0-9_-]*)\s*\(([\s\S]*)\)\s*\]?$/);
+      if (!m) return null;
+      const name = resolveToolName(m[1]);
+      if (!name) return null;
+      const rawArgs = (m[2] ?? '').trim();
+      const args: Record<string, unknown> = {};
+      if (rawArgs) {
+        const kvRe = /([a-zA-Z_]\w*)\s*=\s*(?:"([\s\S]*?)"|'([\s\S]*?)'|([^\s,)]+))/g;
+        let km;
+        while ((km = kvRe.exec(rawArgs)) !== null) {
+          const k = km[1];
+          const rawVal = km[2] ?? km[3] ?? km[4];
+          if (rawVal === undefined || rawVal === '') continue;
+          let val: unknown = rawVal;
+          if (typeof rawVal === 'string') {
+            if (/^-?\d+$/.test(rawVal)) val = parseInt(rawVal, 10);
+            else if (/^-?\d+\.\d+$/.test(rawVal)) val = parseFloat(rawVal);
+            else if (rawVal === 'true') val = true;
+            else if (rawVal === 'false') val = false;
+            else val = rawVal.replace(/\\n/g, '\n').replace(/\\"/g, '"');
+          }
+          args[k] = val;
+        }
+      }
+      if (name === 'write_file' || name === 'patch') {
+        if (!args.path && args.filepath) {
+          args.path = args.filepath;
+          delete args.filepath;
+        }
+        if (!args.path && args.file_path) {
+          args.path = args.file_path;
+          delete args.file_path;
+        }
+      }
+      if (Object.keys(args).length === 0 && name !== 'terminal' && name !== 'git_status' && name !== 'git_diff') {
+        return null;
+      }
+      return {
+        id: `call_bare_${Date.now()}_${toolCalls.length}`,
+        type: 'function',
+        function: { name, arguments: JSON.stringify(args) },
+      };
+    };
+
+    // 1. Check code blocks
+    const codeBlockRe = /```(?:python|py|tool|json|sh|bash)?\s*\n([\s\S]*?)\n```/g;
+    let cm;
+    while ((cm = codeBlockRe.exec(text)) !== null) {
+      const blockBody = cm[1].trim();
+      const parsed = extractFuncCall(blockBody);
+      if (parsed) {
+        toolCalls.push(parsed);
+      } else {
+        for (const line of blockBody.split('\n')) {
+          const lParsed = extractFuncCall(line.replace(/^[-*]\s+/, ''));
+          if (lParsed) toolCalls.push(lParsed);
+        }
+      }
+    }
+
+    // 2. If still empty, check lines of text
+    if (toolCalls.length === 0) {
+      for (const line of text.split('\n')) {
+        const trimmed = line.trim().replace(/^[-*]\s+/, '');
+        if (!trimmed || trimmed.startsWith('#')) continue;
+        const lParsed = extractFuncCall(trimmed);
+        if (lParsed) {
+          toolCalls.push(lParsed);
+        }
+      }
+    }
+  }
+
   return toolCalls;
 }
 
@@ -947,6 +1027,7 @@ export function stripToolCallMarkup(text: string): string {
     .replace(/<\|?tool_?call\|?>[\s\S]*?<\|?tool_?call\|?>?/gi, '')
     .replace(/<(longcat_)?tool_call>[\s\S]*?<\/(longcat_)?tool_call>/gi, '')
     .replace(/```tool\s*\n[\s\S]*?\n```/gi, '')
+    .replace(/```(?:python|py)?\s*\n\s*(?:read_file|write_file|patch|search_files|terminal|list_files|todo)\([^)]*\)\s*\n```/gi, '')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 }

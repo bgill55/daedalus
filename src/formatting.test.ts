@@ -157,6 +157,38 @@ describe('parseTextToolCalls', () => {
     const args = JSON.parse(calls[0].function.arguments);
     expect(args.command).toContain('ls -la ./ai-scanner/');
   });
+
+  it('parses bare python-style tool calls emitted as text', async () => {
+    const { parseTextToolCalls } = await import('./formatting.js');
+    const raw = `Let's inspect the configuration file:\nread_file(path="config.json")`;
+    const calls = parseTextToolCalls(raw);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].function.name).toBe('read_file');
+    const args = JSON.parse(calls[0].function.arguments);
+    expect(args).toEqual({ path: 'config.json' });
+  });
+
+  it('parses tool calls inside python markdown code blocks', async () => {
+    const { parseTextToolCalls } = await import('./formatting.js');
+    const raw = `I will search for the relevant files:\n\`\`\`python\nsearch_files(path=".", pattern="censor", target="content")\n\`\`\``;
+    const calls = parseTextToolCalls(raw);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].function.name).toBe('search_files');
+    const args = JSON.parse(calls[0].function.arguments);
+    expect(args.path).toBe('.');
+    expect(args.pattern).toBe('censor');
+    expect(args.target).toBe('content');
+  });
+
+  it('safely handles empty parameter values in pseudo-calls', async () => {
+    const { parseTextToolCalls } = await import('./formatting.js');
+    const raw = `read_file(path="config/config.json", offset=, limit=)`;
+    const calls = parseTextToolCalls(raw);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].function.name).toBe('read_file');
+    const args = JSON.parse(calls[0].function.arguments);
+    expect(args.path).toBe('config/config.json');
+  });
 });
 
 describe('writeAssistantChunk (thinking renderer)', () => {

@@ -427,6 +427,40 @@ describe('terminal execute', () => {
     expect(r3.error).toContain("command 'cd'");
   });
 
+  it('does NOT block different operand targets for media/python tools', async () => {
+    const ctx = makeContext();
+    ctx.terminalFailureStreak = new Map<string, number>();
+    const mockProc1 = makeMockProcess();
+    (spawn as any).mockReturnValue(mockProc1);
+
+    // Fail 2 times on clip1.mp4
+    let p1 = execute({ command: 'ffprobe -v error clip1.mp4' }, ctx);
+    mockProc1.emit('close', 1);
+    await p1;
+
+    const mockProc2 = makeMockProcess();
+    (spawn as any).mockReturnValue(mockProc2);
+    let p2 = execute({ command: 'ffprobe -v error clip1.mp4' }, ctx);
+    mockProc2.emit('close', 1);
+    await p2;
+
+    // A 3rd attempt on clip1.mp4 should be blocked by the breaker
+    (spawn as any).mockClear();
+    const rBlocked = await execute({ command: 'ffprobe -v error clip1.mp4' }, ctx);
+    expect(spawn).not.toHaveBeenCalled();
+    expect(rBlocked.error).toContain('[CIRCUIT BREAKER]');
+
+    // Probing a DIFFERENT file clip2.mp4 MUST NOT be blocked by the breaker
+    (spawn as any).mockClear();
+    const mockProc3 = makeMockProcess();
+    (spawn as any).mockReturnValue(mockProc3);
+    const pAllowed = execute({ command: 'ffprobe -v error clip2.mp4' }, ctx);
+    mockProc3.emit('close', 0);
+    const rAllowed = await pAllowed;
+    expect(spawn).toHaveBeenCalledTimes(1);
+    expect(rAllowed.success).toBe(true);
+  });
+
   it('does NOT trip the failure breaker on repeated failing verification commands (build/test/lint)', async () => {
     // Regression: a failing `npm run build` re-run after a fix is the agent's
     // verify loop, not a runaway. The breaker must not block it (this previously

@@ -220,6 +220,10 @@ export function createModelFunctions(deps: ModelDeps) {
     refreshSystemPrompt?.();
     let repetitionAborted = false;
     if (userContent) {
+      toolContext.terminalConsecutiveFails = 0;
+      toolContext.terminalFailureStreak?.clear();
+      toolContext.terminalRepeatStreak?.clear();
+      toolContext.patchFailureTotal = 0;
       if (imageBase64) {
         const url = imageBase64.startsWith('data:') ? imageBase64 : `data:image/png;base64,${imageBase64}`;
         messages.push({

@@ -902,6 +902,7 @@ export function recordWriteSuccess(targetPath: string, context: ToolContext): vo
   // A successful patch to this file clears the session-wide loop counter too, so a
   // later genuine failure on a different file/area starts the budget fresh.
   context.patchFailureTotal = 0;
+  context.terminalConsecutiveFails = 0;
   // Recovery: a real successful write resets the same-edit loop signal.
   context.patchRepeatCount?.delete(targetPath);
   context.patchRepeatKey?.delete(targetPath);

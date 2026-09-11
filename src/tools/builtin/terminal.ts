@@ -268,8 +268,20 @@ function normalizeCommandPrefix(command: string): string {
   const tokens = command.trim().split(/\s+/).filter(Boolean);
   if (tokens.length === 0) return '(empty)';
   // `cd <dir>` collapses to `cd` so any failed cd trips the same breaker;
-  // most other commands keep their first two tokens (e.g. `npm install`).
   if (tokens[0] === 'cd') return 'cd';
+
+  // For CLI tools where flags precede the target (e.g. ffprobe -v error file.mp4, python -u script.py)
+  // capture the tool and the target operand file (last non-flag token) so failures on one file don't lock out unrelated files.
+  const cliWithOperands = ['ffprobe', 'ffmpeg', 'python', 'python3', 'py', 'node'];
+  if (cliWithOperands.includes(tokens[0])) {
+    const nonFlags = tokens.slice(1).filter(t => !t.startsWith('-'));
+    if (nonFlags.length > 0) {
+      const target = nonFlags[nonFlags.length - 1].replace(/["']/g, '');
+      const operand = path.basename(target);
+      if (operand) return `${tokens[0]} ${operand}`;
+    }
+  }
+
   return tokens.slice(0, 2).join(' ');
 }
 
@@ -566,6 +578,9 @@ export async function execute(args: { command: string; timeout?: number; workdir
     // even on Windows. When the active shell is cmd.exe (not bash/git-bash), translate the
     // common Unix-isms to cmd equivalents so headless Windows runs don't die on `ls`.
     execCommand = translateUnixToCmd(execCommand);
+    // Strip unnecessary quotes around whitespace-free drive paths (e.g. "D:\foo\bar.mp4" -> D:\foo\bar.mp4)
+    // which cause cmd.exe /c to pass literal quote characters into C-runtime argv (e.g. ffmpeg/ffprobe Invalid argument).
+    execCommand = execCommand.replace(/"([A-Za-z]:\\[^"'\s&|;<>]+)"/g, '$1');
   }
   if (process.platform === 'win32' && /^rm\s+/i.test(execCommand.trim())) {
     const rmMatch = execCommand.trim().match(/^rm\s+(?:-[a-z]+\s+)?(.+)$/i);
