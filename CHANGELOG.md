@@ -1,3 +1,10 @@
+## [3.81.3](https://github.com/bgill55/daedalus/compare/v3.81.2...v3.81.3) (2026-09-11)
+
+
+### Bug Fixes
+
+* **webui:** polish webui UX, active session indicator, WS backoff, and real metrics ([36d2854](https://github.com/bgill55/daedalus/commit/36d2854944a68943473d8a8bf684868fc5eae963))
+
 ## [3.81.2](https://github.com/bgill55/daedalus/compare/v3.81.1...v3.81.2) (2026-09-11)
 
 
