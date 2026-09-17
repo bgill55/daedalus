@@ -1,3 +1,10 @@
+# [3.82.0](https://github.com/bgill55/daedalus/compare/v3.81.3...v3.82.0) (2026-09-17)
+
+
+### Features
+
+* **core:** harden audit guidelines against overengineering and speculative reviews ([a5483e9](https://github.com/bgill55/daedalus/commit/a5483e91c818e651008a78ebdd1526d1cb7ab8ad))
+
 ## [3.81.3](https://github.com/bgill55/daedalus/compare/v3.81.2...v3.81.3) (2026-09-11)
 
 
