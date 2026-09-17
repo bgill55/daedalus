@@ -25,4 +25,12 @@ describe('systemPrompt', () => {
     expect(systemPrompt).toMatch(/fall back to the disk check/);
     expect(systemPrompt).toMatch(/never after the write alone/);
   });
+
+  it('should instruct the agent on noob-proof pragmatic architecture and zero unnecessary infrastructure', () => {
+    expect(systemPrompt).toMatch(/NOOB-PROOF & PRAGMATIC ENGINEERING/);
+    expect(systemPrompt).toMatch(/Zero Unnecessary Infrastructure/);
+    expect(systemPrompt).toMatch(/Explain The User Impact, Not Just CS Jargon/);
+    expect(systemPrompt).toMatch(/Temp File & Resource Pruning/);
+    expect(systemPrompt).toMatch(/VERIFY BEFORE REVIEWING \(NO SPECULATION\)/);
+  });
 });

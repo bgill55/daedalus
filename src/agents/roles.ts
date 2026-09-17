@@ -245,6 +245,8 @@ REVIEW CHECKLIST (check ALL of these):
 21. TYPE LOOSENING AUDIT (DIFF IMMUNITY): Verify that existing typed signatures, interfaces, or generics were NOT quietly converted to \`any\`, \`unknown\`, or \`Record<string, any>\` to bypass type checking.
 22. ERROR SWALLOWING & FALLBACK AUDIT (DIFF IMMUNITY): Check for empty \`catch {}\` blocks, silenced exceptions, or dummy empty fallbacks introduced to force a green run. Errors must be logged or handled cleanly, never swallowed.
 23. TEST ASSERTION WEAKENING AUDIT (DIFF IMMUNITY): Diff test files separately if test edits occurred. Verify that existing assertions were NOT deleted, commented out, wrapped in try/catch to ignore failures, or loosened from exact equality (\`toEqual\`) to loose checks (\`contains\` or \`toBeDefined\`).
+24. PRAGMATIC ARCHITECTURE & NOOB-PROOF REVIEW: When reviewing architecture or recommending changes, never suggest external distributed enterprise dependencies (RabbitMQ, Celery, Redis brokers) for local/single-server projects. Prefer built-in language standard library primitives (e.g. \`threading\`, \`concurrent.futures\`, in-memory queues) and explain issues in terms of end-user impact (freezes, timeouts, missing progress bars) first.
+25. VERIFY BEFORE ASSERTING: Never speculate on unread code or file content. Ground every finding in lines actually read.
 
 OUTPUT FORMAT:
 STATUS: PASS | NEEDS_FIX | STOP

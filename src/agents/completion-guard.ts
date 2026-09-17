@@ -645,9 +645,10 @@ export function isReviewTask(task: string): boolean {
 
 // A report is a "review deliverable" when it presents the codebase's structure/features in a
 // structured, multi-section form (headers like "Architecture & Tech Stack", "Key Features",
-// "Top Recommendations") and is substantive. Plain prose ("looks good") is NOT a deliverable.
+// "Current Pain Points", "Top Recommendations", "Improvement Recommendations") and is substantive.
+// Plain prose ("looks good") is NOT a deliverable.
 const REVIEW_DELIVERABLE_RE =
-  /\b(architecture|tech stack|high-level (?:project )?review|key features|top recommendations|strengths|weaknesses|project structure|codebase (?:overview|analysis)|what (?:i (?:see|notice)|stands out))\b/i;
+  /\b(architecture|tech stack|high-level (?:project )?review|key features|top recommendations|improvement recommendations|pain points|strengths|weaknesses|project structure|subsystem overview|codebase (?:overview|analysis)|what (?:i (?:see|notice)|stands out))\b/i;
 
 export function isReviewDeliverable(text: string): boolean {
   if (!text) return false;
