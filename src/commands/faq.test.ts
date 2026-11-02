@@ -1,12 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { dirname, resolve } from 'node:path';
 import { faqCommand, faqText } from './faq.js';
 import type { CommandContext } from './types.js';
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const docsFaq = readFileSync(resolve(__dirname, '../../docs/faq.md'), 'utf8');
 
 // Every FAQ question heading from the canonical docs must appear (in terminal-rendered
 // form) in the embedded faqText. This is the drift guard: if docs/faq.md is edited and

@@ -3,7 +3,7 @@ import type { Command, CommandContext } from './types.js';
 import { listSkills, clearSkillsCache } from '../skills/index.js';
 import { listSkillDrafts, acceptSkillDraft, discardSkillDraft } from '../skills/draft.js';
 
-function listActive(ctx: CommandContext): void {
+function listActive(_ctx?: CommandContext): void {
   const skills = listSkills();
   console.log(pc.bold('\n=== Active Skills ==='));
   if (skills.length === 0) {

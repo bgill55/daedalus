@@ -19,8 +19,8 @@ function cleanup() {
   fs.rmSync(path.join(USER_SKILLS, 'my-test-skill'), { recursive: true, force: true });
 }
 
-beforeEach(() => setSkillsBaseDir(ISOLATED));
-afterEach(() => setSkillsBaseDir(null));
+beforeEach(() => { setSkillsBaseDir(ISOLATED); cleanup(); });
+afterEach(() => { cleanup(); setSkillsBaseDir(null); });
 
 describe('skill drafts', () => {
   it('writes a draft that discovery ignores (separate dir)', () => {

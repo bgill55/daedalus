@@ -221,12 +221,21 @@ export function parseEvaluationJson(raw: string, fallbackCriteria: string[] = []
     }
   }
 
-  let parsed: any;
+  interface RawEvaluationPayload {
+    passed?: boolean;
+    score?: number;
+    summary?: string;
+    regressions?: string[];
+    criteriaResults?: Array<{ criterion: string; satisfied: boolean; note?: string }>;
+    repairRecommendations?: string[];
+  }
+
+  let parsed: RawEvaluationPayload | null = null;
   try {
-    parsed = JSON.parse(cleaned);
+    parsed = JSON.parse(cleaned) as RawEvaluationPayload;
   } catch {
     try {
-      parsed = JSON.parse(cleanJson(cleaned));
+      parsed = JSON.parse(cleanJson(cleaned)) as RawEvaluationPayload;
     } catch {
       // If full parse failed, extract boolean passed and score using regex heuristics
       const passedMatch = /"passed"\s*:\s*(true|false)/i.exec(cleaned);

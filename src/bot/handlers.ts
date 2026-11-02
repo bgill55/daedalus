@@ -217,6 +217,7 @@ export function attachListeners(c: Client, router: LocalRouter, token: string) {
           try {
             role = await guild.roles.create({ name: roleName, color: '#06B6D4', mentionable: true });
           } catch {
+            /* ignore */
           }
         }
 
@@ -229,6 +230,7 @@ export function attachListeners(c: Client, router: LocalRouter, token: string) {
               await (member as GuildMember).roles.remove(role);
             }
           } catch {
+            /* ignore */
           }
         }
       }
@@ -308,6 +310,7 @@ export function attachListeners(c: Client, router: LocalRouter, token: string) {
           try {
             await interaction.channel?.delete();
           } catch {
+            /* ignore */
           }
         }, 5000);
         return;
@@ -479,10 +482,11 @@ export function attachListeners(c: Client, router: LocalRouter, token: string) {
     if (interaction.commandName === 'version') {
       let version = '3.78.1';
       try {
-        const { getBotSystemPrompt } = await import('./prompt.js');
         const pkg = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), 'package.json'), 'utf8'));
         if (pkg.version) version = pkg.version;
-      } catch {}
+      } catch {
+        /* ignore */
+      }
 
       await interaction.reply({
         content: `📦 **Daedalus CLI Version:** \`v${version}\`\n` +
@@ -722,6 +726,7 @@ export function attachListeners(c: Client, router: LocalRouter, token: string) {
         const warnMsg = await message.channel.send(`⚠️ <@${message.author.id}>, posting unauthorized Discord invite links is restricted.`);
         setTimeout(() => warnMsg.delete().catch(() => {}), 6000);
       } catch {
+        /* ignore */
       }
       return;
     }
@@ -739,6 +744,7 @@ export function attachListeners(c: Client, router: LocalRouter, token: string) {
           const floodWarn = await message.channel.send(`⛔ <@${message.author.id}>, please slow down your messages.`);
           setTimeout(() => floodWarn.delete().catch(() => {}), 5000);
         } catch {
+          /* ignore */
         }
         return;
       }
@@ -876,6 +882,7 @@ export function attachListeners(c: Client, router: LocalRouter, token: string) {
             return;
           }
         } catch {
+          /* ignore */
         }
         await message.reply(`⚠️ I can see you attached an image, but no vision-capable model is available in your router chain. Add a model with \`supportsVision: true\` or try a different provider.`);
         return;

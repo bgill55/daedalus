@@ -795,7 +795,6 @@ describe('Layer-2 semantic judge (audit hardening)', () => {
     if (from < 1 || from > all.length) return [];
     return all.slice(from - 1, to);
   };
-  const fileExists = (file: string): boolean => file in files || `${file}.test.ts` in files;
 
   it('collects citation claims with their code region', () => {
     const report = 'Config validates keys: src/config/index.ts:2 uses Zod.';

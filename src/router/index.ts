@@ -250,9 +250,10 @@ export class LocalRouter {
           // Scoped proxy: only this HTTP client's fetches go through it. The
           // agent's terminal/sandbox traffic is unaffected. OneCLI gateway /
           // corporate proxy support requires the operator to set it deliberately.
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          /* eslint-disable @typescript-eslint/no-explicit-any */
           clientOpts.fetch = ((input: any, init?: any) =>
             fetch(input, { ...init, dispatcher: new ProxyAgent(proxyUrl) } as any)) as any;
+          /* eslint-enable @typescript-eslint/no-explicit-any */
         } catch {
           console.warn('[WARN] proxy configured but undici ProxyAgent unavailable; requests will bypass the proxy.');
         }

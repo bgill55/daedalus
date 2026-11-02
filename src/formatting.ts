@@ -308,7 +308,7 @@ export function writeAssistantChunk(chunk: string): void {
   // Crucially, while a think block is open we accumulate its body in _thinkBuf and only ever
   // emit it dimmed — never as a white reply. Completed think blocks flush dimmed; the answer
   // after </think> renders white. Literal tags are never printed.
-  let s = _pending + chunk;
+  const s = _pending + chunk;
   _pending = '';
   let i = 0;
   while (i < s.length) {

@@ -9,10 +9,8 @@ import { runDiffWorkflow, type DiffOptions } from './diff-ui.js';
 import {
   findClosestBlock,
   fuzzyWhitespacePatch,
-  computeChangedLines,
   syntaxCheck,
   preflightDependencyCheck,
-  checkTestFileLock,
   guardTestWrite,
   checkWriteWithoutRead,
   checkCircuitBreaker,
@@ -303,9 +301,6 @@ export async function writeFile(args: { path: string; content: string }, context
 
     const hasCRLF = previousContent ? previousContent.includes('\r\n') : false;
     const finalContent = hasCRLF ? args.content.replace(/\r\n/g, '\n').replace(/\n/g, '\r\n') : args.content;
-    const prevNormalized = previousContent ? previousContent.replace(/\r/g, '') : null;
-    const newNormalized = args.content.replace(/\r/g, '');
-    const changedLines = prevNormalized ? computeChangedLines(prevNormalized, newNormalized) : [];
     const checkpointNoteStr = checkpointNote(targetPath, context.projectRoot);
     const testLock = await guardTestWrite(targetPath, context);
     if (testLock) {
@@ -478,7 +473,6 @@ export async function patchFile(args: { path: string; old_string: string; new_st
       if (testLock) {
         return formatError(`${testLock}\n\nPatch NOT written: ${args.path}.`);
       }
-      const changedLines = computeChangedLines(content, finalNormalized);
       const preflight = preflightDependencyCheck(targetPath, context.projectRoot, finalNormalized);
       if (preflight) {
         return formatError(`${preflight}\n\nPatch NOT written: ${args.path}. Resolve the dependency, then retry.`);
@@ -540,7 +534,6 @@ export async function patchFile(args: { path: string; old_string: string; new_st
 
     fs.writeFileSync(targetPath, writeContent, 'utf8');
 
-    const changedLinesInteractive = computeChangedLines(content, writeContent);
     const syntaxError = await syntaxCheck(targetPath, context.projectRoot, writeContent, content);
     if (syntaxError) {
       fs.writeFileSync(targetPath, rawContent, 'utf8');

@@ -22,6 +22,7 @@ import {
   resolveSigmaAntiPattern,
   pruneOldAntiPatterns,
   SqliteSigmaAntiPattern,
+  maintainDatabase,
 } from './sqlite.js';
 import { getProjectHash } from '../project-hash.js';
 import { maskSecrets } from '../security/secret-detector.js';
@@ -325,9 +326,11 @@ export class SigmaMemEngine {
     return [...overlapping, ...nonOverlapping];
   }
 
-  /** Background maintenance: prunes low-sigma memories and decays stale ones */
-  public static consolidateAndPruneMemories(db: Database.Database, threshold = 0.20): number {
+  /** Background maintenance: prunes low-sigma memories, decays stale ones, and optimizes SQLite */
+  public static consolidateAndPruneMemories(db: Database.Database, threshold = 0.20, vacuum = false): number {
     pruneOldAntiPatterns(db, 50);
-    return pruneLowSigmaMemories(db, threshold);
+    const pruned = pruneLowSigmaMemories(db, threshold);
+    maintainDatabase(db, vacuum);
+    return pruned;
   }
 }

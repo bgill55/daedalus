@@ -21,7 +21,7 @@ export async function proposeSkill(
     };
   }
   try {
-    const file = proposeSkillDraft({
+    proposeSkillDraft({
       name,
       description: description || '',
       trigger: trigger || '',

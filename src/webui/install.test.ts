@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from 'vitest';
 describe('PWA Install Prompt Handling & UI Cue (M-8)', () => {
   it('captures beforeinstallprompt event and triggers prompt() on user acceptance', async () => {
     let bannerVisible = false;
-    let capturedEvent: any = null;
+    let capturedEvent: any;
 
     const showInstallBanner = () => { bannerVisible = true; };
     const hideInstallBanner = () => { bannerVisible = false; };

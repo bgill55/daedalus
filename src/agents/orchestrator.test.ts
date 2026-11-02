@@ -141,10 +141,8 @@ describe('Orchestrator', () => {
 
 describe('Orchestrator artifact verification', () => {
   let toolContext: ToolContext;
-  let messages: ChatMessage[];
 
   beforeEach(() => {
-    messages = [];
     toolContext = baseContext();
   });
 
@@ -250,13 +248,9 @@ describe('Orchestrator delegateTask behavior', () => {
 });
 
 describe('Orchestrator repair attempts', () => {
-  let chatMock: ReturnType<typeof vi.fn>;
-  let router: LocalRouter;
   let toolContext: ToolContext;
-  let messages: ChatMessage[];
 
   beforeEach(() => {
-    messages = [];
     toolContext = baseContext();
   });
 
@@ -595,10 +589,8 @@ debugger: fix deprecations
 
 describe('Orchestrator Loop Engineering features', () => {
   let toolContext: ToolContext;
-  let messages: ChatMessage[];
 
   beforeEach(() => {
-    messages = [];
     toolContext = baseContext();
   });
 

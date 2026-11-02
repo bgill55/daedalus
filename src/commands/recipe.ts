@@ -1,6 +1,6 @@
 import pc from 'picocolors';
 import { Command, CommandContext } from './types.js';
-import { listRecipes, loadRecipeFromFile, DaedalusRecipe } from '../recipes/index.js';
+import { listRecipes } from '../recipes/index.js';
 import { buildTodoContext } from '../tools/builtin/todo.js';
 import fs from 'fs';
 import path from 'path';

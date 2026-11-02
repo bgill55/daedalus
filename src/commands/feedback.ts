@@ -97,7 +97,7 @@ export const feedbackCommand: Command = {
     const configPath = path.join(configDir, 'config.json');
 
     // Load Discord webhook from config or env
-    let discordWebhookUrl: string | null = null;
+    let discordWebhookUrl: string | null;
     try {
       if (fs.existsSync(configPath)) {
         const raw = fs.readFileSync(configPath, 'utf8');

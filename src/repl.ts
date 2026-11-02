@@ -24,6 +24,7 @@ import { SigmaMemEngine } from './session/sigma-mem.js';
 import { synthesizeSkillFromTurn } from './skills/auto-synthesis.js';
 import { brand, dim, info, warn, err } from './ui/theme.js';
 import { registerChatHandler, registerHistoryProvider, registerContextFilesProvider, registerSessionProvider, registerModelProvider } from './webui/server.js';
+import type { WebuiChatMessageEvent } from './webui/types.js';
 
 /**
  * Pure reduction for piped (non-TTY) multi-line input. Appends each line to the
@@ -249,8 +250,8 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
           .map(m => ({
             role: m.role,
             text: typeof m.content === 'string' ? m.content : (Array.isArray(m.content) ? m.content.map(c => 'text' in c ? c.text : '').join(' ') : ''),
-            model: (m as any).model || undefined,
-            timestamp: (m as any).timestamp || undefined,
+            model: m.model || undefined,
+            timestamp: m.timestamp || undefined,
           }))
           .filter(m => m.text.trim().length > 0);
       });
@@ -334,10 +335,10 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
             model: activeModel,
             durationMs: Date.now() - startTime,
           });
-        } catch (err: any) {
+        } catch (err: unknown) {
           broadcast({
             type: 'chat_error',
-            content: err.message || 'Turn execution failed',
+            content: err instanceof Error ? err.message : String(err) || 'Turn execution failed',
             timestamp: Date.now(),
           });
         }
@@ -362,7 +363,7 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
         return s.trim();
       }
 
-      const runOneTurn = async (rawInput: string, webOpts?: { isWeb?: boolean; broadcast?: (evt: any) => void; imageBase64?: string }): Promise<void> => {
+      const runOneTurn = async (rawInput: string, webOpts?: { isWeb?: boolean; broadcast?: (evt: WebuiChatMessageEvent) => void; imageBase64?: string }): Promise<void> => {
         const trimmedInput = rawInput.trim();
         if (!trimmedInput && !webOpts?.imageBase64) return;
 
@@ -435,7 +436,7 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
         let capturedCommandOutput = '';
         const originalLog = console.log;
         if (isWebTurn) {
-          console.log = (...args: any[]) => {
+          console.log = (...args: unknown[]) => {
             const line = args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' ');
             capturedCommandOutput += line + '\n';
             originalLog(...args);
@@ -443,7 +444,7 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
         }
 
         const msgCountBefore = messages.length;
-        let wasCommand = false;
+        let wasCommand: boolean;
         try {
           wasCommand = Boolean(await executeCommand(trimmedInput, cmdContext));
         } finally {

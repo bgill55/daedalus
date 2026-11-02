@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, REST, Routes, ApplicationIntegrationType, InteractionContextType } from 'discord.js';
 
-function withUserInstallContexts<T extends { setIntegrationTypes?: (types: any[]) => any; setContexts?: (contexts: any[]) => any }>(builder: T): T {
+function withUserInstallContexts<T extends { setIntegrationTypes?: (types: ApplicationIntegrationType[]) => unknown; setContexts?: (contexts: InteractionContextType[]) => unknown }>(builder: T): T {
   try {
     if (typeof builder.setIntegrationTypes === 'function') {
       builder.setIntegrationTypes([ApplicationIntegrationType.GuildInstall, ApplicationIntegrationType.UserInstall]);

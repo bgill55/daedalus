@@ -204,7 +204,7 @@ describe('SigmaMemEngine (Σ-Mem)', () => {
     });
     SigmaMemEngine.rewardSuccessfulPass(db, [mem.id]);
     SigmaMemEngine.rewardSuccessfulPass(db, [mem.id]);
-    let after = getSigmaMemories(db, 0.0).find((m) => m.id === mem.id)!;
+    const after = getSigmaMemories(db, 0.0).find((m) => m.id === mem.id)!;
     expect(after.verified_pass).toBe(2);
 
     // Re-record (e.g. observed again in a later task) must NOT wipe the history.

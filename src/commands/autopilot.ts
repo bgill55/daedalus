@@ -100,7 +100,7 @@ export async function runAutopilotVerify(cwd: string): Promise<{ ok: boolean; de
     return { ok: true, detail: '' };
   }
   for (const proj of projects) {
-    let scripts: Record<string, string> = {};
+    let scripts: Record<string, string>;
     try {
       scripts = JSON.parse(fs.readFileSync(path.join(proj, 'package.json'), 'utf8')).scripts ?? {};
     } catch { continue; }

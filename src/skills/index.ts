@@ -171,7 +171,7 @@ export type SkillChatFn = (opts: {
   maxTokens?: number;
 }) => Promise<unknown>;
 
-let classifyCache = new Map<string, Skill[]>();
+const classifyCache = new Map<string, Skill[]>();
 let skillChat: SkillChatFn | undefined;
 
 // Called once from the host after the router is ready.
@@ -181,9 +181,16 @@ export function initSkillClassifier(chat: SkillChatFn): void {
 
 function extractChatText(res: unknown): string {
   if (typeof res === 'string') return res;
-  const anyRes = res as any;
-  if (anyRes?.choices?.[0]?.message?.content) return anyRes.choices[0].message.content as string;
-  if (typeof anyRes?.content === 'string') return anyRes.content;
+  if (typeof res === 'object' && res !== null) {
+    const record = res as Record<string, unknown>;
+    if (Array.isArray(record.choices) && record.choices[0] && typeof record.choices[0] === 'object') {
+      const msg = (record.choices[0] as Record<string, unknown>).message;
+      if (msg && typeof msg === 'object' && 'content' in msg && typeof (msg as Record<string, unknown>).content === 'string') {
+        return (msg as Record<string, unknown>).content as string;
+      }
+    }
+    if (typeof record.content === 'string') return record.content;
+  }
   return '';
 }
 

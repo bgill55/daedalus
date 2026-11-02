@@ -20,7 +20,7 @@ let telemetryIntervalMs = 1000;
 
 interface ActiveClientRecord {
   res: ServerResponse;
-  intervalId: NodeJS.Timeout;
+  intervalId?: NodeJS.Timeout;
 }
 
 const activeClientRecords = new Set<ActiveClientRecord>();
@@ -232,7 +232,7 @@ function getProjectTree(dir: string, cwd: string, depth: number, gitignored: Set
   });
 }
 
-function parseJsonBody<T = any>(req: IncomingMessage): Promise<T> {
+function parseJsonBody<T = unknown>(req: IncomingMessage): Promise<T> {
   return new Promise((resolve, reject) => {
     let body = '';
     req.on('data', chunk => {
@@ -296,10 +296,10 @@ function handleChatRequest(req: IncomingMessage, res: ServerResponse): void {
 
       try {
         await activeChatHandler(data, broadcastChatEvent);
-      } catch (err: any) {
+      } catch (err: unknown) {
         broadcastChatEvent({
           type: 'chat_error',
-          content: err.message || 'Chat processing error',
+          content: err instanceof Error ? err.message : String(err) || 'Chat processing error',
           timestamp: Date.now(),
         });
       }
@@ -373,7 +373,6 @@ export function handleRequest(req: IncomingMessage, res: ServerResponse): void {
 
       const clientRecord: ActiveClientRecord = {
         res,
-        intervalId: null as any,
       };
 
       clientRecord.intervalId = setInterval(() => {
@@ -615,9 +614,9 @@ export function handleRequest(req: IncomingMessage, res: ServerResponse): void {
 
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(resp));
-      } catch (err: any) {
+      } catch (err: unknown) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: err?.message || 'Failed to get git status' }));
+        res.end(JSON.stringify({ error: err instanceof Error ? err.message : 'Failed to get git status' }));
       }
       return;
     }
@@ -641,8 +640,9 @@ export function handleRequest(req: IncomingMessage, res: ServerResponse): void {
             stdio: ['ignore', 'pipe', 'pipe'],
             windowsHide: true,
           });
-        } catch (gitErr: any) {
-          diffOutput = (gitErr.stdout || '') + (gitErr.stderr || '');
+        } catch (gitErr: unknown) {
+          const errObj = gitErr as { stdout?: string | Buffer; stderr?: string | Buffer };
+          diffOutput = String(errObj.stdout || '') + String(errObj.stderr || '');
         }
 
         let insertions = 0;
@@ -664,9 +664,9 @@ export function handleRequest(req: IncomingMessage, res: ServerResponse): void {
 
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify(resp));
-      } catch (err: any) {
+      } catch (err: unknown) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ error: err?.message || 'Failed to get git diff' }));
+        res.end(JSON.stringify({ error: err instanceof Error ? err.message : 'Failed to get git diff' }));
       }
       return;
     }
@@ -697,9 +697,9 @@ export function handleRequest(req: IncomingMessage, res: ServerResponse): void {
 
     res.writeHead(404, { 'Content-Type': 'text/plain' });
     res.end('Not Found');
-  } catch (err: any) {
+  } catch (err: unknown) {
     res.writeHead(500, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: err?.message || 'Internal Server Error' }));
+    res.end(JSON.stringify({ error: err instanceof Error ? err.message : 'Internal Server Error' }));
   }
 }
 
@@ -729,8 +729,9 @@ export function startServer(port = PORT, host = HOST): Promise<Server> {
   return new Promise((resolve, reject) => {
     server = createServer(handleRequest);
 
-    const errorHandler = (err: any) => {
-      if (err.code === 'EADDRINUSE') {
+    const errorHandler = (err: unknown) => {
+      const code = (err as { code?: string })?.code;
+      if (code === 'EADDRINUSE') {
         try {
           killProcessOnPort(port);
           setTimeout(() => {

@@ -157,7 +157,7 @@ function stripModeViolation(rawPrompt: string, enhanced: string): string {
   if (!PROPOSAL_INTENT_RE.test(rawPrompt)) return enhanced;
   if (!IMPLEMENT_MANDATE_RE.test(enhanced)) return enhanced;
   return enhanced
-    .replace(IMPLEMENT_MANDATE_RE, (m) => '') // remove the illegal mandate phrases
+    .replace(IMPLEMENT_MANDATE_RE, () => '') // remove the illegal mandate phrases
     .replace(/\n{3,}/g, '\n\n') // collapse the gaps left behind
     .trim();
 }
@@ -221,7 +221,7 @@ export async function enhancePrompt(rawPrompt: string, ctx: CommandContext): Pro
         return stripPipeTables(capRepetition(stripInventedToolRefs(stripModeViolation(rawPrompt, stripped))));
       }
     }
-  } catch (_err) {
+  } catch {
     // Fallback if model call fails
   }
 

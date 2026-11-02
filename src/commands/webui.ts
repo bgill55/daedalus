@@ -44,9 +44,9 @@ export const webuiCommand: Command = {
         await startServer();
         isServerRunning = true;
         console.log(pc.bold(pc.green(`\n[webui] Companion Web UI started at http://127.0.0.1:${PORT}`)));
-      } catch (err: any) {
+      } catch (err: unknown) {
         isServerRunning = false;
-        console.log(pc.red(`\n[webui] Failed to start server: ${err.message}`));
+        console.log(pc.red(`\n[webui] Failed to start server: ${err instanceof Error ? err.message : String(err)}`));
       }
       return;
     }
@@ -60,8 +60,8 @@ export const webuiCommand: Command = {
         await stopServer();
         isServerRunning = false;
         console.log(pc.cyan('\n[webui] Companion Web UI server stopped.'));
-      } catch (err: any) {
-        console.log(pc.red(`\n[webui] Error stopping server: ${err.message}`));
+      } catch (err: unknown) {
+        console.log(pc.red(`\n[webui] Error stopping server: ${err instanceof Error ? err.message : String(err)}`));
       }
       return;
     }
@@ -72,8 +72,8 @@ export const webuiCommand: Command = {
         try {
           await startServer();
           isServerRunning = true;
-        } catch (err: any) {
-          console.log(pc.red(`\n[webui] Failed to start server: ${err.message}`));
+        } catch (err: unknown) {
+          console.log(pc.red(`\n[webui] Failed to start server: ${err instanceof Error ? err.message : String(err)}`));
           return;
         }
       }

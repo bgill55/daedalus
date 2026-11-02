@@ -1,6 +1,6 @@
 import pc from 'picocolors';
 import { loadConfig, saveConfig } from '../config/index.js';
-import { ok, info, warn } from '../ui/theme.js';
+import { ok, info } from '../ui/theme.js';
 import type { Command, CommandContext } from './types.js';
 
 export const gitAutoBranchCommand: Command = {

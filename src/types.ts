@@ -2,6 +2,7 @@
 
 import type Database from 'better-sqlite3';
 import type { ClaimLedger } from './agents/completion-guard.js';
+import type { WebuiChatMessageEvent } from './webui/types.js';
 
 export interface ToolDefinition {
   type: 'function';
@@ -55,6 +56,8 @@ export interface ChatMessage {
   tool_calls?: ToolCall[];
   tool_call_id?: string;
   name?: string;
+  model?: string;
+  timestamp?: number;
 }
 
 export interface BaseToolContext {
@@ -74,7 +77,7 @@ export interface BaseToolContext {
   onToolStart?: (count: number, names: string[]) => void;
   onToolResult?: (name: string, success: boolean, summary?: string) => void;
   onTodoProgress?: (progress: { total: number; completed: number; active?: string }) => void;
-  onBroadcast?: (event: any) => void;
+  onBroadcast?: (event: WebuiChatMessageEvent) => void;
 }
 
 export interface PatchContext {

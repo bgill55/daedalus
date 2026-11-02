@@ -179,6 +179,7 @@ export async function checkPlaceholders(toolContext: ToolContext, historyStartIn
         }
       }
     } catch {
+      /* ignore */
     }
   }
   return placeholders;
@@ -208,6 +209,7 @@ export async function fillPlaceholders(toolContext: ToolContext, historyStartInd
         filled += bracketCount - newBracketCount;
       }
     } catch {
+      /* ignore */
     }
   }
   return filled;

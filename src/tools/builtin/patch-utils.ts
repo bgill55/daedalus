@@ -206,12 +206,6 @@ export function computeChangedLines(oldContent: string, newContent: string): num
   return changed;
 }
 
-interface TscBaseline {
-  diagnostics: readonly ts.Diagnostic[];
-  tsconfigMtime: number;
-}
-
-const tscBaselines = new Map<string, TscBaseline>();
 
 function findTsconfig(filePath: string, projectRoot: string): string | null {
   let dir = path.dirname(filePath);
@@ -304,24 +298,6 @@ function isMissingNodeGlobal(d: ts.Diagnostic): boolean {
 }
 export { isMissingNodeGlobal };
 
-// Transpile a single file in isolation to catch genuine syntax errors. This is
-// independent of the rest of the project, so unrelated type errors or missing
-// dependencies never cause a false "syntax error introduced by patch".
-function singleFileSyntaxError(filePath: string): string | null {
-  try {
-    const code = fs.readFileSync(filePath, 'utf8');
-    const result = ts.transpileModule(code, {
-      fileName: filePath,
-      compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 },
-      reportDiagnostics: true,
-    });
-    const syntax = (result.diagnostics ?? []).filter(d => d.category === ts.DiagnosticCategory.Error);
-    if (syntax.length === 0) return null;
-    return formatDiagnostic(syntax[0]);
-  } catch {
-    return null;
-  }
-}
 
 function diagKey(d: ts.Diagnostic): string {
   return `${d.code}:${diagLine(d)}`;
@@ -395,7 +371,7 @@ export async function guardTestWrite(filePath: string, context: ToolContext): Pr
   const block = checkTestFileLock(filePath, context);
   if (!block) return null;
   if (context.askLine && !context.allowTestEdits) {
-    let ans = '';
+    let ans: string;
     try {
       ans = await context.askLine(
         `[TEST SUITE LOCK] Writing to test file "${path.basename(filePath)}" modifies the test suite. ` +
@@ -534,7 +510,7 @@ export async function syntaxCheck(
   projectRoot: string,
   proposedContent?: string,
   originalContent?: string,
-  modifiedLines?: number[],
+  _modifiedLines?: number[],
 ): Promise<string | null> {
   const ext = path.extname(filePath).toLowerCase();
   const targetAbs = path.resolve(filePath);

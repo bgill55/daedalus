@@ -70,7 +70,7 @@ export const huntCommand: Command = {
     console.log(pc.cyan(`\n[HUNT] Starting autonomous bug hunt...`));
     process.env.DAEDALUS_AUTO_APPROVE = 'true';
 
-    let orchestratorResult = '';
+    let orchestratorResult: string;
     try {
       const { Orchestrator } = await import('../agents/orchestrator.js');
       const orchestrator = new Orchestrator(ctx.router, ctx.messages, ctx.toolContext, ctx.sessionManager, ctx.config?.modelOverride);

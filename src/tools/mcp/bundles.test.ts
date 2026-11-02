@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { listMcpBundles, getMcpBundle, MCP_BUNDLES } from './bundles.js';
+import { listMcpBundles, getMcpBundle } from './bundles.js';
 
 describe('MCP Bundles', () => {
   it('lists available preset bundles', () => {

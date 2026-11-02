@@ -2,7 +2,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execSafe } from '../utils/spawn.js';
-import { commandsList } from '../commands.js';
 
 function getRecentChangelogInfo(): { version: string; recentNotes: string } {
   let version = '3.78.1';
@@ -26,6 +25,7 @@ function getRecentChangelogInfo(): { version: string; recentNotes: string } {
         }
       }
     } catch {
+      /* ignore */
     }
   }
 
@@ -51,6 +51,7 @@ function getRecentChangelogInfo(): { version: string; recentNotes: string } {
         if (recentNotes) break;
       }
     } catch {
+      /* ignore */
     }
   }
 

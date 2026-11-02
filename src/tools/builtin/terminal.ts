@@ -10,7 +10,7 @@ import { loadConfig } from '../../config/index.js';
 import { guardGitCommand } from '../git-guard.js';
 import { guardCommitSecrets } from '../git-guard.js';
 import { createGitCheckpoint } from '../git-checkpoint.js';
-import { isTestFile, checkTestFileLock } from './patch-utils.js';
+import { isTestFile } from './patch-utils.js';
 
 const SENSITIVE_ENV_KEYS = new Set([
   'AWS_SECRET_ACCESS_KEY', 'AWS_ACCESS_KEY_ID', 'AWS_SESSION_TOKEN',

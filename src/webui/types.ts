@@ -13,14 +13,14 @@ export interface IRequest {
   /** URL path, e.g., '/api/status' */
   path: string;
   /** Optional JSON payload for POST/PUT */
-  body?: any;
+  body?: unknown;
 }
 
 export interface IResponse {
   /** HTTP status code */
   status: number;
   /** JSON payload returned to the client */
-  data: any;
+  data: unknown;
 }
 
 export interface WebuiChatMessageEvent {

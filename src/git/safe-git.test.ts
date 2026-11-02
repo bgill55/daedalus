@@ -5,7 +5,6 @@ import { tmpdir } from 'node:os';
 import { execSync } from 'node:child_process';
 import {
   safeGitResetHard,
-  safeGitClean,
   safeBranchDelete,
   safeBranchSwitch,
   allowDestroyFromArgs,

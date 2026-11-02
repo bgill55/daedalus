@@ -7,7 +7,7 @@ import readline from 'readline';
 import os from 'os';
 import pc from 'picocolors';
 import { execSafe } from './utils/spawn.js';
-import { brand, dim, info, ok, warn, err } from './ui/theme.js';
+import { brand, dim, info, ok, warn } from './ui/theme.js';
 
 import { setRouterClient } from './tools/builtin/delegation.js';
 import { setRouteRouterClient, looksMultiPhase } from './tools/builtin/route.js';

@@ -27,7 +27,7 @@
 
 ## Testing
 - Framework: vitest
-- Run: `npm test` (vitest run, 1631+ tests across 119 files)
+- Run: `npm test` (vitest run, 1792+ tests across 134 files)
 - Tests co-located as `*.test.ts` under `src/`
 
 ## Lint

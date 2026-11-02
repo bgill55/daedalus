@@ -11,8 +11,8 @@ export interface DaedalusRecipe {
   filePath: string;
 }
 
-export function parseSimpleYaml(content: string): Record<string, any> {
-  const result: Record<string, any> = {};
+export function parseSimpleYaml(content: string): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
   const lines = content.split('\n');
   let currentKey = '';
   let inMultiline = false;
@@ -62,7 +62,7 @@ export function loadRecipeFromFile(filePath: string): DaedalusRecipe | null {
   if (!fs.existsSync(filePath)) return null;
   try {
     const raw = fs.readFileSync(filePath, 'utf8');
-    let parsed: Record<string, any>;
+    let parsed: Record<string, unknown>;
     if (filePath.endsWith('.json')) {
       parsed = JSON.parse(raw);
     } else {

@@ -404,7 +404,7 @@ describe('terminal execute', () => {
     (spawn as any).mockReturnValue(mockProc);
 
     // First failure: streak -> 1, command still runs.
-    let p1 = execute({ command: 'cd non_existent_dir' }, ctx);
+    const p1 = execute({ command: 'cd non_existent_dir' }, ctx);
     mockProc.emit('close', 1);
     const r1 = await p1;
     expect(r1.success).toBe(false);
@@ -413,7 +413,7 @@ describe('terminal execute', () => {
     // Second failure: streak -> 2.
     const mockProc2 = makeMockProcess();
     (spawn as any).mockReturnValue(mockProc2);
-    let p2 = execute({ command: 'cd non_existent_dir' }, ctx);
+    const p2 = execute({ command: 'cd non_existent_dir' }, ctx);
     mockProc2.emit('close', 1);
     const r2 = await p2;
     expect(r2.success).toBe(false);
@@ -434,13 +434,13 @@ describe('terminal execute', () => {
     (spawn as any).mockReturnValue(mockProc1);
 
     // Fail 2 times on clip1.mp4
-    let p1 = execute({ command: 'ffprobe -v error clip1.mp4' }, ctx);
+    const p1 = execute({ command: 'ffprobe -v error clip1.mp4' }, ctx);
     mockProc1.emit('close', 1);
     await p1;
 
     const mockProc2 = makeMockProcess();
     (spawn as any).mockReturnValue(mockProc2);
-    let p2 = execute({ command: 'ffprobe -v error clip1.mp4' }, ctx);
+    const p2 = execute({ command: 'ffprobe -v error clip1.mp4' }, ctx);
     mockProc2.emit('close', 1);
     await p2;
 
@@ -500,7 +500,7 @@ describe('terminal execute', () => {
     };
     for (let i = 0; i < 5; i++) {
       (spawn as any).mockClear();
-      const r = await runFail(cmds[i]);
+      await runFail(cmds[i]);
       expect(spawn).toHaveBeenCalledTimes(1); // first 5 still run
     }
     // 6th attempt: breaker trips BEFORE spawning.
@@ -567,7 +567,7 @@ describe('terminal execute', () => {
       (spawn as any).mockClear();
     };
     for (let i = 0; i < 4; i++) {
-      const r = await runFailingTest();
+      await runFailingTest();
       expect(spawn).toHaveBeenCalledTimes(1);
       await runPatch();
     }

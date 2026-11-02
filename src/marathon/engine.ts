@@ -301,6 +301,16 @@ export class MarathonEngine {
           console.log(pc.yellow(`\n[PR] Could not create PR automatically: ${msg}`));
         }
 
+        try {
+          const compDb = SigmaMemEngine.resolveProjectMemDb(undefined, this.projectRoot);
+          if (compDb) {
+            SigmaMemEngine.consolidateAndPruneMemories(compDb, 0.20, true);
+            compDb.close();
+          }
+        } catch {
+          // best-effort memory maintenance
+        }
+
         return { done: true, run };
       }
     } else {

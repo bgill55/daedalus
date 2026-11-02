@@ -130,6 +130,13 @@ Reliability scoring handles positive reinforcement, but complex development task
   ```
 - **Automatic Solution Pairing**: When an edit subsequently passes verification on a file that previously suffered an anti-pattern, $\Sigma$-Mem annotates the record with the proven `suggested_alternative`, converting past mistakes into permanent solution recipes.
 
+### 7. Automated Compaction & SQLite Optimization
+
+When pruning decayed memories or completing autonomous development milestones (such as marathon runs), $\Sigma$-Mem triggers automatic SQLite maintenance (`maintainDatabase`):
+- Truncates write-ahead logs via `PRAGMA wal_checkpoint(TRUNCATE)`
+- Compacts storage and analyzes index statistics via `VACUUM` and `PRAGMA optimize`
+- Ensures long-running sessions maintain sub-millisecond retrieval speeds without manual database maintenance
+
 ---
 
 ##  CLI Commands & Usage

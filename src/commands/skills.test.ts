@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import os from 'os';
 import fs from 'fs';
 import path from 'path';
-import { writeSkillDraft, acceptSkillDraft, discardSkillDraft, listSkillDrafts, setSkillsBaseDir } from '../skills/draft.js';
+import { writeSkillDraft, listSkillDrafts, setSkillsBaseDir } from '../skills/draft.js';
 import { skillsCommand } from './skills.js';
 import type { CommandContext } from './types.js';
 
@@ -18,7 +18,7 @@ function cleanup() {
 beforeEach(() => { setSkillsBaseDir(ISOLATED); cleanup(); });
 afterEach(() => { cleanup(); setSkillsBaseDir(null); });
 
-function makeCtx(args: string): CommandContext {
+function makeCtx(_args?: string): CommandContext {
   return { config: {} as any, configDir: '', cliTempDir: '' } as unknown as CommandContext;
 }
 

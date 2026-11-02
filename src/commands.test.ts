@@ -596,7 +596,7 @@ describe('/autopilot command', () => {
   });
 
   it('creates branch, runs orchestrator, and commits on success', async () => {
-    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'log').mockImplementation(() => {});
 
     await executeCommand('/autopilot add a test feature', mockContext);
 
@@ -611,7 +611,7 @@ describe('/autopilot command', () => {
   });
 
   it('rolls back to main branch and deletes feature branch on orchestrator failure', async () => {
-    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'log').mockImplementation(() => {});
     mockOrchestratorRun.mockResolvedValue('Orchestration failed: something broke');
 
     await executeCommand('/autopilot rollback test', mockContext);
@@ -624,7 +624,7 @@ describe('/autopilot command', () => {
   });
 
   it('rolls back on partial verification failure', async () => {
-    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'log').mockImplementation(() => {});
     mockOrchestratorRun.mockResolvedValue('## Orchestration Hit Verification Failures: fix bug\n\n[ERROR] **coder**: something failed');
 
     await executeCommand('/autopilot fix a bug', mockContext);

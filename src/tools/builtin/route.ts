@@ -34,7 +34,7 @@ import { VALID_AGENT_ROLES } from './handoff.js';
 interface LocalRouter {
   chat: {
     completions: {
-      create(params: ChatRequest): Promise<any>;
+      create(params: ChatRequest): Promise<{ choices: Array<{ message: ChatMessage }> }>;
     };
   };
 }
@@ -58,7 +58,7 @@ interface RouteArgs {
 }
 
 async function runOneSubTask(task: SubTask, context: ToolContext): Promise<string> {
-  const role = VALID_AGENT_ROLES.includes(task.role as any) ? task.role : 'coder';
+  const role = (VALID_AGENT_ROLES as readonly string[]).includes(task.role) ? task.role : 'coder';
   const agentRole = getAgentRole(role);
   const currentDateStr = new Date().toLocaleString();
   const dynamicSystemPrompt = `${agentRole.systemPrompt}\n\n## CURRENT TIME\nThe current date and local time is: ${currentDateStr}.\n`;
