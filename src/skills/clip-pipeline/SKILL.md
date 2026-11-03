@@ -39,11 +39,15 @@ The brief is a markdown file with the following exact format:
 
 ## Step 2: Health Check & Reset
 
-Studio Base URL: `http://localhost:5000`
+Studio Base URL: `http://127.0.0.1:5000`
+
+> [!NOTE]
+> On Windows environments, Windows `cmd.exe` misinterprets single-quoted multi-line `curl -d '{...}'` JSON payloads.
+> Always use `python -c` (with standard library `urllib.request`) or a Node.js one-liner to dispatch requests cleanly without escaping failures.
 
 1. **Verify Studio is up:**
    ```bash
-   curl -s http://localhost:5000/api/clipper/status
+   python -c "import urllib.request; print(urllib.request.urlopen('http://127.0.0.1:5000/api/clipper/status').read().decode())"
    ```
    If connection is refused: report that YouTube Factory web server (`app.py`) is offline on port 5000 and stop.
 
@@ -51,7 +55,7 @@ Studio Base URL: `http://localhost:5000`
    If `status == "running"`, report that another job is active and stop.
    If previous job was completed or errored, clear state:
    ```bash
-   curl -s -X POST http://localhost:5000/api/clipper/reset
+   python -c "import urllib.request; req = urllib.request.Request('http://127.0.0.1:5000/api/clipper/reset', data=b'{}', headers={'Content-Type': 'application/json'}); print(urllib.request.urlopen(req).read().decode())"
    ```
 
 ---
@@ -61,22 +65,11 @@ Studio Base URL: `http://localhost:5000`
 Pre-flight performs audio extraction, Whisper transcription, and face framing tracking.
 
 ```bash
-curl -s -X POST http://localhost:5000/api/clipper/preflight \
-  -H "Content-Type: application/json" \
-  -d '{
-    "url": "<URL>",
-    "start": "<KEEP_START>",
-    "end": "<KEEP_END>",
-    "name": "<CLIP_NAME>",
-    "title": "<HEADLINE>",
-    "cut_segments": [["<CUT_START>", "<CUT_END>"]],
-    "style": "facecam",
-    "censor": true
-  }'
+python -c "import urllib.request, json; data = json.dumps({'url': '<URL>', 'start': '<KEEP_START>', 'end': '<KEEP_END>', 'name': '<CLIP_NAME>', 'title': '<HEADLINE>', 'cut_segments': <CUT_SEGMENTS>, 'style': 'facecam', 'censor': True}).encode('utf-8'); req = urllib.request.Request('http://127.0.0.1:5000/api/clipper/preflight', data=data, headers={'Content-Type': 'application/json'}); print(urllib.request.urlopen(req).read().decode())"
 ```
 
-*Note: If no cuts exist, pass `"cut_segments": null`.*
-Wait for the HTTP response (Pre-flight runs synchronously and returns the preflight report JSON). If it returns an error `{"error": ...}`, report and stop.
+*Note: Replace `<CUT_SEGMENTS>` with either `[['00:17:00', '00:17:10']]` or `None`.*
+Wait for the response (Pre-flight runs synchronously and returns the preflight report JSON). If it returns an error `{"error": ...}`, report and stop.
 
 ---
 
@@ -85,23 +78,7 @@ Wait for the HTTP response (Pre-flight runs synchronously and returns the prefli
 Initiate the asynchronous render worker:
 
 ```bash
-curl -s -X POST http://localhost:5000/api/clipper/render \
-  -H "Content-Type: application/json" \
-  -d '{
-    "url": "<URL>",
-    "start": "<KEEP_START>",
-    "end": "<KEEP_END>",
-    "name": "<CLIP_NAME>",
-    "title": "<HEADLINE>",
-    "sub_title": "<GUEST_LINE>",
-    "cut_segments": [["<CUT_START>", "<CUT_END>"]],
-    "bgm_prompt": "<BGM_PROMPT>",
-    "style": "facecam",
-    "censor": true,
-    "title_bar": true,
-    "enable_cta": true,
-    "enable_transitions": true
-  }'
+python -c "import urllib.request, json; data = json.dumps({'url': '<URL>', 'start': '<KEEP_START>', 'end': '<KEEP_END>', 'name': '<CLIP_NAME>', 'title': '<HEADLINE>', 'sub_title': '<GUEST_LINE>', 'cut_segments': <CUT_SEGMENTS>, 'bgm_prompt': '<BGM_PROMPT>', 'style': 'facecam', 'censor': True, 'title_bar': True, 'enable_cta': True, 'enable_transitions': True}).encode('utf-8'); req = urllib.request.Request('http://127.0.0.1:5000/api/clipper/render', data=data, headers={'Content-Type': 'application/json'}); print(urllib.request.urlopen(req).read().decode())"
 ```
 
 Expected response: `{"status": "started", "clip_name": "<CLIP_NAME>"}`.
@@ -112,7 +89,7 @@ Expected response: `{"status": "started", "clip_name": "<CLIP_NAME>"}`.
 
 Poll every 20-30 seconds:
 ```bash
-curl -s http://localhost:5000/api/clipper/status
+python -c "import urllib.request; print(urllib.request.urlopen('http://127.0.0.1:5000/api/clipper/status').read().decode())"
 ```
 
 Response structure:
