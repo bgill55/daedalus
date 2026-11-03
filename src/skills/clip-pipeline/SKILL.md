@@ -27,13 +27,19 @@ The brief is a markdown file with the following exact format:
 | **Middle cuts** | `Cut out: HH:MM:SS -> HH:MM:SS` (repeatable) | `Cut out: 00:17:00 -> 00:17:10` |
 | **Headline** | `Headline: <text>` | `Headline: THE $60 CALL THAT BOOKED AN INTERNET PARIAH` |
 | **Guest line** | `Guest: <text>` | `Guest: JULIAN DOREY x MIKE CLUM // BEHIND THE SCENES` |
-| **BGM prompt** | `BGM: <prompt>` | `BGM: dark investigative synth pulse, 80 bpm` |
+| **BGM prompt** | `BGM: <prompt>` | `BGM: 105 bpm aggressive pulse. A notch above Part 1's energy.` |
 | **Pinned comment** | `Pinned: <text>` | `Pinned: Would you pay $60 for that call?` |
 | **Captions** | Lines starting with `IG:`, `TikTok:`, `YT:` | (Copy verbatim, do not reword) |
+| **Punch words** | Quoted terms in `Captions:` description | `"POUNDING THE TABLE" "POWER GRID TAKEOUTS"` |
 
 ### Parsing Rules:
 1. **Slug generation:** Generate `clip_name` from Headline: lowercase alphanumeric with underscores, prefixed with `clip_` (e.g. `clip_the_60_dollar_call`). Max 30 chars.
 2. **Timestamps:** Extract `start` and `end` from `Keep`. If `Cut out:` lines exist, parse them into a list of pairs: `[["00:17:00", "00:17:10"]]`.
+3. **BGM trigger:** If `BGM:` prompt is present, always specify `"bgm_path": "stable_audio_3"` in the render payload so YouTube Factory uses Stable Audio 3 rather than the library fallback track.
+4. **Keyword captions & Subtitle Punch Words:**
+   - Extract uppercase punch terms enclosed in double quotes from the `Captions:` directive (e.g. `["POUNDING", "POWER GRID", "NUMBER ONE CONCERN"]`).
+   - Set `"cut_style": "evidence_cut"` and pass `"keyword_captions"` in the render payload to trigger animated payoff keyword cards.
+   - Inject color tags (`{\c&H2020FF&}` for Crimson Red or `{\c&H00D7FF&}` for Yellow) into the matching tokens in `subtitles.ass` during the pre-flight / edit stage so on-screen karaoke punch words pop with custom color.
 
 ---
 
@@ -75,11 +81,13 @@ Wait for the response (Pre-flight runs synchronously and returns the preflight r
 
 ## Step 4: Trigger Render
 
-Initiate the asynchronous render worker:
+Initiate the asynchronous render worker with Stable Audio 3 generation and keyword captions enabled:
 
 ```bash
-python -c "import urllib.request, json; data = json.dumps({'url': '<URL>', 'start': '<KEEP_START>', 'end': '<KEEP_END>', 'name': '<CLIP_NAME>', 'title': '<HEADLINE>', 'sub_title': '<GUEST_LINE>', 'cut_segments': <CUT_SEGMENTS>, 'bgm_prompt': '<BGM_PROMPT>', 'style': 'facecam', 'censor': True, 'title_bar': True, 'enable_cta': True, 'enable_transitions': True}).encode('utf-8'); req = urllib.request.Request('http://127.0.0.1:5000/api/clipper/render', data=data, headers={'Content-Type': 'application/json'}); print(urllib.request.urlopen(req).read().decode())"
+python -c "import urllib.request, json; data = json.dumps({'url': '<URL>', 'start': '<KEEP_START>', 'end': '<KEEP_END>', 'name': '<CLIP_NAME>', 'title': '<HEADLINE>', 'sub_title': '<GUEST_LINE>', 'cut_segments': <CUT_SEGMENTS>, 'bgm_path': 'stable_audio_3', 'bgm_prompt': '<BGM_PROMPT>', 'cut_style': 'evidence_cut', 'keyword_captions': <KEYWORD_CAPTIONS>, 'style': 'facecam', 'censor': True, 'title_bar': True, 'enable_cta': True, 'enable_transitions': True}).encode('utf-8'); req = urllib.request.Request('http://127.0.0.1:5000/api/clipper/render', data=data, headers={'Content-Type': 'application/json'}); print(urllib.request.urlopen(req).read().decode())"
 ```
+
+*Note: If no custom `bgm_prompt` is in the brief, omit `bgm_path` to use the default library background music. Replace `<KEYWORD_CAPTIONS>` with the list of extracted punch terms (e.g. `['POUNDING', 'POWER GRID', 'NUMBER ONE CONCERN']`) or `None`.*
 
 Expected response: `{"status": "started", "clip_name": "<CLIP_NAME>"}`.
 
