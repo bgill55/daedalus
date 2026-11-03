@@ -1,3 +1,20 @@
+# [3.83.0](https://github.com/bgill55/daedalus/compare/v3.82.0...v3.83.0) (2026-11-03)
+
+
+### Bug Fixes
+
+* **ci:** set release node-version to 22 for npm oidc publishing ([aaf3685](https://github.com/bgill55/daedalus/commit/aaf3685689227aa9f56f503d416d552c0cdadb8f))
+* **ci:** upgrade npm to latest for oidc trusted publishing support ([3d0e1fd](https://github.com/bgill55/daedalus/commit/3d0e1fda807559988eb31d7aa503d0e07080f27a))
+* **release:** delegate npm publish to exec to preserve oidc ambient credentials ([8c703b3](https://github.com/bgill55/daedalus/commit/8c703b36e32f28b0e2c6e9be8cc106c084e8b039))
+* **release:** restore semantic-release npm plugin with token and oidc auth ([0222bc2](https://github.com/bgill55/daedalus/commit/0222bc2f4014c59ffc7b8f432eb1561351303d6e))
+
+
+### Features
+
+* add Chronos session replay to WebUI and one-line installers ([f8a10bd](https://github.com/bgill55/daedalus/commit/f8a10bdbc6a09cb27794087365e441f8472c9a67))
+* **ci:** switch release workflow to pure npm trusted publishing ([5227b9c](https://github.com/bgill55/daedalus/commit/5227b9cc024251ca2c6c8dd11f8697ad9733d2f2))
+* **install:** add sudo fallback check for containerized environments ([2c69f8a](https://github.com/bgill55/daedalus/commit/2c69f8a568c3c0bfd95c93633b8d79e1d8174931))
+
 # [3.84.0](https://github.com/bgill55/daedalus/compare/v3.83.0...v3.84.0) (2026-11-03)
 
 
