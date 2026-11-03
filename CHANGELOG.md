@@ -1,3 +1,10 @@
+# [3.84.0](https://github.com/bgill55/daedalus/compare/v3.83.0...v3.84.0) (2026-11-03)
+
+
+### Features
+
+* **install:** add sudo fallback check for containerized environments ([2c69f8a](https://github.com/bgill55/daedalus/commit/2c69f8a568c3c0bfd95c93633b8d79e1d8174931))
+
 # [3.83.0](https://github.com/bgill55/daedalus/compare/v3.82.0...v3.83.0) (2026-11-03)
 
 
