@@ -3,6 +3,14 @@
 
 ### Features
 
+* **ci:** switch release workflow to pure npm trusted publishing ([5227b9c](https://github.com/bgill55/daedalus/commit/5227b9cc024251ca2c6c8dd11f8697ad9733d2f2))
+* **install:** add sudo fallback check for containerized environments ([2c69f8a](https://github.com/bgill55/daedalus/commit/2c69f8a568c3c0bfd95c93633b8d79e1d8174931))
+
+# [3.84.0](https://github.com/bgill55/daedalus/compare/v3.83.0...v3.84.0) (2026-11-03)
+
+
+### Features
+
 * **install:** add sudo fallback check for containerized environments ([2c69f8a](https://github.com/bgill55/daedalus/commit/2c69f8a568c3c0bfd95c93633b8d79e1d8174931))
 
 # [3.84.0](https://github.com/bgill55/daedalus/compare/v3.83.0...v3.84.0) (2026-11-03)
