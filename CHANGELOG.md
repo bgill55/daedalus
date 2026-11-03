@@ -1,3 +1,10 @@
+# [3.84.0](https://github.com/bgill55/daedalus/compare/v3.83.0...v3.84.0) (2026-11-03)
+
+
+### Features
+
+* **skills:** add YouTube Factory clip-pipeline production skill ([3b586f5](https://github.com/bgill55/daedalus/commit/3b586f56758fbcd918e1a8132dbbaa4ab6c27b9f))
+
 # [3.83.0](https://github.com/bgill55/daedalus/compare/v3.82.0...v3.83.0) (2026-11-03)
 
 
