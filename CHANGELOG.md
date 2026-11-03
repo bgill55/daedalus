@@ -1,3 +1,10 @@
+# [3.83.0](https://github.com/bgill55/daedalus/compare/v3.82.0...v3.83.0) (2026-11-03)
+
+
+### Features
+
+* add Chronos session replay to WebUI and one-line installers ([f8a10bd](https://github.com/bgill55/daedalus/commit/f8a10bdbc6a09cb27794087365e441f8472c9a67))
+
 # [3.82.0](https://github.com/bgill55/daedalus/compare/v3.81.3...v3.82.0) (2026-09-17)
 
 
