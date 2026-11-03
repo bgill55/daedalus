@@ -1,3 +1,10 @@
+## [3.84.1](https://github.com/bgill55/daedalus/compare/v3.84.0...v3.84.1) (2026-11-03)
+
+
+### Bug Fixes
+
+* **skills:** use python urllib for reliable windows http calls in clip-pipeline ([5fa65e3](https://github.com/bgill55/daedalus/commit/5fa65e37b2afb9e6b380abe27298baa4f680cdac))
+
 # [3.84.0](https://github.com/bgill55/daedalus/compare/v3.83.0...v3.84.0) (2026-11-03)
 
 
