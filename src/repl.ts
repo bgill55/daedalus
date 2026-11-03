@@ -252,8 +252,9 @@ export function createRepl(deps: ReplDeps): () => Promise<void> {
             text: typeof m.content === 'string' ? m.content : (Array.isArray(m.content) ? m.content.map(c => 'text' in c ? c.text : '').join(' ') : ''),
             model: m.model || undefined,
             timestamp: m.timestamp || undefined,
+            tools: m.tool_calls ? m.tool_calls.map(tc => tc.function.name) : undefined,
           }))
-          .filter(m => m.text.trim().length > 0);
+          .filter(m => m.text.trim().length > 0 || (m.tools && m.tools.length > 0));
       });
 
       registerContextFilesProvider({

@@ -37,6 +37,23 @@ The easiest way to install Daedalus is globally using npm:
 npm install -g daedalus-cli
 ```
 
+### One-Line Installers
+
+**macOS & Linux (`curl`):**
+```bash
+curl -fsSL https://raw.githubusercontent.com/bgill55/daedalus/main/install.sh | bash
+```
+
+**Windows (`PowerShell`):**
+```powershell
+irm https://raw.githubusercontent.com/bgill55/daedalus/main/install.ps1 | iex
+```
+
+**Homebrew (`macOS / Linux`):**
+```bash
+brew install --formula https://raw.githubusercontent.com/bgill55/daedalus/main/packaging/homebrew/daedalus.rb
+```
+
 Once installed, you can start the assistant by typing:
 
 ```bash

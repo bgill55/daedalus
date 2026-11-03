@@ -72,3 +72,14 @@ export interface GitDiffResponse {
   insertions: number;
   deletions: number;
 }
+
+export interface ReplayStep {
+  index: number;
+  role: string;
+  agent: string;
+  agentRole: string;
+  text: string;
+  tools: string[];
+  model?: string;
+  timestamp?: number;
+}

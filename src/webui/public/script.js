@@ -1128,6 +1128,29 @@ async function loadSessions(force = false) {
         } catch {}
       });
       
+      const replayBtn = document.createElement('button');
+      replayBtn.className = 'session-btn';
+      replayBtn.textContent = 'REPLAY';
+      replayBtn.title = 'Open session in Chronos Time Machine';
+      replayBtn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        try {
+          if (sess.id !== activeId) {
+            await fetch('/api/sessions/resume', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ sessionId: sess.id }),
+            });
+          }
+          historyLoaded = false;
+          await loadChatHistory();
+          if (typeof openChronosReplay === 'function') {
+            await openChronosReplay();
+          }
+        } catch {}
+      });
+
+      actions.appendChild(replayBtn);
       actions.appendChild(resumeBtn);
       actions.appendChild(delBtn);
       
@@ -1963,5 +1986,211 @@ window.addEventListener('appinstalled', function () {
   deferredPrompt = null;
   hideInstallBanner();
 });
+
+// ─────────────────────────────────────────────────────────────
+// Chronos Time Machine — Autonomous Session Replay & Scrubber
+// ─────────────────────────────────────────────────────────────
+const replayToggleBtn = document.getElementById('replay-toggle-btn');
+const chronosBar = document.getElementById('chronos-replay-bar');
+const replayPrevBtn = document.getElementById('replay-prev-btn');
+const replayPlayBtn = document.getElementById('replay-play-btn');
+const replayNextBtn = document.getElementById('replay-next-btn');
+const replaySpeedBtn = document.getElementById('replay-speed-btn');
+const replayScrubber = document.getElementById('replay-scrubber');
+const replayStepLabel = document.getElementById('replay-step-label');
+const replayAgentBadge = document.getElementById('replay-agent-badge');
+const replayCloseBtn = document.getElementById('replay-close-btn');
+
+let replaySteps = [];
+let replayCurrentIndex = 0;
+let replayTimer = null;
+const replaySpeeds = [1, 2, 4];
+let replaySpeedIdx = 0;
+
+function stopReplayPlayback() {
+  if (replayTimer) {
+    clearInterval(replayTimer);
+    replayTimer = null;
+  }
+  if (replayPlayBtn) {
+    replayPlayBtn.textContent = '▶';
+  }
+}
+
+function renderReplayUpTo(stepIndex) {
+  if (!chatMessages || replaySteps.length === 0) return;
+  const clamped = Math.max(0, Math.min(stepIndex, replaySteps.length - 1));
+  replayCurrentIndex = clamped;
+
+  if (replayScrubber) {
+    replayScrubber.max = String(Math.max(0, replaySteps.length - 1));
+    replayScrubber.value = String(clamped);
+  }
+  if (replayStepLabel) {
+    replayStepLabel.textContent = `STEP ${clamped + 1} / ${replaySteps.length}`;
+  }
+
+  const activeStep = replaySteps[clamped];
+  if (replayAgentBadge && activeStep) {
+    replayAgentBadge.textContent = `${activeStep.agent || 'DAEDALUS'} · ${activeStep.agentRole || 'ARCHITECT'}`;
+  }
+
+  chatMessages.innerHTML = '';
+  for (let i = 0; i <= clamped; i++) {
+    const s = replaySteps[i];
+    const bodyEl = addChatMessage(
+      s.role === 'user' ? 'user' : 'assistant',
+      s.text || '',
+      s.role === 'user' ? null : (s.agentRole || 'ARCHITECT'),
+      null,
+      s.timestamp,
+      s.role === 'assistant' ? { model: s.model || 'daedalus', toolCount: Array.isArray(s.tools) ? s.tools.length : 0 } : null
+    );
+    if (bodyEl) {
+      const msgEl = bodyEl.closest('.chat-msg');
+      if (msgEl && s.agent && s.role === 'assistant') {
+        const senderEl = msgEl.querySelector('.sender');
+        if (senderEl) senderEl.textContent = s.agent;
+      }
+      if (msgEl && i === clamped) {
+        msgEl.classList.add('replay-active-step');
+      }
+    }
+  }
+}
+
+async function openChronosReplay() {
+  stopReplayPlayback();
+  try {
+    const res = await fetch('/api/replay');
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data.steps) && data.steps.length > 0) {
+        replaySteps = data.steps;
+      }
+    }
+  } catch {}
+
+  if (!replaySteps || replaySteps.length === 0) {
+    const domMsgs = Array.from(document.querySelectorAll('#chat-messages .chat-msg'));
+    replaySteps = domMsgs.map((el, idx) => {
+      const isUser = el.classList.contains('user');
+      const body = el.querySelector('.msg-body');
+      const text = body ? (body.dataset.raw || body.textContent || '') : '';
+      return {
+        index: idx,
+        role: isUser ? 'user' : 'assistant',
+        agent: isUser ? 'USER' : 'DAEDALUS',
+        agentRole: isUser ? 'OPERATOR' : 'ARCHITECT',
+        text,
+        tools: [],
+      };
+    });
+  }
+
+  if (chronosBar) {
+    chronosBar.classList.remove('hidden');
+  }
+  if (chatStatusBadge) {
+    chatStatusBadge.textContent = 'CHRONOS REPLAY';
+  }
+  renderReplayUpTo(replaySteps.length - 1);
+  addLog(`⏳ Chronos Time Machine opened (${replaySteps.length} steps loaded).`);
+}
+
+function closeChronosReplay() {
+  stopReplayPlayback();
+  if (chronosBar) {
+    chronosBar.classList.add('hidden');
+  }
+  if (chatStatusBadge) {
+    chatStatusBadge.textContent = 'SANCTUM READY';
+  }
+  if (replaySteps.length > 0) {
+    renderReplayUpTo(replaySteps.length - 1);
+    document.querySelectorAll('.chat-msg.replay-active-step').forEach(el => el.classList.remove('replay-active-step'));
+  }
+}
+
+function startReplayPlayback() {
+  if (replaySteps.length === 0) return;
+  if (replayCurrentIndex >= replaySteps.length - 1) {
+    replayCurrentIndex = 0;
+    renderReplayUpTo(0);
+  }
+  if (replayPlayBtn) {
+    replayPlayBtn.textContent = '⏸';
+  }
+  const speed = replaySpeeds[replaySpeedIdx] || 1;
+  const intervalMs = Math.max(250, Math.round(1200 / speed));
+  replayTimer = setInterval(() => {
+    if (replayCurrentIndex < replaySteps.length - 1) {
+      renderReplayUpTo(replayCurrentIndex + 1);
+    } else {
+      stopReplayPlayback();
+    }
+  }, intervalMs);
+}
+
+if (replayToggleBtn) {
+  replayToggleBtn.addEventListener('click', () => {
+    if (chronosBar && !chronosBar.classList.contains('hidden')) {
+      closeChronosReplay();
+    } else {
+      openChronosReplay();
+    }
+  });
+}
+
+if (replayPrevBtn) {
+  replayPrevBtn.addEventListener('click', () => {
+    stopReplayPlayback();
+    renderReplayUpTo(replayCurrentIndex - 1);
+  });
+}
+
+if (replayNextBtn) {
+  replayNextBtn.addEventListener('click', () => {
+    stopReplayPlayback();
+    renderReplayUpTo(replayCurrentIndex + 1);
+  });
+}
+
+if (replayPlayBtn) {
+  replayPlayBtn.addEventListener('click', () => {
+    if (replayTimer) {
+      stopReplayPlayback();
+    } else {
+      startReplayPlayback();
+    }
+  });
+}
+
+if (replaySpeedBtn) {
+  replaySpeedBtn.addEventListener('click', () => {
+    replaySpeedIdx = (replaySpeedIdx + 1) % replaySpeeds.length;
+    const speed = replaySpeeds[replaySpeedIdx];
+    replaySpeedBtn.textContent = `${speed}x`;
+    if (replayTimer) {
+      stopReplayPlayback();
+      startReplayPlayback();
+    }
+  });
+}
+
+if (replayScrubber) {
+  replayScrubber.addEventListener('input', (e) => {
+    stopReplayPlayback();
+    const idx = parseInt(e.target.value, 10);
+    if (!isNaN(idx)) {
+      renderReplayUpTo(idx);
+    }
+  });
+}
+
+if (replayCloseBtn) {
+  replayCloseBtn.addEventListener('click', closeChronosReplay);
+}
+
 
 

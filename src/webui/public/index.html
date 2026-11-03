@@ -162,6 +162,9 @@
             </div>
             <div class="chat-badges">
               <span class="badge" id="chat-status-badge">SANCTUM READY</span>
+              <button type="button" id="replay-toggle-btn" class="chat-header-btn" title="Open Chronos Time Machine — Scrub &amp; replay session turns">
+                <svg class="oracle-icon-svg" style="width: 10px; height: 10px; display: inline-block; vertical-align: middle; margin-right: 3px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>TIME MACHINE
+              </button>
               <button type="button" id="new-chat-btn" class="chat-header-btn" title="Begin a new consultation / clear console">
                 <svg class="oracle-icon-svg" style="width: 10px; height: 10px; display: inline-block; vertical-align: middle; margin-right: 3px;" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.4 7.2h7.6l-6.1 4.5 2.3 7.3-6.2-4.6-6.2 4.6 2.3-7.3-6.1-4.5h7.6z"/></svg>NEW RITE
               </button>
@@ -174,6 +177,22 @@
                 <span class="badge-role">ARCHITECT</span>
               </div>
               <div class="msg-body">Companion Web Console active. You can consult with Daedalus or execute sacred rites like <code>/health</code>, <code>/models</code>, <code>/autopilot</code>, or <code>/marathon</code>.</div>
+            </div>
+          </div>
+          <div id="chronos-replay-bar" class="chronos-replay-bar hidden">
+            <div class="chronos-replay-controls">
+              <button type="button" id="replay-prev-btn" class="chronos-ctrl-btn" title="Previous Step">⏮</button>
+              <button type="button" id="replay-play-btn" class="chronos-ctrl-btn chronos-play-btn" title="Play / Pause Replay">▶</button>
+              <button type="button" id="replay-next-btn" class="chronos-ctrl-btn" title="Next Step">⏭</button>
+              <button type="button" id="replay-speed-btn" class="chronos-speed-btn" title="Toggle Playback Speed">1x</button>
+            </div>
+            <div class="chronos-scrubber-wrap">
+              <input type="range" id="replay-scrubber" class="chronos-scrubber" min="0" max="0" value="0" />
+            </div>
+            <div class="chronos-meta">
+              <span id="replay-step-label" class="chronos-step-label">STEP 0 / 0</span>
+              <span id="replay-agent-badge" class="chronos-agent-badge">DAEDALUS · ARCHITECT</span>
+              <button type="button" id="replay-close-btn" class="chronos-close-btn" title="Exit Time Machine Replay">×</button>
             </div>
           </div>
           <div id="attachment-preview" class="attachment-preview hidden"></div>

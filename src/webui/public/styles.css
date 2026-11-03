@@ -3108,3 +3108,92 @@ body {
   }
 }
 
+.chronos-replay-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  background: linear-gradient(90deg, rgba(11, 15, 25, 0.96), rgba(22, 28, 45, 0.96));
+  border-top: 1px solid var(--bronze-border-strong);
+  border-bottom: 1px solid var(--bronze-border);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.chronos-replay-bar.hidden {
+  display: none !important;
+}
+
+.chronos-replay-controls {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.chronos-ctrl-btn,
+.chronos-speed-btn,
+.chronos-close-btn {
+  background: rgba(229, 169, 60, 0.08);
+  border: 1px solid var(--bronze-border);
+  color: var(--gold-bright);
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.chronos-ctrl-btn:hover,
+.chronos-speed-btn:hover,
+.chronos-close-btn:hover {
+  background: rgba(229, 169, 60, 0.2);
+  border-color: var(--gold-bright);
+  box-shadow: 0 0 8px rgba(245, 195, 88, 0.25);
+}
+
+.chronos-scrubber-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.chronos-scrubber {
+  width: 100%;
+  accent-color: var(--gold-bright);
+  cursor: pointer;
+  height: 5px;
+}
+
+.chronos-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.chronos-step-label {
+  color: var(--text-parchment);
+  font-weight: 700;
+  font-size: 10.5px;
+}
+
+.chronos-agent-badge {
+  background: rgba(245, 195, 88, 0.14);
+  border: 1px solid var(--bronze-border-strong);
+  color: var(--gold-bright);
+  padding: 2px 7px;
+  border-radius: 3px;
+  font-family: var(--font-mythic);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.chat-msg.replay-active-step {
+  border-color: var(--gold-bright);
+  box-shadow: 0 0 14px rgba(245, 195, 88, 0.22);
+}
+
+

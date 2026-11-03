@@ -238,3 +238,12 @@ etwork).
 ### Model Routing & Selection
 * **GET /api/models** — Returns { activeModel: string, availableModels: ModelItem[] }.
 * **POST /api/models/switch** — Switches active routing engine { model: string }.
+
+
+## Chronos Time Machine (Session Replay)
+
+Click **TIME MACHINE** in the Communication Console header, or **REPLAY** on any session in the Chronicles tab, to scrub through a session one turn at a time.
+
+- **Controls:** previous / play-pause / next, playback speed (1x, 2x, 4x), and a draggable timeline scrubber
+- **Agent attribution:** each step is labeled with the agent that handled it (Themis, Metis, Hephaestus, Asclepius, Apollo, Mnemosyne), based on the content and tools used in that turn
+- **API:** `GET /api/replay` returns `{ steps, total }`, where each step has `index`, `role`, `agent`, `agentRole`, `text`, `tools`, `model`, and `timestamp`

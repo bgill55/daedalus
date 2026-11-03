@@ -61,9 +61,25 @@ For full guides, configuration reference, and examples, visit the documentation 
 
 ## Quick Start
 
+**NPM (Cross-Platform):**
 ```bash
 npm install -g daedalus-cli
 daedalus
+```
+
+**macOS / Linux (One-Line Installer):**
+```bash
+curl -fsSL https://raw.githubusercontent.com/bgill55/daedalus/main/install.sh | bash
+```
+
+**Windows PowerShell (One-Line Installer):**
+```powershell
+irm https://raw.githubusercontent.com/bgill55/daedalus/main/install.ps1 | iex
+```
+
+**Homebrew (macOS / Linux):**
+```bash
+brew install --formula https://raw.githubusercontent.com/bgill55/daedalus/main/packaging/homebrew/daedalus.rb
 ```
 
 To launch with the interactive terminal dashboard layout:

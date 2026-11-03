@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { TelemetryData } from '../types.js';
-import type { WebuiChatMessageEvent, WebuiChatRequest, FileNode, GitFileChange, GitStatusResponse, GitDiffResponse } from './types.js';
+import type { WebuiChatMessageEvent, WebuiChatRequest, FileNode, GitFileChange, GitStatusResponse, GitDiffResponse, ReplayStep } from './types.js';
 import { loadProfile } from '../profile.js';
 import { generateQrCode, getWebPairingUrl } from './qr.js';
 import { startWebSocketServer, broadcastMilestone, closeWebSocketServer } from './ws.js';
@@ -92,7 +92,74 @@ export function setTelemetryRate(ms: number): number {
   return telemetryIntervalMs;
 }
 
-export type HistoryProvider = () => Array<{ role: string; text: string; model?: string; timestamp?: number }>;
+export type HistoryProvider = () => Array<{ role: string; text: string; model?: string; timestamp?: number; tools?: string[] }>;
+
+export function classifyReplayStep(
+  item: { role: string; text: string; model?: string; timestamp?: number; tools?: string[] },
+  index: number
+): ReplayStep {
+  const tools = item.tools || [];
+  if (item.role === 'user') {
+    return {
+      index,
+      role: 'user',
+      agent: 'USER',
+      agentRole: 'OPERATOR',
+      text: item.text,
+      tools,
+      model: item.model,
+      timestamp: item.timestamp,
+    };
+  }
+
+  const lower = item.text.toLowerCase();
+  const toolSet = new Set(tools.map(t => t.toLowerCase()));
+  let agent = 'DAEDALUS';
+  let agentRole = 'ARCHITECT';
+
+  if (lower.includes('themis') || lower.includes('[specfirst]') || lower.includes('spec.json')) {
+    agent = 'THEMIS';
+    agentRole = 'SPEC ARCHITECT';
+  } else if (lower.includes('metis') || lower.includes('milestone dag') || lower.includes('execution plan')) {
+    agent = 'METIS';
+    agentRole = 'PLANNER';
+  } else if (lower.includes('apollo') || lower.includes('[self-review]') || lower.includes('audit report') || lower.includes('verdict:')) {
+    agent = 'APOLLO';
+    agentRole = 'REVIEWER';
+  } else if (lower.includes('asclepius') || lower.includes('[verify]') || lower.includes('repair pass') || lower.includes('rollback')) {
+    agent = 'ASCLEPIUS';
+    agentRole = 'DEBUGGER';
+  } else if (
+    lower.includes('hephaestus') ||
+    toolSet.has('patch_file') ||
+    toolSet.has('write_file') ||
+    lower.includes('```diff') ||
+    lower.includes('```ts') ||
+    lower.includes('```js')
+  ) {
+    agent = 'HEPHAESTUS';
+    agentRole = 'CODER';
+  } else if (
+    lower.includes('mnemosyne') ||
+    toolSet.has('search_files') ||
+    toolSet.has('read_file') ||
+    toolSet.has('find_symbol')
+  ) {
+    agent = 'MNEMOSYNE';
+    agentRole = 'RESEARCHER';
+  }
+
+  return {
+    index,
+    role: item.role,
+    agent,
+    agentRole,
+    text: item.text,
+    tools,
+    model: item.model,
+    timestamp: item.timestamp,
+  };
+}
 export type ContextFilesProvider = {
   getFiles: () => string[];
   removeFile: (file: string) => boolean;
@@ -402,6 +469,14 @@ export function handleRequest(req: IncomingMessage, res: ServerResponse): void {
       const history = activeHistoryProvider ? activeHistoryProvider() : [];
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ history }));
+      return;
+    }
+
+    if (req.method === 'GET' && pathname === '/api/replay') {
+      const history = activeHistoryProvider ? activeHistoryProvider() : [];
+      const steps = history.map((item, idx) => classifyReplayStep(item, idx));
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ steps, total: steps.length }));
       return;
     }
 

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { IncomingMessage, ServerResponse } from 'node:http';
 import fs from 'node:fs';
-import { handleRequest, server, getTelemetryRate, setTelemetryRate, registerHistoryProvider, registerContextFilesProvider, registerSessionProvider, registerModelProvider } from './server.js';
+import { handleRequest, server, getTelemetryRate, setTelemetryRate, registerHistoryProvider, registerContextFilesProvider, registerSessionProvider, registerModelProvider, classifyReplayStep } from './server.js';
 import type { TelemetryData } from '../types.js';
 
 vi.mock('node:fs');
@@ -619,6 +619,38 @@ describe('WebUI Server', () => {
       expect(endSpy).toHaveBeenCalled();
       const responseBody = JSON.parse(endSpy.mock.calls[0][0]);
       expect(responseBody.error).toBe('Disk read error');
+    });
+  });
+
+  describe('GET /api/replay & classifyReplayStep (Chronos Time Machine)', () => {
+    it('classifies divine agents accurately from history steps', () => {
+      expect(classifyReplayStep({ role: 'user', text: 'build feature' }, 0).agent).toBe('USER');
+      expect(classifyReplayStep({ role: 'assistant', text: '[SpecFirst] Created spec.json contract' }, 1).agent).toBe('THEMIS');
+      expect(classifyReplayStep({ role: 'assistant', text: 'Generated milestone DAG execution plan' }, 2).agent).toBe('METIS');
+      expect(classifyReplayStep({ role: 'assistant', text: 'Patched file', tools: ['patch_file'] }, 3).agent).toBe('HEPHAESTUS');
+      expect(classifyReplayStep({ role: 'assistant', text: '[VERIFY] Running repair pass after failure' }, 4).agent).toBe('ASCLEPIUS');
+      expect(classifyReplayStep({ role: 'assistant', text: '[SELF-REVIEW] Audit report Verdict: PASS' }, 5).agent).toBe('APOLLO');
+      expect(classifyReplayStep({ role: 'assistant', text: 'Searching codebase', tools: ['search_files'] }, 6).agent).toBe('MNEMOSYNE');
+    });
+
+    it('returns structured replay steps from GET /api/replay', () => {
+      registerHistoryProvider(() => [
+        { role: 'user', text: 'Add Chronos replay', timestamp: 1000 },
+        { role: 'assistant', text: '[SpecFirst] Spec contract ready', model: 'gemini', timestamp: 2000 },
+        { role: 'assistant', text: 'Applied patch', tools: ['patch_file'], model: 'gemini', timestamp: 3000 },
+      ]);
+      mockReq.url = '/api/replay';
+      mockReq.method = 'GET';
+
+      handleRequest(mockReq as IncomingMessage, mockRes as ServerResponse);
+
+      expect(writeHeadSpy).toHaveBeenCalledWith(200, { 'Content-Type': 'application/json' });
+      const body = JSON.parse(endSpy.mock.calls[0][0]);
+      expect(body.total).toBe(3);
+      expect(body.steps[0].agent).toBe('USER');
+      expect(body.steps[1].agent).toBe('THEMIS');
+      expect(body.steps[2].agent).toBe('HEPHAESTUS');
+      registerHistoryProvider(null);
     });
   });
 });
