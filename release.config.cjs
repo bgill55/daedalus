@@ -7,12 +7,7 @@ module.exports = {
     '@semantic-release/commit-analyzer',
     '@semantic-release/release-notes-generator',
     '@semantic-release/changelog',
-    [
-      '@semantic-release/npm',
-      {
-        npmPublish: false
-      }
-    ],
+    '@semantic-release/npm',
     [
       '@semantic-release/git',
       {
@@ -24,7 +19,6 @@ module.exports = {
     [
       '@semantic-release/exec',
       {
-        publishCmd: 'npm publish --access public',
         successCmd: 'node ./src/discord/announceRelease.js --tag ${nextRelease.gitTag} --title "Daedalus Release ${nextRelease.gitTag}" --url "https://github.com/bgill55/daedalus/releases/tag/${nextRelease.gitTag}"'
       }
     ]
