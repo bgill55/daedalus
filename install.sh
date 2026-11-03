@@ -68,9 +68,14 @@ info "Installing ${PACKAGE_SPEC} via npm..."
 if npm install -g "${PACKAGE_SPEC}"; then
   ok "Successfully installed ${PACKAGE_SPEC}."
 else
-  warn "Global install required elevated permissions or custom prefix. Retrying with sudo..."
-  sudo npm install -g "${PACKAGE_SPEC}"
-  ok "Successfully installed ${PACKAGE_SPEC} with sudo."
+  if command -v sudo >/dev/null 2>&1; then
+    warn "Global install required elevated permissions or custom prefix. Retrying with sudo..."
+    sudo npm install -g "${PACKAGE_SPEC}"
+    ok "Successfully installed ${PACKAGE_SPEC} with sudo."
+  else
+    err "Global install failed and sudo is not available. Please run with elevated permissions."
+    exit 1
+  fi
 fi
 
 if command -v daedalus >/dev/null 2>&1; then
