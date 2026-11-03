@@ -4,6 +4,20 @@
 ### Bug Fixes
 
 * **ci:** set release node-version to 22 for npm oidc publishing ([aaf3685](https://github.com/bgill55/daedalus/commit/aaf3685689227aa9f56f503d416d552c0cdadb8f))
+* **ci:** upgrade npm to latest for oidc trusted publishing support ([3d0e1fd](https://github.com/bgill55/daedalus/commit/3d0e1fda807559988eb31d7aa503d0e07080f27a))
+
+
+### Features
+
+* **ci:** switch release workflow to pure npm trusted publishing ([5227b9c](https://github.com/bgill55/daedalus/commit/5227b9cc024251ca2c6c8dd11f8697ad9733d2f2))
+* **install:** add sudo fallback check for containerized environments ([2c69f8a](https://github.com/bgill55/daedalus/commit/2c69f8a568c3c0bfd95c93633b8d79e1d8174931))
+
+# [3.84.0](https://github.com/bgill55/daedalus/compare/v3.83.0...v3.84.0) (2026-11-03)
+
+
+### Bug Fixes
+
+* **ci:** set release node-version to 22 for npm oidc publishing ([aaf3685](https://github.com/bgill55/daedalus/commit/aaf3685689227aa9f56f503d416d552c0cdadb8f))
 
 
 ### Features
