@@ -1,3 +1,10 @@
+# [3.85.0](https://github.com/bgill55/daedalus/compare/v3.84.1...v3.85.0) (2026-11-03)
+
+
+### Features
+
+* **skills:** add stable_audio_3 trigger and punch word color tags to clip-pipeline ([4c5d273](https://github.com/bgill55/daedalus/commit/4c5d273ecf59b6e1316f6251d891ccfaffc6d024))
+
 ## [3.84.1](https://github.com/bgill55/daedalus/compare/v3.84.0...v3.84.1) (2026-11-03)
 
 
